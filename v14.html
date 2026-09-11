@@ -1996,26 +1996,20 @@
            V5 核心升級: 運動排印、裁判浮動廣播、手機直向提示與安全區域
            ══════════════════════════════════════════════════════════════ */
 
-        /* 裁判即時浮動廣播膠囊 (HUD Floating Capsule) */
+        /* 裁判即時浮動廣播膠囊 (4 種優化展示模式支援) */
         #referee-announcement {
             position: absolute;
-            top: 24px;
             left: 50%;
-            transform: translateX(-50%) translateY(-22px);
+            transform: translateX(-50%) translateY(-14px);
             opacity: 0;
             pointer-events: none;
             z-index: 160;
             display: flex;
-            flex-direction: column;
             align-items: center;
             justify-content: center;
-            background: rgba(15, 23, 42, 0.92);
-            border: 1.5px solid rgba(211, 243, 108, 0.65);
-            box-shadow: 0 12px 36px rgba(0, 0, 0, 0.6), 0 0 24px rgba(211, 243, 108, 0.25);
-            border-radius: 30px;
-            padding: 9px 26px;
-            backdrop-filter: blur(14px);
-            transition: opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1), transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            transition: opacity 0.22s cubic-bezier(0.16, 1, 0.3, 1), transform 0.24s cubic-bezier(0.16, 1, 0.3, 1);
             max-width: 92vw;
             white-space: nowrap;
         }
@@ -2023,24 +2017,95 @@
             opacity: 1;
             transform: translateX(-50%) translateY(0);
         }
+
+        /* ── 方案 1: 電視轉播條 (預設推薦: 位於頂部功能列下方 top: 102px，3D天空無人區) ── */
+        #referee-announcement.mode-1, #referee-announcement:not([class*="mode-"]) {
+            top: calc(100px + env(safe-area-inset-top));
+            bottom: auto;
+            flex-direction: row;
+            gap: 10px;
+            padding: 7px 20px;
+            border-radius: 99px;
+            background: rgba(15, 23, 42, 0.90);
+            border: 1.5px solid rgba(211, 243, 108, 0.7);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6), 0 0 20px rgba(211, 243, 108, 0.3);
+        }
+        #referee-announcement.mode-1 #ref-title, #referee-announcement:not([class*="mode-"]) #ref-title {
+            font-size: 15px;
+            font-weight: 900;
+        }
+        #referee-announcement.mode-1 #ref-detail, #referee-announcement:not([class*="mode-"]) #ref-detail {
+            font-size: 11.5px;
+            margin-top: 0;
+            color: #cbd5e1;
+        }
+
+        /* ── 方案 2: 球員戰況提示 (位於主角 Steve 頭頂上方 bottom: 130px) ── */
+        #referee-announcement.mode-2 {
+            top: auto;
+            bottom: calc(130px + env(safe-area-inset-bottom));
+            flex-direction: column;
+            padding: 8px 22px;
+            border-radius: 18px;
+            background: rgba(15, 23, 42, 0.95);
+            border: 2px solid #fbbf24;
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.7), 0 0 24px rgba(251, 191, 36, 0.5);
+        }
+        #referee-announcement.mode-2 #ref-title {
+            font-size: 16px;
+            color: #fbbf24;
+        }
+        #referee-announcement.mode-2 #ref-detail {
+            font-size: 11px;
+            margin-top: 2px;
+            color: #fef08a;
+        }
+
+        /* ── 方案 3: 極簡靈動島 (位於最頂部瀏海下方 top: 6px，24px 超細膠囊) ── */
+        #referee-announcement.mode-3 {
+            top: calc(6px + env(safe-area-inset-top));
+            bottom: auto;
+            flex-direction: row;
+            gap: 6px;
+            padding: 3px 14px;
+            border-radius: 99px;
+            background: rgba(0, 0, 0, 0.96);
+            border: 1.5px solid rgba(192, 132, 252, 0.85);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.8);
+        }
+        #referee-announcement.mode-3 #ref-title {
+            font-size: 12.5px;
+            color: #e9d5ff;
+        }
+        #referee-announcement.mode-3 #ref-detail {
+            font-size: 10px;
+            color: #c084fc;
+            margin-top: 0;
+        }
+
+        /* ── 方案 4: 3D 現場投影 (2D 隱藏，由 3D 大螢幕承擔) ── */
+        #referee-announcement.mode-4 {
+            display: none !important;
+        }
+
         #referee-announcement.fault {
-            border-color: rgba(248, 113, 113, 0.85);
-            box-shadow: 0 12px 36px rgba(0, 0, 0, 0.6), 0 0 24px rgba(248, 113, 113, 0.35);
+            border-color: rgba(248, 113, 113, 0.85) !important;
+            box-shadow: 0 12px 36px rgba(0, 0, 0, 0.6), 0 0 24px rgba(248, 113, 113, 0.35) !important;
         }
         #ref-title {
             font-family: var(--font-display);
-            font-size: 24px;
+            font-size: 16px;
             font-weight: 800;
             letter-spacing: 0.6px;
             color: var(--lime);
             text-transform: uppercase;
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 6px;
             line-height: 1.1;
         }
         #referee-announcement.fault #ref-title {
-            color: var(--bad);
+            color: var(--bad) !important;
         }
         #ref-detail {
             font-size: 12px;
@@ -3507,6 +3572,7 @@
                 <button onclick="enterCamEdit()" style="color:var(--accent);">🎨 自訂視角</button>
                 <button onclick="openAudioModal()">🎶 音效語音</button>
                 <button onclick="cycleCardScaleQuick()" style="color:var(--cool);">📐 卡片縮放 (<span id="quick-scale-lbl">100%</span>)</button>
+                <button onclick="cycleRefereeModeQuick()" style="color:var(--lime);">📢 轉播樣式 (<span id="ref-mode-lbl">1.電視轉播條</span>)</button>
                 <button onclick="resetCardScales()" style="color:var(--dim);">🔄 重置尺寸</button>
                 <button onclick="openRulesModal()" style="color:var(--lime);">📖 競賽手冊</button>
                 <button onclick="showFingerTutorial()" style="color:var(--ok);">👆 揮拍教學</button>
@@ -5240,17 +5306,47 @@
         }
 
         let refT = null;
+        let refereeMode = parseInt(localStorage.getItem('nchu_referee_mode') || '1');
+        const REFEREE_MODES = {
+            1: '1.電視轉播條',
+            2: '2.球員戰報',
+            3: '3.極簡靈動島',
+            4: '4.3D現場投影'
+        };
+
+        function setRefereeMode(mode, save) {
+            refereeMode = parseInt(mode) || 1;
+            if (save) localStorage.setItem('nchu_referee_mode', refereeMode.toString());
+            const lbl = document.getElementById('ref-mode-lbl');
+            if (lbl && REFEREE_MODES[refereeMode]) lbl.innerText = REFEREE_MODES[refereeMode];
+            const el = document.getElementById('referee-announcement');
+            if (el) {
+                el.classList.remove('mode-1', 'mode-2', 'mode-3', 'mode-4');
+                el.classList.add('mode-' + refereeMode);
+            }
+        }
+
+        function cycleRefereeModeQuick() {
+            const next = (refereeMode % 4) + 1;
+            setRefereeMode(next, true);
+            toast('🎾 開始揮拍！', `轉播樣式已切換：${REFEREE_MODES[next]}`);
+        }
+
         function announceReferee(title, detail, isFault) {
             const el = document.getElementById('referee-announcement');
             const tEl = document.getElementById('ref-title');
             const dEl = document.getElementById('ref-detail');
             if (!el || !tEl) return;
+
+            el.classList.remove('mode-1', 'mode-2', 'mode-3', 'mode-4');
+            el.classList.add('mode-' + refereeMode);
+
             tEl.innerHTML = title;
             if (dEl) dEl.innerText = detail || '';
             if (isFault) el.classList.add('fault'); else el.classList.remove('fault');
             el.classList.add('show');
             if (refT) clearTimeout(refT);
-            refT = setTimeout(() => el.classList.remove('show'), 2400);
+            refT = setTimeout(() => el.classList.remove('show'), 2200);
         }
 
         /* ═══════ 示範 ═══════ */
@@ -5676,6 +5772,11 @@
             const scaleLbl = document.getElementById('quick-scale-lbl');
             if (scaleLbl && typeof cardScales !== 'undefined') {
                 scaleLbl.innerText = `${Math.round((cardScales.info || 1.0) * 100)}%`;
+            }
+            // 同步轉播樣式標籤
+            const refLbl = document.getElementById('ref-mode-lbl');
+            if (refLbl && typeof REFEREE_MODES !== 'undefined' && REFEREE_MODES[refereeMode]) {
+                refLbl.innerText = REFEREE_MODES[refereeMode];
             }
         }
 
