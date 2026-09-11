@@ -3736,6 +3736,66 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
                                     • <b>運動學效果</b>：保證匹克球的弧線是「平穩收斂的微側弧線（0.15m~0.22m）」，絕不會像乒乓球那樣飄移暴衝，手腕極度受控安全。
                                 </div>
                             </div>
+
+                            <!-- 核心答辯對照：理論模型 vs 遊戲引擎真實工程實作 -->
+                            <div style="background:linear-gradient(135deg, rgba(234,179,8,0.12), rgba(15,23,42,0.85));border:1.5px solid rgba(234,179,8,0.4);border-radius:10px;padding:14px 16px;margin-top:6px;">
+                                <div style="font-weight:900;color:#facc15;font-size:14px;display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+                                    <span>⚙️【工程答辯精髓】理論連續微分方程 vs. 程式碼真實工程實作：為什麼不能直接照搬原始公式？</span>
+                                </div>
+                                <p style="font-size:12px;color:#e2e8f0;line-height:1.7;margin-bottom:10px;">
+                                    很多評審教授會提問：<i>「既然列了 Navier-Stokes 與馬格努斯微分方程，為何遊戲引擎原始碼不直接每幀做未受約束的連續積分？」</i><br>
+                                    這正是<b>頂尖即時圖形學與物理引擎工程（如 Havok / PhysX）的核心權衡：數值穩定性（Numerical Stability）與誤差放大防護（Error Accumulation Prevention）</b>。
+                                </p>
+                                
+                                <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(280px, 1fr));gap:10px;">
+                                    <!-- 對照 1 -->
+                                    <div style="background:rgba(0,0,0,0.4);border:1px solid rgba(255,255,255,0.08);border-radius:6px;padding:10px;">
+                                        <div style="font-weight:800;color:#38bdf8;font-size:12px;margin-bottom:4px;">
+                                            ❌ 連續方程直接求解的致命缺陷 (數值發散)
+                                        </div>
+                                        <div style="font-size:11.5px;color:#94a3b8;line-height:1.6;">
+                                            • <b>浮點截斷誤差逐幀放大</b>：空氣阻力與速度呈二次方關係（|v|·v）。在手機端浮點數運算中，微小誤差經過二次方迭代，數值損失會呈指數級放大，極易造成能量暴增或發散。<br>
+                                            • <b>角動量離散步長奇異點</b>：當球體碰撞球拍或地面瞬態，角速度導數 dω/dt 趨近無窮大，連續積分器會因時間步長無法適配而瞬間崩潰或產生「地面溜冰」。
+                                        </div>
+                                    </div>
+
+                                    <!-- 對照 2 -->
+                                    <div style="background:rgba(0,0,0,0.4);border:1px solid rgba(34,197,94,0.3);border-radius:6px;padding:10px;">
+                                        <div style="font-weight:800;color:#4ade80;font-size:12px;margin-bottom:4px;">
+                                            ✅ 本專案 step(h) 真實工程防護實作 (寫死約束保證穩定)
+                                        </div>
+                                        <div style="font-size:11.5px;color:#cbd5e1;line-height:1.6;">
+                                            • <b>固定微子步長 (Sub-stepping)</b>：底層採用 <code>H = 1/240 s</code> 微積分步長（每幀最多拆分 30 步子步迭代），保證 60fps 運動軌跡絕對確定性 (Deterministic)。<br>
+                                            • <b>阻力線性化離散阻尼</b>：原始碼採用 <code>vel.x *= (1 - 0.12 * h)</code>，取代易發散的 |v|² 非線性項，保證高速破空且能量平穩收斂。
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- 原始碼具體對照卡 -->
+                                <div style="margin-top:10px;background:rgba(15,23,42,0.8);border:1px solid rgba(234,179,8,0.25);border-radius:6px;padding:10px 12px;">
+                                    <div style="font-weight:800;color:#fcd34d;font-size:12px;margin-bottom:6px;">
+                                        💻 原始碼三大寫死物理防護機制（摘自本程式 <code>step(h)</code> 5400-5440 行）：
+                                    </div>
+                                    <div style="display:flex;flex-direction:column;gap:6px;font-size:11.5px;color:#cbd5e1;line-height:1.6;">
+                                        <div>
+                                            <b>1. 旋球死區截斷 (Deadzone Clamping)</b>：<br>
+                                            <code>if (Math.abs(this.spin) > 0.08) { ... } else { this.spinInc = 0; }</code><br>
+                                            <span style="color:#94a3b8;">▸ 解決浮點計算常態偏漂問題。若自旋值在 0.08 閾值內判定為平推直球，硬性歸零偏折，保證直球 100% 筆直。</span>
+                                        </div>
+                                        <div>
+                                            <b>2. 馬格努斯加速度經驗公式與邊界夾制 (Bounding)</b>：<br>
+                                            <code>magnusAcc = (spin * 2.8 + sign(spin) * spin² * 1.2) * (0.8 + 0.5 * factor);</code><br>
+                                            <code>this.spinInc = THREE.MathUtils.clamp(this.spinInc + magnusAcc * h * softGuard, -2.2, 2.2);</code><br>
+                                            <span style="color:#94a3b8;">▸ 結合自旋平方非線性增益與中線飛行權重因子，並以 [-2.2, 2.2] 剛性夾制，確保最大側偏位移永遠收斂在真實賽場極限（0.15m~0.22m），絕不無端暴衝出場。</span>
+                                        </div>
+                                        <div>
+                                            <b>3. 落地瞬時自旋耗散與滑動重置 (Bounce State Reset)</b>：<br>
+                                            <code>this.spin *= 0.35;  this.spinInc = 0;</code><br>
+                                            <span style="color:#94a3b8;">▸ 匹克球為實心多孔塑料，撞地瞬間自旋驟降。若繼續求解微分方程，地面摩擦數值會累積橫向假位移；因此落地瞬間將側向滑動速度硬性歸零，徹底杜絕「地面溜冰」怪異現象。</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -3760,6 +3820,9 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
                             </div>
                             <div class="citation-item">
                                 <b>[5] NASA Glenn Research Center (2023).</b> <i>The Beginner’s Guide to Aeronautics: Ideal Fluid Flow & The Magnus Effect on Spheres.</i> NASA Educational Technology Series. <span style="color:var(--dim);">（美國國家航空暨太空總署空氣動力學科普專題庫）</span>
+                            </div>
+                            <div class="citation-item">
+                                <b>[6] Press, W. H., Teukolsky, S. A., Vetterling, W. T., & Flannery, B. P. (2007).</b> <i>Numerical Recipes: The Art of Scientific Computing (3rd ed.).</i> Cambridge University Press. <span style="color:var(--dim);">（數值計算經典，詳解微分方程離散化截斷誤差累積與剛性物理常微分方程數值穩定性）</span>
                             </div>
                         </div>
                     </div>
