@@ -5063,19 +5063,19 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
                 const pz = this.pos.z;
                 this.vel.y -= GRAVITY * h;
 
-                // ★ 簡化直覺的馬格努斯效應 (左滑往左飛、右滑往右飛、滑太多噴出去、直推100%筆直零偏漂)
+                // ★ 寶可夢 GO 曲球側向力 (柔和、滑順、直推100%筆直、灰很多才拐彎、灰太大噴出界)
                 if (Math.abs(this.spin) > 0.05) {
                     const curveFlightFactor = Math.sin(Math.min(1, Math.abs(this.pos.z) / HALF_L) * Math.PI);
-                    // 馬格努斯側向加速度：與 spin 呈線性增益，過網中線達到最大弧度 (不設 artificial softGuard，滑太多會噴出界)
-                    const magnusAcc = this.spin * 9.5 * (0.85 + 0.45 * curveFlightFactor);
+                    // 側向加速度：溫和適中 (4.5 m/s²)，滑順圓潤，絕不劇烈暴衝亂漂
+                    const magnusAcc = this.spin * 4.5 * (0.85 + 0.45 * curveFlightFactor);
                     this.vel.x += magnusAcc * h;
-                    this.spin *= (1 - 0.20 * h); // 飛行中平穩微幅衰減
+                    this.spin *= (1 - 0.16 * h); // 飛行中平穩溫和衰減
                 }
                 this.spinInc = 0;
 
-                // 自然空氣阻尼 (穩定線性衰減，杜絕隨意亂漂)
-                this.vel.x *= (1 - 0.10 * h);
-                this.vel.z *= (1 - 0.10 * h);
+                // 自然空氣阻尼 (穩定線性衰減)
+                this.vel.x *= (1 - 0.09 * h);
+                this.vel.z *= (1 - 0.09 * h);
 
                 this.pos.addScaledVector(this.vel, h);
                 if (pz !== this.pos.z && pz * this.pos.z <= 0) {
@@ -8535,25 +8535,43 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
          * - 手指往左滑: 回傳負值 (球往左飛，空中劃向左側)
          * - 滑動太猛 / 刻意滑太多: 回傳超過 1.3~1.6 (球在空中強烈拐彎直接噴出界外，達成失誤判定!)
          */
+        /**
+         * ★ 寶可夢 GO 精靈球曲球機制 (Pokémon GO Curveball Throw Mechanics):
+         * 1. 直球高容寬 (Straight Throw Tolerance):
+         *    - 玩家正常向前推球時 (即便手指出手稍微歪 15~20 度，橫向位移 < 45px 且峰值橫速 < 220px/s)
+         *    - 判定為純直球 (Curve = 0)，100% 筆直向前飛行，零偏漂、零誤觸！
+         * 2. 刻意甩弧曲球 ("灰很多才觸發" / Curveball Spin):
+         *    - 手指刻意往側邊大角度劃弧或側切刷拍 (橫向位移 >= 45px 或 速度 >= 220px/s)
+         *    - 超出門檻後才開始平滑累積自旋量 (0.28 ~ 0.95)，球體發出星芒流光，空中劃出滑順圓潤的香蕉弧線！
+         * 3. 灰太多噴出去 (Excessive Whipping / Spray Out of Bounds):
+         *    - 橫向滑動過猛 (自旋 > 1.35)，弧線過大整顆球直接飛出球場邊線界外！
+         */
         function getSwipeCurve() {
             if (webcamActive) {
-                return THREE.MathUtils.clamp((RIGHT.padXFree || 0) * 0.9, -1.3, 1.3);
+                return THREE.MathUtils.clamp((RIGHT.padXFree || 0) * 0.7, -1.2, 1.2);
             }
-            const distX = SWIPE.distX;   // 橫向滑動距離 (px, 右正左負)
+            const distX = SWIPE.distX;   // 橫向位移 (px, 右正左負)
             const peakVx = SWIPE.peakVx; // 橫向瞬態峰值速度 (px/s, 右正左負)
 
-            // 直線推球死區 (橫向位移 < 18px 且速度 < 70px/s)
-            if (Math.abs(distX) < 18 && Math.abs(peakVx) < 70) {
+            // ① 寶可夢直球高寬容度死區：一般向前推球絕不誤觸曲球
+            if (Math.abs(distX) < 45 && Math.abs(peakVx) < 220) {
                 return 0;
             }
 
-            // 綜合位移與速度：普通切刷約 0.4~0.8，大幅滑動約 0.9~1.2，過猛滑動 > 1.35 (噴出去)
-            const distRatio = distX / 65;
-            const speedRatio = peakVx / 420;
-            const curve = distRatio * 0.60 + speedRatio * 0.40;
+            // ② 方向判定
+            const dir = (Math.abs(distX) > 15) ? Math.sign(distX) : Math.sign(peakVx);
+            if (!dir) return 0;
 
-            // 上限設為 1.8，確保滑太多時球絕對會噴出球場邊線！
-            return THREE.MathUtils.clamp(curve, -1.8, 1.8);
+            // ③ 扣除寬容死區，計算超出門檻的「灰很多」純自旋量
+            const excessDist = Math.max(0, Math.abs(distX) - 45);
+            const excessSpeed = Math.max(0, Math.abs(peakVx) - 220);
+            const curveAmount = (excessDist / 65) * 0.60 + (excessSpeed / 380) * 0.40;
+
+            // 微弱超標仍視為手指微抖，不啟動曲球
+            if (curveAmount < 0.12) return 0;
+
+            // ④ 寶可夢曲球自旋係數：普通曲球 0.30~0.75，大幅曲球 0.85~1.2，灰太多 > 1.35 (噴出去)
+            return dir * THREE.MathUtils.clamp(curveAmount, 0.28, 1.8);
         }
 
         function serveTarget(p) {
@@ -8565,8 +8583,8 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
                 // ★ 基準鎖定合法對角發球區 (diagSign * COURT_W/4)
                 const baseBoxX = diagSign() * (COURT_W / 4);
                 const curve = getSwipeCurve();
-                // 瞄準點隨滑動微調，滑太多直接飛出邊界
-                serveTgt.x = baseBoxX + curve * 0.50;
+                // 瞄準點微調：直球精確指向中心；曲球微調指向；灰太多直接飛出邊界
+                serveTgt.x = baseBoxX + curve * 0.35;
             }
             return serveTgt;
         }
@@ -8599,13 +8617,13 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
             serveFromRight = pPos.x >= 0;
             serveVel(p, PH.vel); S.pop(p / 100);
 
-            // ★ 簡化直覺發球自旋 (左滑往左飛、右滑往右飛、滑太多噴出界)
+            // ★ 寶可夢 GO 曲球發球自旋
             const serveSpin = getSwipeCurve();
             PH.spin = serveSpin; PH.spinInc = 0;
 
             if (Math.abs(serveSpin) >= 0.25) {
-                const spinSideTxt = serveSpin > 0 ? '🌪️ 右側旋香蕉發球 (RIGHT CURVE)' : '🌪️ 左側旋香蕉發球 (LEFT CURVE)';
-                announceReferee(spinSideTxt, Math.abs(serveSpin) > 1.25 ? '⚠️ 滑動過猛，球可能噴出界外！' : '香蕉側旋弧線已觸發', false);
+                const spinSideTxt = serveSpin > 0 ? '⭐ 寶可夢式右曲球 (RIGHT CURVE)' : '⭐ 寶可夢式左曲球 (LEFT CURVE)';
+                announceReferee(spinSideTxt, Math.abs(serveSpin) > 1.25 ? '⚠️ 甩球過猛，球噴出界外！' : '精準曲球已觸發', false);
             }
 
             popRing(PH.pos.x, PH.pos.z, 1.2, 0xffc857);
@@ -8673,7 +8691,7 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
             }
             swingT = 0;
 
-            // ★ 簡化直覺落點與自旋 (左滑往左、右滑往右、滑太多噴出去、直推100%筆直零偏漂)
+            // ★ 簡化直覺落點與自旋 (寶可夢 GO 曲球機制)
             let tx = 0, spin = 0;
             if (webcamActive) {
                 const aimZoneX = aimTargetX();
@@ -8682,16 +8700,16 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
                 spin = getSwipeCurve();
             } else {
                 spin = getSwipeCurve();
-                // 初速瞄準微調 (spin * 0.45)，不加 paddle 雜訊，滑太多時初速與弧線一同噴向界外！
-                tx = spin * 0.45;
+                // 初速瞄準微調：直球 tx=0 筆直向前；曲球微調指向；灰太大時初速與弧線一同噴向界外
+                tx = spin * 0.28;
             }
 
             PH.spin = spin; PH.spinInc = 0;
 
             // 側旋切球裁判廣播
             if (Math.abs(spin) >= 0.25) {
-                const spinSideTxt = spin > 0 ? '🌪️ 右側旋香蕉弧線 (RIGHT CURVE)' : '🌪️ 左側旋香蕉弧線 (LEFT CURVE)';
-                announceReferee(spinSideTxt, Math.abs(spin) > 1.25 ? '⚠️ 滑動過猛，球可能噴出界外！' : '香蕉側旋弧線已觸發', false);
+                const spinSideTxt = spin > 0 ? '⭐ 寶可夢式右曲球 (RIGHT CURVE)' : '⭐ 寶可夢式左曲球 (LEFT CURVE)';
+                announceReferee(spinSideTxt, Math.abs(spin) > 1.25 ? '⚠️ 甩球過猛，球噴出界外！' : '精準曲球已觸發', false);
             }
 
             // ★ v5.0.2 依力道連續階梯計算落點與動態初速 (solveArc 速度縮放)

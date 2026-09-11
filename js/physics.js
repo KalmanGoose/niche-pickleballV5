@@ -73,19 +73,19 @@
                 const pz = this.pos.z;
                 this.vel.y -= GRAVITY * h;
 
-                // ★ 簡化直覺的馬格努斯效應 (左滑往左飛、右滑往右飛、滑太多噴出去、直推100%筆直零偏漂)
+                // ★ 寶可夢 GO 曲球側向力 (柔和、滑順、直推100%筆直、灰很多才拐彎、灰太大噴出界)
                 if (Math.abs(this.spin) > 0.05) {
                     const curveFlightFactor = Math.sin(Math.min(1, Math.abs(this.pos.z) / HALF_L) * Math.PI);
-                    // 馬格努斯側向加速度：與 spin 呈線性增益，過網中線達到最大弧度 (不設 artificial softGuard，滑太多會噴出界)
-                    const magnusAcc = this.spin * 9.5 * (0.85 + 0.45 * curveFlightFactor);
+                    // 側向加速度：溫和適中 (4.5 m/s²)，滑順圓潤，絕不劇烈暴衝亂漂
+                    const magnusAcc = this.spin * 4.5 * (0.85 + 0.45 * curveFlightFactor);
                     this.vel.x += magnusAcc * h;
-                    this.spin *= (1 - 0.20 * h); // 飛行中平穩微幅衰減
+                    this.spin *= (1 - 0.16 * h); // 飛行中平穩溫和衰減
                 }
                 this.spinInc = 0;
 
-                // 自然空氣阻尼 (穩定線性衰減，杜絕隨意亂漂)
-                this.vel.x *= (1 - 0.10 * h);
-                this.vel.z *= (1 - 0.10 * h);
+                // 自然空氣阻尼 (穩定線性衰減)
+                this.vel.x *= (1 - 0.09 * h);
+                this.vel.z *= (1 - 0.09 * h);
 
                 this.pos.addScaledVector(this.vel, h);
                 if (pz !== this.pos.z && pz * this.pos.z <= 0) {
