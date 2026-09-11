@@ -3254,15 +3254,18 @@
                     因此能在手機 CPU/GPU 上維持即時效能。
                 </p>
 
-                <div class="tech-h">📄 主要參考論文</div>
+                <div class="tech-h">📄 主要參考論文與開源神經圖譜</div>
                 <ul class="tech-list">
                     <li><b>BlazePose: On-device Real-time Body Pose Tracking</b><br>
-                        Bazarevsky, Grishchenko, Raveendran, Zhu, Zhang, Grundmann — CVPR Workshop 2020
-                        (arXiv:2006.10204)</li>
+                        Bazarevsky, Grishchenko, Raveendran, Zhu, Zhang, Grundmann — CVPR Workshop 2020 (arXiv:2006.10204)</li>
                     <li><b>MediaPipe: A Framework for Building Perception Pipelines</b><br>
                         Lugaresi et al. — 2019 (arXiv:1906.08172)</li>
-                    <li><b>BlazeFace: Sub-millisecond Neural Face Detection on Mobile GPUs</b><br>
-                        Bazarevsky et al. — CVPR Workshop 2019 (arXiv:1907.05047)</li>
+                    <li><b>Neuronal Wiring Diagram of an Adult Brain (FlyWire Consortium)</b><br>
+                        Dorkenwald, Matsliah, Sterling, Schlegel, Yu... & Murthy / Seung — <i>Nature</i> 634, 124–138 (2024). 普林斯頓大學全腦神經連接組開源圖譜 (codex.flywire.ai)</li>
+                    <li><b>A Spike-Timing Mechanism for Action Selection in a Descending Visual Circuit for Escape</b><br>
+                        von Reyn, Breads, Peek, Zheng... & Card — <i>Neuron</i> 84(6), 1157–1173 (2014). 巨大纖維 GFS 與逃逸反射時序機理</li>
+                    <li><b>The Functional Organization of Descending Sensory-Motor Pathways in Drosophila</b><br>
+                        Namiki, Dickinson, Wong, Korff, & Card — <i>eLife</i> 7, e34272 (2018). 下行神經元 DNa01/02 飛行非對稱急轉迴路</li>
                 </ul>
 
                 <div class="tech-h">🧮 本專案的運動辨識處理</div>
@@ -3755,11 +3758,78 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
                         </div>
                     </div>
 
-                    <!-- 科普卡片 5 -->
+                    <!-- 科普卡片 5: 普林斯頓大學 FlyWire 全腦連接組學與仿生急轉避障神經系統 -->
+                    <div class="rule-card" style="grid-column:1/-1;border:1px solid rgba(168,85,247,0.35);background:rgba(168,85,247,0.05);">
+                        <div class="rule-card-top">
+                            <span class="rule-num" style="background:#a855f7;color:#fff;">神經 05</span>
+                            <h4 class="rule-title">🧠 普林斯頓大學 FlyWire 全腦連接組學與仿生急轉避障神經系統 (FlyWire Connectome & Neuromechanical Evasion)</h4>
+                        </div>
+                        <p class="rule-desc" style="color:#e2e8f0;margin-top:6px;">
+                            本專案之「🪰 仿生蒼蠅 (Fly Opponent)」敵方 AI 依據<b>普林斯頓大學神經科學研究所 (Princeton Neuroscience Institute)</b> 主導之 <b>FlyWire 國際全腦連接組聯盟 (Whole-Brain Drosophila Connectome Consortium)</b> 2024 年發表於國際頂尖期刊《Nature》之最新開源圖譜資料與神經運動突觸迴路建構：
+                        </p>
+
+                        <div style="margin-top:10px;display:flex;flex-direction:column;gap:10px;">
+                            <!-- 區塊 1: 普林斯頓大學 FlyWire 開源計劃介紹 -->
+                            <div style="background:rgba(15,23,42,0.7);border:1px solid rgba(168,85,247,0.3);border-radius:8px;padding:12px 14px;">
+                                <div style="font-weight:800;color:#c084fc;font-size:13px;margin-bottom:6px;display:flex;align-items:center;gap:6px;">
+                                    <span>🌐</span> 普林斯頓大學 FlyWire 開源計劃與公共神經資料庫 (Princeton FlyWire Consortium)
+                                </div>
+                                <div style="font-size:12px;line-height:1.7;color:#cbd5e1;">
+                                    • <b>創舉與歷史里程碑</b>：由普林斯頓大學 <b>H. Sebastian Seung 教授</b>（計算神經科學先驅）與 <b>Mala Murthy 教授</b>（神經生物學與聲學行為權威）領銜，聯合英國劍橋大學 MRC-LMB、HHMI Janelia 等全球數十所頂尖機構，於 2024 年 10 月以《Nature》封面特刊正式發布世界首座完整成年黑腹果蠅（<i>Drosophila melanogaster</i>）全腦接線圖（Wiring Diagram）。<br>
+                                    • <b>大數據規模與解析度</b>：涵蓋 <b>139,255 個神經元</b>、超過 <b>5,450 萬個化學突觸</b> 與數百萬條微米級神經纖維，解析度精細至奈米級（4nm × 4nm × 40nm 序列切片穿透電子顯微鏡），徹底解密感官輸入至運動輸出的端到端迴路。<br>
+                                    • <b>完全開源資料資產</b>：包含 <b>FlyWire Codex</b>（互動式神經細胞圖鑑與連接體查詢引擎，<a href="https://codex.flywire.ai/" target="_blank" rel="noopener noreferrer" style="color:#38bdf8;text-decoration:underline;">codex.flywire.ai</a>）、Neuroglancer 3D 突觸視覺化、CAVE (Connectome Annotation Versioning Engine) 與全開放神經網絡有向圖資料集，供全球科研與仿生工程免費存取。
+                                </div>
+                            </div>
+
+                            <!-- 區塊 2: 神經浮出之各項急轉與逃逸系統解析 -->
+                            <div style="background:rgba(15,23,42,0.7);border:1px solid rgba(56,189,248,0.25);border-radius:8px;padding:12px 14px;">
+                                <div style="font-weight:800;color:#38bdf8;font-size:13px;margin-bottom:6px;display:flex;align-items:center;gap:6px;">
+                                    <span>⚡</span> 神經浮出之各項急轉、避障與截擊系統迴路解析 (Emergent Neural Circuits)
+                                </div>
+                                <div style="display:flex;flex-direction:column;gap:8px;font-size:12px;line-height:1.65;color:#cbd5e1;">
+                                    <div>
+                                        <b style="color:#fcd34d;">① 視覺光學擴張率偵測層 (Optical Looming Detectors: LC4 & LPLC2)</b><br>
+                                        果蠅視葉小葉深層（Lobula）的 <b>LC4</b>（柱狀小葉神經元 4）與 <b>LPLC2</b> 專司威脅逼近感測。其樹突具有極強側向抑制，僅對視野中呈徑向高速擴張（Radial Expansion）之暗點刺激產生動作電位，其放電頻率精準編碼逼近率 $\eta(t) = \frac{\dot{\theta}(t)}{\theta(t)} = \frac{v_{\text{rel}}}{d(t)}$。
+                                    </div>
+                                    <div>
+                                        <b style="color:#fcd34d;">② 巨大纖維逃逸中樞 (Giant Fiber System, GFS: GF → TTMn / PSI)</b><br>
+                                        直徑達數微米的 <b>GF 下行神經元</b> 是昆蟲神經系統中反應最迅捷的「高速公路」。GF 透過電突觸（Gap Junction）在 5~10ms 內直通胸部腹神經索（VNC），下游直接突觸連接：<br>
+                                        - <b>TTMn (大轉子運動神經元)</b>：觸發中足大轉子伸肌爆發性伸展，產生逃逸起跳（Jump Evasion）。<br>
+                                        - <b>PSI (外周突觸中間神經元) → DLMs (背縱肌肉)</b>：強制觸發雙翼急速下拍與升翅抑制，形成瞬間破空攔截。
+                                    </div>
+                                    <div>
+                                        <b style="color:#fcd34d;">③ 下行急轉非對稱轉向神經元 (Steering Descending Neurons: DNa01 / DNa02)</b><br>
+                                        Namiki et al. (2018) 與 FlyWire 下行神經元組證實，<b>DNa01</b> 與 <b>DNa02</b> 為控制飛行姿態橫擺（Yaw）與側傾（Roll）的主控開關。單側活化 DNa 會直接造成兩側雙翼振幅不對稱（Wing Stroke Amplitude Asymmetry, $\Delta \text{WSA}$），在 <b>小於 30 毫秒</b> 內產生超過 90°/s 的急劇空中變向橫切（Saccadic Emergency Turn）。
+                                    </div>
+                                    <div>
+                                        <b style="color:#fcd34d;">④ 複眼運動視盲漏洞 (Sensory Vulnerability & Motion Blindspot)</b><br>
+                                        LC4/LPLC2 迴路對慢速、平緩、無急劇擴張的光學位移（如微風吹拂或平滑拋物線）完全不響應；同時巨纖維系統缺乏對低頻刺激的積分能力。當來球為輕推小球（Dink）時，逃逸神經迴路完全靜默，致使蒼蠅因失去威脅特徵而產生感官視盲與飛行失速。
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 區塊 3: 匹克球遊戲引擎中的真實映射與配對應用 -->
+                            <div style="background:rgba(15,23,42,0.7);border:1px solid rgba(74,222,128,0.25);border-radius:8px;padding:12px 14px;">
+                                <div style="font-weight:800;color:#4ade80;font-size:13px;margin-bottom:6px;display:flex;align-items:center;gap:6px;">
+                                    <span>🎮</span> 本專案引擎中的神經機制配對與對抗博弈 (In-Engine Neuromechanical Mapping)
+                                </div>
+                                <div style="display:flex;flex-direction:column;gap:6px;font-size:12px;line-height:1.65;color:#cbd5e1;">
+                                    <div>
+                                        • <b>大力抽球與高速截擊配對 (GFS + DNa01 Counter-Drive)</b>：玩家以 $>9.2\,\text{m/s}$ 大力抽球時，遊戲以 $O(1)$ 演算球距與前進分速，觸發 <code>LOOMING_REFLEX</code>。蒼蠅振翅飆至 125Hz，以 $22\,\text{m/s}$ 瞬移，並啟動 DNa01 急轉向對角算法，呼叫 <code>solveArc</code> 內建 $1.25\times$ 高速初速，回擊壓在對手對角底線死角（$z \in [5.8\text{m}, 6.1\text{m}]$），精確懲罰無腦抽球！
+                                    </div>
+                                    <div>
+                                        • <b>廚房區放小球與視盲破防配對 (Sensory Blindspot & Dink Advantage)</b>：玩家以 $<8.2\,\text{m/s}$ 輕推小球或打出第三拍吊球（3rd Shot Drop）入中興湖廚房區時，逼近率低於 $1.2$，巨纖維神經無法激發。蒼蠅陷入 <code>STUNNED</code>（複眼視盲墜地），高度掉至 $0.08\,\text{m}$ 側翻眩暈 2.2 秒，雙翼減速至 14Hz 且<b>完全無法揮拍</b>，球彈跳兩次玩家穩穩得分！
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 科普卡片 6 -->
                     <div class="rule-card" style="grid-column:1/-1;">
                         <div class="rule-card-top">
-                            <span class="rule-num" style="background:var(--lime);color:#0f172a;">文獻 05</span>
-                            <h4 class="rule-title">📚 權威運動流體力學論文與學術文獻參考 (Academic References)</h4>
+                            <span class="rule-num" style="background:var(--lime);color:#0f172a;">文獻 06</span>
+                            <h4 class="rule-title">📚 權威運動流體力學與生物神經科學論文參考 (Academic References)</h4>
                         </div>
                         <div style="margin-top:8px;">
                             <div class="citation-item">
@@ -3779,6 +3849,21 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
                             </div>
                             <div class="citation-item">
                                 <b>[6] Press, W. H., Teukolsky, S. A., Vetterling, W. T., & Flannery, B. P. (2007).</b> <i>Numerical Recipes: The Art of Scientific Computing (3rd ed.).</i> Cambridge University Press. <span style="color:var(--dim);">（數值計算經典，詳解微分方程離散化截斷誤差累積與剛性物理常微分方程數值穩定性）</span>
+                            </div>
+                            <div class="citation-item">
+                                <b>[7] Dorkenwald, S., Matsliah, A., Sterling, A. R., Schlegel, P., Yu, S. C., McKellar, C. E., ... & Murthy, M. / Seung, H. S. (2024).</b> <i>Neuronal wiring diagram of an adult brain.</i> Nature, 634(8032), 124–138. <span style="color:var(--dim);">（普林斯頓大學 FlyWire 聯盟成年果蠅全腦連接組學 Nature 封面特刊論文，139,255 個神經元與 5,450 萬突觸圖譜）</span>
+                            </div>
+                            <div class="citation-item">
+                                <b>[8] Schlegel, P., Yin, Y., Bates, A. S., Dorkenwald, S., Eichler, K., Brooks, P., ... & Jefferis, G. S. (2024).</b> <i>Whole-brain annotation and multi-connectome marker analysis of the Drosophila brain.</i> Nature, 634(8032), 139–152. <span style="color:var(--dim);">（FlyWire 全腦細胞型態標註與下行轉向神經元 DNa01/02 迴路對照）</span>
+                            </div>
+                            <div class="citation-item">
+                                <b>[9] von Reyn, C. R., Breads, P., Peek, M. Y., Zheng, G. Z., Williamson, W. R., Yee, A. L., ... & Card, G. M. (2014).</b> <i>A spike-timing mechanism for action selection in a descending visual circuit for escape.</i> Neuron, 84(6), 1157–1173. <span style="color:var(--dim);">（巨大纖維 GFS 與視覺光學逼近率激發逃逸跳躍之神經時序機理）</span>
+                            </div>
+                            <div class="citation-item">
+                                <b>[10] Ache, J. M., Polsky, J., Alghailani, S., Parekh, R., Breads, P., Peek, M. Y., ... & Dickinson, M. H. (2019).</b> <i>Neural basis for looming size and velocity encoding in the Drosophila Giant Fiber escape pathway.</i> Current Biology, 29(8), 1273–1281. <span style="color:var(--dim);">（果蠅光學逼近角擴張率與巨纖維反向截擊運動機制）</span>
+                            </div>
+                            <div class="citation-item">
+                                <b>[11] Namiki, S., Dickinson, M. H., Wong, A. M., Korff, W., & Card, G. M. (2018).</b> <i>The functional organization of descending sensory-motor pathways in Drosophila.</i> eLife, 7, e34272. <span style="color:var(--dim);">（果蠅下行轉向神經元 DNa01 / DNa02 之單側激發非對稱振翅與急轉向控制）</span>
                             </div>
                         </div>
                     </div>
