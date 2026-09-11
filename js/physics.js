@@ -73,42 +73,19 @@
                 const pz = this.pos.z;
                 this.vel.y -= GRAVITY * h;
 
-                if (currentPhysicsMode === PHYSICS_MODES.ACADEMIC) {
-                    // 🔬 模式 1: 嚴格學術求解 (真實微分方程 - 二次方阻力與馬格努斯外積加速度)
-                    const spd = this.vel.length();
-                    // 阻力項: a_drag = -γ * |v| * v (三軸全面自然阻尼)
-                    const dragAcc = Math.min(0.85, DRAG_K * spd);
-                    this.vel.x -= this.vel.x * dragAcc * h;
-                    this.vel.y -= this.vel.y * dragAcc * h;
-                    this.vel.z -= this.vel.z * dragAcc * h;
-
-                    // 馬格努斯項: a_magnus ∝ spin * |v_z| (結合球速與旋轉量，視覺校準偏折量 0.9m~1.35m)
-                    if (Math.abs(this.spin) > 0.08) {
-                        const curveFlightFactor = Math.sin(Math.min(1, Math.abs(this.pos.z) / HALF_L) * Math.PI);
-                        const magnusAccX = MAGNUS_K * this.spin * Math.abs(this.vel.z) * (11.5 + 5.5 * curveFlightFactor);
-                        const outDist = Math.max(0, Math.abs(this.pos.x) - (COURT_W / 2 + 0.15));
-                        const softGuard = THREE.MathUtils.clamp(1.0 - (outDist / 0.75), 0.15, 1.0);
-                        this.vel.x += magnusAccX * h * softGuard;
-                        this.spin *= (1 - 0.28 * h); // 多孔自旋自然衰減
-                    }
-                    this.spinInc = 0;
-                } else {
-                    // ⚡ 模式 2: 極速經驗模式 (輕量低負載，維持極致 60 FPS 與零發燙)
-                    if (Math.abs(this.spin) > 0.08) {
-                        const curveFlightFactor = Math.sin(Math.min(1, Math.abs(this.pos.z) / HALF_L) * Math.PI);
-                        const magnusAcc = (this.spin * 7.5 + Math.sign(this.spin) * Math.pow(this.spin, 2) * 3.8) * (0.90 + 0.45 * curveFlightFactor);
-                        const outDist = Math.max(0, Math.abs(this.pos.x) - (COURT_W / 2 + 0.15));
-                        const softGuard = THREE.MathUtils.clamp(1.0 - (outDist / 0.75), 0.15, 1.0);
-
-                        this.spinInc = THREE.MathUtils.clamp(this.spinInc + magnusAcc * h * softGuard, -3.8, 3.8);
-                        this.pos.x += this.spinInc * h;
-                        this.spin *= (1 - 0.28 * h);
-                    } else {
-                        this.spinInc = 0;
-                    }
-                    this.vel.x *= (1 - 0.12 * h);
-                    this.vel.z *= (1 - 0.12 * h);
+                // ★ 簡化直覺的馬格努斯效應 (左滑往左飛、右滑往右飛、滑太多噴出去、直推100%筆直零偏漂)
+                if (Math.abs(this.spin) > 0.05) {
+                    const curveFlightFactor = Math.sin(Math.min(1, Math.abs(this.pos.z) / HALF_L) * Math.PI);
+                    // 馬格努斯側向加速度：與 spin 呈線性增益，過網中線達到最大弧度 (不設 artificial softGuard，滑太多會噴出界)
+                    const magnusAcc = this.spin * 9.5 * (0.85 + 0.45 * curveFlightFactor);
+                    this.vel.x += magnusAcc * h;
+                    this.spin *= (1 - 0.20 * h); // 飛行中平穩微幅衰減
                 }
+                this.spinInc = 0;
+
+                // 自然空氣阻尼 (穩定線性衰減，杜絕隨意亂漂)
+                this.vel.x *= (1 - 0.10 * h);
+                this.vel.z *= (1 - 0.10 * h);
 
                 this.pos.addScaledVector(this.vel, h);
                 if (pz !== this.pos.z && pz * this.pos.z <= 0) {
