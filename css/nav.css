@@ -1,119 +1,6 @@
 /* ═══════════════════════════════════════════════════════════════════
    NCHU Pickleball V5 - 導覽列與活動式選單 (Navigation & Draggable Menu)
    ═══════════════════════════════════════════════════════════════════ */
-        /* ---------- 導覽 ---------- */
-        #nav {
-            position: absolute;
-            top: 14px;
-            left: 50%;
-            transform: translateX(-50%);
-            display: flex;
-            gap: 3px;
-            padding: 4px;
-            pointer-events: auto;
-            max-width: 92vw;
-            overflow-x: auto;
-            scrollbar-width: none
-        }
-
-        #nav::-webkit-scrollbar {
-            display: none
-        }
-
-        #nav button {
-            flex-shrink: 0;
-            background: transparent;
-            border: 0;
-            color: var(--dim);
-            font-size: 11px;
-            font-weight: 700;
-            padding: 7px 13px;
-            border-radius: 99px;
-            cursor: pointer;
-            transition: .18s;
-            white-space: nowrap
-        }
-
-        #nav button:hover {
-            color: var(--txt);
-            background: rgba(255, 255, 255, .09)
-        }
-
-        #nav button.open {
-            background: rgba(129, 140, 248, .18);
-            color: var(--cool);
-            box-shadow: inset 0 0 0 1px rgba(129, 140, 248, .4)
-        }
-
-        #nav-sheet {
-            position: absolute;
-            top: 62px;
-            left: 50%;
-            transform: translateX(-50%) translateY(-6px);
-            display: none;
-            gap: 4px;
-            padding: 5px;
-            pointer-events: auto;
-            max-width: 94vw;
-            overflow-x: auto;
-            scrollbar-width: none;
-            opacity: 0;
-            transition: opacity .16s, transform .16s;
-            z-index: 14
-        }
-
-        #nav-sheet.open {
-            display: flex;
-            opacity: 1;
-            transform: translateX(-50%) translateY(0)
-        }
-
-        #nav-sheet::-webkit-scrollbar {
-            display: none
-        }
-
-        .sheet-sec {
-            display: none;
-            gap: 4px
-        }
-
-        .sheet-sec.active {
-            display: flex
-        }
-
-        #nav-sheet button {
-            flex-shrink: 0;
-            background: transparent;
-            border: 0;
-            color: var(--dim);
-            font-size: 11px;
-            font-weight: 700;
-            padding: 7px 12px;
-            border-radius: 99px;
-            cursor: pointer;
-            transition: .18s;
-            white-space: nowrap
-        }
-
-        #nav-sheet button:hover {
-            color: var(--txt);
-            background: rgba(255, 255, 255, .09)
-        }
-
-        #nav-sheet button.on {
-            background: rgba(56, 189, 248, .18);
-            color: var(--accent);
-            box-shadow: inset 0 0 0 1px rgba(56, 189, 248, .4)
-        }
-
-        .sheet-div {
-            width: 1px;
-            background: var(--line);
-            margin: 4px 3px;
-            flex-shrink: 0
-        }
-
-
 /* ── 頂部活動式主選單容器 (#nav-wrapper: 支援自由拖曳移動、收折最小化為懸浮球) ── */
         /* ── 頂部活動式主選單容器 (#nav-wrapper: 支援自由拖曳移動、收折最小化為懸浮球) ── */
         #nav-wrapper {
@@ -125,7 +12,7 @@
             flex-direction: column !important;
             align-items: center !important;
             gap: 6px !important;
-            z-index: 45 !important;
+            z-index: 100 !important;
             pointer-events: none !important;
         }
         #nav-wrapper > * {
@@ -357,8 +244,6 @@
             }
         }
 
-}
-
 /* ── 手機橫向模式導覽列排版 ── */
 @media (orientation: landscape) and (min-aspect-ratio: 1/1) {
             /* 4. 二級下拉選單列 (#nav-subbar) 緊密浮動於 #nav 下方 */
@@ -401,5 +286,3 @@
                 padding: 5px 12px !important;
             }
         }
-
-}

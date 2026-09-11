@@ -416,8 +416,7 @@
         }
 
         #nav {
-            position: absolute;
-            top: calc(14px + env(safe-area-inset-top));
+            position: relative;
             display: flex;
             align-items: center;
             gap: 6px;
@@ -1516,9 +1515,7 @@
 
 
 /* ── 行動端直向專屬排版 (Portrait HUD) ── */
-@media (orientation: portrait), (max-aspect-ratio: 1/1) {
-        /* ── 5. 行動端手機直向智慧適配 (Portrait 輕量透氣無遮擋版面) ── */
-        @media (max-width: 600px), (orientation: portrait) and (max-width: 768px) {
+@media (orientation: portrait), (max-width: 768px), (max-aspect-ratio: 1/1) {
             /* 1. 第一排左側：關卡資訊框輕量膠囊化 */
             #info, body.layout-v4 #info {
                 top: calc(8px + env(safe-area-inset-top)) !important;
@@ -1630,9 +1627,7 @@
 }
 
 /* ── 行動端橫向專屬排版 (Landscape HUD) ── */
-@media (orientation: landscape) and (min-aspect-ratio: 1/1) {
-        /* ── 6. 行動端手機橫向專屬大器排版 (Landscape 橫向全寬度透氣佈局，絕不碰撞擁擠) ── */
-        @media (orientation: landscape) and (max-height: 560px), (max-height: 500px) {
+@media (orientation: landscape) and (max-height: 560px), (orientation: landscape) and (max-height: 500px) {
             /* 1. 關卡資訊框橫向超緊湊小卡 */
             #info, body.layout-v4 #info {
                 top: calc(6px + env(safe-area-inset-top)) !important;

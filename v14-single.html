@@ -543,8 +543,7 @@
         }
 
         #nav {
-            position: absolute;
-            top: calc(14px + env(safe-area-inset-top));
+            position: relative;
             display: flex;
             align-items: center;
             gap: 6px;
@@ -1643,9 +1642,7 @@
 
 
 /* ── 行動端直向專屬排版 (Portrait HUD) ── */
-@media (orientation: portrait), (max-aspect-ratio: 1/1) {
-        /* ── 5. 行動端手機直向智慧適配 (Portrait 輕量透氣無遮擋版面) ── */
-        @media (max-width: 600px), (orientation: portrait) and (max-width: 768px) {
+@media (orientation: portrait), (max-width: 768px), (max-aspect-ratio: 1/1) {
             /* 1. 第一排左側：關卡資訊框輕量膠囊化 */
             #info, body.layout-v4 #info {
                 top: calc(8px + env(safe-area-inset-top)) !important;
@@ -1757,9 +1754,7 @@
 }
 
 /* ── 行動端橫向專屬排版 (Landscape HUD) ── */
-@media (orientation: landscape) and (min-aspect-ratio: 1/1) {
-        /* ── 6. 行動端手機橫向專屬大器排版 (Landscape 橫向全寬度透氣佈局，絕不碰撞擁擠) ── */
-        @media (orientation: landscape) and (max-height: 560px), (max-height: 500px) {
+@media (orientation: landscape) and (max-height: 560px), (orientation: landscape) and (max-height: 500px) {
             /* 1. 關卡資訊框橫向超緊湊小卡 */
             #info, body.layout-v4 #info {
                 top: calc(6px + env(safe-area-inset-top)) !important;
@@ -1852,119 +1847,6 @@
 /* ═══════════════════════════════════════════════════════════════════
    NCHU Pickleball V5 - 導覽列與活動式選單 (Navigation & Draggable Menu)
    ═══════════════════════════════════════════════════════════════════ */
-        /* ---------- 導覽 ---------- */
-        #nav {
-            position: absolute;
-            top: 14px;
-            left: 50%;
-            transform: translateX(-50%);
-            display: flex;
-            gap: 3px;
-            padding: 4px;
-            pointer-events: auto;
-            max-width: 92vw;
-            overflow-x: auto;
-            scrollbar-width: none
-        }
-
-        #nav::-webkit-scrollbar {
-            display: none
-        }
-
-        #nav button {
-            flex-shrink: 0;
-            background: transparent;
-            border: 0;
-            color: var(--dim);
-            font-size: 11px;
-            font-weight: 700;
-            padding: 7px 13px;
-            border-radius: 99px;
-            cursor: pointer;
-            transition: .18s;
-            white-space: nowrap
-        }
-
-        #nav button:hover {
-            color: var(--txt);
-            background: rgba(255, 255, 255, .09)
-        }
-
-        #nav button.open {
-            background: rgba(129, 140, 248, .18);
-            color: var(--cool);
-            box-shadow: inset 0 0 0 1px rgba(129, 140, 248, .4)
-        }
-
-        #nav-sheet {
-            position: absolute;
-            top: 62px;
-            left: 50%;
-            transform: translateX(-50%) translateY(-6px);
-            display: none;
-            gap: 4px;
-            padding: 5px;
-            pointer-events: auto;
-            max-width: 94vw;
-            overflow-x: auto;
-            scrollbar-width: none;
-            opacity: 0;
-            transition: opacity .16s, transform .16s;
-            z-index: 14
-        }
-
-        #nav-sheet.open {
-            display: flex;
-            opacity: 1;
-            transform: translateX(-50%) translateY(0)
-        }
-
-        #nav-sheet::-webkit-scrollbar {
-            display: none
-        }
-
-        .sheet-sec {
-            display: none;
-            gap: 4px
-        }
-
-        .sheet-sec.active {
-            display: flex
-        }
-
-        #nav-sheet button {
-            flex-shrink: 0;
-            background: transparent;
-            border: 0;
-            color: var(--dim);
-            font-size: 11px;
-            font-weight: 700;
-            padding: 7px 12px;
-            border-radius: 99px;
-            cursor: pointer;
-            transition: .18s;
-            white-space: nowrap
-        }
-
-        #nav-sheet button:hover {
-            color: var(--txt);
-            background: rgba(255, 255, 255, .09)
-        }
-
-        #nav-sheet button.on {
-            background: rgba(56, 189, 248, .18);
-            color: var(--accent);
-            box-shadow: inset 0 0 0 1px rgba(56, 189, 248, .4)
-        }
-
-        .sheet-div {
-            width: 1px;
-            background: var(--line);
-            margin: 4px 3px;
-            flex-shrink: 0
-        }
-
-
 /* ── 頂部活動式主選單容器 (#nav-wrapper: 支援自由拖曳移動、收折最小化為懸浮球) ── */
         /* ── 頂部活動式主選單容器 (#nav-wrapper: 支援自由拖曳移動、收折最小化為懸浮球) ── */
         #nav-wrapper {
@@ -1976,7 +1858,7 @@
             flex-direction: column !important;
             align-items: center !important;
             gap: 6px !important;
-            z-index: 45 !important;
+            z-index: 100 !important;
             pointer-events: none !important;
         }
         #nav-wrapper > * {
@@ -2208,8 +2090,6 @@
             }
         }
 
-}
-
 /* ── 手機橫向模式導覽列排版 ── */
 @media (orientation: landscape) and (min-aspect-ratio: 1/1) {
             /* 4. 二級下拉選單列 (#nav-subbar) 緊密浮動於 #nav 下方 */
@@ -2252,8 +2132,6 @@
                 padding: 5px 12px !important;
             }
         }
-
-}
 
 /* ─── modals.css ─── */
 /* ═══════════════════════════════════════════════════════════════════
@@ -6535,12 +6413,16 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
             const pill = document.getElementById('nav-minimized-pill');
             if (!wrapper) return;
 
-            // 讀取上次記憶的位置
+            // 讀取上次記憶的位置 (具備防卡死守護機制)
             try {
                 const savedPos = localStorage.getItem('nchu_nav_pos');
                 if (savedPos) {
                     const pos = JSON.parse(savedPos);
-                    if (typeof pos.left === 'number' && typeof pos.top === 'number') {
+                    // 🛡️ 防卡死守護：若記憶位置落在左上角卡片區 (left < 340 且 top < 320) 或小於 0，自動清除還原預設置中
+                    if ((pos.left < 340 && pos.top < 320) || pos.left < 0 || pos.top < 0) {
+                        localStorage.removeItem('nchu_nav_pos');
+                        resetNavPosition();
+                    } else if (typeof pos.left === 'number' && typeof pos.top === 'number') {
                         const maxLeft = Math.max(10, window.innerWidth - 70);
                         const maxTop = Math.max(10, window.innerHeight - 50);
                         const clampedLeft = Math.max(8, Math.min(maxLeft, pos.left));

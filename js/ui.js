@@ -242,12 +242,16 @@
             const pill = document.getElementById('nav-minimized-pill');
             if (!wrapper) return;
 
-            // 讀取上次記憶的位置
+            // 讀取上次記憶的位置 (具備防卡死守護機制)
             try {
                 const savedPos = localStorage.getItem('nchu_nav_pos');
                 if (savedPos) {
                     const pos = JSON.parse(savedPos);
-                    if (typeof pos.left === 'number' && typeof pos.top === 'number') {
+                    // 🛡️ 防卡死守護：若記憶位置落在左上角卡片區 (left < 340 且 top < 320) 或小於 0，自動清除還原預設置中
+                    if ((pos.left < 340 && pos.top < 320) || pos.left < 0 || pos.top < 0) {
+                        localStorage.removeItem('nchu_nav_pos');
+                        resetNavPosition();
+                    } else if (typeof pos.left === 'number' && typeof pos.top === 'number') {
                         const maxLeft = Math.max(10, window.innerWidth - 70);
                         const maxTop = Math.max(10, window.innerHeight - 50);
                         const clampedLeft = Math.max(8, Math.min(maxLeft, pos.left));
