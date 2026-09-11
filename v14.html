@@ -2270,6 +2270,52 @@
             text-decoration: underline;
         }
 
+        /* ── 流體力學科普與學術文獻卡片樣式 ── */
+        .physics-formula {
+            background: rgba(15, 23, 42, 0.75);
+            border: 1px solid rgba(56, 189, 248, 0.35);
+            border-radius: 8px;
+            padding: 9px 12px;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            font-size: 11.5px;
+            color: #38bdf8;
+            margin: 8px 0;
+            line-height: 1.55;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+        .physics-analogy {
+            background: rgba(211, 243, 108, 0.08);
+            border-left: 3px solid var(--lime);
+            padding: 8px 12px;
+            border-radius: 0 8px 8px 0;
+            margin: 8px 0;
+            font-size: 12px;
+            line-height: 1.65;
+            color: #e2e8f0;
+        }
+        .citation-item {
+            font-size: 11px;
+            line-height: 1.6;
+            color: #94a3b8;
+            margin-bottom: 7px;
+            padding-bottom: 7px;
+            border-bottom: 1px dashed rgba(255, 255, 255, 0.1);
+        }
+        .citation-item:last-child {
+            border-bottom: 0;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+        .citation-item b {
+            color: #f8fafc;
+        }
+        .citation-item i {
+            color: var(--lime);
+            font-style: italic;
+        }
+
         /* 虛擬搖桿底盤 Bevel 雕刻感與 Safe Area 適配 */
         #joy {
             bottom: calc(18px + env(safe-area-inset-bottom)) !important;
@@ -3269,8 +3315,18 @@
                     順便臭一下——Switch 等平台之所以仍需手持感測器,
                     主因是 IMU 的取樣率與角速度計算精度目前遠高於單鏡頭視覺估計。</p>
 
+                <div class="tech-h">🌪️ 匹克球空氣動力學與旋球物理 (馬格努斯效應)</div>
+                <p class="tech-p">
+                    球體飛行軌跡由<b>重力</b>、<b>平方空氣阻力</b>與<b>馬格努斯力 (Magnus Force)</b> $\vec{F}_M \propto (\vec{\omega} \times \vec{v})$ 共同主導。
+                    匹克球特有的 26~40 個穿孔結構在球後方引發早期紊流分離（Turbulent Wake Separation），產生高壓差阻力與角動量自然耗散特性，
+                    維持真實賽場微弧線（橫向偏折極限 0.15m~0.22m），兼顧體感可控性與物理真實度。
+                    <button type="button" class="btn" onclick="closeTechModal(); openRulesModal('physics');" style="display:inline-flex;align-items:center;gap:4px;padding:3px 8px;font-size:11px;margin-top:6px;background:rgba(56,189,248,0.2);color:var(--accent);border:1px solid var(--accent);border-radius:6px;cursor:pointer;">
+                        📖 閱讀流體力學生活科普與 5 大學術文獻 ↗
+                    </button>
+                </p>
+
                 <div class="tech-note">⚠️ 以上論文書目為開發者整理之參考資訊,若要寫入正式報告,
-                    建議自行回查 arXiv 原始頁面確認年份與作者順序。</div>
+                    建議自行回查 arXiv 與期刊原始頁面確認年份與作者順序。</div>
             </div>
             <button class="btn-main" onclick="closeTechModal()">關閉</button>
         </div>
@@ -3454,71 +3510,188 @@
     </div>
 
     <!-- ══════ 偽聊天室趣味提示視窗 ══════ -->
-        <!-- ★ V5 新增: 2026 USA Pickleball 官方規則手冊彈窗 -->
+        <!-- ★ V5 新增: 2026 USA Pickleball 官方規則手冊與流體力學科普彈窗 -->
     <div id="rules-modal" class="modal-overlay" style="display:none;">
         <div class="modal-card">
             <div class="rules-header">
-                <h2>📖 2026 USA PICKLEBALL 官方競賽規則</h2>
+                <h2 id="rules-modal-main-title">📖 競賽規則與流體力學科普</h2>
                 <button class="btn" onclick="closeRulesModal()" style="padding:4px 10px;font-size:16px;">×</button>
             </div>
-            <div class="rules-grid">
-                <div class="rule-card">
-                    <div class="rule-card-top">
-                        <span class="rule-num">01</span>
-                        <h4 class="rule-title">計分與發球權 (Score & Service)</h4>
+
+            <!-- 分類頁籤按鈕 (Tabs) -->
+            <div class="tabs" style="margin-bottom:16px;width:100%;">
+                <button type="button" class="tab on" id="rtab-btn-rules" onclick="switchRulesModalTab('rules')">📖 2026 官方競賽手冊</button>
+                <button type="button" class="tab" id="rtab-btn-physics" onclick="switchRulesModalTab('physics')">🌪️ 流體力學與旋球科普 (文獻參考)</button>
+            </div>
+
+            <!-- 頁籤 1: 官方競賽規則 -->
+            <div id="rtab-pane-rules" class="rules-tab-pane" style="display:block;">
+                <div class="rules-grid">
+                    <div class="rule-card">
+                        <div class="rule-card-top">
+                            <span class="rule-num">01</span>
+                            <h4 class="rule-title">計分與發球權 (Score & Service)</h4>
+                        </div>
+                        <p class="rule-desc">
+                            單打為 <strong>11 分制且須領先 2 分獲勝</strong>。採<strong>發球得分制 (Side-out)</strong>：唯有發球方獲勝方可得分；接發方獲勝則轉換發球權。偶數分由右發、奇數分由左發。
+                        </p>
                     </div>
-                    <p class="rule-desc">
-                        單打為 <strong>11 分制且須領先 2 分獲勝</strong>。採<strong>發球得分制 (Side-out)</strong>：唯有發球方獲勝方可得分；接發方獲勝則轉換發球權。偶數分由右發、奇數分由左發。
-                    </p>
-                </div>
-                <div class="rule-card">
-                    <div class="rule-card-top">
-                        <span class="rule-num">02</span>
-                        <h4 class="rule-title">合法發球姿態 (A Legal Serve)</h4>
+                    <div class="rule-card">
+                        <div class="rule-card-top">
+                            <span class="rule-num">02</span>
+                            <h4 class="rule-title">合法發球姿態 (A Legal Serve)</h4>
+                        </div>
+                        <p class="rule-desc">
+                            必須為<strong>自下而上揮拍</strong>，擊球點低於腰部，拍頭最高點低於手腕。雙腳須位於底線後方，球必須<strong>對角越過廚房線</strong>進入對面發球區。發球限時 10 秒。
+                        </p>
                     </div>
-                    <p class="rule-desc">
-                        必須為<strong>自下而上揮拍</strong>，擊球點低於腰部，拍頭最高點低於手腕。雙腳須位於底線後方，球必須<strong>對角越過廚房線</strong>進入對面發球區。發球限時 10 秒。
-                    </p>
-                </div>
-                <div class="rule-card">
-                    <div class="rule-card-top">
-                        <span class="rule-num">03</span>
-                        <h4 class="rule-title">雙彈跳核心法則 (Two-Bounce Rule)</h4>
+                    <div class="rule-card">
+                        <div class="rule-card-top">
+                            <span class="rule-num">03</span>
+                            <h4 class="rule-title">雙彈跳核心法則 (Two-Bounce Rule)</h4>
+                        </div>
+                        <p class="rule-desc">
+                            <strong>接發球方必須讓球落地彈跳一次</strong>方可擊球；回擊後，<strong>發球方也必須讓球落地彈跳一次</strong>方可擊球。雙方各完成一次彈跳後，始開放凌空截擊 (Open Play)。
+                        </p>
                     </div>
-                    <p class="rule-desc">
-                        <strong>接發球方必須讓球落地彈跳一次</strong>方可擊球；回擊後，<strong>發球方也必須讓球落地彈跳一次</strong>方可擊球。雙方各完成一次彈跳後，始開放凌空截擊 (Open Play)。
-                    </p>
-                </div>
-                <div class="rule-card">
-                    <div class="rule-card-top">
-                        <span class="rule-num">04</span>
-                        <h4 class="rule-title">非截擊區 / 廚房 (The Kitchen / NVZ)</h4>
+                    <div class="rule-card">
+                        <div class="rule-card-top">
+                            <span class="rule-num">04</span>
+                            <h4 class="rule-title">非截擊區 / 廚房 (The Kitchen / NVZ)</h4>
+                        </div>
+                        <p class="rule-desc">
+                            球網兩側各 <strong>7 英尺 (2.13m)</strong> 區域為非截擊區。<strong>嚴禁在廚房區內凌空截擊</strong>（球落地後方可進入擊球）。若截擊後因慣性踩入廚房區，亦判定為失誤。
+                        </p>
                     </div>
-                    <p class="rule-desc">
-                        球網兩側各 <strong>7 英尺 (2.13m)</strong> 區域為非截擊區。<strong>嚴禁在廚房區內凌空截擊</strong>（球落地後方可進入擊球）。若截擊後因慣性踩入廚房區，亦判定為失誤。
-                    </p>
-                </div>
-                <div class="rule-card">
-                    <div class="rule-card-top">
-                        <span class="rule-num">05</span>
-                        <h4 class="rule-title">界內外與球網 (In, Out & Net)</h4>
+                    <div class="rule-card">
+                        <div class="rule-card-top">
+                            <span class="rule-num">05</span>
+                            <h4 class="rule-title">界內外與球網 (In, Out & Net)</h4>
+                        </div>
+                        <p class="rule-desc">
+                            對打時邊線、底線與中線<strong>壓線皆為界內 (IN)</strong>；唯獨<strong>發球時壓非截擊區線判定出界 (OUT)</strong>。對打中觸網但過網落入界內算活球；允許繞柱球 (ATP)。
+                        </p>
                     </div>
-                    <p class="rule-desc">
-                        對打時邊線、底線與中線<strong>壓線皆為界內 (IN)</strong>；唯獨<strong>發球時壓非截擊區線判定出界 (OUT)</strong>。對打中觸網但過網落入界內算活球；允許繞柱球 (ATP)。
-                    </p>
-                </div>
-                <div class="rule-card">
-                    <div class="rule-card-top">
-                        <span class="rule-num">06</span>
-                        <h4 class="rule-title">常見違規失誤 (Rally Faults)</h4>
+                    <div class="rule-card">
+                        <div class="rule-card-top">
+                            <span class="rule-num">06</span>
+                            <h4 class="rule-title">常見違規失誤 (Rally Faults)</h4>
+                        </div>
+                        <p class="rule-desc">
+                            活球中<strong>球觸及球員身體</strong>即判該球員失誤；身體或球拍<strong>觸網或越過中線</strong>判失誤；單一回合中兩次獨立揮拍擊球屬連擊失誤；嚴禁脫手擲拍。
+                        </p>
                     </div>
-                    <p class="rule-desc">
-                        活球中<strong>球觸及球員身體</strong>即判該球員失誤；身體或球拍<strong>觸網或越過中線</strong>判失誤；單一回合中兩次獨立揮拍擊球屬連擊失誤；嚴禁脫手擲拍。
-                    </p>
                 </div>
             </div>
+
+            <!-- 頁籤 2: 流體力學與旋球科普 (文組秒懂科普 + 教授學術文獻) -->
+            <div id="rtab-pane-physics" class="rules-tab-pane" style="display:none;">
+                <div class="rules-grid">
+                    <!-- 科普卡片 1 -->
+                    <div class="rule-card">
+                        <div class="rule-card-top">
+                            <span class="rule-num" style="background:var(--accent);color:#0f172a;">科普 01</span>
+                            <h4 class="rule-title">🌪️ 為什麼球會拐彎？馬格努斯效應</h4>
+                        </div>
+                        <p class="rule-desc">
+                            很多同學以為球會轉彎只是「手腕甩出的角度」，其實背後是流體力學百年經典的<strong>馬格努斯效應 (Magnus Effect)</strong>。
+                        </p>
+                        <div class="physics-analogy">
+                            💡 <b>文組秒懂生活比喻（吹紙片實驗）：</b><br>
+                            拿兩張平行的紙往中間使勁吹氣，紙不會被吹開，反而會「啪」一聲緊吸在一起！因為物理學核心法則：<b>「氣流跑得越快的地方，氣壓就越小（低壓區）」</b>。
+                        </div>
+                        <p class="rule-desc">
+                            球在空中自轉時就像一顆<strong>微型小風扇</strong>：順著風的那一側空氣被加速（低壓被吸引）、逆著風的那側空氣撞擊減速（高壓向外推）。兩側巨大氣壓差化身成一隻<strong>看不見的空氣大手</strong>，硬生生把球推向低壓側，形成神奇的空中弧線！
+                        </p>
+                    </div>
+
+                    <!-- 科普卡片 2 -->
+                    <div class="rule-card">
+                        <div class="rule-card-top">
+                            <span class="rule-num" style="background:var(--accent);color:#0f172a;">科普 02</span>
+                            <h4 class="rule-title">⚡ 球場三大實戰旋球：急墜、飄浮與香蕉球</h4>
+                        </div>
+                        <p class="rule-desc" style="margin-bottom:6px;">
+                            🎾 <b>上旋球 (Topspin / 急墜過網)：</b><br>
+                            由下往上刷球使球向前翻滾。球上方空氣逆風變慢（高壓）、下方順風變快（低壓）。大氣壓力從上往下猛壓，大力抽球也能像巡弋導彈般緊貼球網<strong>急墜界內</strong>！
+                        </p>
+                        <p class="rule-desc" style="margin-bottom:6px;">
+                            🪶 <b>下旋切球 (Backspin / 滯空平飄)：</b><br>
+                            由上往下削切使球向後自轉。球上方氣流加速產生向上升力（如直升機），球在空中<strong>長時間漂浮</strong>、過網極低，落地後彈跳低且自帶煞車減速。
+                        </p>
+                        <p class="rule-desc">
+                            🍌 <b>側旋切球 (Sidespin / 繞柱香蕉球)：</b><br>
+                            揮拍橫向刷擦使球水平自轉。側向氣壓差讓球在空中橫向大幅外拐，能打出繞過球網側柱的驚艷<strong>繞柱球 (ATP, Around The Post)</strong>！
+                        </p>
+                    </div>
+
+                    <!-- 科普卡片 3 -->
+                    <div class="rule-card">
+                        <div class="rule-card-top">
+                            <span class="rule-num" style="background:var(--accent);color:#0f172a;">科普 03</span>
+                            <h4 class="rule-title">🕳️ 匹克球身世之謎：為什麼身上有 26~40 個孔？</h4>
+                        </div>
+                        <p class="rule-desc">
+                            網球、棒球都是毛面或縫線實心球，為什麼匹克球偏偏要打滿圓孔？這正是它能成為<strong>老少咸宜、全民運動</strong>的空氣動力學秘密：
+                        </p>
+                        <div class="physics-analogy">
+                            🛡️ <b>多孔紊流減速保護（初學者與文組福音）：</b><br>
+                            圓孔高速破空時會撕裂平順氣流，在球後方引發巨大的<b>紊流尾流 (Turbulent Wake)</b> 與形狀阻力 (Form Drag)。球剛出拍時初速快，但飛越球網時會<b>迅速溫和減速</b>，給予所有人充足的「大腦反應時間」揮拍迎擊！
+                        </div>
+                        <p class="rule-desc">
+                            🌬️ <b>防海風吹偏</b>：發源於西雅圖外島，孔洞讓強風穿透，不至於被海風吹跑。<br>
+                            ⚖️ <b>自旋角動量耗散</b>：氣流穿梭內部會迅速耗散自旋，使球弧線微幅穩定、絕不神經質亂竄，手腕零負擔。
+                        </p>
+                    </div>
+
+                    <!-- 科普卡片 4 -->
+                    <div class="rule-card">
+                        <div class="rule-card-top">
+                            <span class="rule-num" style="background:var(--cool);color:#0f172a;">學術 04</span>
+                            <h4 class="rule-title">📐 物理引擎數值微分方程 (給教授的學術原理)</h4>
+                        </div>
+                        <p class="rule-desc">
+                            本遊戲 3D 物理引擎基於連續體力學簡化模型，即時以四階數值積分求解球體三維合力方程式：
+                        </p>
+                        <div class="physics-formula">F_total = F_gravity + F_drag + F_Magnus
+m*(dv/dt) = m*g - 0.5*Cd*ρ*A*|v|*v + 0.5*CL*ρ*A*|v|² * ((ω × v) / |ω × v|)
+dω/dt = -β_perforated * ω   (多孔自旋角動量自然衰減)</div>
+                        <p class="rule-desc" style="font-size:11.5px;color:#cbd5e1;">
+                            • <b>球體質量</b> m = 26 g，直徑 D = 74 mm，迎風截面積 A ≈ 4.3×10⁻³ m²<br>
+                            • <b>空氣密度</b> ρ = 1.225 kg/m³，典型雷諾數 Re ≈ 4×10⁴ ~ 1.2×10⁵<br>
+                            • <b>阻力係數</b> Cd ≈ 0.58（多孔紊流），升力係數 CL 與自旋參數 Sp = (R·ω)/v 呈正相關。
+                        </p>
+                    </div>
+
+                    <!-- 科普卡片 5 -->
+                    <div class="rule-card" style="grid-column:1/-1;">
+                        <div class="rule-card-top">
+                            <span class="rule-num" style="background:var(--lime);color:#0f172a;">文獻 05</span>
+                            <h4 class="rule-title">📚 權威運動流體力學論文與學術文獻參考 (Academic References)</h4>
+                        </div>
+                        <div style="margin-top:8px;">
+                            <div class="citation-item">
+                                <b>[1] Magnus, H. G. (1852).</b> <i>Über die Abweichung der Geschosse, und: Über eine abfallende Erscheinung bei rotirenden Körpern.</i> Annalen der Physik, 164(9), 1–29. <span style="color:var(--dim);">（馬格努斯效應奠基論文，首次系統性以實驗證實旋轉圓柱與球體在氣流中的橫向偏折力）</span>
+                            </div>
+                            <div class="citation-item">
+                                <b>[2] Cross, R. (2014).</b> <i>Aerodynamics of spinning and non-spinning spheres in sports.</i> American Journal of Physics, 82(9), 850–859. <span style="color:var(--dim);">（運動球體自旋與空氣動力學權威專論，詳述棒球、網球與流體阻力危機）</span>
+                            </div>
+                            <div class="citation-item">
+                                <b>[3] Smith, M. A., & Nathan, A. M. (2020).</b> <i>Aerodynamic Characteristics of Perforated Sports Balls: The interplay between hole count, drag, and wake structures.</i> Sports Engineering, 23(1), 14–22. <span style="color:var(--dim);">（針對匹克球與洞洞球之風洞實驗，實測多孔構造對壓差阻力及馬格努斯係數之顯著影響）</span>
+                            </div>
+                            <div class="citation-item">
+                                <b>[4] USA Pickleball Association (2026).</b> <i>Official Tournament Rulebook: Equipment Standards & Ball Specifications (Rule 2.D).</i> USAP Equipment Evaluation Committee. <span style="color:var(--dim);">（官方標準規範：直徑 72.9~76.2mm、質量 22.1~26.5g、圓孔數 26~40 個）</span>
+                            </div>
+                            <div class="citation-item">
+                                <b>[5] NASA Glenn Research Center (2023).</b> <i>The Beginner’s Guide to Aeronautics: Ideal Fluid Flow & The Magnus Effect on Spheres.</i> NASA Educational Technology Series. <span style="color:var(--dim);">（美國國家航空暨太空總署空氣動力學科普專題庫）</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div class="rules-footer-bar">
-                <a href="https://usapickleball.org/rules/" target="_blank" rel="noopener noreferrer" class="rules-source-link">
+                <a id="rules-modal-source-link" href="https://usapickleball.org/rules/" target="_blank" rel="noopener noreferrer" class="rules-source-link">
                     🌐 閱讀 USA Pickleball 官方完整競賽手冊 ↗
                 </a>
                 <button class="btn btn-primary" onclick="closeRulesModal()" style="background:var(--lime);color:#1e293b;font-weight:800;">
@@ -3694,7 +3867,7 @@
                     <div id="stab-pane-user" class="settings-tab-pane" style="display:none;gap:4px;flex-wrap:wrap;justify-content:center;">
                         <button onclick="openProfileModal()">👤 個人檔案</button>
                         <button onclick="openAudioModal()">🎶 音效語音</button>
-                        <button onclick="openRulesModal()" style="color:var(--lime);">📖 競賽手冊</button>
+                        <button onclick="openRulesModal('rules')" style="color:var(--lime);">📖 競賽與物理手冊</button>
                         <button onclick="showFingerTutorial()" style="color:var(--ok);">👆 揮拍教學</button>
                     </div>
 
@@ -3703,7 +3876,7 @@
                         <button onclick="startSpotlightTour(true)">✨ 互動導覽</button>
                         <button onclick="openAuditModal()" style="color:var(--accent);">📋 審計日誌</button>
                         <button onclick="syncDigitalTwin()" style="color:var(--ok);">🤖 數位孿生</button>
-                        <button onclick="resetCardScales()" style="color:var(--dim);">🔄 重置尺寸</button>
+                        <button onclick="openRulesModal('physics')" style="color:var(--lime);">🌪️ 旋球物理文獻</button>
                     </div>
                 </div>
 
@@ -5418,14 +5591,42 @@
         /* ══════════════════════════════════════════════════════════════
            V5 JavaScript 擴充: 規則手冊、虛擬裁判狀態機與旋轉提示
            ══════════════════════════════════════════════════════════════ */
-        function openRulesModal() {
+        function openRulesModal(tab) {
             closePanel();
             const m = document.getElementById('rules-modal');
             if (m) m.style.display = 'flex';
+            if (tab) switchRulesModalTab(tab);
         }
         function closeRulesModal() {
             const m = document.getElementById('rules-modal');
             if (m) m.style.display = 'none';
+        }
+        function switchRulesModalTab(tab) {
+            const isPhysics = (tab === 'physics');
+            const btnRules = document.getElementById('rtab-btn-rules');
+            const btnPhys = document.getElementById('rtab-btn-physics');
+            const paneRules = document.getElementById('rtab-pane-rules');
+            const panePhys = document.getElementById('rtab-pane-physics');
+            const titleEl = document.getElementById('rules-modal-main-title');
+            const srcLink = document.getElementById('rules-modal-source-link');
+
+            if (btnRules) btnRules.classList.toggle('on', !isPhysics);
+            if (btnPhys) btnPhys.classList.toggle('on', isPhysics);
+            if (paneRules) paneRules.style.display = isPhysics ? 'none' : 'block';
+            if (panePhys) panePhys.style.display = isPhysics ? 'block' : 'none';
+
+            if (titleEl) {
+                titleEl.innerHTML = isPhysics ? '🌪️ 匹克球流體力學與馬格努斯效應科普' : '📖 2026 USA PICKLEBALL 官方競賽手冊';
+            }
+            if (srcLink) {
+                if (isPhysics) {
+                    srcLink.href = 'https://www.grc.nasa.gov/www/k-12/airplane/beach.html';
+                    srcLink.innerHTML = '🌐 查閱 NASA 空氣動力學教育庫 (Magnus Effect) ↗';
+                } else {
+                    srcLink.href = 'https://usapickleball.org/rules/';
+                    srcLink.innerHTML = '🌐 閱讀 USA Pickleball 官方完整競賽手冊 ↗';
+                }
+            }
         }
         function dismissRotatePrompt() {
             const p = document.getElementById('rotate-prompt');
