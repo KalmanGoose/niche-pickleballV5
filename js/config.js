@@ -2,6 +2,13 @@
    NCHU Pickleball V5 - 系統常數、設定與資料庫 (Config & Identity)
    ═══════════════════════════════════════════════════════════════════ */
         const APP_VERSION = 'v5.0.14';
+
+        /* ═══════ 雙軌物理引擎模式 (Dual Physics Modes) ═══════ */
+        const PHYSICS_MODES = {
+            FAST: 'fast',          // ⚡ 極速經驗模式 (Arcade Mode): 輕量線性阻尼，保證 60 FPS 順暢省電
+            ACADEMIC: 'academic'   // 🔬 嚴格學術求解 (Simulation Mode): 真實質量、密度、阻力與馬格努斯微分方程
+        };
+        let currentPhysicsMode = localStorage.getItem('nchu_physics_mode') || PHYSICS_MODES.FAST;
 /* ═══════════════════════════════════════════════
            ★★★ 部署設定:這兩行要換成你自己的 ★★★
            ═══════════════════════════════════════════════ */

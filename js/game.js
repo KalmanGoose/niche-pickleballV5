@@ -1482,7 +1482,10 @@
 
         /* ═══════ 主迴圈 ═══════ */
         let camX = 0, last = performance.now();
+        let loopFrameCount = 0;
         const camLookTarget = new THREE.Vector3(0, 0.85, 0.3);
+        let cachedMiniSpd = null, cachedMiniPwr = null;
+
         function loop() {
             requestAnimationFrame(loop);
             const now = performance.now();
@@ -1505,50 +1508,34 @@
                 if (power >= 100) { power = 100; powerDir = -1; }
                 if (power <= 0) { power = 0; powerDir = 1; }
                 D.pFill.style.width = power.toFixed(1) + '%';
-                const miniPwr = document.getElementById('mini-pwr-val');
-                if (miniPwr) miniPwr.innerText = power.toFixed(0) + '%';
+                if (!cachedMiniPwr) cachedMiniPwr = document.getElementById('mini-pwr-val');
+                if (cachedMiniPwr) cachedMiniPwr.innerText = power.toFixed(0) + '%';
             }
 
             PH.update(dt); tryHit(); updateGoose(dt); updateGuides(dt);
             updateAimZones(dt); updateRings(dt);
-            D.sp.innerText = (PH.vel.length() * 2.23694).toFixed(1);
+
+            // 速度儀表文字降頻更新 (每 4 幀更新一次，徹底消除 Layout Reflow 造成的掉幀)
+            if ((loopFrameCount++ & 3) === 0) {
+                const mphStr = (PH.vel.length() * 2.23694).toFixed(1);
+                if (D.sp) D.sp.innerText = mphStr;
+                if (!cachedMiniSpd) cachedMiniSpd = document.getElementById('mini-spd-val');
+                if (cachedMiniSpd) cachedMiniSpd.innerText = mphStr + ' mph';
+            }
 
             const k = 1 - Math.pow(0.01, dt);
             camX += (pPos.x * 0.3 - camX) * k;
             const sx = (Math.random() - 0.5) * shake;
             const sy = (Math.random() - 0.5) * shake * 0.7;
 
-            // 迷你速度指示器同步
-            const miniSpd = document.getElementById('mini-spd-val');
-            if (miniSpd) miniSpd.innerText = (PH.vel.length() * 2.23694).toFixed(1) + ' mph';
-
             if (camViewMode === 0) {
-                // ★ 智慧超感相機 (依手機直向/橫向自適應拉近，人物與球體放大，球場滿版無黑邊)
+                // ★ 智慧超感相機 (相機位置平滑追蹤)
                 const cfg = (typeof getResponsiveCameraConfig === 'function')
                     ? getResponsiveCameraConfig()
                     : { camH: 8.2, camDist: 13.6, lookY: 0.74, lookZ: -0.4, fov: 50 };
 
-                // 動態同步相機 FOV 與視角投射矩陣，確保縮放/旋轉即時生效
-                if (cfg.fov && Math.abs(cam.fov - cfg.fov) > 0.2) {
-                    cam.fov = cfg.fov;
-                    cam.updateProjectionMatrix();
-                }
-                const currentAspect = window.innerWidth / window.innerHeight;
-                if (Math.abs(cam.aspect - currentAspect) > 0.005) {
-                    cam.aspect = currentAspect;
-                    cam.updateProjectionMatrix();
-                    ren.setSize(window.innerWidth, window.innerHeight);
-                }
-
                 cam.position.set(camX * 0.4 + sx, cfg.camH + sy, cfg.camDist);
                 cam.lookAt(camX * 0.25, cfg.lookY, cfg.lookZ);
-
-                if (ball && cfg.ballScale && Math.abs(ball.scale.x - cfg.ballScale) > 0.01) {
-                    ball.scale.set(cfg.ballScale, cfg.ballScale, cfg.ballScale);
-                }
-                if (ballGlow && cfg.glowScale) {
-                    ballGlow.scale.set(BALL_R * cfg.glowScale, BALL_R * cfg.glowScale, 1);
-                }
             } else if (camViewMode === 1) {
                 cam.position.set(sx, 14.5 + sy, 7.5);
                 cam.lookAt(0, 0, -1.0);

@@ -3,16 +3,16 @@
    ═══════════════════════════════════════════════════════════════════ */
         const PERF_PRESETS = {
             low: { label: '🟢 低', joints: 'CORE6', frameSkip: 3, pixelRatio: 0.8, shadow: 0, complexity: 0, skeleton: 'MINIMAL' },
-            medium: { label: '🟡 中', joints: 'UPPER14', frameSkip: 2, pixelRatio: 1.5, shadow: 512, complexity: 0, skeleton: 'BASIC' },
-            high: { label: '🔴 高', joints: 'UPPER14', frameSkip: 2, pixelRatio: 2.0, shadow: 512, complexity: 0, skeleton: 'SMOOTH' },
-            ultra: { label: '🟣 超高', joints: 'FULL33', frameSkip: 1, pixelRatio: 2.5, shadow: 1024, complexity: 1, skeleton: 'GLOW' }
+            medium: { label: '🟡 中 (極速60fps)', joints: 'UPPER14', frameSkip: 2, pixelRatio: 1.2, shadow: 0, complexity: 0, skeleton: 'BASIC' },
+            high: { label: '🔴 高', joints: 'UPPER14', frameSkip: 2, pixelRatio: 1.6, shadow: 512, complexity: 0, skeleton: 'SMOOTH' },
+            ultra: { label: '🟣 超高', joints: 'FULL33', frameSkip: 1, pixelRatio: 2.0, shadow: 1024, complexity: 1, skeleton: 'GLOW' }
         };
         const JOINT_SETS = {
             CORE6: [11, 12, 13, 14, 15, 16],
             UPPER14: [11, 12, 13, 14, 15, 16, 19, 20, 21, 22, 23, 24, 0, 7],
             FULL33: Array.from({ length: 33 }, (_, i) => i)
         };
-        let perfLevel = IS_MOBILE ? 'high' : 'ultra';
+        let perfLevel = IS_MOBILE ? 'medium' : 'high';
         let frameSkip = PERF_PRESETS[perfLevel].frameSkip;
         function applyPerfPreset(level) {
             const p = PERF_PRESETS[level]; if (!p) return;
