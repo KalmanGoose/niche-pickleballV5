@@ -1545,9 +1545,26 @@
             #info #s-sub,
             #info #s-desc,
             #info #waist-row,
-            #info #stance-row,
-            #info #info-diff-row {
+            #info #stance-row {
                 display: none !important;
+            }
+            #info #info-diff-row {
+                display: flex !important;
+                margin-top: 5px !important;
+                padding-top: 4px !important;
+                border-top: 1px solid rgba(255, 255, 255, 0.12) !important;
+                align-items: center !important;
+                justify-content: space-between !important;
+                gap: 2px !important;
+                width: 100% !important;
+            }
+            #info #info-diff-row .diff-btn {
+                padding: 2px 4px !important;
+                font-size: 9.5px !important;
+                min-width: 0 !important;
+                flex: 1 !important;
+                text-align: center !important;
+                border-radius: 6px !important;
             }
             #info #goal-row {
                 margin-top: 3px !important;
@@ -1601,16 +1618,21 @@
             /* 3. 頂部活動式容器 (#nav-wrapper) 居中於第 2 排 (top: 58px) */
             #nav-wrapper {
                 top: calc(58px + env(safe-area-inset-top));
-                width: calc(100vw - 16px) !important;
-                max-width: 420px !important;
+                width: max-content !important;
+                max-width: calc(100vw - 16px) !important;
+                box-sizing: border-box !important;
+            }
+            #nav-wrapper.minimized {
+                width: max-content !important;
+                max-width: none !important;
             }
             #nav, body.layout-v4 #nav {
                 position: relative !important;
                 top: auto !important;
                 left: auto !important;
                 transform: none !important;
-                width: 100% !important;
-                max-width: 420px !important;
+                width: max-content !important;
+                max-width: calc(100vw - 16px) !important;
                 padding: 3px 6px !important;
                 gap: 3px !important;
                 overflow-x: auto !important;
@@ -1619,9 +1641,9 @@
             }
             #nav::-webkit-scrollbar { display: none !important; }
             #nav button:not(.nav-min-btn) {
-                font-size: 11px !important;
-                padding: 5px 9px !important;
-                min-height: 32px !important;
+                font-size: 10.5px !important;
+                padding: 4px 7px !important;
+                min-height: 28px !important;
             }
 
 }
@@ -1653,9 +1675,26 @@
             #info #s-desc,
             #info #waist-row,
             #info #stance-row,
-            #info #hint,
-            #info #info-diff-row {
+            #info #hint {
                 display: none !important;
+            }
+            #info #info-diff-row {
+                display: flex !important;
+                margin-top: 3px !important;
+                padding-top: 3px !important;
+                border-top: 1px solid rgba(255, 255, 255, 0.12) !important;
+                align-items: center !important;
+                justify-content: space-between !important;
+                gap: 2px !important;
+                width: 100% !important;
+            }
+            #info #info-diff-row .diff-btn {
+                padding: 1.5px 3.5px !important;
+                font-size: 8.5px !important;
+                min-width: 0 !important;
+                flex: 1 !important;
+                text-align: center !important;
+                border-radius: 6px !important;
             }
             #info #goal-row {
                 margin-top: 2px !important;
@@ -1693,7 +1732,13 @@
             /* 3. 頂部活動式容器 (#nav-wrapper) 完美置頂 */
             #nav-wrapper {
                 top: calc(6px + env(safe-area-inset-top));
-                max-width: calc(100vw - 360px) !important;
+                width: max-content !important;
+                max-width: calc(100vw - 340px) !important;
+                box-sizing: border-box !important;
+            }
+            #nav-wrapper.minimized {
+                width: max-content !important;
+                max-width: none !important;
             }
             #nav, body.layout-v4 #nav {
                 position: relative !important;

@@ -167,11 +167,12 @@
                 const map = { easy: '🟢 寬鬆', normal: '🟡 標準', strict: '🔴 嚴格' };
                 teachBtn.innerHTML = `🎚️ 判定: ${map[teachLevel] || teachLevel}`;
             }
-            // 同步匹克鵝難度
+            // 同步 AI 對手難度
             const diffBtn = document.getElementById('subbar-diff-btn');
-            if (diffBtn && typeof gameDifficulty !== 'undefined') {
-                const map = { easy: '🟢 初階', medium: '🟡 中等', hard: '🔴 困難' };
-                diffBtn.innerHTML = `🤖 匹克鵝: ${map[gameDifficulty] || gameDifficulty}`;
+            const curDiff = (typeof diffLevel !== 'undefined') ? diffLevel : ((typeof gameDifficulty !== 'undefined') ? gameDifficulty : 'easy');
+            if (diffBtn) {
+                const map = { easy: '🟢 初階', medium: '🟡 中等', hard: '🔴 困難', fly: '🪰 蒼蠅' };
+                diffBtn.innerHTML = `🤖 對手: ${map[curDiff] || curDiff}`;
             }
             // 同步效能預設
             const perfBtn = document.getElementById('subbar-perf-btn');
@@ -223,7 +224,7 @@
                     activeNavMenu = null;
                 }
                 try { localStorage.setItem('nchu_nav_minimized', '1'); } catch (e) {}
-                if (typeof toast === 'function') toast('⚙️ 選單已收入懸浮球', '整列選單已完全收合！點擊懸浮球即可展開，可自由拖曳');
+                if (typeof toast === 'function') toast('⚙️ 選單已收入懸浮球', '整列選單已完全收合！點擊懸浮球即可展開');
             } else {
                 wrapper.classList.remove('minimized');
                 nav.style.removeProperty('display');
@@ -232,6 +233,20 @@
                     subbar.style.removeProperty('display');
                 }
                 try { localStorage.setItem('nchu_nav_minimized', '0'); } catch (e) {}
+
+                // ★ 展開防爆框防護：若展開後選單超出螢幕右側邊緣，自動向左平滑修正
+                requestAnimationFrame(() => {
+                    const rect = wrapper.getBoundingClientRect();
+                    if (rect.right > window.innerWidth - 8 || rect.left < 8) {
+                        const maxLeft = Math.max(8, window.innerWidth - rect.width - 8);
+                        const clampedLeft = Math.max(8, Math.min(maxLeft, rect.left));
+                        wrapper.style.left = clampedLeft + 'px';
+                        wrapper.style.transform = 'none';
+                        try {
+                            localStorage.setItem('nchu_nav_pos', JSON.stringify({ left: clampedLeft, top: rect.top }));
+                        } catch (err) {}
+                    }
+                });
             }
         }
 
@@ -242,18 +257,23 @@
             const pill = document.getElementById('nav-minimized-pill');
             if (!wrapper) return;
 
-            // 讀取上次記憶的位置 (具備防卡死守護機制)
+            // 讀取上次記憶的位置 (防卡死與邊界守護)
             try {
                 const savedPos = localStorage.getItem('nchu_nav_pos');
                 if (savedPos) {
                     const pos = JSON.parse(savedPos);
-                    // 🛡️ 防卡死守護：若記憶位置落在左上角卡片區 (left < 340 且 top < 320) 或小於 0，自動清除還原預設置中
-                    if ((pos.left < 340 && pos.top < 320) || pos.left < 0 || pos.top < 0) {
+                    // 🛡️ 守護：僅當座標完全脫離螢幕視窗可視範圍才清除還原
+                    const isOffscreen = pos.left < -20 || pos.top < -20 || 
+                                       pos.left > (window.innerWidth - 30) || 
+                                       pos.top > (window.innerHeight - 30);
+                    if (isOffscreen) {
                         localStorage.removeItem('nchu_nav_pos');
                         resetNavPosition();
                     } else if (typeof pos.left === 'number' && typeof pos.top === 'number') {
-                        const maxLeft = Math.max(10, window.innerWidth - 70);
-                        const maxTop = Math.max(10, window.innerHeight - 50);
+                        const w = wrapper.offsetWidth || 56;
+                        const h = wrapper.offsetHeight || 26;
+                        const maxLeft = Math.max(8, window.innerWidth - w - 8);
+                        const maxTop = Math.max(6, window.innerHeight - h - 8);
                         const clampedLeft = Math.max(8, Math.min(maxLeft, pos.left));
                         const clampedTop = Math.max(6, Math.min(maxTop, pos.top));
                         wrapper.style.left = clampedLeft + 'px';
@@ -390,8 +410,9 @@
         }
 
         function cycleDifficultyQuick() {
-            const diffs = ['easy', 'medium', 'hard'];
-            const idx = diffs.indexOf(gameDifficulty);
+            const diffs = ['easy', 'medium', 'hard', 'fly'];
+            const curDiff = (typeof diffLevel !== 'undefined') ? diffLevel : 'easy';
+            const idx = diffs.indexOf(curDiff);
             const next = diffs[(idx + 1) % diffs.length];
             setDifficulty(next);
             syncSubbarStates();
