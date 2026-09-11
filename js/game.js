@@ -801,6 +801,12 @@
             servePrepared = false; calibT0 = 0; serveCooldown = 1.2;
             resetServeFSM(); kcReset();
 
+            if (typeof diffLevel !== 'undefined' && diffLevel === 'fly') {
+                flyState = 'HOVER'; flyStunTimer = 0;
+                if (flyMesh) flyMesh.rotation.z = 0;
+                if (flyDizzy) flyDizzy.visible = false;
+            }
+
             if (server === 'PLAYER') {
                 pPos.x = 1.5 * serveSide; pPos.z = HALF_L + 0.35;
                 serveFromRight = pPos.x >= 0;
@@ -808,16 +814,17 @@
                 AIM.idx = 2; AIM.cand = 2; AIM.dwell = 0; syncAimPips();
                 if (webcamActive) document.getElementById('calibration-box').style.display = 'flex';
                 D.pFill.style.width = '0%';
+                const whoOpp = (typeof diffLevel !== 'undefined' && diffLevel === 'fly') ? '🪰 仿生蒼蠅' : '🪿 匹克鵝';
                 const hints = {
                     1: '左手舉高解鎖 → 拍面低於腰 → 向上推拍 → 收拍抬過肩',
-                    2: '左手舉高預備 → 匹克鵝回深球 → 讓球落地一次再回擊',
-                    3: '左手舉高預備 → 匹克鵝吊球進廚房 → 等球落地再輕推 1 次',
-                    4: '對決匹克鵝 (發球得分制, 先得 3 分勝)',
+                    2: '左手舉高預備 → ' + whoOpp + '回深球 → 讓球落地一次再回擊',
+                    3: '左手舉高預備 → ' + whoOpp + '吊球進廚房 → 等球落地再輕推 1 次',
+                    4: '對決 ' + whoOpp + ' (發球得分制, 先得 3 分勝)',
                     5: '🔥 中興湖魔王戰! (發球得分制, 搶 5 分登錄英雄榜)'
                 };
                 toast('READY · 玩家發球', hints[stage] + (stage >= 4 ? (' · ' + (secondServe ? '2nd' : '1st') + ' Serve') : ''));
             } else {
-                // 匹克鵝發球:玩家站到對角落點側接發球
+                // 匹克鵝/蒼蠅發球:玩家站到對角落點側接發球
                 pPos.x = 1.5 * serveSide; pPos.z = HALF_L + 0.45;
                 serveFromRight = false;
                 gGrp.position.set(-1.5 * serveSide, 0, -HALF_L - 0.35);
@@ -834,7 +841,7 @@
         function gooseDoServe() {
             if (state !== 'SERVE_READY' || server !== 'GOOSE' || demoOn) return;
             const isFly = (typeof diffLevel !== 'undefined' && diffLevel === 'fly');
-            PH.setPos(gGrp.position.x, isFly ? 0.95 : 0.80, gGrp.position.z + 0.30);
+            PH.setPos(gGrp.position.x, 0.80, gGrp.position.z + 0.30);
             state = 'SERVE_AIR'; lastHitter = 'GOOSE';
             rallyHits = 1; bounces = 0; gLock = 0.3; pLock = 0;
             const targetX = 1.4 * serveSide, targetZ = 2.6 + Math.random() * 1.6;
@@ -842,7 +849,7 @@
             S.pop(0.65);
             if (isFly) {
                 popRing(gGrp.position.x, gGrp.position.z, 1.4, 0xa855f7);
-                toast('🪰 仿生蒼蠅發球!', '等球落地一次再回擊');
+                toast('🪰 仿生蒼蠅下手發球!', '等球落地一次再回擊');
             } else {
                 popRing(gGrp.position.x, gGrp.position.z, 1.2, 0x38bdf8);
                 toast('🪿 匹克鵝下手發球!', '等球落地一次再回擊');
@@ -1281,32 +1288,36 @@
                     gGrp.position.y = THREE.MathUtils.lerp(gGrp.position.y, targetY, dt * 10);
                 }
 
-                // 即時光學逼近率評估 (Optical Looming Rate = Approach Velocity / Distance) - O(1) 複雜度
+                // 即時光學逼近率評估 (Optical Looming Rate & Sensory Vulnerability) - O(1) 複雜度
                 if (active && PH.vel.z < 0) {
                     const bDist = Math.hypot(PH.pos.x - gGrp.position.x, PH.pos.z - gGrp.position.z);
-                    const vRel = -PH.vel.z;
-                    const loomingRate = (vRel > 0 ? vRel : 0) / Math.max(bDist, 0.35);
                     const ballSpeed = PH.vel.length();
+                    const approachSpeed = -PH.vel.z;
 
-                    // 1. 高逼近率 / 大力抽球 -> 激發巨纖維神經反射 (Giant Fiber Reflex)
-                    if ((ballSpeed >= 8.6 || loomingRate >= 2.0) && flyState !== 'STUNNED') {
-                        if (flyState !== 'LOOMING_REFLEX') {
-                            flyState = 'LOOMING_REFLEX';
-                            toast('🪰 巨纖維反射觸發！', '偵測到高速球逼近！蒼蠅瞬移極速截擊！');
-                            popRing(gGrp.position.x, gGrp.position.z, 1.4, 0xa855f7);
-                            if (typeof speechSay === 'function' && Math.random() < 0.3) speechSay('巨纖維反射！');
-                        }
-                    } 
-                    // 2. 低逼近率 / 廚房區柔和放小球 (Dink / 3rd Shot Drop) -> 複眼視盲墜地 (Sensory Vulnerability)
-                    else if (ballSpeed < 7.8 && loomingRate < 1.6 && PH.pos.z < 2.0 && flyState !== 'STUNNED') {
-                        const ap = predictApex();
-                        if (ap && ap.z > -KITCHEN_D - 1.2) {
-                            flyState = 'STUNNED';
-                            flyStunTimer = 1.6;
-                            consecutiveDinks++;
-                            toast('🪰 複眼視盲！蒼蠅墜地', '慢速小球避開了巨纖維反射，破綻大開！');
-                            if (typeof S !== 'undefined' && S.ding) S.ding();
-                            if (typeof speechSay === 'function' && Math.random() < 0.5) speechSay('小球破防！');
+                    // 僅在飛行逼近過程中評估 (bDist >= 1.2m)，杜絕近身除以零的數值奇點
+                    if (bDist >= 1.2) {
+                        const loomingRate = (approachSpeed > 0 ? approachSpeed : 0) / bDist;
+
+                        // 1. 高逼近率 / 抽球殺球 (Looming Threat) -> 激發巨纖維神經逃逸反射 (Giant Fiber Reflex)
+                        if ((ballSpeed >= 9.2 || loomingRate >= 1.6 || approachSpeed >= 7.8) && flyState !== 'STUNNED') {
+                            if (flyState !== 'LOOMING_REFLEX') {
+                                flyState = 'LOOMING_REFLEX';
+                                toast('🪰 巨纖維反射觸發！', '偵測到高速球逼近！蒼蠅瞬移極速截擊！');
+                                popRing(gGrp.position.x, gGrp.position.z, 1.4, 0xa855f7);
+                                if (typeof speechSay === 'function' && Math.random() < 0.3) speechSay('巨纖維反射！');
+                            }
+                        } 
+                        // 2. 低逼近率 / 廚房區柔和小球 (Dink / 3rd Shot Drop) -> 複眼視盲墜地破防 (Sensory Vulnerability)
+                        else if (ballSpeed < 8.2 && approachSpeed < 6.8 && loomingRate < 1.2 && flyState !== 'STUNNED') {
+                            const ap = predictApex();
+                            if (ap && ap.z > -KITCHEN_D - 0.8) {
+                                flyState = 'STUNNED';
+                                flyStunTimer = 2.2;
+                                consecutiveDinks++;
+                                toast('🪰 複眼視盲！蒼蠅墜地', '慢速小球避開了巨纖維反射，破綻大開！');
+                                if (typeof S !== 'undefined' && S.ding) S.ding();
+                                if (typeof speechSay === 'function' && Math.random() < 0.5) speechSay('小球破防！');
+                            }
                         }
                     }
                 }
@@ -1328,12 +1339,12 @@
                 else { aiTo.x = 0; aiTo.z = -HALF_L - 0.5; }
             } else if (active) { aiTo.x *= 0.9; aiTo.z = -KITCHEN_D - 0.5; }
 
-            // 移速計算：蒼蠅在 LOOMING_REFLEX 時速度高達 26.0 (超速瞬移)，STUNNED 時速度為 0.5
+            // 移速計算：蒼蠅在 LOOMING_REFLEX 時速度高達 22.0 (超速瞬移)，STUNNED 時速度為 0.2
             let spd;
             if (isFly) {
-                if (flyState === 'STUNNED') spd = 0.5;
-                else if (flyState === 'LOOMING_REFLEX') spd = 26.0;
-                else spd = 9.5;
+                if (flyState === 'STUNNED') spd = 0.2;
+                else if (flyState === 'LOOMING_REFLEX') spd = 22.0;
+                else spd = 8.5;
             } else {
                 const diffScale = stage >= 4 ? (DIFF_PRESETS[diffLevel]?.speedScale || 1.0) : 1.0;
                 spd = (AI_SPEED[stage] || 5.5) * diffScale;
@@ -1355,7 +1366,7 @@
 
             // ★ 發球等待時球固定在腰部高度(不可回讀 PH.pos.y,否則會逐幀爬升)
             if (state === 'SERVE_READY' && server === 'GOOSE') {
-                PH.reset(gGrp.position.x, isFly ? 0.95 : 0.80, gGrp.position.z + 0.30);
+                PH.reset(gGrp.position.x, 0.80, gGrp.position.z + 0.30);
             }
             if (!active || gLock > 0 || locked) return;
             if (PH.pos.z > -0.05 || PH.vel.z > 0 || bounces === 0) return;
@@ -1369,23 +1380,73 @@
             }
 
             if (isFly) {
-                // ═══════ 仿生蒼蠅巨纖維反射超速回擊 ═══════
-                gLock = 0.20; pLock = 0.12; lastHitter = 'GOOSE'; rallyHits++; bounces = 0;
+                // ═══════ 仿生蒼蠅官方規則遵循與巨纖維反擊機制 ═══════
+                gLock = 0.24; pLock = 0.14; lastHitter = 'GOOSE'; rallyHits++; bounces = 0;
                 if (state === 'SERVE_AIR') state = 'RALLY';
-                PH.spin = (Math.random() - 0.5) * 4.2; // 蒼蠅回擊帶有強烈側旋
-                PH.spinInc = PH.spin;
 
-                // 刁鑽壓線深球反抽
-                const cornerX = (pPos.x > 0 ? -1.8 : 1.8) + (Math.random() - 0.5) * 0.6;
-                const targetZ = HALF_L - 0.35 + (Math.random() - 0.5) * 0.6;
-                solveArc(b.x, b.y, b.z, cornerX, targetZ, PH.vel);
-                PH.vel.x *= 1.25;
-                PH.vel.z *= 1.25;
+                // 1. 新手教學關卡規則 (Stage 2 & 3 嚴格配合教學)
+                if (stage === 2) {
+                    // ★ 第 2 關：雙彈跳規則 (Two-Bounce Rule)
+                    // 蒼蠅必須回傳乾淨、深邃的底線平球，供玩家落地一次後回擊過關
+                    aiShot.z = HALF_L - 0.75;
+                    aiShot.x = THREE.MathUtils.clamp(pPos.x + (Math.random() - 0.5) * 0.8, -1.8, 1.8);
+                    solveArc(b.x, b.y, b.z, aiShot.x, aiShot.z, PH.vel, 1.0);
+                    PH.spin = 0; PH.spinInc = 0;
+                    S.pop(0.65);
+                    toast('🪰 蒼蠅回傳底線深球', '等球落地一次再回擊');
+                    flyState = 'HOVER';
+                    return;
+                } else if (stage === 3) {
+                    // ★ 第 3 關：中興湖廚房區 (Kitchen / Non-Volley Zone)
+                    // 蒼蠅必須將球輕吊入玩家廚房區 (1.2m ~ 1.7m)，供玩家練習落地推擊小球 (Dink)
+                    aiShot.z = 1.35 + Math.random() * 0.35;
+                    aiShot.x = THREE.MathUtils.clamp(pPos.x * 0.4 + (Math.random() - 0.5) * 0.8, -1.5, 1.5);
+                    solveArc(b.x, b.y, b.z, aiShot.x, aiShot.z, PH.vel, 0.88);
+                    PH.spin = 0; PH.spinInc = 0;
+                    S.pop(0.55);
+                    toast('🪰 蒼蠅放中興湖短球', '等球在廚房區落地後輕推');
+                    flyState = 'HOVER';
+                    return;
+                }
 
-                popRing(gGrp.position.x, gGrp.position.z, 1.6, 0xa855f7);
-                S.pop(0.85);
+                // 2. 第 4~5 關與正式對抗賽 (嚴格遵循匹克球競賽標準，保證 100% 界內)
+                const isCounter = (flyState === 'LOOMING_REFLEX');
+                let targetX, targetZ, spdScale, spinVal;
+
+                if (isCounter) {
+                    // 巨纖維神經極速反抽：瞄準遠離玩家的對角底線壓線區 (絕對在界內！)
+                    targetX = (pPos.x > 0 ? -1.80 : 1.80) + (Math.random() - 0.5) * 0.30;
+                    targetZ = HALF_L - 0.75 + (Math.random() - 0.5) * 0.30; // 5.8m ~ 6.1m (底線前安全界內)
+                    spdScale = 1.25; // 呼叫 solveArc 內建高速運算，精確計算飛行初速，保證落點合規
+                    spinVal = (pPos.x > 0 ? -0.22 : 0.22); // 正式競賽微側旋切球 (在合法死區內)
+                    popRing(gGrp.position.x, gGrp.position.z, 1.6, 0xa855f7);
+                    S.pop(0.85);
+                    toast('🪰 巨纖維瞬殺反抽！', '極速壓線深球回敬！');
+                } else {
+                    // 一般來回球：戰術性交替廚房短球 (35%) 與底線深球 (65%)
+                    const shouldDink = Math.random() < 0.35;
+                    if (shouldDink) {
+                        targetX = THREE.MathUtils.clamp(pPos.x * 0.4 + (Math.random() - 0.5) * 1.5, -1.8, 1.8);
+                        targetZ = 1.20 + Math.random() * 0.60; // 1.2m ~ 1.8m (廚房區內)
+                        spdScale = 0.90;
+                        spinVal = 0;
+                        toast('🪰 仿生蒼蠅吊球', '廚房區丁克小球');
+                    } else {
+                        targetX = (pPos.x > 0 ? -1.70 : 1.70) + (Math.random() - 0.5) * 0.40;
+                        targetZ = HALF_L - 0.90 - Math.random() * 0.70; // 5.1m ~ 5.8m
+                        spdScale = 1.08;
+                        spinVal = (Math.random() - 0.5) * 0.20;
+                        toast('🪰 仿生蒼蠅回擊', '底線壓制深球');
+                    }
+                    popRing(gGrp.position.x, gGrp.position.z, 1.2, 0xa855f7);
+                    S.pop(0.65);
+                }
+
+                // 呼叫 solveArc 精確解算彈道，禁止在解算後乘倍數破壞物理軌跡！
+                solveArc(b.x, b.y, b.z, targetX, targetZ, PH.vel, spdScale);
+                PH.spin = spinVal;
+                PH.spinInc = 0;
                 flyState = 'HOVER';
-                toast('🪰 巨纖維瞬殺反抽！', '極速壓線深球回敬！');
                 return;
             }
 
