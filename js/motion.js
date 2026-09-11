@@ -433,8 +433,14 @@
            ═══════════════════════════════════════════════ */
         const SWIPE = {
             active: false,
+            startX: 0,
+            startY: 0,
             prevX: 0,
             prevY: 0,
+            currX: 0,
+            currY: 0,
+            distX: 0,
+            distY: 0,
             lastTime: 0,
             vx: 0,         // px/s 水平速度 (右正左負)
             vy: 0,         // px/s 垂直推拍速度 (上推為正)
@@ -449,8 +455,9 @@
             dismissFingerTutorial();
             const now = performance.now();
             SWIPE.active = true;
-            SWIPE.prevX = x;
-            SWIPE.prevY = y;
+            SWIPE.startX = SWIPE.prevX = SWIPE.currX = x;
+            SWIPE.startY = SWIPE.prevY = SWIPE.currY = y;
+            SWIPE.distX = SWIPE.distY = 0;
             SWIPE.lastTime = now;
             SWIPE.vx = SWIPE.vy = 0;
             SWIPE.smoothedVx = SWIPE.smoothedVy = 0;
@@ -466,6 +473,10 @@
 
             const dx = x - SWIPE.prevX;
             const dy = SWIPE.prevY - y; // 向上為正
+            SWIPE.currX = x;
+            SWIPE.currY = y;
+            SWIPE.distX = x - SWIPE.startX;
+            SWIPE.distY = SWIPE.startY - y;
 
             const instVx = dx / dt;
             const instVy = dy / dt;
@@ -481,14 +492,12 @@
             if (Math.abs(SWIPE.vx) > Math.abs(SWIPE.peakVx)) SWIPE.peakVx = SWIPE.vx;
             if (SWIPE.vy > SWIPE.peakVy) SWIPE.peakVy = SWIPE.vy;
 
-            // ★ v5.0.9 側旋量即時估算 (提高分母門檻，僅在顯著橫切時提供微側旋參考)
-            const brushRatio = SWIPE.vx / Math.max(160, Math.abs(SWIPE.vy) + 120);
-            SWIPE.spin = THREE.MathUtils.clamp((SWIPE.vx / 900) * 0.45 + brushRatio * 0.20, -0.45, 0.45);
+            // ★ 側旋量即時估算 (敏銳響應左右滑動，平滑增益)
+            const brushRatio = SWIPE.vx / Math.max(120, Math.abs(SWIPE.vy) + 80);
+            SWIPE.spin = THREE.MathUtils.clamp((SWIPE.vx / 600) * 0.55 + brushRatio * 0.30, -0.85, 0.85);
 
             SWIPE.prevX = x;
             SWIPE.prevY = y;
-            SWIPE.currX = x;
-            SWIPE.currY = y;
         }
 
         function swipeEnd() {

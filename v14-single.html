@@ -5015,22 +5015,30 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
                 ballGlow.position.copy(this.pos);
                 const spd = this.vel.length();
                 ballGlow.material.opacity = 0.16 + Math.min(0.26, spd * 0.02);
-                // ★ v5.0.2 側旋強烈時動態變換尾隨氣流光暈
-                if (Math.abs(this.spin) >= 0.25) {
-                    ballGlow.material.color.set(this.spin > 0 ? 0xd3f36c : 0x818cf8);
-                    ballGlow.material.opacity = 0.42;
+
+                // ★ 側旋香蕉弧線流光色彩：右側旋霓虹紫、左側旋電光青、直球經典亮螢光綠
+                const hasCurve = Math.abs(this.spin) >= 0.12;
+                if (hasCurve) {
+                    ballGlow.material.color.set(this.spin > 0 ? 0xc084fc : 0x38bdf8);
+                    ballGlow.material.opacity = 0.52;
                 } else {
-                    ballGlow.material.color.set(0x38bdf8);
+                    ballGlow.material.color.set(0xdcff6a);
                 }
                 for (let i = ballTrail.length - 1; i > 0; i--) ballTrail[i].p.copy(ballTrail[i - 1].p);
                 ballTrail[0].p.copy(this.pos);
-                const on = spd > 3.2;
+                const on = spd > 2.8;
                 for (let i = 0; i < ballTrail.length; i++) {
                     const tr = ballTrail[i], f = 1 - i / ballTrail.length;
                     tr.spr.position.copy(tr.p);
-                    const sc = BALL_R * 4.2 * f;
+                    const sc = BALL_R * (hasCurve ? 5.2 : 3.8) * f;
                     tr.spr.scale.set(sc, sc, 1);
-                    tr.spr.material.opacity = on ? 0.24 * f * f : 0;
+                    if (hasCurve) {
+                        tr.spr.material.color.set(this.spin > 0 ? 0xc084fc : 0x38bdf8);
+                        tr.spr.material.opacity = on ? (0.48 * f) : 0;
+                    } else {
+                        tr.spr.material.color.set(0xdcff6a);
+                        tr.spr.material.opacity = on ? (0.24 * f * f) : 0;
+                    }
                 }
                 ballBlob.position.set(this.pos.x, 0.014, this.pos.z);
                 const hh = THREE.MathUtils.clamp(this.pos.y, 0, 3.2);
@@ -5064,27 +5072,27 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
                     this.vel.y -= this.vel.y * dragAcc * h;
                     this.vel.z -= this.vel.z * dragAcc * h;
 
-                    // 馬格努斯項: a_magnus ∝ spin * |v_z| (結合球速與旋轉量)
+                    // 馬格努斯項: a_magnus ∝ spin * |v_z| (結合球速與旋轉量，視覺校準偏折量 0.9m~1.35m)
                     if (Math.abs(this.spin) > 0.08) {
                         const curveFlightFactor = Math.sin(Math.min(1, Math.abs(this.pos.z) / HALF_L) * Math.PI);
-                        const magnusAccX = MAGNUS_K * this.spin * Math.abs(this.vel.z) * (1.6 + 0.6 * curveFlightFactor);
-                        const outDist = Math.max(0, Math.abs(this.pos.x) - (COURT_W / 2 + 0.2));
-                        const softGuard = THREE.MathUtils.clamp(1.0 - (outDist / 0.8), 0.2, 1.0);
+                        const magnusAccX = MAGNUS_K * this.spin * Math.abs(this.vel.z) * (11.5 + 5.5 * curveFlightFactor);
+                        const outDist = Math.max(0, Math.abs(this.pos.x) - (COURT_W / 2 + 0.15));
+                        const softGuard = THREE.MathUtils.clamp(1.0 - (outDist / 0.75), 0.15, 1.0);
                         this.vel.x += magnusAccX * h * softGuard;
-                        this.spin *= (1 - 0.35 * h); // 多孔自旋耗散
+                        this.spin *= (1 - 0.28 * h); // 多孔自旋自然衰減
                     }
                     this.spinInc = 0;
                 } else {
                     // ⚡ 模式 2: 極速經驗模式 (輕量低負載，維持極致 60 FPS 與零發燙)
                     if (Math.abs(this.spin) > 0.08) {
                         const curveFlightFactor = Math.sin(Math.min(1, Math.abs(this.pos.z) / HALF_L) * Math.PI);
-                        const magnusAcc = (this.spin * 2.8 + Math.sign(this.spin) * Math.pow(this.spin, 2) * 1.2) * (0.8 + 0.5 * curveFlightFactor);
-                        const outDist = Math.max(0, Math.abs(this.pos.x) - (COURT_W / 2 + 0.2));
-                        const softGuard = THREE.MathUtils.clamp(1.0 - (outDist / 0.8), 0.2, 1.0);
+                        const magnusAcc = (this.spin * 7.5 + Math.sign(this.spin) * Math.pow(this.spin, 2) * 3.8) * (0.90 + 0.45 * curveFlightFactor);
+                        const outDist = Math.max(0, Math.abs(this.pos.x) - (COURT_W / 2 + 0.15));
+                        const softGuard = THREE.MathUtils.clamp(1.0 - (outDist / 0.75), 0.15, 1.0);
 
-                        this.spinInc = THREE.MathUtils.clamp(this.spinInc + magnusAcc * h * softGuard, -2.2, 2.2);
+                        this.spinInc = THREE.MathUtils.clamp(this.spinInc + magnusAcc * h * softGuard, -3.8, 3.8);
                         this.pos.x += this.spinInc * h;
-                        this.spin *= (1 - 0.35 * h);
+                        this.spin *= (1 - 0.28 * h);
                     } else {
                         this.spinInc = 0;
                     }
@@ -5918,8 +5926,14 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
            ═══════════════════════════════════════════════ */
         const SWIPE = {
             active: false,
+            startX: 0,
+            startY: 0,
             prevX: 0,
             prevY: 0,
+            currX: 0,
+            currY: 0,
+            distX: 0,
+            distY: 0,
             lastTime: 0,
             vx: 0,         // px/s 水平速度 (右正左負)
             vy: 0,         // px/s 垂直推拍速度 (上推為正)
@@ -5934,8 +5948,9 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
             dismissFingerTutorial();
             const now = performance.now();
             SWIPE.active = true;
-            SWIPE.prevX = x;
-            SWIPE.prevY = y;
+            SWIPE.startX = SWIPE.prevX = SWIPE.currX = x;
+            SWIPE.startY = SWIPE.prevY = SWIPE.currY = y;
+            SWIPE.distX = SWIPE.distY = 0;
             SWIPE.lastTime = now;
             SWIPE.vx = SWIPE.vy = 0;
             SWIPE.smoothedVx = SWIPE.smoothedVy = 0;
@@ -5951,6 +5966,10 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
 
             const dx = x - SWIPE.prevX;
             const dy = SWIPE.prevY - y; // 向上為正
+            SWIPE.currX = x;
+            SWIPE.currY = y;
+            SWIPE.distX = x - SWIPE.startX;
+            SWIPE.distY = SWIPE.startY - y;
 
             const instVx = dx / dt;
             const instVy = dy / dt;
@@ -5966,14 +5985,12 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
             if (Math.abs(SWIPE.vx) > Math.abs(SWIPE.peakVx)) SWIPE.peakVx = SWIPE.vx;
             if (SWIPE.vy > SWIPE.peakVy) SWIPE.peakVy = SWIPE.vy;
 
-            // ★ v5.0.9 側旋量即時估算 (提高分母門檻，僅在顯著橫切時提供微側旋參考)
-            const brushRatio = SWIPE.vx / Math.max(160, Math.abs(SWIPE.vy) + 120);
-            SWIPE.spin = THREE.MathUtils.clamp((SWIPE.vx / 900) * 0.45 + brushRatio * 0.20, -0.45, 0.45);
+            // ★ 側旋量即時估算 (敏銳響應左右滑動，平滑增益)
+            const brushRatio = SWIPE.vx / Math.max(120, Math.abs(SWIPE.vy) + 80);
+            SWIPE.spin = THREE.MathUtils.clamp((SWIPE.vx / 600) * 0.55 + brushRatio * 0.30, -0.85, 0.85);
 
             SWIPE.prevX = x;
             SWIPE.prevY = y;
-            SWIPE.currX = x;
-            SWIPE.currY = y;
         }
 
         function swipeEnd() {
@@ -8083,7 +8100,7 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
             }));
             const gScale = (typeof camCfg !== 'undefined' ? camCfg.glowScale : 9);
             ballGlow.scale.set(BALL_R * gScale, BALL_R * gScale, 1); scene.add(ballGlow);
-            for (let i = 0; i < 10; i++) {
+            for (let i = 0; i < 22; i++) {
                 const s = new THREE.Sprite(new THREE.SpriteMaterial({
                     map: TEX_GLOW, color: 0xdcff6a,
                     transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false
@@ -8278,7 +8295,11 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
         function dPaddle(x, y) { dPad.x = x; dPad.y = y; }
         function dG(x, z) { dGoose.x = x; dGoose.z = z; }
         function ballOnPad() { PH.setPos(padW.x - 0.22, Math.max(BALL_R, padW.y + 0.1), padW.z - 0.06); }
-        function dHit(tx, tz) { demoHold = false; dDemoTgt.x = tx; dDemoTgt.z = tz; ballOnPad(); solveArc(PH.pos.x, PH.pos.y, PH.pos.z, tx, tz, PH.vel); S.pop(0.6); }
+        function dHit(tx, tz, spin) {
+            demoHold = false; dDemoTgt.x = tx; dDemoTgt.z = tz; ballOnPad();
+            PH.spin = (typeof spin === 'number') ? spin : 0; PH.spinInc = 0;
+            solveArc(PH.pos.x, PH.pos.y, PH.pos.z, tx, tz, PH.vel); S.pop(0.6);
+        }
         function dGHit(tx, tz) {
             demoHold = false; dDemoTgt.x = tx; dDemoTgt.z = tz;
             PH.setPos(gPadW.x, Math.max(BALL_R, gPadW.y), gPadW.z + 0.06);
@@ -8292,10 +8313,10 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
             if (st === 1) {
                 add(0.0, '發球預備: 站進右側藍圈，拍面自然就位', 'STEP 1 站位預備', () => { dMove(1.5, back); dPaddle(0.34, 0.74); dDemoTgt.x = -1.5; dDemoTgt.z = -4.8; });
                 add(1.8, '拍面低於腰部 = 合法下手臂發球', 'STEP 2 擊球點高度', () => dPaddle(0.31, 0.60));
-                add(3.2, '👆 向上滑動推拍: 對角送進綠色發球區', 'STEP 3 直推發球', () => { triggerFingerDemoSwipe(0); dHit(-1.5, -4.8); });
+                add(3.2, '👆 向上滑動推拍: 對角送進綠色發球區', 'STEP 3 直推發球', () => { triggerFingerDemoSwipe(0); dHit(-1.5, -4.8, 0); });
                 add(5.6, '收拍時手腕自然抬高過肩', 'STEP 3.5 完整收拍');
                 add(6.8, '走到左側藍圈，準備示範側旋發球', 'STEP 4 換邊發球', () => { dMove(-1.5, back); dPaddle(-0.31, 0.60); dDemoTgt.x = 1.5; dDemoTgt.z = -4.8; });
-                add(8.6, '🌪️ 右上刷切揮拍: 劃出微弧線落入右側發球區', 'STEP 5 側切發球', () => { triggerFingerDemoSwipe(1); dHit(1.5, -4.8); });
+                add(8.6, '🌪️ 右上刷切揮拍: 劃出微弧線落入右側發球區', 'STEP 5 側切發球', () => { triggerFingerDemoSwipe(1); dHit(1.5, -4.8, 0.65); });
                 add(11.0, '左右發球各成功一次即過關！點擊畫面開始', '通關重點');
             } else if (st === 2) {
                 add(0.0, '先正常對角發球過網', 'STEP 1 發球', () => { dMove(1.5, back); dPaddle(0.31, 0.60); dG(0, -HALF_L - 0.5); dDemoTgt.x = -1.6; dDemoTgt.z = -4.8; });
@@ -8536,9 +8557,10 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
             if (webcamActive) {
                 serveTgt.x = aimTargetX();
             } else {
-                // ★ v5.0.9 發球落點瞄準: 基準鎖定合法對角發球區 (diagSign * COURT_W/4)，搭配拍面微調
+                // ★ 基準鎖定合法對角發球區 (diagSign * COURT_W/4)，搭配滑動橫向速度與拍面微調
                 const baseBoxX = diagSign() * (COURT_W / 4);
-                serveTgt.x = THREE.MathUtils.clamp(baseBoxX + padX * 0.75, -(COURT_W / 2 - 0.35), (COURT_W / 2 - 0.35));
+                const swipeSteer = THREE.MathUtils.clamp((SWIPE.peakVx / 600) * 0.70, -0.80, 0.80);
+                serveTgt.x = THREE.MathUtils.clamp(baseBoxX + padX * 0.55 + swipeSteer, -(COURT_W / 2 - 0.35), (COURT_W / 2 - 0.35));
             }
             return serveTgt;
         }
@@ -8571,21 +8593,26 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
             serveFromRight = pPos.x >= 0;
             serveVel(p, PH.vel); S.pop(p / 100);
 
-            // ★ v5.0.9 匹克球真實發球微側旋: 只有在刻意側切時產生細微側旋 (上限 0.22)
+            // ★ 匹克球發球側旋校準: 直推(brushVx < 70)保持筆直，側滑(brushVx >= 70)產生強勁香蕉側旋弧線
             let serveSpin = 0;
             if (!webcamActive) {
                 const brushVx = SWIPE.peakVx;
-                const isBrush = Math.abs(brushVx) > 280 && Math.abs(brushVx) > Math.abs(SWIPE.peakVy) * 0.45;
-                if (isBrush) {
+                if (Math.abs(brushVx) >= 70) {
                     const dir = Math.sign(brushVx);
-                    serveSpin = dir * Math.min(0.22, (Math.abs(brushVx) - 280) / 950);
+                    const ratio = THREE.MathUtils.clamp((Math.abs(brushVx) - 70) / 320, 0, 1);
+                    serveSpin = dir * THREE.MathUtils.lerp(0.30, 0.82, ratio);
                 } else {
                     serveSpin = 0; // 正常發球 100% 筆直
                 }
             } else {
-                serveSpin = THREE.MathUtils.clamp((RIGHT.padXFree || 0) * 0.3, -0.25, 0.25);
+                serveSpin = THREE.MathUtils.clamp((RIGHT.padXFree || 0) * 0.55, -0.65, 0.65);
             }
             PH.spin = serveSpin; PH.spinInc = 0;
+
+            if (Math.abs(serveSpin) >= 0.22) {
+                const spinSideTxt = serveSpin > 0 ? '🌪️ 右側旋發球弧線 (RIGHT SERVE CURVE)' : '🌪️ 左側旋發球弧線 (LEFT SERVE CURVE)';
+                announceReferee(spinSideTxt, '發球觸發空中香蕉弧線軌跡', false);
+            }
 
             popRing(PH.pos.x, PH.pos.z, 1.2, 0xffc857);
             const spdMph = Math.round(PH.vel.length() * 2.23694);
@@ -8635,13 +8662,14 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
                 kcReset();
             }
 
-            // ★ v5.0.2 擊球力道階梯重整:優先採納高速滑動推力，不再被未蓄力預設值覆蓋
+            // ★ 擊球力道階梯重整: 優先採納垂直推拍與橫向側刷速度
             let ch = 0.55;
             const hasSwipeVy = (SWIPE.peakVy > 80);
             const swipePower = hasSwipeVy ? THREE.MathUtils.clamp((SWIPE.peakVy - 60) / 950, 0.22, 1.0) : 0;
+            const swipeHorizPower = Math.abs(SWIPE.peakVx) > 90 ? THREE.MathUtils.clamp((Math.abs(SWIPE.peakVx) - 70) / 800, 0.35, 0.90) : 0;
 
-            if (hasSwipeVy) {
-                ch = Math.max(swipePower, swingT > 0 ? (swingP / 100) : 0.45);
+            if (hasSwipeVy || swipeHorizPower > 0) {
+                ch = Math.max(swipePower, swipeHorizPower, swingT > 0 ? (swingP / 100) : 0.45);
             } else if (swingT > 0) {
                 ch = THREE.MathUtils.clamp(swingP / 100, 0.18, 1.0);
             } else if (webcamActive) {
@@ -8651,25 +8679,25 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
             }
             swingT = 0;
 
-            // ★ v5.0.9 擊球落點瞄準 (tx) 穩定化 & 匹克球真實微側旋:
-            // 1. tx: 穩定指向對手場地，杜絕擊球無故出界或滿場亂飛
-            // 2. spin: 只有在顯著橫向刷拍且橫向速度超越垂直速度 45% 時才產生微幅側旋 (上限 0.28)
+            // ★ 擊球落點瞄準 (tx) 穩定化 & 匹克球香蕉側旋弧線:
+            // 1. tx: 穩定指向對手場地，杜絕擊球無故出界
+            // 2. spin: 直推(deadzone < 65px/s)保持 100% 筆直；側切(>= 65px/s)敏銳觸發空中香蕉弧線！
             let tx = 0, spin = 0;
             if (webcamActive) {
                 const aimZoneX = aimTargetX();
                 const wristFree = (RIGHT.padXFree || 0);
                 tx = THREE.MathUtils.clamp(aimZoneX * 0.75 + wristFree * 0.8, -COURT_W / 2 + 0.5, COURT_W / 2 - 0.5);
-                spin = THREE.MathUtils.clamp(wristFree * 0.35, -0.3, 0.3);
+                spin = THREE.MathUtils.clamp(wristFree * 0.55, -0.75, 0.75);
             } else {
-                const swipeSteer = THREE.MathUtils.clamp((SWIPE.peakVx / 800) * 0.75, -0.85, 0.85);
+                const swipeSteer = THREE.MathUtils.clamp((SWIPE.peakVx / 700) * 0.85, -0.95, 0.95);
                 const contactSteer = THREE.MathUtils.clamp((padX * 0.45) + ((b.x - p.x) * 0.35), -0.65, 0.65);
                 tx = THREE.MathUtils.clamp(swipeSteer + contactSteer, -COURT_W / 2 + 0.55, COURT_W / 2 - 0.55);
 
                 const brushVx = SWIPE.peakVx;
-                const isBrush = Math.abs(brushVx) > 150 && Math.abs(brushVx) > Math.abs(SWIPE.peakVy) * 0.25;
-                if (isBrush) {
+                if (Math.abs(brushVx) >= 65) {
                     const dir = Math.sign(brushVx);
-                    spin = dir * Math.min(0.85, (Math.abs(brushVx) - 150) / 400);
+                    const ratio = THREE.MathUtils.clamp((Math.abs(brushVx) - 65) / 320, 0, 1);
+                    spin = dir * THREE.MathUtils.lerp(0.32, 0.88, ratio);
                 } else {
                     spin = 0; // 正常直推揮拍 100% 筆直出球！
                 }
@@ -8678,8 +8706,9 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
             PH.spin = spin; PH.spinInc = 0;
 
             // 側旋切球裁判廣播
-            if (Math.abs(spin) >= 0.18) {
-                announceReferee(spin > 0 ? '🌪️ 右側旋切球 (RIGHT SLICE)' : '🌪️ 左側旋切球 (LEFT SLICE)', '微側旋切球已觸發', false);
+            if (Math.abs(spin) >= 0.22) {
+                const spinSideTxt = spin > 0 ? '🌪️ 右側旋香蕉弧線 (RIGHT CURVE)' : '🌪️ 左側旋香蕉弧線 (LEFT CURVE)';
+                announceReferee(spinSideTxt, '側刷觸發空中香蕉弧線軌跡', false);
             }
 
             // ★ v5.0.2 依力道連續階梯計算落點與動態初速 (solveArc 速度縮放)

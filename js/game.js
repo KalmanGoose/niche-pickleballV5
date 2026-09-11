@@ -326,7 +326,7 @@
             }));
             const gScale = (typeof camCfg !== 'undefined' ? camCfg.glowScale : 9);
             ballGlow.scale.set(BALL_R * gScale, BALL_R * gScale, 1); scene.add(ballGlow);
-            for (let i = 0; i < 10; i++) {
+            for (let i = 0; i < 22; i++) {
                 const s = new THREE.Sprite(new THREE.SpriteMaterial({
                     map: TEX_GLOW, color: 0xdcff6a,
                     transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false
@@ -521,7 +521,11 @@
         function dPaddle(x, y) { dPad.x = x; dPad.y = y; }
         function dG(x, z) { dGoose.x = x; dGoose.z = z; }
         function ballOnPad() { PH.setPos(padW.x - 0.22, Math.max(BALL_R, padW.y + 0.1), padW.z - 0.06); }
-        function dHit(tx, tz) { demoHold = false; dDemoTgt.x = tx; dDemoTgt.z = tz; ballOnPad(); solveArc(PH.pos.x, PH.pos.y, PH.pos.z, tx, tz, PH.vel); S.pop(0.6); }
+        function dHit(tx, tz, spin) {
+            demoHold = false; dDemoTgt.x = tx; dDemoTgt.z = tz; ballOnPad();
+            PH.spin = (typeof spin === 'number') ? spin : 0; PH.spinInc = 0;
+            solveArc(PH.pos.x, PH.pos.y, PH.pos.z, tx, tz, PH.vel); S.pop(0.6);
+        }
         function dGHit(tx, tz) {
             demoHold = false; dDemoTgt.x = tx; dDemoTgt.z = tz;
             PH.setPos(gPadW.x, Math.max(BALL_R, gPadW.y), gPadW.z + 0.06);
@@ -535,10 +539,10 @@
             if (st === 1) {
                 add(0.0, '發球預備: 站進右側藍圈，拍面自然就位', 'STEP 1 站位預備', () => { dMove(1.5, back); dPaddle(0.34, 0.74); dDemoTgt.x = -1.5; dDemoTgt.z = -4.8; });
                 add(1.8, '拍面低於腰部 = 合法下手臂發球', 'STEP 2 擊球點高度', () => dPaddle(0.31, 0.60));
-                add(3.2, '👆 向上滑動推拍: 對角送進綠色發球區', 'STEP 3 直推發球', () => { triggerFingerDemoSwipe(0); dHit(-1.5, -4.8); });
+                add(3.2, '👆 向上滑動推拍: 對角送進綠色發球區', 'STEP 3 直推發球', () => { triggerFingerDemoSwipe(0); dHit(-1.5, -4.8, 0); });
                 add(5.6, '收拍時手腕自然抬高過肩', 'STEP 3.5 完整收拍');
                 add(6.8, '走到左側藍圈，準備示範側旋發球', 'STEP 4 換邊發球', () => { dMove(-1.5, back); dPaddle(-0.31, 0.60); dDemoTgt.x = 1.5; dDemoTgt.z = -4.8; });
-                add(8.6, '🌪️ 右上刷切揮拍: 劃出微弧線落入右側發球區', 'STEP 5 側切發球', () => { triggerFingerDemoSwipe(1); dHit(1.5, -4.8); });
+                add(8.6, '🌪️ 右上刷切揮拍: 劃出微弧線落入右側發球區', 'STEP 5 側切發球', () => { triggerFingerDemoSwipe(1); dHit(1.5, -4.8, 0.65); });
                 add(11.0, '左右發球各成功一次即過關！點擊畫面開始', '通關重點');
             } else if (st === 2) {
                 add(0.0, '先正常對角發球過網', 'STEP 1 發球', () => { dMove(1.5, back); dPaddle(0.31, 0.60); dG(0, -HALF_L - 0.5); dDemoTgt.x = -1.6; dDemoTgt.z = -4.8; });
@@ -779,9 +783,10 @@
             if (webcamActive) {
                 serveTgt.x = aimTargetX();
             } else {
-                // ★ v5.0.9 發球落點瞄準: 基準鎖定合法對角發球區 (diagSign * COURT_W/4)，搭配拍面微調
+                // ★ 基準鎖定合法對角發球區 (diagSign * COURT_W/4)，搭配滑動橫向速度與拍面微調
                 const baseBoxX = diagSign() * (COURT_W / 4);
-                serveTgt.x = THREE.MathUtils.clamp(baseBoxX + padX * 0.75, -(COURT_W / 2 - 0.35), (COURT_W / 2 - 0.35));
+                const swipeSteer = THREE.MathUtils.clamp((SWIPE.peakVx / 600) * 0.70, -0.80, 0.80);
+                serveTgt.x = THREE.MathUtils.clamp(baseBoxX + padX * 0.55 + swipeSteer, -(COURT_W / 2 - 0.35), (COURT_W / 2 - 0.35));
             }
             return serveTgt;
         }
@@ -814,21 +819,26 @@
             serveFromRight = pPos.x >= 0;
             serveVel(p, PH.vel); S.pop(p / 100);
 
-            // ★ v5.0.9 匹克球真實發球微側旋: 只有在刻意側切時產生細微側旋 (上限 0.22)
+            // ★ 匹克球發球側旋校準: 直推(brushVx < 70)保持筆直，側滑(brushVx >= 70)產生強勁香蕉側旋弧線
             let serveSpin = 0;
             if (!webcamActive) {
                 const brushVx = SWIPE.peakVx;
-                const isBrush = Math.abs(brushVx) > 280 && Math.abs(brushVx) > Math.abs(SWIPE.peakVy) * 0.45;
-                if (isBrush) {
+                if (Math.abs(brushVx) >= 70) {
                     const dir = Math.sign(brushVx);
-                    serveSpin = dir * Math.min(0.22, (Math.abs(brushVx) - 280) / 950);
+                    const ratio = THREE.MathUtils.clamp((Math.abs(brushVx) - 70) / 320, 0, 1);
+                    serveSpin = dir * THREE.MathUtils.lerp(0.30, 0.82, ratio);
                 } else {
                     serveSpin = 0; // 正常發球 100% 筆直
                 }
             } else {
-                serveSpin = THREE.MathUtils.clamp((RIGHT.padXFree || 0) * 0.3, -0.25, 0.25);
+                serveSpin = THREE.MathUtils.clamp((RIGHT.padXFree || 0) * 0.55, -0.65, 0.65);
             }
             PH.spin = serveSpin; PH.spinInc = 0;
+
+            if (Math.abs(serveSpin) >= 0.22) {
+                const spinSideTxt = serveSpin > 0 ? '🌪️ 右側旋發球弧線 (RIGHT SERVE CURVE)' : '🌪️ 左側旋發球弧線 (LEFT SERVE CURVE)';
+                announceReferee(spinSideTxt, '發球觸發空中香蕉弧線軌跡', false);
+            }
 
             popRing(PH.pos.x, PH.pos.z, 1.2, 0xffc857);
             const spdMph = Math.round(PH.vel.length() * 2.23694);
@@ -878,13 +888,14 @@
                 kcReset();
             }
 
-            // ★ v5.0.2 擊球力道階梯重整:優先採納高速滑動推力，不再被未蓄力預設值覆蓋
+            // ★ 擊球力道階梯重整: 優先採納垂直推拍與橫向側刷速度
             let ch = 0.55;
             const hasSwipeVy = (SWIPE.peakVy > 80);
             const swipePower = hasSwipeVy ? THREE.MathUtils.clamp((SWIPE.peakVy - 60) / 950, 0.22, 1.0) : 0;
+            const swipeHorizPower = Math.abs(SWIPE.peakVx) > 90 ? THREE.MathUtils.clamp((Math.abs(SWIPE.peakVx) - 70) / 800, 0.35, 0.90) : 0;
 
-            if (hasSwipeVy) {
-                ch = Math.max(swipePower, swingT > 0 ? (swingP / 100) : 0.45);
+            if (hasSwipeVy || swipeHorizPower > 0) {
+                ch = Math.max(swipePower, swipeHorizPower, swingT > 0 ? (swingP / 100) : 0.45);
             } else if (swingT > 0) {
                 ch = THREE.MathUtils.clamp(swingP / 100, 0.18, 1.0);
             } else if (webcamActive) {
@@ -894,25 +905,25 @@
             }
             swingT = 0;
 
-            // ★ v5.0.9 擊球落點瞄準 (tx) 穩定化 & 匹克球真實微側旋:
-            // 1. tx: 穩定指向對手場地，杜絕擊球無故出界或滿場亂飛
-            // 2. spin: 只有在顯著橫向刷拍且橫向速度超越垂直速度 45% 時才產生微幅側旋 (上限 0.28)
+            // ★ 擊球落點瞄準 (tx) 穩定化 & 匹克球香蕉側旋弧線:
+            // 1. tx: 穩定指向對手場地，杜絕擊球無故出界
+            // 2. spin: 直推(deadzone < 65px/s)保持 100% 筆直；側切(>= 65px/s)敏銳觸發空中香蕉弧線！
             let tx = 0, spin = 0;
             if (webcamActive) {
                 const aimZoneX = aimTargetX();
                 const wristFree = (RIGHT.padXFree || 0);
                 tx = THREE.MathUtils.clamp(aimZoneX * 0.75 + wristFree * 0.8, -COURT_W / 2 + 0.5, COURT_W / 2 - 0.5);
-                spin = THREE.MathUtils.clamp(wristFree * 0.35, -0.3, 0.3);
+                spin = THREE.MathUtils.clamp(wristFree * 0.55, -0.75, 0.75);
             } else {
-                const swipeSteer = THREE.MathUtils.clamp((SWIPE.peakVx / 800) * 0.75, -0.85, 0.85);
+                const swipeSteer = THREE.MathUtils.clamp((SWIPE.peakVx / 700) * 0.85, -0.95, 0.95);
                 const contactSteer = THREE.MathUtils.clamp((padX * 0.45) + ((b.x - p.x) * 0.35), -0.65, 0.65);
                 tx = THREE.MathUtils.clamp(swipeSteer + contactSteer, -COURT_W / 2 + 0.55, COURT_W / 2 - 0.55);
 
                 const brushVx = SWIPE.peakVx;
-                const isBrush = Math.abs(brushVx) > 150 && Math.abs(brushVx) > Math.abs(SWIPE.peakVy) * 0.25;
-                if (isBrush) {
+                if (Math.abs(brushVx) >= 65) {
                     const dir = Math.sign(brushVx);
-                    spin = dir * Math.min(0.85, (Math.abs(brushVx) - 150) / 400);
+                    const ratio = THREE.MathUtils.clamp((Math.abs(brushVx) - 65) / 320, 0, 1);
+                    spin = dir * THREE.MathUtils.lerp(0.32, 0.88, ratio);
                 } else {
                     spin = 0; // 正常直推揮拍 100% 筆直出球！
                 }
@@ -921,8 +932,9 @@
             PH.spin = spin; PH.spinInc = 0;
 
             // 側旋切球裁判廣播
-            if (Math.abs(spin) >= 0.18) {
-                announceReferee(spin > 0 ? '🌪️ 右側旋切球 (RIGHT SLICE)' : '🌪️ 左側旋切球 (LEFT SLICE)', '微側旋切球已觸發', false);
+            if (Math.abs(spin) >= 0.22) {
+                const spinSideTxt = spin > 0 ? '🌪️ 右側旋香蕉弧線 (RIGHT CURVE)' : '🌪️ 左側旋香蕉弧線 (LEFT CURVE)';
+                announceReferee(spinSideTxt, '側刷觸發空中香蕉弧線軌跡', false);
             }
 
             // ★ v5.0.2 依力道連續階梯計算落點與動態初速 (solveArc 速度縮放)

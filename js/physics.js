@@ -25,22 +25,30 @@
                 ballGlow.position.copy(this.pos);
                 const spd = this.vel.length();
                 ballGlow.material.opacity = 0.16 + Math.min(0.26, spd * 0.02);
-                // ★ v5.0.2 側旋強烈時動態變換尾隨氣流光暈
-                if (Math.abs(this.spin) >= 0.25) {
-                    ballGlow.material.color.set(this.spin > 0 ? 0xd3f36c : 0x818cf8);
-                    ballGlow.material.opacity = 0.42;
+
+                // ★ 側旋香蕉弧線流光色彩：右側旋霓虹紫、左側旋電光青、直球經典亮螢光綠
+                const hasCurve = Math.abs(this.spin) >= 0.12;
+                if (hasCurve) {
+                    ballGlow.material.color.set(this.spin > 0 ? 0xc084fc : 0x38bdf8);
+                    ballGlow.material.opacity = 0.52;
                 } else {
-                    ballGlow.material.color.set(0x38bdf8);
+                    ballGlow.material.color.set(0xdcff6a);
                 }
                 for (let i = ballTrail.length - 1; i > 0; i--) ballTrail[i].p.copy(ballTrail[i - 1].p);
                 ballTrail[0].p.copy(this.pos);
-                const on = spd > 3.2;
+                const on = spd > 2.8;
                 for (let i = 0; i < ballTrail.length; i++) {
                     const tr = ballTrail[i], f = 1 - i / ballTrail.length;
                     tr.spr.position.copy(tr.p);
-                    const sc = BALL_R * 4.2 * f;
+                    const sc = BALL_R * (hasCurve ? 5.2 : 3.8) * f;
                     tr.spr.scale.set(sc, sc, 1);
-                    tr.spr.material.opacity = on ? 0.24 * f * f : 0;
+                    if (hasCurve) {
+                        tr.spr.material.color.set(this.spin > 0 ? 0xc084fc : 0x38bdf8);
+                        tr.spr.material.opacity = on ? (0.48 * f) : 0;
+                    } else {
+                        tr.spr.material.color.set(0xdcff6a);
+                        tr.spr.material.opacity = on ? (0.24 * f * f) : 0;
+                    }
                 }
                 ballBlob.position.set(this.pos.x, 0.014, this.pos.z);
                 const hh = THREE.MathUtils.clamp(this.pos.y, 0, 3.2);
@@ -74,27 +82,27 @@
                     this.vel.y -= this.vel.y * dragAcc * h;
                     this.vel.z -= this.vel.z * dragAcc * h;
 
-                    // 馬格努斯項: a_magnus ∝ spin * |v_z| (結合球速與旋轉量)
+                    // 馬格努斯項: a_magnus ∝ spin * |v_z| (結合球速與旋轉量，視覺校準偏折量 0.9m~1.35m)
                     if (Math.abs(this.spin) > 0.08) {
                         const curveFlightFactor = Math.sin(Math.min(1, Math.abs(this.pos.z) / HALF_L) * Math.PI);
-                        const magnusAccX = MAGNUS_K * this.spin * Math.abs(this.vel.z) * (1.6 + 0.6 * curveFlightFactor);
-                        const outDist = Math.max(0, Math.abs(this.pos.x) - (COURT_W / 2 + 0.2));
-                        const softGuard = THREE.MathUtils.clamp(1.0 - (outDist / 0.8), 0.2, 1.0);
+                        const magnusAccX = MAGNUS_K * this.spin * Math.abs(this.vel.z) * (11.5 + 5.5 * curveFlightFactor);
+                        const outDist = Math.max(0, Math.abs(this.pos.x) - (COURT_W / 2 + 0.15));
+                        const softGuard = THREE.MathUtils.clamp(1.0 - (outDist / 0.75), 0.15, 1.0);
                         this.vel.x += magnusAccX * h * softGuard;
-                        this.spin *= (1 - 0.35 * h); // 多孔自旋耗散
+                        this.spin *= (1 - 0.28 * h); // 多孔自旋自然衰減
                     }
                     this.spinInc = 0;
                 } else {
                     // ⚡ 模式 2: 極速經驗模式 (輕量低負載，維持極致 60 FPS 與零發燙)
                     if (Math.abs(this.spin) > 0.08) {
                         const curveFlightFactor = Math.sin(Math.min(1, Math.abs(this.pos.z) / HALF_L) * Math.PI);
-                        const magnusAcc = (this.spin * 2.8 + Math.sign(this.spin) * Math.pow(this.spin, 2) * 1.2) * (0.8 + 0.5 * curveFlightFactor);
-                        const outDist = Math.max(0, Math.abs(this.pos.x) - (COURT_W / 2 + 0.2));
-                        const softGuard = THREE.MathUtils.clamp(1.0 - (outDist / 0.8), 0.2, 1.0);
+                        const magnusAcc = (this.spin * 7.5 + Math.sign(this.spin) * Math.pow(this.spin, 2) * 3.8) * (0.90 + 0.45 * curveFlightFactor);
+                        const outDist = Math.max(0, Math.abs(this.pos.x) - (COURT_W / 2 + 0.15));
+                        const softGuard = THREE.MathUtils.clamp(1.0 - (outDist / 0.75), 0.15, 1.0);
 
-                        this.spinInc = THREE.MathUtils.clamp(this.spinInc + magnusAcc * h * softGuard, -2.2, 2.2);
+                        this.spinInc = THREE.MathUtils.clamp(this.spinInc + magnusAcc * h * softGuard, -3.8, 3.8);
                         this.pos.x += this.spinInc * h;
-                        this.spin *= (1 - 0.35 * h);
+                        this.spin *= (1 - 0.28 * h);
                     } else {
                         this.spinInc = 0;
                     }
