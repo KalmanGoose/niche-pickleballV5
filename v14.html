@@ -2485,8 +2485,13 @@
             border-radius: 99px !important;
         }
 
-        /* ── 4. 第一版經典對稱三欄版面 (V4 Classic 3-Column Layout，標竿首選) ── */
-        body.layout-v4 #info {
+        /* ── 4. 頂部核心卡片與自由縮放系統 (Card Scaling & Responsive Core) ── */
+        :root {
+            --info-scale: 1.0;
+            --board-scale: 1.0;
+        }
+
+        #info, body.layout-v4 #info {
             position: absolute !important;
             top: calc(14px + env(safe-area-inset-top)) !important;
             left: calc(14px + env(safe-area-inset-left)) !important;
@@ -2494,90 +2499,234 @@
             width: min(32vw, 320px) !important;
             min-width: 260px !important;
             z-index: 30 !important;
+            transform: scale(var(--info-scale, 1)) !important;
+            transform-origin: top left !important;
         }
-        body.layout-v4 #nav {
-            position: absolute !important;
-            top: calc(14px + env(safe-area-inset-top)) !important;
-            left: 50% !important;
-            right: auto !important;
-            transform: translateX(-50%) !important;
-            max-width: min(50vw, 680px) !important;
-            z-index: 35 !important;
-        }
-        body.layout-v4 #nav-sheet {
-            position: absolute !important;
-            top: calc(68px + env(safe-area-inset-top)) !important;
-            left: 50% !important;
-            right: auto !important;
-            transform: translateX(-50%) !important;
-            width: min(92vw, 440px) !important;
-            z-index: 40 !important;
-        }
-        body.layout-v4 #board {
+
+        #board, body.layout-v4 #board {
             display: flex !important;
             position: absolute !important;
             top: calc(14px + env(safe-area-inset-top)) !important;
             right: calc(14px + env(safe-area-inset-right)) !important;
             left: auto !important;
             z-index: 32 !important;
+            transform: scale(var(--board-scale, 1)) !important;
+            transform-origin: top right !important;
         }
 
-        /* ── 5. 行動端手機直向智慧適配 (Portrait 輕量透氣無遮擋版面，大幅釋放 3D 視野) ── */
+        /* ── 卡片自由滑動縮放調整手柄 (.card-resize-handle) ── */
+        .card-resize-handle {
+            position: absolute !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            width: 26px !important;
+            height: 26px !important;
+            border-radius: 7px !important;
+            background: rgba(255, 255, 255, 0.12) !important;
+            border: 1px solid rgba(255, 255, 255, 0.28) !important;
+            color: var(--accent) !important;
+            font-size: 13px !important;
+            font-weight: 900 !important;
+            cursor: nwse-resize !important;
+            touch-action: none !important;
+            user-select: none !important;
+            -webkit-user-select: none !important;
+            z-index: 55 !important;
+            pointer-events: auto !important;
+            transition: background 0.15s, transform 0.15s, border-color 0.15s !important;
+        }
+        .card-resize-handle:hover, .card-resize-handle:active {
+            background: rgba(56, 189, 248, 0.4) !important;
+            border-color: var(--accent) !important;
+            color: #ffffff !important;
+            transform: scale(1.22) !important;
+        }
+        #info .card-resize-handle {
+            right: 6px !important;
+            bottom: 6px !important;
+            cursor: nwse-resize !important;
+        }
+        #board .card-resize-handle {
+            left: 6px !important;
+            bottom: 6px !important;
+            cursor: nesw-resize !important;
+        }
+        #scale-tooltip {
+            position: fixed;
+            pointer-events: none;
+            background: rgba(15, 23, 42, 0.95);
+            border: 1.5px solid var(--accent);
+            color: #38bdf8;
+            font-size: 13px;
+            font-weight: 800;
+            padding: 4px 10px;
+            border-radius: 10px;
+            z-index: 9999;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+        }
+
+        /* ── 頂部簡潔主選單 (#nav) ── */
+        #nav, body.layout-v4 #nav {
+            position: absolute !important;
+            top: calc(14px + env(safe-area-inset-top)) !important;
+            left: 50% !important;
+            right: auto !important;
+            transform: translateX(-50%) !important;
+            display: flex !important;
+            align-items: center !important;
+            gap: 5px !important;
+            padding: 5px 10px !important;
+            border-radius: 99px !important;
+            background: rgba(15, 23, 42, 0.85) !important;
+            backdrop-filter: blur(14px) !important;
+            -webkit-backdrop-filter: blur(14px) !important;
+            border: 1px solid rgba(255, 255, 255, 0.15) !important;
+            z-index: 35 !important;
+            max-width: min(92vw, 560px) !important;
+        }
+        #nav button {
+            font-size: 12px !important;
+            font-weight: 700 !important;
+            padding: 6px 12px !important;
+            border-radius: 99px !important;
+            background: transparent !important;
+            border: 0 !important;
+            color: var(--dim) !important;
+            cursor: pointer !important;
+            transition: all 0.15s ease !important;
+            white-space: nowrap !important;
+            flex-shrink: 0 !important;
+        }
+        #nav button:hover {
+            color: var(--txt) !important;
+            background: rgba(255, 255, 255, 0.1) !important;
+        }
+        #nav button.open, #nav button.on {
+            background: rgba(56, 189, 248, 0.22) !important;
+            color: var(--accent) !important;
+            box-shadow: inset 0 0 0 1px rgba(56, 189, 248, 0.45) !important;
+        }
+
+        /* ── 二級橫向下拉選單列 (#nav-subbar: 點選直接「掉下來一排」子功能列，俐落不遮擋) ── */
+        #nav-subbar {
+            position: absolute !important;
+            top: calc(62px + env(safe-area-inset-top)) !important;
+            left: 50% !important;
+            transform: translateX(-50%) !important;
+            display: none;
+            align-items: center !important;
+            gap: 6px !important;
+            padding: 5px 10px !important;
+            background: rgba(15, 23, 42, 0.94) !important;
+            backdrop-filter: blur(16px) !important;
+            -webkit-backdrop-filter: blur(16px) !important;
+            border: 1px solid rgba(56, 189, 248, 0.35) !important;
+            border-radius: 99px !important;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5), 0 0 14px rgba(56, 189, 248, 0.25) !important;
+            z-index: 45 !important;
+            max-width: min(96vw, 680px) !important;
+            overflow-x: auto !important;
+            white-space: nowrap !important;
+            scrollbar-width: none !important;
+        }
+        #nav-subbar::-webkit-scrollbar { display: none !important; }
+        #nav-subbar.open {
+            display: flex !important;
+            animation: subbarSlideDown 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        @keyframes subbarSlideDown {
+            from { opacity: 0; transform: translateX(-50%) translateY(-6px); }
+            to { opacity: 1; transform: translateX(-50%) translateY(0); }
+        }
+        .subbar-group {
+            display: flex !important;
+            align-items: center !important;
+            gap: 6px !important;
+        }
+        #nav-subbar button {
+            font-size: 11.5px !important;
+            font-weight: 700 !important;
+            padding: 5px 12px !important;
+            border-radius: 99px !important;
+            background: rgba(255, 255, 255, 0.08) !important;
+            border: 1px solid rgba(255, 255, 255, 0.12) !important;
+            color: var(--txt) !important;
+            white-space: nowrap !important;
+            flex-shrink: 0 !important;
+            cursor: pointer !important;
+            min-height: 30px !important;
+            transition: all 0.15s ease !important;
+        }
+        #nav-subbar button:hover, #nav-subbar button:active {
+            background: rgba(56, 189, 248, 0.25) !important;
+            border-color: var(--accent) !important;
+            color: #fff !important;
+        }
+        #nav-subbar button.on {
+            background: rgba(56, 189, 248, 0.30) !important;
+            border-color: var(--accent) !important;
+            color: var(--accent) !important;
+            box-shadow: 0 0 8px rgba(56, 189, 248, 0.4) !important;
+        }
+
+        /* ── 5. 行動端手機直向智慧適配 (Portrait 輕量透氣無遮擋版面) ── */
         @media (max-width: 600px), (orientation: portrait) and (max-width: 768px) {
-            /* 1. 關卡資訊框輕量膠囊化 (高度由 220px 劇降至 52px，不擋球場) */
-            body.layout-v4 #info {
+            /* 1. 第一排左側：關卡資訊框輕量膠囊化 */
+            #info, body.layout-v4 #info {
                 top: calc(8px + env(safe-area-inset-top)) !important;
                 left: calc(8px + env(safe-area-inset-left)) !important;
                 width: auto !important;
-                max-width: 56vw !important;
+                max-width: 52vw !important;
                 min-width: 0 !important;
                 padding: 6px 10px !important;
                 border-radius: 14px !important;
                 background: rgba(15, 23, 42, 0.88) !important;
                 backdrop-filter: blur(14px) !important;
+                -webkit-backdrop-filter: blur(14px) !important;
                 box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4) !important;
                 z-index: 30 !important;
             }
-            body.layout-v4 #info #chip {
+            #info #chip {
                 font-size: 8.5px !important;
                 padding: 2px 6px !important;
                 margin-bottom: 2px !important;
             }
-            body.layout-v4 #info #s-name {
+            #info #s-name {
                 font-size: 14px !important;
                 font-weight: 800 !important;
                 margin: 1px 0 !important;
                 display: inline-block !important;
             }
-            body.layout-v4 #info #s-sub,
-            body.layout-v4 #info #s-desc,
-            body.layout-v4 #info #waist-row,
-            body.layout-v4 #info #stance-row,
-            body.layout-v4 #info #info-diff-row {
-                display: none !important; /* 隱藏手機多餘冗長說明與感應條，視野瞬間通透 */
+            #info #s-sub,
+            #info #s-desc,
+            #info #waist-row,
+            #info #stance-row,
+            #info #info-diff-row {
+                display: none !important;
             }
-            body.layout-v4 #info #goal-row {
+            #info #goal-row {
                 margin-top: 3px !important;
                 gap: 6px !important;
             }
-            body.layout-v4 #info #goal-track {
+            #info #goal-track {
                 height: 4px !important;
             }
-            body.layout-v4 #info #goal-txt {
+            #info #goal-txt {
                 font-size: 11.5px !important;
                 font-weight: 800 !important;
             }
-            body.layout-v4 #info #hint {
+            #info #hint {
                 font-size: 10px !important;
                 margin-top: 2px !important;
                 white-space: nowrap !important;
                 overflow: hidden !important;
                 text-overflow: ellipsis !important;
-                max-width: 50vw !important;
+                max-width: 48vw !important;
             }
 
-            /* 2. 比分板輕量化 (Top 8px，與 #info 平行對齊，徹底消除撞車重疊) */
-            body.layout-v4 #board {
+            /* 2. 第一排右側：比分板輕量化 */
+            #board, body.layout-v4 #board {
                 top: calc(8px + env(safe-area-inset-top)) !important;
                 right: calc(8px + env(safe-area-inset-right)) !important;
                 left: auto !important;
@@ -2587,72 +2736,59 @@
                 border-radius: 14px !important;
                 background: rgba(15, 23, 42, 0.88) !important;
                 backdrop-filter: blur(14px) !important;
+                -webkit-backdrop-filter: blur(14px) !important;
                 box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4) !important;
                 z-index: 30 !important;
             }
-            body.layout-v4 .side {
+            #board .side {
                 min-width: 36px !important;
                 padding: 0 2px !important;
             }
-            body.layout-v4 .side .who {
+            #board .side .who {
                 font-size: 9px !important;
                 font-weight: 800 !important;
             }
-            body.layout-v4 .side .num {
+            #board .side .num {
                 font-size: 20px !important;
                 font-weight: 800 !important;
                 margin-top: 1px !important;
             }
 
-            /* 3. 頂部選單列 (#nav): 精緻浮動於第一排卡片下方 (top: 62px)，橫向自然滑動 */
-            body.layout-v4 #nav {
-                top: calc(62px + env(safe-area-inset-top)) !important;
+            /* 3. 頂部選單列 (#nav) 居中於第 2 排 (top: 58px) */
+            #nav, body.layout-v4 #nav {
+                top: calc(58px + env(safe-area-inset-top)) !important;
                 left: 50% !important;
                 transform: translateX(-50%) !important;
                 width: calc(100vw - 16px) !important;
                 max-width: 420px !important;
-                display: flex !important;
-                gap: 4px !important;
-                overflow-x: auto !important;
                 padding: 3px 6px !important;
-                border-radius: 99px !important;
+                gap: 3px !important;
+                overflow-x: auto !important;
                 scrollbar-width: none !important;
-                background: rgba(15, 23, 42, 0.78) !important;
-                backdrop-filter: blur(14px) !important;
-                border: 1px solid rgba(255, 255, 255, 0.14) !important;
                 z-index: 35 !important;
             }
-            #nav::-webkit-scrollbar {
-                display: none !important;
-            }
-            body.layout-v4 #nav button {
+            #nav::-webkit-scrollbar { display: none !important; }
+            #nav button {
                 font-size: 11px !important;
-                font-weight: 700 !important;
                 padding: 5px 9px !important;
                 min-height: 32px !important;
-                flex-shrink: 0 !important;
-                border-radius: 99px !important;
-            }
-            body.layout-v4 #nav-sheet {
-                top: calc(104px + env(safe-area-inset-top)) !important;
-                left: 50% !important;
-                transform: translateX(-50%) !important;
-                width: min(94vw, 380px) !important;
-                max-height: 55vh !important;
-                border-radius: 18px !important;
-            }
-            #nav-sheet button {
-                font-size: 12.5px !important;
-                font-weight: 700 !important;
-                padding: 7px 12px !important;
-                min-height: 38px !important;
             }
 
-            #info.collapsed ~ #nav {
-                top: calc(54px + env(safe-area-inset-top)) !important;
+            /* 4. 二級下拉選單列 (#nav-subbar) 居中於第 3 排 (top: 98px) */
+            #nav-subbar {
+                top: calc(98px + env(safe-area-inset-top)) !important;
+                left: 50% !important;
+                transform: translateX(-50%) !important;
+                width: calc(100vw - 16px) !important;
+                max-width: 420px !important;
+                z-index: 40 !important;
+                padding: 4px 6px !important;
+                gap: 4px !important;
             }
-            #info.collapsed ~ #nav-sheet {
-                top: calc(96px + env(safe-area-inset-top)) !important;
+            #nav-subbar button {
+                font-size: 11px !important;
+                padding: 5px 10px !important;
+                min-height: 30px !important;
             }
 
             #bottom {
@@ -2672,47 +2808,126 @@
             }
         }
 
-        /* ── 6. 行動端手機橫向專屬大器排版 (Landscape 橫向全寬度滿版) ── */
-        @media (orientation: landscape) and (max-height: 560px) {
-            #info {
-                top: calc(8px + env(safe-area-inset-top)) !important;
-                left: calc(10px + env(safe-area-inset-left)) !important;
-                width: 270px !important;
-                max-width: 32vw !important;
-                padding: 10px 14px !important;
+        /* ── 6. 行動端手機橫向專屬大器排版 (Landscape 橫向全寬度透氣佈局，絕不碰撞擁擠) ── */
+        @media (orientation: landscape) and (max-height: 560px), (max-height: 500px) {
+            /* 1. 關卡資訊框橫向超緊湊小卡 */
+            #info, body.layout-v4 #info {
+                top: calc(6px + env(safe-area-inset-top)) !important;
+                left: calc(8px + env(safe-area-inset-left)) !important;
+                width: auto !important;
+                max-width: 190px !important;
+                min-width: 0 !important;
+                padding: 4px 8px !important;
+                border-radius: 12px !important;
+                z-index: 30 !important;
             }
-            #info #s-name { font-size: 18px !important; }
-            #info #s-desc { font-size: 13.5px !important; }
-            #board {
-                top: calc(8px + env(safe-area-inset-top)) !important;
-                right: calc(10px + env(safe-area-inset-right)) !important;
-                padding: 8px 14px !important;
-                gap: 10px !important;
+            #info #chip {
+                font-size: 8px !important;
+                padding: 1px 4px !important;
+                margin-bottom: 1px !important;
             }
-            .side .num { font-size: 28px !important; }
-            #nav {
-                top: calc(8px + env(safe-area-inset-top)) !important;
+            #info #s-name {
+                font-size: 13px !important;
+                font-weight: 800 !important;
+                margin: 0 !important;
+            }
+            #info #s-sub,
+            #info #s-desc,
+            #info #waist-row,
+            #info #stance-row,
+            #info #hint,
+            #info #info-diff-row {
+                display: none !important;
+            }
+            #info #goal-row {
+                margin-top: 2px !important;
+                gap: 4px !important;
+            }
+            #info #goal-track {
+                height: 3px !important;
+            }
+            #info #goal-txt {
+                font-size: 10.5px !important;
+            }
+
+            /* 2. 比分板橫向超緊湊小卡 */
+            #board, body.layout-v4 #board {
+                top: calc(6px + env(safe-area-inset-top)) !important;
+                right: calc(8px + env(safe-area-inset-right)) !important;
+                left: auto !important;
+                padding: 3px 8px !important;
+                gap: 6px !important;
+                border-radius: 12px !important;
+                z-index: 30 !important;
+            }
+            #board .side {
+                min-width: 32px !important;
+                padding: 0 !important;
+            }
+            #board .side .who {
+                font-size: 8.5px !important;
+            }
+            #board .side .num {
+                font-size: 18px !important;
+                margin-top: 0 !important;
+            }
+
+            /* 3. 頂部選單列 (#nav) 完美居中，絕不碰撞兩側 */
+            #nav, body.layout-v4 #nav {
+                top: calc(6px + env(safe-area-inset-top)) !important;
                 left: 50% !important;
                 transform: translateX(-50%) !important;
-                max-width: calc(100vw - 540px) !important;
-                padding: 4px 8px !important;
+                max-width: calc(100vw - 360px) !important;
+                padding: 3px 6px !important;
+                gap: 3px !important;
                 overflow-x: auto !important;
                 scrollbar-width: none !important;
-                white-space: nowrap !important;
-                display: flex !important;
-                gap: 4px !important;
                 z-index: 35 !important;
             }
             #nav::-webkit-scrollbar { display: none !important; }
             #nav button {
-                font-size: 12px !important;
-                padding: 5px 8px !important;
-                min-height: 34px !important;
-                flex-shrink: 0 !important;
+                font-size: 11px !important;
+                padding: 4px 8px !important;
+                min-height: 28px !important;
+            }
+
+            /* 4. 二級下拉選單列 (#nav-subbar) 緊密浮動於 #nav 下方 */
+            #nav-subbar {
+                top: calc(42px + env(safe-area-inset-top)) !important;
+                left: 50% !important;
+                transform: translateX(-50%) !important;
+                max-width: min(94vw, 560px) !important;
+                padding: 3px 6px !important;
+                gap: 4px !important;
+                z-index: 40 !important;
+            }
+            #nav-subbar button {
+                font-size: 10.5px !important;
+                padding: 4px 8px !important;
+                min-height: 26px !important;
+            }
+
+            /* 5. 橫向隱藏 PC 鍵盤說明與重複大 meter，徹底解放 3D 視野 */
+            #meter {
+                display: none !important;
+            }
+            #keys {
+                display: none !important;
             }
             #bottom {
-                bottom: calc(8px + env(safe-area-inset-bottom)) !important;
-                width: min(88vw, 440px) !important;
+                display: none !important;
+            }
+            #joy {
+                bottom: calc(12px + env(safe-area-inset-bottom)) !important;
+                left: calc(12px + env(safe-area-inset-left)) !important;
+                width: 76px !important;
+                height: 76px !important;
+            }
+            #speed-hud-mini {
+                bottom: calc(10px + env(safe-area-inset-bottom)) !important;
+                left: calc(96px + env(safe-area-inset-left)) !important;
+                font-size: 12.5px !important;
+                padding: 5px 12px !important;
             }
         }
 
@@ -3220,6 +3435,7 @@
 
 
         <div id="info" class="card">
+            <div class="card-resize-handle" data-target="info" title="按住拖曳調整大小，雙擊重置">⤡</div>
             <div class="info-toggle-btn" onclick="event.stopPropagation(); toggleInfoCollapse();" title="收折/展開資訊面板">▾</div>
             <div id="chip">◆ <span id="chip-n">STAGE 1</span></div>
             <div id="s-name">發球養成</div>
@@ -3257,8 +3473,9 @@
             </div>
         </div>
 
-        <!-- 即時雙人比分板 (V4 經典第一版還原) -->
+        <!-- 即時雙人比分板 -->
         <div id="board" class="card">
+            <div class="card-resize-handle" data-target="board" title="按住拖曳調整大小，雙擊重置">⤢</div>
             <div class="side">
                 <div class="who" id="p-who-label">🪿 玩家</div>
                 <div class="num" id="pv">0</div>
@@ -3270,17 +3487,54 @@
             </div>
         </div>
 
+        <div id="scale-tooltip" style="display:none;">🔍 100%</div>
+
+        <!-- 頂部精緻主選單 (#nav) -->
         <div id="nav" class="card">
-            <button data-panel="rules" onclick="openRulesModal()" style="color:var(--lime);font-weight:800;">📖 規則</button>
-            <button data-panel="settings" onclick="togglePanel('settings')">🔽 設定</button>
-            <button data-panel="stage" onclick="togglePanel('stage')">🔽 關卡</button>
-            <button data-panel="ai" onclick="togglePanel('ai')">🔽 AI體感</button>
-            <button data-panel="board" onclick="openSocial()">🏆 榜單</button>
-            <button data-panel="quit" onclick="forfeitMatch()" style="color:var(--bad);">🏳️ 棄賽</button>
-            <button id="layout-toggle-btn" onclick="toggleLayoutPreview()" style="color:var(--accent);font-weight:800;" title="切換版面配置預覽 (V4經典對稱 / V5雙角簡約)">📐 版面預覽</button>
+            <button data-menu="settings" onclick="toggleNavMenu('settings')">⚙️ 個人設定 ▾</button>
+            <button data-menu="stage" onclick="toggleNavMenu('stage')">🎯 關卡 ▾</button>
+            <button data-menu="ai" onclick="toggleNavMenu('ai')">🤖 AI體感 ▾</button>
+            <button data-menu="social" onclick="openSocial()">🏆 榜單</button>
+            <button data-menu="quit" onclick="forfeitMatch()" style="color:var(--bad);">🏳️ 棄賽</button>
         </div>
 
-        <div id="nav-sheet" class="card">
+        <!-- ★ 二級橫向下拉選單列 (點選按鈕直接「掉下來一排」緊湊子選單，拒絕巨無霸彈窗) -->
+        <div id="nav-subbar" class="card">
+            <!-- 個人設定子排 -->
+            <div class="subbar-group" id="subbar-settings" style="display:none;">
+                <button onclick="openProfileModal()">👤 個人檔案</button>
+                <button onclick="cycleCamView()">🙈 切換視角</button>
+                <button onclick="enterCamEdit()" style="color:var(--accent);">🎨 自訂視角</button>
+                <button onclick="openAudioModal()">🎶 音效語音</button>
+                <button onclick="cycleCardScaleQuick()" style="color:var(--cool);">📐 卡片縮放 (<span id="quick-scale-lbl">100%</span>)</button>
+                <button onclick="resetCardScales()" style="color:var(--dim);">🔄 重置尺寸</button>
+                <button onclick="openRulesModal()" style="color:var(--lime);">📖 競賽手冊</button>
+                <button onclick="showFingerTutorial()" style="color:var(--ok);">👆 揮拍教學</button>
+                <button onclick="startSpotlightTour(true)">✨ 互動導覽</button>
+                <button onclick="openAuditModal()" style="color:var(--accent);">📋 審計日誌</button>
+                <button onclick="syncDigitalTwin()" style="color:var(--ok);">🤖 數位孿生</button>
+            </div>
+
+            <!-- 關卡子排 -->
+            <div class="subbar-group" id="subbar-stage" style="display:none;">
+                <button class="stage-btn on" data-stage="1" onclick="switchStage(1)">1 發球</button>
+                <button class="stage-btn" data-stage="2" onclick="switchStage(2)">2 雙彈跳</button>
+                <button class="stage-btn" data-stage="3" onclick="switchStage(3)">3 廚房區</button>
+                <button class="stage-btn" data-stage="4" onclick="switchStage(4)">4 對決</button>
+                <button class="stage-btn" data-stage="5" onclick="switchStage(5)">5 冠軍賽</button>
+            </div>
+
+            <!-- AI體感子排 -->
+            <div class="subbar-group" id="subbar-ai" style="display:none;">
+                <button id="subbar-ai-btn" onclick="toggleWebcamAI()" style="color:var(--ok);">📷 體感: 關</button>
+                <button id="subbar-aim-btn" onclick="cycleAimModeQuick()">🎯 瞄準: 自動</button>
+                <button id="subbar-teach-btn" onclick="cycleTeachLevelQuick()">🎚️ 體感判定: 寬鬆</button>
+                <button id="subbar-diff-btn" onclick="cycleDifficultyQuick()">🤖 匹克鵝難度: 初階</button>
+                <button id="subbar-perf-btn" onclick="cyclePerfQuick()">⚡ 畫質效能: 高</button>
+            </div>
+        </div>
+
+        <div id="nav-sheet" class="card" style="display:none !important;">
             <!-- 設定第 1 層：主要分類 -->
             <div class="sheet-sec" data-sec="settings" id="settings-l1">
                 <button onclick="openSettingsSub('game')" style="color:var(--accent);">⚙️ 遊戲與視角 ▸</button>
@@ -4226,8 +4480,8 @@
                 const fov = Math.min(84, Math.max(60, vFOVRad * 180 / Math.PI));
                 return { fov: fov, camH: 9.2, camDist: 15.6, lookY: 0.85, lookZ: -0.4, ballScale: 1.25, glowScale: 8, glowOpacity: 0.35 };
             } else {
-                // ★ 手機橫向模式 (Landscape): 舒適電視轉播視角，球員全身與球場全貌完整呈現
-                return { fov: 48, camH: 7.5, camDist: 13.6, lookY: 0.85, lookZ: -0.6, ballScale: 1.15, glowScale: 7, glowOpacity: 0.30 };
+                // ★ 手機橫向模式 (Landscape): 視角適度拉高並後移，球員全身、球拍與對手居中寬裕入鏡，完美開闊
+                return { fov: 48, camH: 8.8, camDist: 14.8, lookY: 0.85, lookZ: -0.5, ballScale: 1.20, glowScale: 7.5, glowOpacity: 0.32 };
             }
         }
 
@@ -5350,16 +5604,131 @@
             updateCamEditUI();
         }
 
-        /* ═══════ 導覽面板 ═══════ */
-        let openPanel = null;
-        function togglePanel(name) {
-            if (name === 'profile') name = 'settings';
-            openPanel = (openPanel === name) ? null : name;
-            document.getElementById('nav-sheet').classList.toggle('open', !!openPanel);
-            document.querySelectorAll('.sheet-sec').forEach(s => s.classList.toggle('active', s.dataset.sec === openPanel));
-            document.querySelectorAll('#nav button[data-panel]').forEach(b => b.classList.toggle('open', b.dataset.panel === openPanel));
+        /* ═══════ ★ v5.0.14: 精緻下拉子排導覽控制器 (Dropdown Subbar Controller) ═══════ */
+        let activeNavMenu = null;
+        function toggleNavMenu(menu) {
+            if (menu === 'profile') menu = 'settings';
+            activeNavMenu = (activeNavMenu === menu) ? null : menu;
+            const subbar = document.getElementById('nav-subbar');
+            if (subbar) subbar.classList.toggle('open', !!activeNavMenu);
+
+            document.querySelectorAll('.subbar-group').forEach(g => {
+                g.style.display = (g.id === `subbar-${activeNavMenu}`) ? 'flex' : 'none';
+            });
+            document.querySelectorAll('#nav button[data-menu]').forEach(b => {
+                b.classList.toggle('open', b.dataset.menu === activeNavMenu);
+            });
+            syncSubbarStates();
         }
-        function closePanel() { if (openPanel) togglePanel(openPanel); }
+
+        // 兼容舊版呼叫
+        function togglePanel(name) { toggleNavMenu(name); }
+        function closePanel() { if (activeNavMenu) toggleNavMenu(activeNavMenu); }
+
+        // 點擊空白處自動關閉下拉子排
+        document.addEventListener('pointerdown', (e) => {
+            if (!activeNavMenu) return;
+            const nav = document.getElementById('nav');
+            const subbar = document.getElementById('nav-subbar');
+            if (nav && nav.contains(e.target)) return;
+            if (subbar && subbar.contains(e.target)) return;
+            closePanel();
+        });
+
+        function syncSubbarStates() {
+            // 同步 AI 體感開關狀態
+            const aiBtn = document.getElementById('subbar-ai-btn');
+            if (aiBtn) {
+                aiBtn.innerHTML = (typeof aiActive !== 'undefined' && aiActive) ? '📷 體感: 開啟' : '📷 體感: 關閉';
+                aiBtn.style.color = (typeof aiActive !== 'undefined' && aiActive) ? 'var(--lime)' : 'var(--ok)';
+            }
+            // 同步關卡按鈕高亮
+            if (typeof curStage !== 'undefined') {
+                document.querySelectorAll('#subbar-stage .stage-btn').forEach(btn => {
+                    btn.classList.toggle('on', parseInt(btn.dataset.stage) === curStage);
+                });
+            }
+            // 同步瞄準模式狀態
+            const aimBtn = document.getElementById('subbar-aim-btn');
+            if (aimBtn && typeof aimAssistMode !== 'undefined') {
+                const map = { LOCKED: '🔒 自動對角', LEFT_ZONE: '🧭 左手瞄準', TORSO: '🔄 轉身瞄準', RIGHT_FREE: '✋ 右手自由' };
+                aimBtn.innerHTML = `🎯 瞄準: ${map[aimAssistMode] || aimAssistMode}`;
+            }
+            // 同步體感判定等級
+            const teachBtn = document.getElementById('subbar-teach-btn');
+            if (teachBtn && typeof teachLevel !== 'undefined') {
+                const map = { easy: '🟢 寬鬆', normal: '🟡 標準', strict: '🔴 嚴格' };
+                teachBtn.innerHTML = `🎚️ 判定: ${map[teachLevel] || teachLevel}`;
+            }
+            // 同步匹克鵝難度
+            const diffBtn = document.getElementById('subbar-diff-btn');
+            if (diffBtn && typeof gameDifficulty !== 'undefined') {
+                const map = { easy: '🟢 初階', medium: '🟡 中等', hard: '🔴 困難' };
+                diffBtn.innerHTML = `🤖 匹克鵝: ${map[gameDifficulty] || gameDifficulty}`;
+            }
+            // 同步效能預設
+            const perfBtn = document.getElementById('subbar-perf-btn');
+            if (perfBtn && typeof perfLevel !== 'undefined') {
+                const map = { low: '🟢 低', medium: '🟡 中', high: '🔴 高', ultra: '🟣 超高' };
+                perfBtn.innerHTML = `⚡ 效能: ${map[perfLevel] || perfLevel}`;
+            }
+            // 同步卡片縮放標籤
+            const scaleLbl = document.getElementById('quick-scale-lbl');
+            if (scaleLbl && typeof cardScales !== 'undefined') {
+                scaleLbl.innerText = `${Math.round((cardScales.info || 1.0) * 100)}%`;
+            }
+        }
+
+        function cycleAimModeQuick() {
+            const modes = ['LOCKED', 'LEFT_ZONE', 'TORSO', 'RIGHT_FREE'];
+            const idx = modes.indexOf(aimAssistMode);
+            const next = modes[(idx + 1) % modes.length];
+            setAimMode(next);
+            syncSubbarStates();
+        }
+
+        function cycleTeachLevelQuick() {
+            const levels = ['easy', 'normal', 'strict'];
+            const idx = levels.indexOf(teachLevel);
+            const next = levels[(idx + 1) % levels.length];
+            setTeachLevel(next);
+            syncSubbarStates();
+        }
+
+        function cycleDifficultyQuick() {
+            const diffs = ['easy', 'medium', 'hard'];
+            const idx = diffs.indexOf(gameDifficulty);
+            const next = diffs[(idx + 1) % diffs.length];
+            setDifficulty(next);
+            syncSubbarStates();
+        }
+
+        function cyclePerfQuick() {
+            const perfs = ['low', 'medium', 'high', 'ultra'];
+            const idx = perfs.indexOf(perfLevel);
+            const next = perfs[(idx + 1) % perfs.length];
+            applyPerfPreset(next);
+            syncSubbarStates();
+        }
+
+        function cycleCardScaleQuick() {
+            const scales = [0.8, 1.0, 1.25, 1.5];
+            const cur = (typeof cardScales !== 'undefined' && cardScales.info) ? cardScales.info : 1.0;
+            let next = scales[0];
+            for (let i = 0; i < scales.length; i++) {
+                if (scales[i] > cur + 0.05) {
+                    next = scales[i];
+                    break;
+                }
+            }
+            setCardScale('info', next, true);
+            setCardScale('board', next, true);
+            syncSubbarStates();
+            if (typeof toast === 'function') {
+                toast('📐 卡片尺寸設定', `目前卡片大小：${Math.round(next * 100)}%`);
+            }
+        }
+
         function syncPerfButtons() {
             document.querySelectorAll('[data-perf]').forEach(b => b.classList.toggle('on', b.dataset.perf === perfLevel));
         }
@@ -5917,6 +6286,86 @@
             if (savedBoard) setCardScale('board', parseFloat(savedBoard), false);
             else setCardScale('board', 1.0, false);
 
+            const tooltip = document.getElementById('scale-tooltip');
+
+            // 綁定各卡片角落手柄拖曳事件 (支援手機觸控滑動與滑鼠拖曳)
+            document.querySelectorAll('.card-resize-handle').forEach(handle => {
+                const target = handle.dataset.target;
+                const card = document.getElementById(target);
+                if (!card) return;
+
+                let startX = 0, startY = 0, startScale = 1.0, isDragging = false;
+
+                handle.addEventListener('pointerdown', (e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    isDragging = true;
+                    startX = e.clientX;
+                    startY = e.clientY;
+                    startScale = cardScales[target] || 1.0;
+                    try { handle.setPointerCapture(e.pointerId); } catch (_) {}
+
+                    if (tooltip) {
+                        tooltip.style.display = 'block';
+                        tooltip.style.left = Math.min(window.innerWidth - 80, Math.max(10, e.clientX)) + 'px';
+                        tooltip.style.top = Math.max(10, e.clientY - 40) + 'px';
+                        tooltip.innerText = `🔍 ${Math.round(startScale * 100)}%`;
+                    }
+                });
+
+                handle.addEventListener('pointermove', (e) => {
+                    if (!isDragging) return;
+                    e.stopPropagation();
+                    e.preventDefault();
+
+                    const dx = e.clientX - startX;
+                    const dy = e.clientY - startY;
+
+                    // #info 右下拖曳: 向右下放大，向左上縮小
+                    // #board 左下拖曳: 向左下放大，向右上縮小
+                    const delta = (target === 'info')
+                        ? (dx + dy) / 200
+                        : (-dx + dy) / 200;
+
+                    const newScale = Math.min(1.80, Math.max(0.50, startScale + delta));
+                    setCardScale(target, newScale, false);
+
+                    if (tooltip) {
+                        tooltip.style.left = Math.min(window.innerWidth - 80, Math.max(10, e.clientX)) + 'px';
+                        tooltip.style.top = Math.max(10, e.clientY - 40) + 'px';
+                        tooltip.innerText = `🔍 ${Math.round(newScale * 100)}%`;
+                    }
+                });
+
+                const endDrag = (e) => {
+                    if (!isDragging) return;
+                    isDragging = false;
+                    try { handle.releasePointerCapture(e.pointerId); } catch (_) {}
+                    if (tooltip) tooltip.style.display = 'none';
+                    setCardScale(target, cardScales[target], true);
+                    if (typeof syncSubbarStates === 'function') syncSubbarStates();
+                    if (typeof toast === 'function') {
+                        const name = (target === 'info') ? '關卡框' : '比分板';
+                        toast(`📐 ${name} 尺寸已設定`, `目前縮放比例：${Math.round(cardScales[target] * 100)}%（已記憶）`);
+                    }
+                };
+
+                handle.addEventListener('pointerup', endDrag);
+                handle.addEventListener('pointercancel', endDrag);
+
+                // 雙擊手柄快速重設為 100%
+                handle.addEventListener('dblclick', (e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    setCardScale(target, 1.0, true);
+                    if (typeof syncSubbarStates === 'function') syncSubbarStates();
+                    if (typeof toast === 'function') {
+                        const name = (target === 'info') ? '關卡框' : '比分板';
+                        toast(`📐 ${name} 已重置`, '恢復 100% 預設大小');
+                    }
+                });
+            });
+
             // 雙指捏合縮放 (Pinch-to-zoom: 保留雙指自由縮放，支援 touchcancel 防呆)
             ['info', 'board'].forEach(id => {
                 const card = document.getElementById(id);
@@ -5947,6 +6396,7 @@
                     if (pinchDist0 > 0 && e.touches.length < 2) {
                         pinchDist0 = 0;
                         setCardScale(id, cardScales[id], true);
+                        if (typeof syncSubbarStates === 'function') syncSubbarStates();
                     }
                 };
                 card.addEventListener('touchend', endPinch, { passive: true });
@@ -5965,6 +6415,9 @@
             const txt = document.getElementById(`${target}-scale-txt`);
             if (slider) slider.value = Math.round(clamped * 100);
             if (txt) txt.innerText = Math.round(clamped * 100) + '%';
+
+            const quickLbl = document.getElementById('quick-scale-lbl');
+            if (quickLbl) quickLbl.innerText = Math.round(clamped * 100) + '%';
 
             if (save) {
                 localStorage.setItem(`nchu_${target}_scale`, clamped.toFixed(2));
