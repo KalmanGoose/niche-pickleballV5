@@ -9044,11 +9044,12 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
                             }
                         } 
                         // 2. 低逼近率 / 廚房區柔和小球 (Dink / 3rd Shot Drop) -> 複眼視盲墜地破防 (Sensory Vulnerability)
-                        else if (ballSpeed < 8.2 && approachSpeed < 6.8 && loomingRate < 1.2 && flyState !== 'STUNNED') {
+                        else if (ballSpeed < 7.6 && approachSpeed < 6.2 && loomingRate < 1.15 && flyState !== 'STUNNED') {
                             const ap = predictApex();
-                            if (ap && ap.z > -KITCHEN_D - 0.8) {
+                            // 嚴格限制於真正落入中興湖廚房區 (z: 0 ~ -2.13m) 或邊界 20cm 內的小球，不誤傷正常中後場抽球
+                            if (ap && ap.z > -KITCHEN_D - 0.20) {
                                 flyState = 'STUNNED';
-                                flyStunTimer = 2.2;
+                                flyStunTimer = 2.0;
                                 consecutiveDinks++;
                                 toast('🪰 複眼視盲！蒼蠅墜地', '慢速小球避開了巨纖維反射，破綻大開！');
                                 if (typeof S !== 'undefined' && S.ding) S.ding();
@@ -9075,12 +9076,12 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
                 else { aiTo.x = 0; aiTo.z = -HALF_L - 0.5; }
             } else if (active) { aiTo.x *= 0.9; aiTo.z = -KITCHEN_D - 0.5; }
 
-            // 移速計算：蒼蠅在 LOOMING_REFLEX 時速度高達 22.0 (超速瞬移)，STUNNED 時速度為 0.2
+            // 移速計算：蒼蠅在 LOOMING_REFLEX 時速度高達 24.0 (超速瞬移)，平時巡航為 10.5，STUNNED 時速度為 0.2
             let spd;
             if (isFly) {
                 if (flyState === 'STUNNED') spd = 0.2;
-                else if (flyState === 'LOOMING_REFLEX') spd = 22.0;
-                else spd = 8.5;
+                else if (flyState === 'LOOMING_REFLEX') spd = 24.0;
+                else spd = 10.5;
             } else {
                 const diffScale = stage >= 4 ? (DIFF_PRESETS[diffLevel]?.speedScale || 1.0) : 1.0;
                 spd = (AI_SPEED[stage] || 5.5) * diffScale;
@@ -9094,7 +9095,9 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
             gGrp.rotation.y = Math.PI;
             const py = THREE.MathUtils.clamp(PH.pos.y, 0.22, 1.6);
             const lx = THREE.MathUtils.clamp(PH.pos.x - gGrp.position.x, -0.8, 0.8);
-            gPad.position.set(-lx, py, -0.34); gPad.rotation.set(0.24, 0, 0);
+            // ★ 關鍵修復：蒼蠅浮空時 (gGrp.y > 0)，球拍相對 y 坐標需扣除浮空高度，使 gPadW 世界坐標精確鎖定球體高度 py
+            const padRelY = isFly ? (py - gGrp.position.y) : py;
+            gPad.position.set(-lx, padRelY, -0.34); gPad.rotation.set(0.24, 0, 0);
             gPad.getWorldPosition(gPadW);
             if (!isFly) {
                 limb(gArm, _b.set(0.18, 0.85, -0.05), _a.set(-lx, py - 0.17, -0.34));
@@ -9107,8 +9110,11 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
             if (!active || gLock > 0 || locked) return;
             if (PH.pos.z > -0.05 || PH.vel.z > 0 || bounces === 0) return;
             const b = PH.pos, gp = gPadW;
-            if (Math.abs(b.z - gp.z) > 0.62 + BALL_R || Math.abs(b.x - gp.x) > 0.80 + BALL_R ||
-                Math.abs(b.y - gp.y) > 0.75 + BALL_R) return;
+            const xTol = isFly ? 1.05 : 0.80;
+            const zTol = isFly ? 0.85 : 0.62;
+            const yTol = isFly ? 0.95 : 0.75;
+            if (Math.abs(b.z - gp.z) > zTol + BALL_R || Math.abs(b.x - gp.x) > xTol + BALL_R ||
+                Math.abs(b.y - gp.y) > yTol + BALL_R) return;
 
             // ★ 蒼蠅若處於暈眩狀態 (STUNNED)，無法回擊，造成破綻讓球落地！
             if (isFly && flyState === 'STUNNED') {
@@ -9151,27 +9157,27 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
 
                 if (isCounter) {
                     // 巨纖維神經極速反抽：瞄準遠離玩家的對角底線壓線區 (絕對在界內！)
-                    targetX = (pPos.x > 0 ? -1.80 : 1.80) + (Math.random() - 0.5) * 0.30;
-                    targetZ = HALF_L - 0.75 + (Math.random() - 0.5) * 0.30; // 5.8m ~ 6.1m (底線前安全界內)
-                    spdScale = 1.25; // 呼叫 solveArc 內建高速運算，精確計算飛行初速，保證落點合規
-                    spinVal = (pPos.x > 0 ? -0.22 : 0.22); // 正式競賽微側旋切球 (在合法死區內)
+                    targetX = (pPos.x > 0 ? -1.75 : 1.75) + (Math.random() - 0.5) * 0.20;
+                    targetZ = HALF_L - 0.85 + (Math.random() - 0.5) * 0.20; // 5.75m ~ 5.95m (底線前安全界內)
+                    spdScale = 1.20; // 呼叫 solveArc 內建高速運算，精確計算飛行初速，保證落點合規
+                    spinVal = (pPos.x > 0 ? -0.16 : 0.16); // 正式競賽微側旋切球 (在合法死區內)
                     popRing(gGrp.position.x, gGrp.position.z, 1.6, 0xa855f7);
                     S.pop(0.85);
                     toast('🪰 巨纖維瞬殺反抽！', '極速壓線深球回敬！');
                 } else {
-                    // 一般來回球：戰術性交替廚房短球 (35%) 與底線深球 (65%)
-                    const shouldDink = Math.random() < 0.35;
+                    // 一般來回球：戰術性交替廚房短球 (30%) 與底線深球 (70%)
+                    const shouldDink = Math.random() < 0.30;
                     if (shouldDink) {
-                        targetX = THREE.MathUtils.clamp(pPos.x * 0.4 + (Math.random() - 0.5) * 1.5, -1.8, 1.8);
-                        targetZ = 1.20 + Math.random() * 0.60; // 1.2m ~ 1.8m (廚房區內)
-                        spdScale = 0.90;
+                        targetX = THREE.MathUtils.clamp(pPos.x * 0.4 + (Math.random() - 0.5) * 1.2, -1.6, 1.6);
+                        targetZ = 1.30 + Math.random() * 0.50; // 1.3m ~ 1.8m (廚房區內)
+                        spdScale = 0.92;
                         spinVal = 0;
                         toast('🪰 仿生蒼蠅吊球', '廚房區丁克小球');
                     } else {
-                        targetX = (pPos.x > 0 ? -1.70 : 1.70) + (Math.random() - 0.5) * 0.40;
-                        targetZ = HALF_L - 0.90 - Math.random() * 0.70; // 5.1m ~ 5.8m
-                        spdScale = 1.08;
-                        spinVal = (Math.random() - 0.5) * 0.20;
+                        targetX = (pPos.x > 0 ? -1.65 : 1.65) + (Math.random() - 0.5) * 0.30;
+                        targetZ = HALF_L - 1.05 - Math.random() * 0.60; // 5.05m ~ 5.65m
+                        spdScale = 1.05;
+                        spinVal = (Math.random() - 0.5) * 0.15;
                         toast('🪰 仿生蒼蠅回擊', '底線壓制深球');
                     }
                     popRing(gGrp.position.x, gGrp.position.z, 1.2, 0xa855f7);
