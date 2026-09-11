@@ -2631,29 +2631,106 @@
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
         }
 
-        /* ── 頂部簡潔主選單 (#nav) ── */
-        #nav, body.layout-v4 #nav {
+        /* ── 頂部活動式主選單容器 (#nav-wrapper: 支援自由拖曳移動、收折最小化為懸浮球) ── */
+        #nav-wrapper {
             position: absolute !important;
-            top: calc(14px + env(safe-area-inset-top)) !important;
-            left: 50% !important;
-            right: auto !important;
-            transform: translateX(-50%) !important;
+            top: calc(14px + env(safe-area-inset-top));
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: center !important;
+            gap: 6px !important;
+            z-index: 45 !important;
+            pointer-events: none !important;
+        }
+        #nav-wrapper > * {
+            pointer-events: auto !important;
+            position: relative !important;
+            top: auto !important;
+            left: auto !important;
+            transform: none !important;
+        }
+
+        /* 拖曳手柄與最小化按鈕 */
+        .nav-drag-handle {
             display: flex !important;
             align-items: center !important;
-            gap: 5px !important;
-            padding: 5px 10px !important;
+            justify-content: center !important;
+            width: 16px !important;
+            height: 24px !important;
+            color: var(--dim) !important;
+            cursor: grab !important;
+            user-select: none !important;
+            -webkit-user-select: none !important;
+            font-size: 13px !important;
+            margin-right: 1px !important;
+            touch-action: none !important;
+            border-radius: 4px !important;
+            transition: color 0.15s, background 0.15s !important;
+        }
+        .nav-drag-handle:hover, .nav-drag-handle:active {
+            color: var(--accent) !important;
+            background: rgba(56, 189, 248, 0.15) !important;
+        }
+        .nav-min-btn {
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            width: 22px !important;
+            height: 22px !important;
             border-radius: 99px !important;
-            background: rgba(15, 23, 42, 0.85) !important;
+            background: rgba(255, 255, 255, 0.08) !important;
+            font-size: 11px !important;
+            color: var(--dim) !important;
+            padding: 0 !important;
+            margin-left: 2px !important;
+            cursor: pointer !important;
+            border: 0 !important;
+            transition: all 0.15s !important;
+        }
+        .nav-min-btn:hover {
+            color: #fff !important;
+            background: rgba(255, 255, 255, 0.2) !important;
+        }
+
+        /* 最小化後的精緻懸浮球 (#nav-minimized-pill: 可任意拖曳停靠螢幕邊緣) */
+        #nav-minimized-pill {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            padding: 7px 14px;
+            border-radius: 99px;
+            background: rgba(15, 23, 42, 0.94);
+            border: 1.5px solid var(--accent);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6), 0 0 16px rgba(56, 189, 248, 0.4);
+            cursor: pointer;
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            touch-action: none;
+            user-select: none;
+            -webkit-user-select: none;
+            animation: pulseGlow 2.5s infinite;
+        }
+
+        /* ── 頂部簡潔主選單 (#nav) ── */
+        #nav, body.layout-v4 #nav {
+            display: flex !important;
+            align-items: center !important;
+            gap: 4px !important;
+            padding: 4px 8px !important;
+            border-radius: 99px !important;
+            background: rgba(15, 23, 42, 0.88) !important;
             backdrop-filter: blur(14px) !important;
             -webkit-backdrop-filter: blur(14px) !important;
             border: 1px solid rgba(255, 255, 255, 0.15) !important;
-            z-index: 35 !important;
-            max-width: min(92vw, 560px) !important;
+            max-width: min(94vw, 560px) !important;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4) !important;
         }
-        #nav button {
+        #nav button:not(.nav-min-btn) {
             font-size: 12px !important;
             font-weight: 700 !important;
-            padding: 6px 12px !important;
+            padding: 5px 10px !important;
             border-radius: 99px !important;
             background: transparent !important;
             border: 0 !important;
@@ -2663,7 +2740,7 @@
             white-space: nowrap !important;
             flex-shrink: 0 !important;
         }
-        #nav button:hover {
+        #nav button:not(.nav-min-btn):hover {
             color: var(--txt) !important;
             background: rgba(255, 255, 255, 0.1) !important;
         }
@@ -2673,43 +2750,49 @@
             box-shadow: inset 0 0 0 1px rgba(56, 189, 248, 0.45) !important;
         }
 
-        /* ── 二級橫向下拉選單列 (#nav-subbar: 點選直接「掉下來一排」子功能列，俐落不遮擋) ── */
+        /* ── 二級橫向下拉選單列 (#nav-subbar) ── */
         #nav-subbar {
-            position: absolute !important;
-            top: calc(62px + env(safe-area-inset-top)) !important;
-            left: 50% !important;
-            transform: translateX(-50%) !important;
             display: none;
+            flex-direction: column !important;
             align-items: center !important;
             gap: 6px !important;
-            padding: 5px 10px !important;
-            background: rgba(15, 23, 42, 0.94) !important;
+            padding: 6px 10px !important;
+            background: rgba(15, 23, 42, 0.95) !important;
             backdrop-filter: blur(16px) !important;
             -webkit-backdrop-filter: blur(16px) !important;
             border: 1px solid rgba(56, 189, 248, 0.35) !important;
-            border-radius: 99px !important;
+            border-radius: 20px !important;
             box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5), 0 0 14px rgba(56, 189, 248, 0.25) !important;
-            z-index: 45 !important;
             max-width: min(96vw, 680px) !important;
-            overflow-x: auto !important;
             white-space: nowrap !important;
-            scrollbar-width: none !important;
         }
-        #nav-subbar::-webkit-scrollbar { display: none !important; }
         #nav-subbar.open {
             display: flex !important;
             animation: subbarSlideDown 0.2s cubic-bezier(0.16, 1, 0.3, 1);
         }
-        @keyframes subbarSlideDown {
-            from { opacity: 0; transform: translateX(-50%) translateY(-6px); }
-            to { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+        .settings-tab-btn {
+            font-size: 11px !important;
+            font-weight: 700 !important;
+            padding: 4px 10px !important;
+            border-radius: 99px !important;
+            background: transparent !important;
+            border: 0 !important;
+            color: var(--dim) !important;
+            cursor: pointer !important;
+            transition: all 0.15s ease !important;
         }
-        .subbar-group {
-            display: flex !important;
-            align-items: center !important;
-            gap: 6px !important;
+        .settings-tab-btn:hover {
+            color: var(--txt) !important;
         }
-        #nav-subbar button {
+        .settings-tab-btn.on {
+            background: rgba(56, 189, 248, 0.25) !important;
+            color: var(--accent) !important;
+            font-weight: 800 !important;
+            box-shadow: inset 0 0 0 1px rgba(56, 189, 248, 0.45) !important;
+        }
+
+        #nav-subbar button:not(.settings-tab-btn) {
             font-size: 11.5px !important;
             font-weight: 700 !important;
             padding: 5px 12px !important;
@@ -2720,15 +2803,16 @@
             white-space: nowrap !important;
             flex-shrink: 0 !important;
             cursor: pointer !important;
-            min-height: 30px !important;
+            min-height: 28px !important;
             transition: all 0.15s ease !important;
         }
-        #nav-subbar button:hover, #nav-subbar button:active {
+        #nav-subbar button:not(.settings-tab-btn):hover,
+        #nav-subbar button:not(.settings-tab-btn):active {
             background: rgba(56, 189, 248, 0.25) !important;
             border-color: var(--accent) !important;
             color: #fff !important;
         }
-        #nav-subbar button.on {
+        #nav-subbar button:not(.settings-tab-btn).on {
             background: rgba(56, 189, 248, 0.30) !important;
             border-color: var(--accent) !important;
             color: var(--accent) !important;
@@ -2819,12 +2903,18 @@
                 margin-top: 1px !important;
             }
 
-            /* 3. 頂部選單列 (#nav) 居中於第 2 排 (top: 58px) */
-            #nav, body.layout-v4 #nav {
-                top: calc(58px + env(safe-area-inset-top)) !important;
-                left: 50% !important;
-                transform: translateX(-50%) !important;
+            /* 3. 頂部活動式容器 (#nav-wrapper) 居中於第 2 排 (top: 58px) */
+            #nav-wrapper {
+                top: calc(58px + env(safe-area-inset-top));
                 width: calc(100vw - 16px) !important;
+                max-width: 420px !important;
+            }
+            #nav, body.layout-v4 #nav {
+                position: relative !important;
+                top: auto !important;
+                left: auto !important;
+                transform: none !important;
+                width: 100% !important;
                 max-width: 420px !important;
                 padding: 3px 6px !important;
                 gap: 3px !important;
@@ -2833,24 +2923,25 @@
                 z-index: 35 !important;
             }
             #nav::-webkit-scrollbar { display: none !important; }
-            #nav button {
+            #nav button:not(.nav-min-btn) {
                 font-size: 11px !important;
                 padding: 5px 9px !important;
                 min-height: 32px !important;
             }
 
-            /* 4. 二級下拉選單列 (#nav-subbar) 居中於第 3 排 (top: 98px) */
+            /* 4. 二級下拉選單列 (#nav-subbar) 緊隨 #nav 垂直排列 */
             #nav-subbar {
-                top: calc(98px + env(safe-area-inset-top)) !important;
-                left: 50% !important;
-                transform: translateX(-50%) !important;
-                width: calc(100vw - 16px) !important;
+                position: relative !important;
+                top: auto !important;
+                left: auto !important;
+                transform: none !important;
+                width: 100% !important;
                 max-width: 420px !important;
                 z-index: 40 !important;
                 padding: 4px 6px !important;
                 gap: 4px !important;
             }
-            #nav-subbar button {
+            #nav-subbar button:not(.settings-tab-btn) {
                 font-size: 11px !important;
                 padding: 5px 10px !important;
                 min-height: 30px !important;
@@ -2937,12 +3028,17 @@
                 margin-top: 0 !important;
             }
 
-            /* 3. 頂部選單列 (#nav) 完美居中，絕不碰撞兩側 */
-            #nav, body.layout-v4 #nav {
-                top: calc(6px + env(safe-area-inset-top)) !important;
-                left: 50% !important;
-                transform: translateX(-50%) !important;
+            /* 3. 頂部活動式容器 (#nav-wrapper) 完美置頂 */
+            #nav-wrapper {
+                top: calc(6px + env(safe-area-inset-top));
                 max-width: calc(100vw - 360px) !important;
+            }
+            #nav, body.layout-v4 #nav {
+                position: relative !important;
+                top: auto !important;
+                left: auto !important;
+                transform: none !important;
+                max-width: 100% !important;
                 padding: 3px 6px !important;
                 gap: 3px !important;
                 overflow-x: auto !important;
@@ -2950,7 +3046,7 @@
                 z-index: 35 !important;
             }
             #nav::-webkit-scrollbar { display: none !important; }
-            #nav button {
+            #nav button:not(.nav-min-btn) {
                 font-size: 11px !important;
                 padding: 4px 8px !important;
                 min-height: 28px !important;
@@ -2958,15 +3054,16 @@
 
             /* 4. 二級下拉選單列 (#nav-subbar) 緊密浮動於 #nav 下方 */
             #nav-subbar {
-                top: calc(42px + env(safe-area-inset-top)) !important;
-                left: 50% !important;
-                transform: translateX(-50%) !important;
-                max-width: min(94vw, 560px) !important;
+                position: relative !important;
+                top: auto !important;
+                left: auto !important;
+                transform: none !important;
+                max-width: 100% !important;
                 padding: 3px 6px !important;
                 gap: 4px !important;
                 z-index: 40 !important;
             }
-            #nav-subbar button {
+            #nav-subbar button:not(.settings-tab-btn) {
                 font-size: 10.5px !important;
                 padding: 4px 8px !important;
                 min-height: 26px !important;
@@ -3554,49 +3651,79 @@
 
         <div id="scale-tooltip" style="display:none;">🔍 100%</div>
 
-        <!-- 頂部精緻主選單 (#nav) -->
-        <div id="nav" class="card">
-            <button data-menu="settings" onclick="toggleNavMenu('settings')">⚙️ 個人設定 ▾</button>
-            <button data-menu="stage" onclick="toggleNavMenu('stage')">🎯 關卡 ▾</button>
-            <button data-menu="ai" onclick="toggleNavMenu('ai')">🤖 AI體感 ▾</button>
-            <button data-menu="social" onclick="openSocial()">🏆 榜單</button>
-            <button data-menu="quit" onclick="forfeitMatch()" style="color:var(--bad);">🏳️ 棄賽</button>
-        </div>
-
-        <!-- ★ 二級橫向下拉選單列 (點選按鈕直接「掉下來一排」緊湊子選單，拒絕巨無霸彈窗) -->
-        <div id="nav-subbar" class="card">
-            <!-- 個人設定子排 -->
-            <div class="subbar-group" id="subbar-settings" style="display:none;">
-                <button onclick="openProfileModal()">👤 個人檔案</button>
-                <button onclick="cycleCamView()">🙈 切換視角</button>
-                <button onclick="enterCamEdit()" style="color:var(--accent);">🎨 自訂視角</button>
-                <button onclick="openAudioModal()">🎶 音效語音</button>
-                <button onclick="cycleCardScaleQuick()" style="color:var(--cool);">📐 卡片縮放 (<span id="quick-scale-lbl">100%</span>)</button>
-                <button onclick="cycleRefereeModeQuick()" style="color:var(--lime);">📢 轉播樣式 (<span id="ref-mode-lbl">1.電視轉播條</span>)</button>
-                <button onclick="resetCardScales()" style="color:var(--dim);">🔄 重置尺寸</button>
-                <button onclick="openRulesModal()" style="color:var(--lime);">📖 競賽手冊</button>
-                <button onclick="showFingerTutorial()" style="color:var(--ok);">👆 揮拍教學</button>
-                <button onclick="startSpotlightTour(true)">✨ 互動導覽</button>
-                <button onclick="openAuditModal()" style="color:var(--accent);">📋 審計日誌</button>
-                <button onclick="syncDigitalTwin()" style="color:var(--ok);">🤖 數位孿生</button>
+        <!-- 頂部活動式容器 (#nav-wrapper: 支援自由拖曳移動、收折最小化為懸浮球) -->
+        <div id="nav-wrapper">
+            <!-- 最小化懸浮球 (點擊展開，可自由拖曳移動) -->
+            <div id="nav-minimized-pill" style="display:none;" onclick="toggleNavMinimize(false)" title="點擊展開選單，亦可拖曳移動">
+                <span style="font-size:13px;">⚙️</span>
+                <span style="font-size:11px;font-weight:800;color:var(--txt);">選單</span>
+                <span style="font-size:10px;color:var(--dim);">⠿</span>
             </div>
 
-            <!-- 關卡子排 -->
-            <div class="subbar-group" id="subbar-stage" style="display:none;">
-                <button class="stage-btn on" data-stage="1" onclick="switchStage(1)">1 發球</button>
-                <button class="stage-btn" data-stage="2" onclick="switchStage(2)">2 雙彈跳</button>
-                <button class="stage-btn" data-stage="3" onclick="switchStage(3)">3 廚房區</button>
-                <button class="stage-btn" data-stage="4" onclick="switchStage(4)">4 對決</button>
-                <button class="stage-btn" data-stage="5" onclick="switchStage(5)">5 冠軍賽</button>
+            <!-- 頂部精緻主選單 (#nav) -->
+            <div id="nav" class="card">
+                <div class="nav-drag-handle" title="按住拖曳整組選單，雙擊重置回預設位置">⠿</div>
+                <button data-menu="settings" onclick="toggleNavMenu('settings')">⚙️ 設定 ▾</button>
+                <button data-menu="stage" onclick="toggleNavMenu('stage')">🎯 關卡 ▾</button>
+                <button data-menu="ai" onclick="toggleNavMenu('ai')">🤖 體感 ▾</button>
+                <button data-menu="social" onclick="openSocial()">🏆 榜單</button>
+                <button data-menu="quit" onclick="forfeitMatch()" style="color:var(--bad);">🏳️ 棄賽</button>
+                <button class="nav-min-btn" onclick="toggleNavMinimize(true)" title="收折最小化為懸浮球">➖</button>
             </div>
 
-            <!-- AI體感子排 -->
-            <div class="subbar-group" id="subbar-ai" style="display:none;">
-                <button id="subbar-ai-btn" onclick="toggleWebcamAI()" style="color:var(--ok);">📷 體感: 關</button>
-                <button id="subbar-aim-btn" onclick="cycleAimModeQuick()">🎯 瞄準: 自動</button>
-                <button id="subbar-teach-btn" onclick="cycleTeachLevelQuick()">🎚️ 體感判定: 寬鬆</button>
-                <button id="subbar-diff-btn" onclick="cycleDifficultyQuick()">🤖 匹克鵝難度: 初階</button>
-                <button id="subbar-perf-btn" onclick="cyclePerfQuick()">⚡ 畫質效能: 高</button>
+            <!-- ★ 二級下拉選單列 (#nav-subbar) -->
+            <div id="nav-subbar" class="card">
+                <!-- 個人設定子排 (採用 3 大分類頁籤，杜絕無止盡橫向滾動) -->
+                <div class="subbar-group" id="subbar-settings" style="display:none;flex-direction:column;gap:6px;width:100%;align-items:center;">
+                    <!-- 分類頁籤按鈕 (Tabs) -->
+                    <div style="display:flex;gap:4px;background:rgba(255,255,255,0.06);padding:3px;border-radius:99px;max-width:100%;justify-content:center;">
+                        <button type="button" class="settings-tab-btn on" id="stab-btn-view" onclick="switchSettingsTab('view')">🎮 視角排版</button>
+                        <button type="button" class="settings-tab-btn" id="stab-btn-user" onclick="switchSettingsTab('user')">👤 個人輔助</button>
+                        <button type="button" class="settings-tab-btn" id="stab-btn-data" onclick="switchSettingsTab('data')">🤖 體感數據</button>
+                    </div>
+
+                    <!-- 分類 1: 視角排版 (4個精簡按鈕，無需橫滑) -->
+                    <div id="stab-pane-view" class="settings-tab-pane" style="display:flex;gap:4px;flex-wrap:wrap;justify-content:center;">
+                        <button onclick="cycleCamView()">🙈 切換視角</button>
+                        <button onclick="enterCamEdit()" style="color:var(--accent);">🎨 自訂視角</button>
+                        <button onclick="cycleCardScaleQuick()" style="color:var(--cool);">📐 卡片縮放 (<span id="quick-scale-lbl">100%</span>)</button>
+                        <button onclick="cycleRefereeModeQuick()" style="color:var(--lime);">📢 轉播樣式 (<span id="ref-mode-lbl">1.電視轉播條</span>)</button>
+                    </div>
+
+                    <!-- 分類 2: 個人輔助 -->
+                    <div id="stab-pane-user" class="settings-tab-pane" style="display:none;gap:4px;flex-wrap:wrap;justify-content:center;">
+                        <button onclick="openProfileModal()">👤 個人檔案</button>
+                        <button onclick="openAudioModal()">🎶 音效語音</button>
+                        <button onclick="openRulesModal()" style="color:var(--lime);">📖 競賽手冊</button>
+                        <button onclick="showFingerTutorial()" style="color:var(--ok);">👆 揮拍教學</button>
+                    </div>
+
+                    <!-- 分類 3: 體感數據 -->
+                    <div id="stab-pane-data" class="settings-tab-pane" style="display:none;gap:4px;flex-wrap:wrap;justify-content:center;">
+                        <button onclick="startSpotlightTour(true)">✨ 互動導覽</button>
+                        <button onclick="openAuditModal()" style="color:var(--accent);">📋 審計日誌</button>
+                        <button onclick="syncDigitalTwin()" style="color:var(--ok);">🤖 數位孿生</button>
+                        <button onclick="resetCardScales()" style="color:var(--dim);">🔄 重置尺寸</button>
+                    </div>
+                </div>
+
+                <!-- 關卡子排 -->
+                <div class="subbar-group" id="subbar-stage" style="display:none;">
+                    <button class="stage-btn on" data-stage="1" onclick="switchStage(1)">1 發球</button>
+                    <button class="stage-btn" data-stage="2" onclick="switchStage(2)">2 雙彈跳</button>
+                    <button class="stage-btn" data-stage="3" onclick="switchStage(3)">3 廚房區</button>
+                    <button class="stage-btn" data-stage="4" onclick="switchStage(4)">4 對決</button>
+                    <button class="stage-btn" data-stage="5" onclick="switchStage(5)">5 冠軍賽</button>
+                </div>
+
+                <!-- AI體感子排 -->
+                <div class="subbar-group" id="subbar-ai" style="display:none;">
+                    <button id="subbar-ai-btn" onclick="toggleWebcamAI()" style="color:var(--ok);">📷 體感: 關</button>
+                    <button id="subbar-aim-btn" onclick="cycleAimModeQuick()">🎯 瞄準: 自動</button>
+                    <button id="subbar-teach-btn" onclick="cycleTeachLevelQuick()">🎚️ 體感判定: 寬鬆</button>
+                    <button id="subbar-diff-btn" onclick="cycleDifficultyQuick()">🤖 匹克鵝難度: 初階</button>
+                    <button id="subbar-perf-btn" onclick="cyclePerfQuick()">⚡ 畫質效能: 高</button>
+                </div>
             </div>
         </div>
 
@@ -5778,6 +5905,175 @@
             if (refLbl && typeof REFEREE_MODES !== 'undefined' && REFEREE_MODES[refereeMode]) {
                 refLbl.innerText = REFEREE_MODES[refereeMode];
             }
+        }
+
+        /* ── 個人設定子分類頁籤切換 ── */
+        function switchSettingsTab(tab) {
+            const tabs = ['view', 'user', 'data'];
+            tabs.forEach(t => {
+                const btn = document.getElementById(`stab-btn-${t}`);
+                const pane = document.getElementById(`stab-pane-${t}`);
+                if (btn) btn.classList.toggle('on', t === tab);
+                if (pane) pane.style.display = (t === tab) ? 'flex' : 'none';
+            });
+        }
+
+        /* ── 選單最小化 / 還原懸浮球控制器 ── */
+        function toggleNavMinimize(forceMin) {
+            const pill = document.getElementById('nav-minimized-pill');
+            const nav = document.getElementById('nav');
+            const subbar = document.getElementById('nav-subbar');
+            if (!pill || !nav) return;
+
+            const isMin = (forceMin !== undefined) ? !!forceMin : (nav.style.display !== 'none');
+            if (isMin) {
+                nav.style.display = 'none';
+                if (subbar) {
+                    subbar.classList.remove('open');
+                    activeNavMenu = null;
+                }
+                pill.style.display = 'flex';
+                try { localStorage.setItem('nchu_nav_minimized', '1'); } catch (e) {}
+                if (typeof toast === 'function') toast('⚙️ 選單已縮小為懸浮球', '點擊懸浮球即可還原，亦可按住拖曳移動');
+            } else {
+                nav.style.display = 'flex';
+                pill.style.display = 'none';
+                try { localStorage.setItem('nchu_nav_minimized', '0'); } catch (e) {}
+            }
+        }
+
+        /* ── 活動式選單自由拖曳與記憶功能 (支援觸控/滑鼠與雙擊重置) ── */
+        function initNavDrag() {
+            const wrapper = document.getElementById('nav-wrapper');
+            const handle = document.querySelector('.nav-drag-handle');
+            const pill = document.getElementById('nav-minimized-pill');
+            if (!wrapper) return;
+
+            // 讀取上次記憶的位置
+            try {
+                const savedPos = localStorage.getItem('nchu_nav_pos');
+                if (savedPos) {
+                    const pos = JSON.parse(savedPos);
+                    if (typeof pos.left === 'number' && typeof pos.top === 'number') {
+                        const maxLeft = Math.max(10, window.innerWidth - 70);
+                        const maxTop = Math.max(10, window.innerHeight - 50);
+                        const clampedLeft = Math.max(8, Math.min(maxLeft, pos.left));
+                        const clampedTop = Math.max(6, Math.min(maxTop, pos.top));
+                        wrapper.style.left = clampedLeft + 'px';
+                        wrapper.style.top = clampedTop + 'px';
+                        wrapper.style.transform = 'none';
+                    }
+                }
+                const savedMin = localStorage.getItem('nchu_nav_minimized');
+                if (savedMin === '1') {
+                    toggleNavMinimize(true);
+                }
+            } catch (e) {}
+
+            function bindDrag(el, isPill) {
+                if (!el) return;
+                let dragging = false;
+                let startX = 0, startY = 0;
+                let initLeft = 0, initTop = 0;
+                let hasMoved = false;
+                let lastTap = 0;
+
+                el.addEventListener('pointerdown', (e) => {
+                    if (e.button && e.button !== 0) return;
+                    dragging = true;
+                    hasMoved = false;
+                    startX = e.clientX;
+                    startY = e.clientY;
+
+                    const rect = wrapper.getBoundingClientRect();
+                    initLeft = rect.left;
+                    initTop = rect.top;
+
+                    wrapper.style.transform = 'none';
+                    wrapper.style.left = initLeft + 'px';
+                    wrapper.style.top = initTop + 'px';
+
+                    try { el.setPointerCapture(e.pointerId); } catch (err) {}
+                    e.stopPropagation();
+                });
+
+                el.addEventListener('pointermove', (e) => {
+                    if (!dragging) return;
+                    const dx = e.clientX - startX;
+                    const dy = e.clientY - startY;
+                    if (Math.hypot(dx, dy) > 5) {
+                        hasMoved = true;
+                    }
+                    if (!hasMoved) return;
+
+                    const rect = wrapper.getBoundingClientRect();
+                    const w = rect.width || 60;
+                    const h = rect.height || 40;
+                    const maxLeft = Math.max(8, window.innerWidth - w - 8);
+                    const maxTop = Math.max(6, window.innerHeight - h - 8);
+
+                    const newL = Math.max(8, Math.min(maxLeft, initLeft + dx));
+                    const newT = Math.max(6, Math.min(maxTop, initTop + dy));
+
+                    wrapper.style.left = newL + 'px';
+                    wrapper.style.top = newT + 'px';
+                });
+
+                const endDrag = (e) => {
+                    if (!dragging) return;
+                    dragging = false;
+                    try { el.releasePointerCapture(e.pointerId); } catch (err) {}
+
+                    const now = Date.now();
+                    if (hasMoved) {
+                        const rect = wrapper.getBoundingClientRect();
+                        try {
+                            localStorage.setItem('nchu_nav_pos', JSON.stringify({ left: rect.left, top: rect.top }));
+                        } catch (err) {}
+                    } else {
+                        // 雙擊 / 雙點擊判定 (320ms 內連續點擊拖曳手柄或懸浮球重置位置)
+                        if (now - lastTap < 320) {
+                            resetNavPosition();
+                            lastTap = 0;
+                            return;
+                        }
+                        lastTap = now;
+
+                        if (isPill) {
+                            toggleNavMinimize(false);
+                        }
+                    }
+                };
+
+                el.addEventListener('pointerup', endDrag);
+                el.addEventListener('pointercancel', endDrag);
+
+                el.addEventListener('dblclick', (e) => {
+                    e.stopPropagation();
+                    resetNavPosition();
+                });
+            }
+
+            bindDrag(handle, false);
+            bindDrag(pill, true);
+        }
+
+        function resetNavPosition() {
+            const wrapper = document.getElementById('nav-wrapper');
+            if (!wrapper) return;
+            wrapper.style.left = '50%';
+            const isPortrait = window.matchMedia('(max-width: 768px) and (orientation: portrait)').matches;
+            const isLandscape = window.matchMedia('(orientation: landscape) and (max-height: 500px)').matches;
+            if (isPortrait) {
+                wrapper.style.top = 'calc(58px + env(safe-area-inset-top))';
+            } else if (isLandscape) {
+                wrapper.style.top = 'calc(6px + env(safe-area-inset-top))';
+            } else {
+                wrapper.style.top = 'calc(14px + env(safe-area-inset-top))';
+            }
+            wrapper.style.transform = 'translateX(-50%)';
+            try { localStorage.removeItem('nchu_nav_pos'); } catch (e) {}
+            if (typeof toast === 'function') toast('🔄 選單位置已重置', '已還原至預設頂部置中位置');
         }
 
         function cycleAimModeQuick() {
@@ -8518,6 +8814,7 @@
         initFingerTutorial();
         initLayoutMode();
         initCardResize();
+        initNavDrag();
 
         document.getElementById('user-sid').addEventListener('input', e => onSidInput(e.target.value));
         document.getElementById('user-dept-sel').addEventListener('change', e => {
