@@ -1,0 +1,405 @@
+/* ═══════════════════════════════════════════════════════════════════
+   NCHU Pickleball V5 - 導覽列與活動式選單 (Navigation & Draggable Menu)
+   ═══════════════════════════════════════════════════════════════════ */
+        /* ---------- 導覽 ---------- */
+        #nav {
+            position: absolute;
+            top: 14px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 3px;
+            padding: 4px;
+            pointer-events: auto;
+            max-width: 92vw;
+            overflow-x: auto;
+            scrollbar-width: none
+        }
+
+        #nav::-webkit-scrollbar {
+            display: none
+        }
+
+        #nav button {
+            flex-shrink: 0;
+            background: transparent;
+            border: 0;
+            color: var(--dim);
+            font-size: 11px;
+            font-weight: 700;
+            padding: 7px 13px;
+            border-radius: 99px;
+            cursor: pointer;
+            transition: .18s;
+            white-space: nowrap
+        }
+
+        #nav button:hover {
+            color: var(--txt);
+            background: rgba(255, 255, 255, .09)
+        }
+
+        #nav button.open {
+            background: rgba(129, 140, 248, .18);
+            color: var(--cool);
+            box-shadow: inset 0 0 0 1px rgba(129, 140, 248, .4)
+        }
+
+        #nav-sheet {
+            position: absolute;
+            top: 62px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-6px);
+            display: none;
+            gap: 4px;
+            padding: 5px;
+            pointer-events: auto;
+            max-width: 94vw;
+            overflow-x: auto;
+            scrollbar-width: none;
+            opacity: 0;
+            transition: opacity .16s, transform .16s;
+            z-index: 14
+        }
+
+        #nav-sheet.open {
+            display: flex;
+            opacity: 1;
+            transform: translateX(-50%) translateY(0)
+        }
+
+        #nav-sheet::-webkit-scrollbar {
+            display: none
+        }
+
+        .sheet-sec {
+            display: none;
+            gap: 4px
+        }
+
+        .sheet-sec.active {
+            display: flex
+        }
+
+        #nav-sheet button {
+            flex-shrink: 0;
+            background: transparent;
+            border: 0;
+            color: var(--dim);
+            font-size: 11px;
+            font-weight: 700;
+            padding: 7px 12px;
+            border-radius: 99px;
+            cursor: pointer;
+            transition: .18s;
+            white-space: nowrap
+        }
+
+        #nav-sheet button:hover {
+            color: var(--txt);
+            background: rgba(255, 255, 255, .09)
+        }
+
+        #nav-sheet button.on {
+            background: rgba(56, 189, 248, .18);
+            color: var(--accent);
+            box-shadow: inset 0 0 0 1px rgba(56, 189, 248, .4)
+        }
+
+        .sheet-div {
+            width: 1px;
+            background: var(--line);
+            margin: 4px 3px;
+            flex-shrink: 0
+        }
+
+
+/* ── 頂部活動式主選單容器 (#nav-wrapper: 支援自由拖曳移動、收折最小化為懸浮球) ── */
+        /* ── 頂部活動式主選單容器 (#nav-wrapper: 支援自由拖曳移動、收折最小化為懸浮球) ── */
+        #nav-wrapper {
+            position: absolute !important;
+            top: calc(14px + env(safe-area-inset-top));
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: center !important;
+            gap: 6px !important;
+            z-index: 45 !important;
+            pointer-events: none !important;
+        }
+        #nav-wrapper > * {
+            pointer-events: auto !important;
+            position: relative !important;
+            top: auto !important;
+            left: auto !important;
+            transform: none !important;
+        }
+
+        /* 拖曳手柄與最小化按鈕 */
+        .nav-drag-handle {
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            width: 16px !important;
+            height: 24px !important;
+            color: var(--dim) !important;
+            cursor: grab !important;
+            user-select: none !important;
+            -webkit-user-select: none !important;
+            font-size: 13px !important;
+            margin-right: 1px !important;
+            touch-action: none !important;
+            border-radius: 4px !important;
+            transition: color 0.15s, background 0.15s !important;
+        }
+        .nav-drag-handle:hover, .nav-drag-handle:active {
+            color: var(--accent) !important;
+            background: rgba(56, 189, 248, 0.15) !important;
+        }
+        .nav-min-btn {
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            width: 22px !important;
+            height: 22px !important;
+            border-radius: 99px !important;
+            background: rgba(255, 255, 255, 0.08) !important;
+            font-size: 11px !important;
+            color: var(--dim) !important;
+            padding: 0 !important;
+            margin-left: 2px !important;
+            cursor: pointer !important;
+            border: 0 !important;
+            transition: all 0.15s !important;
+        }
+        .nav-min-btn:hover {
+            color: #fff !important;
+            background: rgba(255, 255, 255, 0.2) !important;
+        }
+
+        /* 最小化後的精緻懸浮球 (#nav-minimized-pill: 可任意拖曳停靠螢幕邊緣) */
+        #nav-minimized-pill {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            padding: 7px 14px;
+            border-radius: 99px;
+            background: rgba(15, 23, 42, 0.94);
+            border: 1.5px solid var(--accent);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6), 0 0 16px rgba(56, 189, 248, 0.4);
+            cursor: pointer;
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            touch-action: none;
+            user-select: none;
+            -webkit-user-select: none;
+            animation: pulseGlow 2.5s infinite;
+        }
+
+        /* 最小化狀態：整條選單列與二級下拉選單徹底隱藏，只顯示懸浮球 */
+        #nav-wrapper.minimized #nav,
+        #nav-wrapper.minimized #nav-subbar {
+            display: none !important;
+        }
+        #nav-wrapper.minimized #nav-minimized-pill {
+            display: flex !important;
+        }
+        #nav-wrapper:not(.minimized) #nav-minimized-pill {
+            display: none !important;
+        }
+        #nav-wrapper.minimized {
+            width: auto !important;
+            max-width: none !important;
+        }
+
+        /* ── 頂部簡潔主選單 (#nav) ── */
+        #nav, body.layout-v4 #nav {
+            display: flex !important;
+            align-items: center !important;
+            gap: 4px !important;
+            padding: 4px 8px !important;
+            border-radius: 99px !important;
+            background: rgba(15, 23, 42, 0.88) !important;
+            backdrop-filter: blur(14px) !important;
+            -webkit-backdrop-filter: blur(14px) !important;
+            border: 1px solid rgba(255, 255, 255, 0.15) !important;
+            max-width: min(94vw, 560px) !important;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4) !important;
+        }
+        #nav button:not(.nav-min-btn) {
+            font-size: 12px !important;
+            font-weight: 700 !important;
+            padding: 5px 10px !important;
+            border-radius: 99px !important;
+            background: transparent !important;
+            border: 0 !important;
+            color: var(--dim) !important;
+            cursor: pointer !important;
+            transition: all 0.15s ease !important;
+            white-space: nowrap !important;
+            flex-shrink: 0 !important;
+        }
+        #nav button:not(.nav-min-btn):hover {
+            color: var(--txt) !important;
+            background: rgba(255, 255, 255, 0.1) !important;
+        }
+        #nav button.open, #nav button.on {
+            background: rgba(56, 189, 248, 0.22) !important;
+            color: var(--accent) !important;
+            box-shadow: inset 0 0 0 1px rgba(56, 189, 248, 0.45) !important;
+        }
+
+        /* ── 二級橫向下拉選單列 (#nav-subbar) ── */
+        #nav-subbar {
+            display: none;
+            flex-direction: column !important;
+            align-items: center !important;
+            gap: 6px !important;
+            padding: 6px 10px !important;
+            background: rgba(15, 23, 42, 0.95) !important;
+            backdrop-filter: blur(16px) !important;
+            -webkit-backdrop-filter: blur(16px) !important;
+            border: 1px solid rgba(56, 189, 248, 0.35) !important;
+            border-radius: 20px !important;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5), 0 0 14px rgba(56, 189, 248, 0.25) !important;
+            max-width: min(96vw, 680px) !important;
+            white-space: nowrap !important;
+        }
+        #nav-subbar.open {
+            display: flex !important;
+            animation: subbarSlideDown 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .settings-tab-btn {
+            font-size: 11px !important;
+            font-weight: 700 !important;
+            padding: 4px 10px !important;
+            border-radius: 99px !important;
+            background: transparent !important;
+            border: 0 !important;
+            color: var(--dim) !important;
+            cursor: pointer !important;
+            transition: all 0.15s ease !important;
+        }
+        .settings-tab-btn:hover {
+            color: var(--txt) !important;
+        }
+        .settings-tab-btn.on {
+            background: rgba(56, 189, 248, 0.25) !important;
+            color: var(--accent) !important;
+            font-weight: 800 !important;
+            box-shadow: inset 0 0 0 1px rgba(56, 189, 248, 0.45) !important;
+        }
+
+        #nav-subbar button:not(.settings-tab-btn) {
+            font-size: 11.5px !important;
+            font-weight: 700 !important;
+            padding: 5px 12px !important;
+            border-radius: 99px !important;
+            background: rgba(255, 255, 255, 0.08) !important;
+            border: 1px solid rgba(255, 255, 255, 0.12) !important;
+            color: var(--txt) !important;
+            white-space: nowrap !important;
+            flex-shrink: 0 !important;
+            cursor: pointer !important;
+            min-height: 28px !important;
+            transition: all 0.15s ease !important;
+        }
+        #nav-subbar button:not(.settings-tab-btn):hover,
+        #nav-subbar button:not(.settings-tab-btn):active {
+            background: rgba(56, 189, 248, 0.25) !important;
+            border-color: var(--accent) !important;
+            color: #fff !important;
+        }
+        #nav-subbar button:not(.settings-tab-btn).on {
+            background: rgba(56, 189, 248, 0.30) !important;
+            border-color: var(--accent) !important;
+            color: var(--accent) !important;
+            box-shadow: 0 0 8px rgba(56, 189, 248, 0.4) !important;
+        }
+
+
+/* ── 手機直向模式導覽列排版 ── */
+@media (orientation: portrait), (max-aspect-ratio: 1/1) {
+            /* 4. 二級下拉選單列 (#nav-subbar) 緊隨 #nav 垂直排列 */
+            #nav-subbar {
+                position: relative !important;
+                top: auto !important;
+                left: auto !important;
+                transform: none !important;
+                width: 100% !important;
+                max-width: 420px !important;
+                z-index: 40 !important;
+                padding: 4px 6px !important;
+                gap: 4px !important;
+            }
+            #nav-subbar button:not(.settings-tab-btn) {
+                font-size: 11px !important;
+                padding: 5px 10px !important;
+                min-height: 30px !important;
+            }
+
+            #bottom {
+                bottom: calc(8px + env(safe-area-inset-bottom)) !important;
+                width: min(94vw, 440px) !important;
+            }
+            #meter {
+                padding: 6px 12px !important;
+                min-height: 40px !important;
+            }
+            #sp {
+                font-size: 20px !important;
+            }
+            #keys {
+                font-size: 12px !important;
+                padding: 6px 12px !important;
+            }
+        }
+
+}
+
+/* ── 手機橫向模式導覽列排版 ── */
+@media (orientation: landscape) and (min-aspect-ratio: 1/1) {
+            /* 4. 二級下拉選單列 (#nav-subbar) 緊密浮動於 #nav 下方 */
+            #nav-subbar {
+                position: relative !important;
+                top: auto !important;
+                left: auto !important;
+                transform: none !important;
+                max-width: 100% !important;
+                padding: 3px 6px !important;
+                gap: 4px !important;
+                z-index: 40 !important;
+            }
+            #nav-subbar button:not(.settings-tab-btn) {
+                font-size: 10.5px !important;
+                padding: 4px 8px !important;
+                min-height: 26px !important;
+            }
+
+            /* 5. 橫向隱藏 PC 鍵盤說明與重複大 meter，徹底解放 3D 視野 */
+            #meter {
+                display: none !important;
+            }
+            #keys {
+                display: none !important;
+            }
+            #bottom {
+                display: none !important;
+            }
+            #joy {
+                bottom: calc(12px + env(safe-area-inset-bottom)) !important;
+                left: calc(12px + env(safe-area-inset-left)) !important;
+                width: 76px !important;
+                height: 76px !important;
+            }
+            #speed-hud-mini {
+                bottom: calc(10px + env(safe-area-inset-bottom)) !important;
+                left: calc(96px + env(safe-area-inset-left)) !important;
+                font-size: 12.5px !important;
+                padding: 5px 12px !important;
+            }
+        }
+
+}

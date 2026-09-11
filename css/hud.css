@@ -1,0 +1,1716 @@
+/* ═══════════════════════════════════════════════════════════════════
+   NCHU Pickleball V5 - 賽場 HUD、儀表與虛擬裁判轉播 (HUD & Referee Broadcast)
+   ═══════════════════════════════════════════════════════════════════ */
+        /* ---------- 校正框 ---------- */
+        #calibration-box {
+            position: absolute;
+            top: 18%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 280px;
+            height: 160px;
+            border: 2px dashed var(--accent);
+            border-radius: 16px;
+            background: rgba(56, 189, 248, .06);
+            z-index: 50;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            pointer-events: none
+        }
+
+        #calib-text {
+            font-size: 12.5px;
+            font-weight: 700;
+            color: #fff;
+            text-shadow: 0 2px 6px rgba(0, 0, 0, .8);
+            padding: 0 10px
+        }
+
+        /* ---------- 左上關卡 ---------- */
+        .card {
+            background: var(--panel);
+            backdrop-filter: blur(16px);
+            border: 1px solid var(--line);
+            border-radius: var(--r);
+            box-shadow: 0 10px 30px -10px rgba(0, 0, 0, .5);
+            pointer-events: auto
+        }
+
+        #info {
+            position: absolute;
+            top: 14px;
+            left: 14px;
+            padding: 13px 17px;
+            min-width: 262px;
+            max-width: 44vw
+        }
+
+        #chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 9.5px;
+            font-weight: 800;
+            letter-spacing: .14em;
+            color: var(--accent);
+            background: rgba(56, 189, 248, .12);
+            border: 1px solid rgba(56, 189, 248, .3);
+            padding: 3px 9px;
+            border-radius: 99px;
+            text-transform: uppercase
+        }
+
+        #s-name {
+            font-size: 16.5px;
+            font-weight: 800;
+            letter-spacing: -.01em;
+            margin-top: 8px;
+            line-height: 1.2
+        }
+
+        #s-sub {
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: .16em;
+            color: var(--dim);
+            text-transform: uppercase;
+            margin-top: 3px
+        }
+
+        #s-desc {
+            font-size: 11.5px;
+            color: var(--dim);
+            margin-top: 7px;
+            line-height: 1.45
+        }
+
+        #goal-row {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            margin-top: 10px
+        }
+
+        #goal-track {
+            flex: 1;
+            height: 5px;
+            border-radius: 99px;
+            background: rgba(255, 255, 255, .13);
+            overflow: hidden
+        }
+
+        #goal-fill {
+            height: 100%;
+            width: 0%;
+            border-radius: 99px;
+            background: linear-gradient(90deg, var(--ok), var(--accent));
+            transition: width .35s
+        }
+
+        #goal-txt {
+            font-size: 11px;
+            font-weight: 800;
+            color: var(--ok);
+            font-variant-numeric: tabular-nums;
+            white-space: nowrap
+        }
+
+        #hint {
+            margin-top: 9px;
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--dim);
+            line-height: 1.4;
+            min-height: 15px
+        }
+
+        #waist-row {
+            display: none;
+            align-items: center;
+            gap: 7px;
+            margin-top: 8px
+        }
+
+        #waist-lab {
+            font-size: 9px;
+            font-weight: 800;
+            letter-spacing: .1em;
+            color: var(--dim);
+            white-space: nowrap
+        }
+
+        #waist-track {
+            flex: 1;
+            height: 6px;
+            border-radius: 99px;
+            background: rgba(0, 0, 0, .4);
+            position: relative;
+            overflow: hidden
+        }
+
+        #waist-safe {
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 32%;
+            background: rgba(63, 224, 196, .22)
+        }
+
+        #waist-mark {
+            position: absolute;
+            top: -2px;
+            width: 3px;
+            height: 10px;
+            border-radius: 2px;
+            background: #fff;
+            left: 50%
+        }
+
+        #stance-row {
+            display: none;
+            align-items: center;
+            gap: 7px;
+            margin-top: 6px
+        }
+
+        #stance-lab {
+            font-size: 9px;
+            font-weight: 800;
+            letter-spacing: .1em;
+            color: var(--dim);
+            white-space: nowrap
+        }
+
+        #stance-track {
+            flex: 1;
+            height: 6px;
+            border-radius: 99px;
+            background: rgba(0, 0, 0, .4);
+            position: relative;
+            overflow: hidden
+        }
+
+        #stance-safe {
+            position: absolute;
+            left: 25%;
+            top: 0;
+            bottom: 0;
+            width: 50%;
+            background: rgba(63, 224, 196, .22)
+        }
+
+        #stance-mark {
+            position: absolute;
+            top: -2px;
+            width: 3px;
+            height: 10px;
+            border-radius: 2px;
+            background: #fff;
+            left: 50%
+        }
+
+
+/* ---------- 新手手指滑動引導動畫 ---------- */
+        /* ---------- 新手手指滑動引導動畫 ---------- */
+        .finger-tut-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 150;
+            background: rgba(15, 23, 42, 0.75);
+            backdrop-filter: blur(8px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            pointer-events: auto;
+            transition: opacity 0.35s ease, visibility 0.35s ease;
+        }
+        .finger-tut-overlay.hidden {
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+        }
+        .finger-tut-card {
+            background: rgba(30, 41, 59, 0.96);
+            border: 1px solid rgba(56, 189, 248, 0.45);
+            box-shadow: 0 25px 60px rgba(0, 0, 0, 0.7), 0 0 35px rgba(56, 189, 248, 0.25);
+            border-radius: 20px;
+            width: min(92vw, 420px);
+            padding: 22px 18px;
+            text-align: center;
+            position: relative;
+        }
+        .finger-tut-title {
+            font-size: 18px;
+            font-weight: 800;
+            color: #38bdf8;
+            letter-spacing: 0.5px;
+        }
+        .finger-tut-desc {
+            font-size: 12px;
+            color: #cbd5e1;
+            margin: 8px 0 14px;
+            min-height: 34px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1.4;
+        }
+        .finger-tut-canvas-wrap {
+            position: relative;
+            width: 220px;
+            height: 170px;
+            margin: 0 auto 12px;
+            background: radial-gradient(circle at 50% 85%, rgba(56, 189, 248, 0.18), transparent 70%), rgba(15, 23, 42, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 16px;
+            overflow: hidden;
+        }
+        .finger-tut-hand {
+            position: absolute;
+            width: 48px;
+            height: 48px;
+            bottom: 18px;
+            left: calc(50% - 24px);
+            pointer-events: none;
+            will-change: transform;
+            filter: drop-shadow(0 4px 14px rgba(56, 189, 248, 0.6));
+        }
+        .finger-tut-trail {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+        }
+        .finger-tut-trail svg {
+            width: 100%;
+            height: 100%;
+        }
+        .finger-tut-modes {
+            display: flex;
+            gap: 6px;
+            justify-content: center;
+            margin-top: 6px;
+        }
+        .finger-mode-pill {
+            font-size: 10px;
+            font-weight: 700;
+            padding: 4px 8px;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.08);
+            color: #94a3b8;
+            transition: all 0.3s ease;
+        }
+        .finger-mode-pill.on {
+            background: rgba(56, 189, 248, 0.25);
+            color: #38bdf8;
+            border: 1px solid rgba(56, 189, 248, 0.55);
+        }
+        
+
+/* ---------- 核心 HUD 基礎佈局與層級 ---------- */
+        /* ★ v5.0.1 新手導覽講解卡片升級為亮白毛玻璃卡片 */
+        .spotlight-card {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.96) !important;
+            border: 1.5px solid rgba(255, 255, 255, 0.9) !important;
+            border-radius: 18px;
+            padding: 20px 22px;
+            width: min(90vw, 350px);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4), 0 4px 14px rgba(0, 0, 0, 0.08);
+            text-align: left;
+            z-index: 310;
+            backdrop-filter: blur(16px);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .spotlight-step-tag {
+            display: inline-block;
+            font-size: 10.5px;
+            font-weight: 800;
+            padding: 3px 9px;
+            border-radius: 8px;
+            background: rgba(14, 165, 233, 0.15);
+            color: #0284c7;
+            margin-bottom: 8px;
+        }
+        .spotlight-title {
+            font-size: 16px;
+            font-weight: 800;
+            color: #0f172a;
+            margin-bottom: 6px;
+        }
+        .spotlight-desc {
+            font-size: 12.5px;
+            line-height: 1.6;
+            color: #475569;
+            margin-bottom: 14px;
+        }
+        .spotlight-actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .spotlight-skip {
+            font-size: 11.5px;
+            color: #64748b;
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 4px 8px;
+        }
+        .spotlight-skip:hover {
+            color: #0f172a;
+        }
+        .spotlight-next {
+            background: #0284c7;
+            color: #ffffff;
+            font-weight: 800;
+            font-size: 12px;
+            border: none;
+            padding: 7px 18px;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: transform 0.2s, background 0.2s;
+        }
+        .spotlight-next:hover {
+            background: #0369a1;
+        }
+        .spotlight-next:hover {
+            transform: scale(1.05);
+        }
+
+        
+        /* ---------- 核心 HUD 基礎佈局與層級 (全面大比例舒適放大) ---------- */
+        #info {
+            position: absolute;
+            top: calc(14px + env(safe-area-inset-top));
+            left: calc(14px + env(safe-area-inset-left));
+            padding: 16px 20px;
+            border-radius: 20px;
+            width: 320px;
+            max-width: calc(100vw - 28px);
+            z-index: 30;
+            background: var(--panel);
+            backdrop-filter: blur(16px);
+            border: 1px solid var(--line);
+            box-shadow: 0 16px 36px -10px rgba(0, 0, 0, .55);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        #info.collapsed {
+            padding: 10px 18px;
+            width: fit-content;
+            border-radius: 99px;
+            cursor: pointer;
+        }
+        #info.collapsed #s-name { font-size: 15px; margin: 0; display: inline-block; font-weight: 800; }
+        #info.collapsed #chip { display: inline-block; margin-right: 8px; font-size: 12px; padding: 3px 10px; }
+        #info.collapsed #s-sub,
+        #info.collapsed #s-desc,
+        #info.collapsed #goal-row,
+        #info.collapsed #hint,
+        #info.collapsed #waist-row,
+        #info.collapsed #stance-row,
+        #info.collapsed #info-diff-row {
+            display: none !important;
+        }
+
+        #nav {
+            position: absolute;
+            top: calc(14px + env(safe-area-inset-top));
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 10px;
+            border-radius: 99px;
+            background: var(--panel);
+            backdrop-filter: blur(16px);
+            border: 1px solid var(--line);
+            box-shadow: 0 12px 32px -8px rgba(0, 0, 0, .5);
+            pointer-events: auto;
+            z-index: 35;
+            overflow-x: auto;
+            scrollbar-width: none;
+            -webkit-overflow-scrolling: touch;
+        }
+        #nav::-webkit-scrollbar { display: none; }
+        #nav button {
+            flex-shrink: 0;
+            background: transparent;
+            border: 0;
+            color: var(--dim);
+            font-size: 14px;
+            font-weight: 800;
+            padding: 8px 16px;
+            min-height: 42px;
+            border-radius: 99px;
+            cursor: pointer;
+            transition: .18s;
+            white-space: nowrap;
+            touch-action: manipulation;
+        }
+        #nav button:hover {
+            color: var(--txt);
+            background: rgba(255, 255, 255, .12);
+        }
+        #nav button.open {
+            background: rgba(56, 189, 248, .22);
+            color: #38bdf8;
+            box-shadow: inset 0 0 0 1px rgba(56, 189, 248, .5);
+        }
+
+        #nav-sheet {
+            position: absolute;
+            top: calc(66px + env(safe-area-inset-top));
+            transform: translateY(-8px) scale(0.96);
+            width: min(92vw, 420px);
+            border-radius: 20px;
+            z-index: 40;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        #nav-sheet.open {
+            transform: translateY(0) scale(1) !important;
+        }
+
+        /* 即時雙人比分板 (#board) */
+        #board {
+            position: absolute;
+            top: calc(14px + env(safe-area-inset-top));
+            right: calc(14px + env(safe-area-inset-right));
+            padding: 10px 18px;
+            border-radius: 18px;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            background: var(--panel);
+            backdrop-filter: blur(16px);
+            border: 1px solid var(--line);
+            box-shadow: 0 12px 32px -8px rgba(0, 0, 0, .5);
+            z-index: 32;
+        }
+        .side {
+            min-width: 68px;
+            text-align: center;
+            padding: 0 4px;
+        }
+        .side .who {
+            font-size: 12px;
+            font-weight: 800;
+            letter-spacing: .08em;
+            color: var(--dim);
+            text-transform: uppercase;
+        }
+        .side .num {
+            font-size: 32px;
+            font-weight: 900;
+            line-height: 1.1;
+            margin-top: 2px;
+            font-variant-numeric: tabular-nums;
+        }
+        #pv { color: var(--accent); text-shadow: 0 0 15px rgba(56, 189, 248, 0.4); }
+        #av { color: var(--bad); text-shadow: 0 0 15px rgba(248, 113, 113, 0.4); }
+        .divider {
+            width: 1px;
+            height: 38px;
+            background: var(--line);
+        }
+
+        /* 底部操作條收折修復 */
+        #bottom {
+            position: absolute;
+            bottom: 14px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: min(94vw, 440px);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.35s ease;
+            z-index: 25;
+        }
+        #bottom.collapsed {
+            transform: translate(-50%, calc(100% + 35px)) !important;
+            opacity: 0 !important;
+            pointer-events: none !important;
+        }
+
+        /* Spotlight 柔和微霧感遮罩 */
+        .spotlight-mask {
+            position: absolute;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.45) !important;
+            backdrop-filter: blur(2.5px) !important;
+        }
+        .spotlight-hole {
+            position: absolute;
+            border-radius: 14px;
+            box-shadow: 0 0 0 9999px rgba(15, 23, 42, 0.45), 0 0 25px rgba(56, 189, 248, 0.8), inset 0 0 15px rgba(56, 189, 248, 0.5) !important;
+            border: 2px solid #38bdf8 !important;
+            pointer-events: none;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* ---------- 比分 ---------- */
+        #board {
+            position: absolute;
+            top: 14px;
+            right: 14px;
+            padding: 11px 14px;
+            display: flex;
+            align-items: stretch;
+            gap: 11px
+        }
+
+        .side {
+            min-width: 64px;
+            text-align: center;
+            padding: 0 4px
+        }
+
+        .side .who {
+            font-size: 8.5px;
+            font-weight: 800;
+            letter-spacing: .13em;
+            color: var(--dim);
+            text-transform: uppercase
+        }
+
+        .side .num {
+            font-size: 29px;
+            font-weight: 800;
+            line-height: 1.05;
+            margin-top: 3px;
+            font-variant-numeric: tabular-nums
+        }
+
+        #pv {
+            color: var(--accent)
+        }
+
+        #av {
+            color: var(--bad)
+        }
+
+        .divider {
+            width: 1px;
+            background: var(--line);
+            margin: 3px 0
+        }
+
+
+/* ---------- 提示訊息與對話框 ---------- */
+        /* ---------- 提示 ---------- */
+        #toast {
+            position: absolute;
+            top: 31%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            width: 92%;
+            pointer-events: none
+        }
+
+        #t-main {
+            font-size: 26px;
+            font-weight: 800;
+            letter-spacing: -.01em;
+            color: #fff;
+            text-shadow: 0 3px 20px rgba(0, 0, 0, .8);
+            opacity: 0;
+            transform: translateY(7px) scale(.97);
+            transition: opacity .2s, transform .28s
+        }
+
+        #t-main.on {
+            opacity: 1;
+            transform: translateY(0) scale(1)
+        }
+
+        #t-sub {
+            font-size: 13px;
+            font-weight: 700;
+            color: #cbd5e1;
+            margin-top: 7px;
+            text-shadow: 0 2px 12px rgba(0, 0, 0, .8)
+        }
+
+        #aim-hud {
+            position: absolute;
+            bottom: 96px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: none;
+            gap: 5px;
+            padding: 7px 10px;
+            z-index: 13;
+            align-items: center
+        }
+
+        #aim-hud.on {
+            display: flex
+        }
+
+        .aim-pip {
+            width: 34px;
+            height: 6px;
+            border-radius: 99px;
+            background: rgba(255, 255, 255, .16);
+            transition: .18s
+        }
+
+        .aim-pip.on {
+            background: linear-gradient(90deg, var(--ok), var(--accent));
+            box-shadow: 0 0 10px rgba(56, 189, 248, .6);
+            transform: scaleY(1.8)
+        }
+
+        #aim-name {
+            font-size: 10px;
+            font-weight: 800;
+            color: var(--accent);
+            margin-left: 6px;
+            white-space: nowrap
+        }
+
+        /* ★ v5.0.1 示範講解對話框升級為高對比純白毛玻璃卡片 */
+        #demo {
+            position: absolute;
+            bottom: 118px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 15px 24px;
+            text-align: center;
+            width: min(92vw, 460px);
+            display: none;
+            z-index: 12;
+            background: rgba(255, 255, 255, 0.96) !important;
+            backdrop-filter: blur(16px);
+            border: 1.5px solid rgba(255, 255, 255, 0.95) !important;
+            border-radius: 18px;
+            box-shadow: 0 18px 45px rgba(0, 0, 0, 0.35), 0 2px 12px rgba(0, 0, 0, 0.08);
+        }
+
+        #d-tag {
+            display: inline-block;
+            font-size: 10px;
+            font-weight: 800;
+            letter-spacing: .12em;
+            color: #1e293b;
+            background: var(--lime);
+            padding: 2px 9px;
+            border-radius: 6px;
+            text-transform: uppercase;
+        }
+
+        #d-cap {
+            font-size: 16.5px;
+            font-weight: 800;
+            margin: 8px 0 6px;
+            line-height: 1.4;
+            color: #0f172a;
+        }
+
+        #d-skip {
+            font-size: 11px;
+            color: #64748b;
+            font-weight: 600;
+        }
+        #d-skip kbd {
+            background: #f1f5f9;
+            border: 1px solid #cbd5e1;
+            color: #1e293b;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: 700;
+        }
+
+
+/* ---------- 自訂視角編輯面板 ---------- */
+        /* ---------- ★新增:自訂視角編輯面板 ---------- */
+        #cam-edit {
+            position: absolute;
+            bottom: 150px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: min(92vw, 430px);
+            padding: 12px 16px;
+            display: none;
+            z-index: 30;
+            pointer-events: auto;
+            border-color: rgba(56, 189, 248, .45);
+            box-shadow: 0 14px 38px -10px rgba(0, 0, 0, .65)
+        }
+
+        #cam-edit.on {
+            display: block
+        }
+
+        #cam-edit .ce-t {
+            font-size: 10px;
+            font-weight: 800;
+            letter-spacing: .14em;
+            color: var(--accent);
+            text-transform: uppercase;
+            margin-bottom: 8px
+        }
+
+        #cam-edit .ce-hint {
+            font-size: 11px;
+            color: #cbd5e1;
+            line-height: 1.6;
+            margin-bottom: 10px
+        }
+
+        #cam-edit .ce-hint b {
+            color: var(--txt)
+        }
+
+        #cam-vals {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 10px;
+            background: rgba(0, 0, 0, .28);
+            border-radius: 9px;
+            padding: 7px 4px
+        }
+
+        #cam-vals div {
+            text-align: center
+        }
+
+        #cam-vals .k {
+            font-size: 8.5px;
+            color: var(--dim);
+            letter-spacing: .1em;
+            text-transform: uppercase
+        }
+
+        #cam-vals .v {
+            font-size: 14px;
+            font-weight: 800;
+            color: var(--accent);
+            font-variant-numeric: tabular-nums
+        }
+
+        .ce-btns {
+            display: flex;
+            gap: 8px
+        }
+
+        .ce-btns button {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid var(--line);
+            border-radius: 9px;
+            font-size: 12px;
+            font-weight: 800;
+            cursor: pointer;
+            transition: .18s;
+            background: rgba(255, 255, 255, .07);
+            color: var(--dim)
+        }
+
+        .ce-btns button.ok {
+            background: linear-gradient(135deg, #34d399, #059669);
+            color: #fff;
+            border: 0
+        }
+
+        .ce-btns button:hover {
+            filter: brightness(1.12)
+        }
+
+        /* 手機高低按鈕:貼在搖桿右側 */
+        #cam-vert {
+            position: absolute;
+            bottom: 22px;
+            left: 134px;
+            display: none;
+            flex-direction: column;
+            gap: 8px;
+            z-index: 26;
+            pointer-events: auto
+        }
+
+        #cam-vert.on {
+            display: flex
+        }
+
+        #cam-vert button {
+            width: 52px;
+            height: 46px;
+            border-radius: 13px;
+            border: 1px solid rgba(255, 255, 255, .28);
+            background: radial-gradient(circle, rgba(56, 189, 248, .22), rgba(15, 23, 42, .5));
+            color: #fff;
+            font-size: 17px;
+            font-weight: 800;
+            cursor: pointer;
+            box-shadow: 0 6px 18px -6px rgba(0, 0, 0, .6)
+        }
+
+        #cam-vert button:active {
+            background: rgba(56, 189, 248, .42)
+        }
+
+        #joy.cam-mode {
+            border-color: rgba(56, 189, 248, .75);
+            box-shadow: 0 0 0 2px rgba(56, 189, 248, .3), 0 8px 24px -6px rgba(0, 0, 0, .5)
+        }
+
+
+/* ---------- 底部控制列、儀表、搖桿 ---------- */
+        /* ---------- 底部 ---------- */
+        #bottom {
+            position: absolute;
+            bottom: 14px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: min(94vw, 440px);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px
+        }
+
+        #meter {
+            width: 100%;
+            padding: 9px 13px
+        }
+
+        #m-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            font-size: 9.5px;
+            font-weight: 800;
+            letter-spacing: .12em;
+            color: var(--dim);
+            text-transform: uppercase;
+            margin-bottom: 6px
+        }
+
+        #m-top b {
+            font-size: 14px;
+            font-weight: 800;
+            color: var(--accent);
+            letter-spacing: 0;
+            font-variant-numeric: tabular-nums
+        }
+
+        #p-track {
+            position: relative;
+            height: 8px;
+            border-radius: 99px;
+            background: rgba(0, 0, 0, .42);
+            overflow: hidden
+        }
+
+        #p-fill {
+            height: 100%;
+            width: 0%;
+            border-radius: 99px;
+            background: linear-gradient(90deg, var(--ok) 0%, var(--accent) 55%, #f87171 100%)
+        }
+
+
+        #keys {
+            font-size: 10.5px;
+            color: var(--dim);
+            text-align: center;
+            font-weight: 600;
+            padding: 7px 14px;
+            line-height: 1.7;
+            cursor: pointer;
+            pointer-events: auto;
+            transition: all .2s ease;
+            user-select: none;
+        }
+
+        #keys:hover {
+            background: rgba(15, 23, 42, .95);
+            border-color: var(--accent);
+        }
+
+        #keys b {
+            color: var(--txt);
+            font-weight: 800
+        }
+
+        #demo-watermark {
+            position: absolute;
+            top: 22%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(15, 23, 42, 0.88);
+            border: 2px solid var(--accent);
+            box-shadow: 0 0 28px rgba(56, 189, 248, 0.45);
+            color: #fff;
+            padding: 10px 22px;
+            border-radius: 30px;
+            font-size: 16px;
+            font-weight: 800;
+            z-index: 60;
+            display: none;
+            pointer-events: none;
+            letter-spacing: 1.5px;
+            backdrop-filter: blur(8px);
+            animation: pulseDemo 1.8s infinite ease-in-out;
+        }
+
+        @keyframes pulseDemo {
+            0%, 100% { transform: translate(-50%, -50%) scale(1); box-shadow: 0 0 20px rgba(56, 189, 248, 0.3); }
+            50% { transform: translate(-50%, -50%) scale(1.04); box-shadow: 0 0 32px rgba(56, 189, 248, 0.65); }
+        }
+
+        kbd {
+            display: inline-block;
+            padding: 1px 6px;
+            border-radius: 5px;
+            background: rgba(255, 255, 255, .12);
+            border: 1px solid var(--line-hi);
+            font-size: 10px;
+            font-weight: 700;
+            color: var(--txt)
+        }
+
+        #joy {
+            position: absolute;
+            bottom: 18px;
+            left: 16px;
+            width: 106px;
+            height: 106px;
+            border-radius: 50%;
+            z-index: 25;
+            display: none;
+            pointer-events: auto;
+            touch-action: none;
+            transition: box-shadow .2s, border-color .2s;
+            background: radial-gradient(circle, rgba(255, 255, 255, .12), rgba(15, 23, 42, .4));
+            border: 1px solid rgba(255, 255, 255, .25);
+            box-shadow: 0 8px 24px -6px rgba(0, 0, 0, .5)
+        }
+
+        #nub {
+            position: absolute;
+            top: 33px;
+            left: 33px;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            pointer-events: none;
+            background: radial-gradient(circle at 35% 30%, #fff, var(--accent) 60%, #0284c7);
+            box-shadow: 0 3px 12px rgba(56, 189, 248, .4);
+            transition: transform .05s
+        }
+    
+        /* ══════════════════════════════════════════════════════════════
+           V5 核心升級: 運動排印、裁判浮動廣播、手機直向提示與安全區域
+           ══════════════════════════════════════════════════════════════ */
+
+        /* 裁判即時浮動廣播膠囊 (4 種優化展示模式支援) */
+        #referee-announcement {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%) translateY(-14px);
+            opacity: 0;
+            pointer-events: none;
+            z-index: 160;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            transition: opacity 0.22s cubic-bezier(0.16, 1, 0.3, 1), transform 0.24s cubic-bezier(0.16, 1, 0.3, 1);
+            max-width: 92vw;
+            white-space: nowrap;
+        }
+        #referee-announcement.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+
+/* ── ★ 虛擬裁判 4 種轉播樣式 (電視轉播條、球員戰況提示、極簡靈動島、3D現場投影) ── */
+        /* ── 方案 1: 電視轉播條 (預設推薦: 位於頂部功能列下方 top: 102px，3D天空無人區) ── */
+        #referee-announcement.mode-1, #referee-announcement:not([class*="mode-"]) {
+            top: calc(100px + env(safe-area-inset-top));
+            bottom: auto;
+            flex-direction: row;
+            gap: 10px;
+            padding: 7px 20px;
+            border-radius: 99px;
+            background: rgba(15, 23, 42, 0.90);
+            border: 1.5px solid rgba(211, 243, 108, 0.7);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6), 0 0 20px rgba(211, 243, 108, 0.3);
+        }
+        #referee-announcement.mode-1 #ref-title, #referee-announcement:not([class*="mode-"]) #ref-title {
+            font-size: 15px;
+            font-weight: 900;
+        }
+        #referee-announcement.mode-1 #ref-detail, #referee-announcement:not([class*="mode-"]) #ref-detail {
+            font-size: 11.5px;
+            margin-top: 0;
+            color: #cbd5e1;
+        }
+
+        /* ── 方案 2: 球員戰況提示 (位於主角 Steve 頭頂上方 bottom: 130px) ── */
+        #referee-announcement.mode-2 {
+            top: auto;
+            bottom: calc(130px + env(safe-area-inset-bottom));
+            flex-direction: column;
+            padding: 8px 22px;
+            border-radius: 18px;
+            background: rgba(15, 23, 42, 0.95);
+            border: 2px solid #fbbf24;
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.7), 0 0 24px rgba(251, 191, 36, 0.5);
+        }
+        #referee-announcement.mode-2 #ref-title {
+            font-size: 16px;
+            color: #fbbf24;
+        }
+        #referee-announcement.mode-2 #ref-detail {
+            font-size: 11px;
+            margin-top: 2px;
+            color: #fef08a;
+        }
+
+        /* ── 方案 3: 極簡靈動島 (位於最頂部瀏海下方 top: 6px，24px 超細膠囊) ── */
+        #referee-announcement.mode-3 {
+            top: calc(6px + env(safe-area-inset-top));
+            bottom: auto;
+            flex-direction: row;
+            gap: 6px;
+            padding: 3px 14px;
+            border-radius: 99px;
+            background: rgba(0, 0, 0, 0.96);
+            border: 1.5px solid rgba(192, 132, 252, 0.85);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.8);
+        }
+        #referee-announcement.mode-3 #ref-title {
+            font-size: 12.5px;
+            color: #e9d5ff;
+        }
+        #referee-announcement.mode-3 #ref-detail {
+            font-size: 10px;
+            color: #c084fc;
+            margin-top: 0;
+        }
+
+        /* ── 方案 4: 3D 現場投影 (2D 隱藏，由 3D 大螢幕承擔) ── */
+        #referee-announcement.mode-4 {
+            display: none !important;
+        }
+
+        #referee-announcement.fault {
+            border-color: rgba(248, 113, 113, 0.85) !important;
+            box-shadow: 0 12px 36px rgba(0, 0, 0, 0.6), 0 0 24px rgba(248, 113, 113, 0.35) !important;
+        }
+        #ref-title {
+            font-family: var(--font-display);
+            font-size: 16px;
+            font-weight: 800;
+            letter-spacing: 0.6px;
+            color: var(--lime);
+            text-transform: uppercase;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            line-height: 1.1;
+        }
+        #referee-announcement.fault #ref-title {
+            color: var(--bad) !important;
+        }
+        #ref-detail {
+            font-size: 12px;
+            font-weight: 600;
+            color: #e2e8f0;
+            margin-top: 3px;
+            letter-spacing: 0.4px;
+        }
+
+        /* 手機直向旋轉引導層 (Orientation Prompt) */
+        .rotate-prompt {
+            display: none;
+        }
+        @media (orientation: portrait) and (max-width: 900px) {
+            .rotate-prompt {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                position: fixed;
+                inset: 0;
+                z-index: 9999;
+                background: rgba(15, 23, 42, 0.96);
+                backdrop-filter: blur(16px);
+                color: #f8fafc;
+                text-align: center;
+                padding: 30px 24px;
+            }
+            .rotate-prompt .rotate-icon {
+                font-size: 60px;
+                color: var(--lime);
+                margin-bottom: 20px;
+                animation: v5-spin-phone 2.6s infinite ease-in-out;
+            }
+            .rotate-prompt h2 {
+                font-family: var(--font-display);
+                font-size: 34px;
+                letter-spacing: -0.5px;
+                margin: 0 0 10px;
+                color: #ffffff;
+            }
+            .rotate-prompt p {
+                font-size: 14px;
+                color: #94a3b8;
+                line-height: 1.6;
+                max-width: 320px;
+                margin: 0 0 24px;
+            }
+            .rotate-prompt .rotate-skip-btn {
+                background: rgba(255, 255, 255, 0.1);
+                border: 1px solid var(--line);
+                color: #cbd5e1;
+                border-radius: 20px;
+                padding: 8px 20px;
+                font-size: 13px;
+                font-weight: 600;
+                cursor: pointer;
+                transition: background 0.2s;
+            }
+            .rotate-prompt .rotate-skip-btn:hover {
+                background: rgba(255, 255, 255, 0.2);
+            }
+        }
+        @keyframes v5-spin-phone {
+            0%, 20% { transform: rotate(0deg); }
+            50%, 70% { transform: rotate(90deg); }
+            100% { transform: rotate(0deg); }
+        }
+
+
+/* ── 速度膠囊、難度按鈕與 HUD 拖曳手勢效果 ── */
+        /* 速度膠囊 Tabular Nums 防跳字與 Safe Area 適配 - ★ v5.0.3 修復重疊: 手機版預設置於右下角，避開左下角虛擬搖桿 */
+        #speed-hud-mini {
+            bottom: calc(14px + env(safe-area-inset-bottom)) !important;
+            right: calc(14px + env(safe-area-inset-right)) !important;
+            left: auto !important;
+            font-variant-numeric: tabular-nums;
+        }
+        @media (min-width: 821px) {
+            #speed-hud-mini {
+                left: calc(14px + env(safe-area-inset-left)) !important;
+                right: auto !important;
+            }
+        }
+
+
+        /* ★ v5.0.4: #info 卡片內難度膠囊按鈕 */
+        .diff-btn {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.16);
+            color: #94a3b8;
+            border-radius: 12px;
+            font-size: 10px;
+            font-weight: 700;
+            padding: 3px 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            user-select: none;
+        }
+        .diff-btn.on[data-diff="easy"] {
+            background: rgba(34, 197, 94, 0.25) !important;
+            border-color: #22c55e !important;
+            color: #4ade80 !important;
+            box-shadow: 0 0 8px rgba(34, 197, 94, 0.35);
+        }
+        .diff-btn.on[data-diff="medium"] {
+            background: rgba(234, 179, 8, 0.25) !important;
+            border-color: #eab308 !important;
+            color: #facc15 !important;
+            box-shadow: 0 0 8px rgba(234, 179, 8, 0.35);
+        }
+        .diff-btn.on[data-diff="hard"] {
+            background: rgba(239, 68, 68, 0.25) !important;
+            border-color: #ef4444 !important;
+            color: #f87171 !important;
+            box-shadow: 0 0 8px rgba(239, 68, 68, 0.35);
+        }
+
+        /* ★ v5.0.3: 可拖曳 HUD 面板長按手勢回饋與邊框光效 */
+        .hud-draggable {
+            touch-action: none;
+            transition: transform 0.15s ease, box-shadow 0.2s ease;
+        }
+        .hud-dragging {
+            opacity: 0.85 !important;
+            transform: scale(1.05) !important;
+            box-shadow: 0 14px 34px rgba(0, 0, 0, 0.65), 0 0 0 2px var(--accent) !important;
+            cursor: grabbing !important;
+            z-index: 100 !important;
+        }
+
+    
+
+
+/* ── 側旋教學指引與示範模式 HUD 隔離 ── */
+        /* ══════ ★ v5.0.13: 側旋教學指引視窗專用關閉按鈕與樣式 ══════ */
+        .finger-tut-close-btn {
+            background: linear-gradient(135deg, #0284c7, #38bdf8);
+            border: 1px solid rgba(255, 255, 255, 0.35);
+            color: #ffffff;
+            font-size: 13px;
+            font-weight: 800;
+            padding: 8px 22px;
+            border-radius: 24px;
+            cursor: pointer;
+            box-shadow: 0 4px 14px rgba(56, 189, 248, 0.4);
+            pointer-events: auto !important;
+            touch-action: manipulation !important;
+            transition: transform 0.15s ease, background 0.2s ease;
+        }
+        .finger-tut-close-btn:active {
+            transform: scale(0.94);
+        }
+        .finger-tut-close-icon {
+            background: rgba(255, 255, 255, 0.12);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #ffffff;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            font-size: 14px;
+            font-weight: 800;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            pointer-events: auto !important;
+            touch-action: manipulation !important;
+            transition: background 0.18s ease;
+        }
+        .finger-tut-close-icon:hover {
+            background: rgba(255, 255, 255, 0.25);
+        }
+
+        /* ══════ ★ v5.0.13: 登入畫面最高優先隔離，絕不容許任何示範卡片、手勢與選單干擾 ══════ */
+        #login-overlay {
+            z-index: 100000 !important;
+        }
+        body:has(#login-overlay:not([style*="display: none"])) #demo,
+        body:has(#login-overlay:not([style*="display: none"])) #demo-watermark,
+        body:has(#login-overlay:not([style*="display: none"])) #finger-tutorial,
+        body:has(#login-overlay:not([style*="display: none"])) #nav,
+        body:has(#login-overlay:not([style*="display: none"])) #nav-sheet,
+        body:has(#login-overlay:not([style*="display: none"])) #rotate-prompt {
+            display: none !important;
+            opacity: 0 !important;
+            pointer-events: none !important;
+            visibility: hidden !important;
+        }
+
+        /* ══════ ★ 示範期間操作控制與選單暫時隱藏，避免遮擋教學畫面 ══════ */
+        body.demo-mode-active #joy,
+        body.demo-mode-active #speed-hud-mini,
+        body.demo-mode-active #bottom,
+        body.demo-mode-active #nav,
+        body.demo-mode-active #nav-sheet,
+        body.demo-mode-active #info-diff-row,
+        body.demo-mode-active #referee-announcement {
+            opacity: 0 !important;
+            pointer-events: none !important;
+            transform: translateY(-8px) !important;
+            transition: opacity 0.3s ease, transform 0.3s ease !important;
+        }
+
+        /* 示範教學文字卡片：純白高對比、醒目置中、具備明確跳過/關閉按鈕 */
+        body.demo-mode-active #demo {
+            display: block !important;
+            opacity: 1 !important;
+            pointer-events: auto !important;
+            z-index: 10000 !important;
+            position: fixed !important;
+            bottom: 24px !important;
+            left: 50% !important;
+            transform: translateX(-50%) !important;
+            box-shadow: 0 16px 45px rgba(0, 0, 0, 0.45), 0 0 0 1.5px rgba(255,255,255,0.95) !important;
+        }
+
+        /* 示範浮水印 / 頂部標籤 */
+        body.demo-mode-active #demo-watermark {
+            display: block !important;
+            opacity: 1 !important;
+            z-index: 10000 !important;
+            top: 14px !important;
+        }
+
+        /* 手指手勢教學浮層：示範期間於卡片上方同步呈現揮拍手勢，100% 支援關閉按鈕點擊 */
+        body.demo-mode-active #finger-tutorial:not(.hidden) {
+            display: flex !important;
+            opacity: 1 !important;
+            z-index: 9999 !important;
+            pointer-events: auto !important;
+        }
+
+        /* ══════════════════════════════════════════════════════════════════════
+           ★ V5.0.13 升級: 全局大比例舒適放大 ╳ 即時版面風格切換預覽 (A1 + A2)
+           滿足使用者需求: 框框與文字大比例放大好讀好按 + 支援 V4 第一版經典對稱三欄預覽
+           ══════════════════════════════════════════════════════════════════════ */
+
+
+/* ── 手指側旋引導卡片與卡片縮放手柄 ── */
+        /* ── 2. 手指側旋引導卡片 (#finger-tutorial) 大比例放大 ── */
+        .finger-tut-banner {
+            padding: 12px 26px !important;
+            border-radius: 22px !important;
+            font-size: 17px !important;
+            font-weight: 800 !important;
+        }
+        .finger-tut-title {
+            font-size: 20px !important;
+            font-weight: 900 !important;
+        }
+        .finger-tut-desc {
+            font-size: 15px !important;
+            line-height: 1.55 !important;
+            color: #e2e8f0 !important;
+            margin: 10px 0 16px !important;
+        }
+        .finger-mode-pill {
+            font-size: 13px !important;
+            padding: 7px 14px !important;
+            font-weight: 800 !important;
+            border-radius: 99px !important;
+        }
+        .finger-tut-close-btn {
+            font-size: 15.5px !important;
+            font-weight: 800 !important;
+            min-height: 48px !important;
+            padding: 12px 28px !important;
+            border-radius: 16px !important;
+        }
+
+        /* ── 3. 底部測速與操作鍵盤欄 (#meter, #keys) 大字體 ── */
+        #bottom {
+            width: min(94vw, 500px) !important;
+            gap: 10px !important;
+        }
+        #meter {
+            padding: 10px 18px !important;
+            border-radius: 18px !important;
+        }
+        #m-top {
+            font-size: 13.5px !important;
+            font-weight: 800 !important;
+        }
+        #sp {
+            font-size: 22px !important;
+            font-weight: 900 !important;
+        }
+        #keys {
+            padding: 10px 18px !important;
+            border-radius: 16px !important;
+            font-size: 14px !important;
+            line-height: 1.6 !important;
+            color: #cbd5e1 !important;
+        }
+        #keys b {
+            color: #ffffff !important;
+            font-weight: 900 !important;
+        }
+        #speed-hud-mini {
+            font-size: 14px !important;
+            font-weight: 800 !important;
+            padding: 8px 18px !important;
+            border-radius: 99px !important;
+        }
+
+        /* ── 4. 頂部核心卡片與自由縮放系統 (Card Scaling & Responsive Core) ── */
+        :root {
+            --info-scale: 1.0;
+            --board-scale: 1.0;
+        }
+
+        #info, body.layout-v4 #info {
+            position: absolute !important;
+            top: calc(14px + env(safe-area-inset-top)) !important;
+            left: calc(14px + env(safe-area-inset-left)) !important;
+            right: auto !important;
+            width: min(32vw, 320px) !important;
+            min-width: 260px !important;
+            z-index: 30 !important;
+            transform: scale(var(--info-scale, 1)) !important;
+            transform-origin: top left !important;
+        }
+
+        #board, body.layout-v4 #board {
+            display: flex !important;
+            position: absolute !important;
+            top: calc(14px + env(safe-area-inset-top)) !important;
+            right: calc(14px + env(safe-area-inset-right)) !important;
+            left: auto !important;
+            z-index: 32 !important;
+            transform: scale(var(--board-scale, 1)) !important;
+            transform-origin: top right !important;
+        }
+
+        /* ── 卡片自由滑動縮放調整手柄 (.card-resize-handle) ── */
+        .card-resize-handle {
+            position: absolute !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            width: 26px !important;
+            height: 26px !important;
+            border-radius: 7px !important;
+            background: rgba(255, 255, 255, 0.12) !important;
+            border: 1px solid rgba(255, 255, 255, 0.28) !important;
+            color: var(--accent) !important;
+            font-size: 13px !important;
+            font-weight: 900 !important;
+            cursor: nwse-resize !important;
+            touch-action: none !important;
+            user-select: none !important;
+            -webkit-user-select: none !important;
+            z-index: 55 !important;
+            pointer-events: auto !important;
+            transition: background 0.15s, transform 0.15s, border-color 0.15s !important;
+        }
+        .card-resize-handle:hover, .card-resize-handle:active {
+            background: rgba(56, 189, 248, 0.4) !important;
+            border-color: var(--accent) !important;
+            color: #ffffff !important;
+            transform: scale(1.22) !important;
+        }
+        #info .card-resize-handle {
+            right: 6px !important;
+            bottom: 6px !important;
+            cursor: nwse-resize !important;
+        }
+        #board .card-resize-handle {
+            left: 6px !important;
+            bottom: 6px !important;
+            cursor: nesw-resize !important;
+        }
+        #scale-tooltip {
+            position: fixed;
+            pointer-events: none;
+            background: rgba(15, 23, 42, 0.95);
+            border: 1.5px solid var(--accent);
+            color: #38bdf8;
+            font-size: 13px;
+            font-weight: 800;
+            padding: 4px 10px;
+            border-radius: 10px;
+            z-index: 9999;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+        }
+
+
+/* ── 行動端直向專屬排版 (Portrait HUD) ── */
+@media (orientation: portrait), (max-aspect-ratio: 1/1) {
+        /* ── 5. 行動端手機直向智慧適配 (Portrait 輕量透氣無遮擋版面) ── */
+        @media (max-width: 600px), (orientation: portrait) and (max-width: 768px) {
+            /* 1. 第一排左側：關卡資訊框輕量膠囊化 */
+            #info, body.layout-v4 #info {
+                top: calc(8px + env(safe-area-inset-top)) !important;
+                left: calc(8px + env(safe-area-inset-left)) !important;
+                width: auto !important;
+                max-width: 52vw !important;
+                min-width: 0 !important;
+                padding: 6px 10px !important;
+                border-radius: 14px !important;
+                background: rgba(15, 23, 42, 0.88) !important;
+                backdrop-filter: blur(14px) !important;
+                -webkit-backdrop-filter: blur(14px) !important;
+                box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4) !important;
+                z-index: 30 !important;
+            }
+            #info #chip {
+                font-size: 8.5px !important;
+                padding: 2px 6px !important;
+                margin-bottom: 2px !important;
+            }
+            #info #s-name {
+                font-size: 14px !important;
+                font-weight: 800 !important;
+                margin: 1px 0 !important;
+                display: inline-block !important;
+            }
+            #info #s-sub,
+            #info #s-desc,
+            #info #waist-row,
+            #info #stance-row,
+            #info #info-diff-row {
+                display: none !important;
+            }
+            #info #goal-row {
+                margin-top: 3px !important;
+                gap: 6px !important;
+            }
+            #info #goal-track {
+                height: 4px !important;
+            }
+            #info #goal-txt {
+                font-size: 11.5px !important;
+                font-weight: 800 !important;
+            }
+            #info #hint {
+                font-size: 10px !important;
+                margin-top: 2px !important;
+                white-space: nowrap !important;
+                overflow: hidden !important;
+                text-overflow: ellipsis !important;
+                max-width: 48vw !important;
+            }
+
+            /* 2. 第一排右側：比分板輕量化 */
+            #board, body.layout-v4 #board {
+                top: calc(8px + env(safe-area-inset-top)) !important;
+                right: calc(8px + env(safe-area-inset-right)) !important;
+                left: auto !important;
+                display: flex !important;
+                padding: 4px 8px !important;
+                gap: 6px !important;
+                border-radius: 14px !important;
+                background: rgba(15, 23, 42, 0.88) !important;
+                backdrop-filter: blur(14px) !important;
+                -webkit-backdrop-filter: blur(14px) !important;
+                box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4) !important;
+                z-index: 30 !important;
+            }
+            #board .side {
+                min-width: 36px !important;
+                padding: 0 2px !important;
+            }
+            #board .side .who {
+                font-size: 9px !important;
+                font-weight: 800 !important;
+            }
+            #board .side .num {
+                font-size: 20px !important;
+                font-weight: 800 !important;
+                margin-top: 1px !important;
+            }
+
+            /* 3. 頂部活動式容器 (#nav-wrapper) 居中於第 2 排 (top: 58px) */
+            #nav-wrapper {
+                top: calc(58px + env(safe-area-inset-top));
+                width: calc(100vw - 16px) !important;
+                max-width: 420px !important;
+            }
+            #nav, body.layout-v4 #nav {
+                position: relative !important;
+                top: auto !important;
+                left: auto !important;
+                transform: none !important;
+                width: 100% !important;
+                max-width: 420px !important;
+                padding: 3px 6px !important;
+                gap: 3px !important;
+                overflow-x: auto !important;
+                scrollbar-width: none !important;
+                z-index: 35 !important;
+            }
+            #nav::-webkit-scrollbar { display: none !important; }
+            #nav button:not(.nav-min-btn) {
+                font-size: 11px !important;
+                padding: 5px 9px !important;
+                min-height: 32px !important;
+            }
+
+}
+
+/* ── 行動端橫向專屬排版 (Landscape HUD) ── */
+@media (orientation: landscape) and (min-aspect-ratio: 1/1) {
+        /* ── 6. 行動端手機橫向專屬大器排版 (Landscape 橫向全寬度透氣佈局，絕不碰撞擁擠) ── */
+        @media (orientation: landscape) and (max-height: 560px), (max-height: 500px) {
+            /* 1. 關卡資訊框橫向超緊湊小卡 */
+            #info, body.layout-v4 #info {
+                top: calc(6px + env(safe-area-inset-top)) !important;
+                left: calc(8px + env(safe-area-inset-left)) !important;
+                width: auto !important;
+                max-width: 190px !important;
+                min-width: 0 !important;
+                padding: 4px 8px !important;
+                border-radius: 12px !important;
+                z-index: 30 !important;
+            }
+            #info #chip {
+                font-size: 8px !important;
+                padding: 1px 4px !important;
+                margin-bottom: 1px !important;
+            }
+            #info #s-name {
+                font-size: 13px !important;
+                font-weight: 800 !important;
+                margin: 0 !important;
+            }
+            #info #s-sub,
+            #info #s-desc,
+            #info #waist-row,
+            #info #stance-row,
+            #info #hint,
+            #info #info-diff-row {
+                display: none !important;
+            }
+            #info #goal-row {
+                margin-top: 2px !important;
+                gap: 4px !important;
+            }
+            #info #goal-track {
+                height: 3px !important;
+            }
+            #info #goal-txt {
+                font-size: 10.5px !important;
+            }
+
+            /* 2. 比分板橫向超緊湊小卡 */
+            #board, body.layout-v4 #board {
+                top: calc(6px + env(safe-area-inset-top)) !important;
+                right: calc(8px + env(safe-area-inset-right)) !important;
+                left: auto !important;
+                padding: 3px 8px !important;
+                gap: 6px !important;
+                border-radius: 12px !important;
+                z-index: 30 !important;
+            }
+            #board .side {
+                min-width: 32px !important;
+                padding: 0 !important;
+            }
+            #board .side .who {
+                font-size: 8.5px !important;
+            }
+            #board .side .num {
+                font-size: 18px !important;
+                margin-top: 0 !important;
+            }
+
+            /* 3. 頂部活動式容器 (#nav-wrapper) 完美置頂 */
+            #nav-wrapper {
+                top: calc(6px + env(safe-area-inset-top));
+                max-width: calc(100vw - 360px) !important;
+            }
+            #nav, body.layout-v4 #nav {
+                position: relative !important;
+                top: auto !important;
+                left: auto !important;
+                transform: none !important;
+                max-width: 100% !important;
+                padding: 3px 6px !important;
+                gap: 3px !important;
+                overflow-x: auto !important;
+                scrollbar-width: none !important;
+                z-index: 35 !important;
+            }
+            #nav::-webkit-scrollbar { display: none !important; }
+            #nav button:not(.nav-min-btn) {
+                font-size: 11px !important;
+                padding: 4px 8px !important;
+                min-height: 28px !important;
+            }
+
+}
