@@ -544,7 +544,8 @@
         const DIFF_PRESETS = {
             easy:   { missMultiplier: 1.35, speedScale: 0.88, label: '🟢 初階 (高回球互動)', color: '#4ade80' },
             medium: { missMultiplier: 1.00, speedScale: 1.00, label: '🟡 中等 (標準對抗)', color: '#facc15' },
-            hard:   { missMultiplier: 0.65, speedScale: 1.15, label: '🔴 困難 (魔王挑戰)', color: '#f87171' }
+            hard:   { missMultiplier: 0.65, speedScale: 1.15, label: '🔴 困難 (魔王挑戰)', color: '#f87171' },
+            fly:    { missMultiplier: 0.00, speedScale: 1.50, label: '🪰 仿生蒼蠅 (巨纖維神經反射)', color: '#a855f7' }
         };
         let diffLevel = 'easy'; // 預設初階
         try {
@@ -553,7 +554,7 @@
         } catch(e) {}
 
         function cycleDifficulty() {
-            const order = ['easy', 'medium', 'hard'];
+            const order = ['easy', 'medium', 'hard', 'fly'];
             const next = order[(order.indexOf(diffLevel) + 1) % order.length];
             setDifficulty(next);
         }
@@ -563,7 +564,8 @@
             diffLevel = level;
             try { localStorage.setItem('nchu_pb_diff', level); } catch(e) {}
             syncDifficultyUI();
-            toast('🤖 AI 匹克鵝難度', DIFF_PRESETS[level].label + ' 已套用 (第4~5關)');
+            const msg = (level === 'fly') ? '🪰 仿生蒼蠅已上陣 (巨纖維反射/小球視盲)' : (DIFF_PRESETS[level].label + ' 已套用');
+            toast('🤖 AI 對手模式', msg);
         }
 
         function syncDifficultyUI() {
@@ -574,12 +576,19 @@
             const qdn = document.getElementById('quick-diff-name');
             const conf = DIFF_PRESETS[diffLevel] || DIFF_PRESETS.easy;
             if (qdn) {
-                const shortNames = { easy: '初階', medium: '中等', hard: '困難' };
+                const shortNames = { easy: '初階', medium: '中等', hard: '困難', fly: '蒼蠅' };
                 qdn.innerText = shortNames[diffLevel] || '初階';
             }
             if (qdb) {
                 qdb.style.borderColor = conf.color;
                 qdb.style.color = conf.color;
+            }
+            const aiWho = document.getElementById('ai-who-label');
+            if (aiWho) {
+                aiWho.innerText = (diffLevel === 'fly') ? '🪰 仿生蒼蠅' : '🪿 匹克鵝';
+            }
+            if (typeof updateOpponentMeshVisibility === 'function') {
+                updateOpponentMeshVisibility();
             }
         }
 

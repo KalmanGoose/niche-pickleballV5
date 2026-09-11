@@ -814,6 +814,7 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
                     <button class="diff-btn on" data-diff="easy" onclick="setDifficulty('easy')">🟢初階</button>
                     <button class="diff-btn" data-diff="medium" onclick="setDifficulty('medium')">🟡中等</button>
                     <button class="diff-btn" data-diff="hard" onclick="setDifficulty('hard')">🔴困難</button>
+                    <button class="diff-btn" data-diff="fly" onclick="setDifficulty('fly')">🪰蒼蠅</button>
                 </div>
             </div>
         </div>
@@ -827,7 +828,7 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
             </div>
             <div class="divider"></div>
             <div class="side">
-                <div class="who">匹克鵝</div>
+                <div class="who" id="ai-who-label">匹克鵝</div>
                 <div class="num" id="av">0</div>
             </div>
         </div>
@@ -927,11 +928,12 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
                 <button onclick="cycleCamView()">🙈 切換攝影視角</button>
                 <button onclick="enterCamEdit()" style="color:var(--accent);">🎨 自訂視角調節</button>
                 <div class="sheet-div"></div>
-                <div style="font-size:10px;font-weight:700;color:var(--dim);margin:4px 0 2px;">🤖 匹克鵝對決難度 (第4~5關生效)</div>
+                <div style="font-size:10px;font-weight:700;color:var(--dim);margin:4px 0 2px;">🤖 匹克鵝 / 仿生蒼蠅難度 (第4~5關生效)</div>
                 <div style="display:flex;gap:4px;width:100%;margin-bottom:4px;">
                     <button data-diff="easy" class="on" onclick="setDifficulty('easy')" style="flex:1;padding:6px 2px;font-size:11px;">🟢 初階</button>
                     <button data-diff="medium" onclick="setDifficulty('medium')" style="flex:1;padding:6px 2px;font-size:11px;">🟡 中等</button>
                     <button data-diff="hard" onclick="setDifficulty('hard')" style="flex:1;padding:6px 2px;font-size:11px;">🔴 困難</button>
+                    <button data-diff="fly" onclick="setDifficulty('fly')" style="flex:1;padding:6px 2px;font-size:11px;">🪰 蒼蠅</button>
                 </div>
                 <button onclick="openAudioModal()">🎶 音效與語音設定</button>
                 <button onclick="openRulesModal()" style="color:var(--lime);font-weight:700;">📖 2026 官方競賽手冊</button>
@@ -1003,11 +1005,12 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
                 <button data-stage="5" onclick="switchStage(5)">5 魔王戰</button>
                 <button onclick="replayDemo()">▶ 示範</button>
                 <div class="sheet-div"></div>
-                <div style="font-size:10px;font-weight:700;color:var(--dim);margin:4px 0 2px;">🤖 匹克鵝對決難度 (第4~5關生效)</div>
+                <div style="font-size:10px;font-weight:700;color:var(--dim);margin:4px 0 2px;">🤖 匹克鵝 / 仿生蒼蠅難度 (第4~5關生效)</div>
                 <div style="display:flex;gap:4px;width:100%;margin-bottom:4px;">
                     <button data-diff="easy" class="on" onclick="setDifficulty('easy')" style="flex:1;padding:6px 2px;font-size:11px;">🟢 初階</button>
                     <button data-diff="medium" onclick="setDifficulty('medium')" style="flex:1;padding:6px 2px;font-size:11px;">🟡 中等</button>
                     <button data-diff="hard" onclick="setDifficulty('hard')" style="flex:1;padding:6px 2px;font-size:11px;">🔴 困難</button>
+                    <button data-diff="fly" onclick="setDifficulty('fly')" style="flex:1;padding:6px 2px;font-size:11px;">🪰 蒼蠅</button>
                 </div>
             </div>
             <div class="sheet-sec" data-sec="ai">

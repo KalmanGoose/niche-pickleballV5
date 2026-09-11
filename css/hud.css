@@ -1238,6 +1238,12 @@
             color: #f87171 !important;
             box-shadow: 0 0 8px rgba(239, 68, 68, 0.35);
         }
+        .diff-btn.on[data-diff="fly"] {
+            background: rgba(168, 85, 247, 0.32) !important;
+            border-color: #a855f7 !important;
+            color: #c084fc !important;
+            box-shadow: 0 0 10px rgba(168, 85, 247, 0.45);
+        }
 
         /* ★ v5.0.3: 可拖曳 HUD 面板長按手勢回饋與邊框光效 */
         .hud-draggable {

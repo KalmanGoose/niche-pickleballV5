@@ -14,6 +14,18 @@
         let scene, cam, ren, ray, aimPlane, sunKey = null;
         let ball, ballGlow, ballBlob, ballTrail = [];
         let pGrp, pPad, pArm, gGrp, gPad, gArm, netGrp;
+        let gooseMesh = null, flyMesh = null, flyWings = [], flyDizzy = null;
+        let flyState = 'HOVER'; // 'HOVER' | 'LOOMING_REFLEX' | 'STUNNED'
+        let flyStunTimer = 0, flyHoverTime = 0, consecutiveDinks = 0;
+
+        function updateOpponentMeshVisibility() {
+            const isFly = (typeof diffLevel !== 'undefined' && diffLevel === 'fly');
+            if (gooseMesh) gooseMesh.visible = !isFly;
+            if (flyMesh) flyMesh.visible = isFly;
+            if (gArm) gArm.visible = !isFly;
+            const aiWho = document.getElementById('ai-who-label');
+            if (aiWho) aiWho.innerText = isFly ? '🪰 仿生蒼蠅' : '🪿 匹克鵝';
+        }
         let zoneServe, arc, ringLand, ringSpot, warnKitchen, rings = [];
 
 /* ═══════ Three.js 場景、燈光、球場與材質初始化 ═══════ */
@@ -385,20 +397,90 @@
         }
         function buildCreeper() {
             gGrp = new THREE.Group();
+            gooseMesh = new THREE.Group();
             const gs = new THREE.MeshStandardMaterial({ color: 0xf4f6f9, roughness: 0.5 });
             const bk = new THREE.MeshStandardMaterial({ color: 0xff8800, roughness: 0.4 });
             const body = new THREE.Mesh(new THREE.BoxGeometry(0.54, 0.58, 0.74), gs);
-            body.position.y = 0.52; body.castShadow = true; gGrp.add(body);
+            body.position.y = 0.52; body.castShadow = true; gooseMesh.add(body);
             const neck = new THREE.Mesh(new THREE.BoxGeometry(0.17, 0.44, 0.17), gs);
-            neck.position.set(0, 0.96, 0.19); neck.castShadow = true; gGrp.add(neck);
+            neck.position.set(0, 0.96, 0.19); neck.castShadow = true; gooseMesh.add(neck);
             const head = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.32, 0.32), gs);
-            head.position.set(0, 1.26, 0.21); head.castShadow = true; gGrp.add(head);
+            head.position.set(0, 1.26, 0.21); head.castShadow = true; gooseMesh.add(head);
             const beak = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.12, 0.26), bk);
-            beak.position.set(0, 1.2, 0.42); gGrp.add(beak);
+            beak.position.set(0, 1.2, 0.42); gooseMesh.add(beak);
             for (const sx of [-0.15, 0.15]) for (const sz of [-0.16, 0.16]) {
                 const leg = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.26, 0.1), bk);
-                leg.position.set(sx, 0.13, sz); leg.castShadow = true; gGrp.add(leg);
+                leg.position.set(sx, 0.13, sz); leg.castShadow = true; gooseMesh.add(leg);
             }
+            gGrp.add(gooseMesh);
+
+            // ═══════ 仿生蒼蠅 3D 輕量模型 (Bio-inspired Fly Opponent Mesh) ═══════
+            flyMesh = new THREE.Group();
+            const chitinMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.25, metalness: 0.85 });
+            const eyeMat = new THREE.MeshStandardMaterial({ color: 0xef4444, emissive: 0xa855f7, emissiveIntensity: 0.55, roughness: 0.1, metalness: 0.9 });
+            const wingMat = new THREE.MeshStandardMaterial({ color: 0xc4b5fd, transparent: true, opacity: 0.65, roughness: 0.1, metalness: 0.3, side: THREE.DoubleSide });
+
+            // 蒼蠅腹部 (Abdomen)
+            const fAbdomen = new THREE.Mesh(new THREE.SphereGeometry(0.32, 16, 16), chitinMat);
+            fAbdomen.scale.set(0.9, 0.85, 1.35); fAbdomen.position.set(0, 0.80, -0.25);
+            fAbdomen.castShadow = true; flyMesh.add(fAbdomen);
+
+            // 蒼蠅胸部 (Thorax)
+            const fThorax = new THREE.Mesh(new THREE.SphereGeometry(0.26, 16, 16), chitinMat);
+            fThorax.position.set(0, 0.86, 0.08); fThorax.castShadow = true; flyMesh.add(fThorax);
+
+            // 蒼蠅頭部 (Head)
+            const fHead = new THREE.Mesh(new THREE.SphereGeometry(0.18, 16, 16), chitinMat);
+            fHead.position.set(0, 0.90, 0.30); fHead.castShadow = true; flyMesh.add(fHead);
+
+            // 巨型紅色複眼 (Compound Eyes - High-speed Optical Motion Detectors)
+            const fEyeL = new THREE.Mesh(new THREE.SphereGeometry(0.105, 12, 12), eyeMat);
+            fEyeL.position.set(-0.11, 0.95, 0.38); flyMesh.add(fEyeL);
+            const fEyeR = new THREE.Mesh(new THREE.SphereGeometry(0.105, 12, 12), eyeMat);
+            fEyeR.position.set(0.11, 0.95, 0.38); flyMesh.add(fEyeR);
+
+            // 高頻震動雙翼 (Buzzing Wings)
+            flyWings = [];
+            const wGeo = new THREE.PlaneGeometry(0.38, 0.72);
+            for (const side of [-1, 1]) {
+                const wPivot = new THREE.Group();
+                wPivot.position.set(side * 0.16, 1.02, -0.02);
+                const blade = new THREE.Mesh(wGeo, wingMat);
+                blade.position.set(side * 0.18, 0, -0.32);
+                blade.rotation.x = Math.PI / 2 - 0.15;
+                blade.rotation.z = side * 0.25;
+                wPivot.add(blade);
+                flyMesh.add(wPivot);
+                flyWings.push({ pivot: wPivot, side });
+            }
+
+            // 6 隻微型足肢 (Legs)
+            const legMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.6 });
+            for (const lx of [-0.18, 0.18]) {
+                for (const lz of [-0.15, 0.05, 0.25]) {
+                    const leg = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.35, 0.04), legMat);
+                    leg.position.set(lx, 0.68, lz);
+                    leg.rotation.z = (lx < 0 ? 0.35 : -0.35);
+                    flyMesh.add(leg);
+                }
+            }
+
+            // 暈眩光環 / 星星 (Stun Stars Indicator)
+            flyDizzy = new THREE.Group();
+            flyDizzy.position.set(0, 1.35, 0.25);
+            for (let i = 0; i < 3; i++) {
+                const ang = (i / 3) * Math.PI * 2;
+                const star = new THREE.Mesh(new THREE.SphereGeometry(0.055, 8, 8),
+                    new THREE.MeshBasicMaterial({ color: 0xfacc15 }));
+                star.position.set(Math.cos(ang) * 0.26, 0, Math.sin(ang) * 0.26);
+                flyDizzy.add(star);
+            }
+            flyDizzy.visible = false;
+            flyMesh.add(flyDizzy);
+
+            flyMesh.visible = false;
+            gGrp.add(flyMesh);
+
             gArm = new THREE.Mesh(new THREE.BoxGeometry(0.12, 1, 0.12), gs);
             gArm.castShadow = true; gGrp.add(gArm);
             gPad = new THREE.Group();
@@ -410,6 +492,7 @@
             ge.position.set(0, 0.18, 0.012); gPad.add(ge);
             gPad.scale.setScalar(1.45); gGrp.add(gPad);
             scene.add(gGrp);
+            updateOpponentMeshVisibility();
         }
         function buildGuides() {
             zoneServe = new THREE.Mesh(new THREE.PlaneGeometry(COURT_W / 2 - 0.06, HALF_L - KITCHEN_D - 0.06),
@@ -704,6 +787,7 @@
             pScore = 0; aScore = 0; legalServes = 0; twoBounceDone = 0; serveSide = 1; server = 'PLAYER'; secondServe = false; locked = false;
             updateScore(); updateGoal();
             gGrp.visible = (n >= 2); gGrp.position.set(0, 0, -HALF_L - 0.5);
+            updateOpponentMeshVisibility();
             warnKitchen.material.opacity = 0;
             if (!dSeen[n]) { dSeen[n] = true; startDemo(n); } else resetServe();
         }
@@ -740,7 +824,8 @@
                 aiTo.x = -1.5 * serveSide; aiTo.z = -HALF_L - 0.35;
                 if (webcamActive) document.getElementById('calibration-box').style.display = 'none';
                 D.pFill.style.width = '0%';
-                toast('🪿 匹克鵝發球中 (' + (secondServe ? '2nd' : '1st') + ' Serve)', '站好底線,等球在對角區落地一次後回擊');
+                const whoName = (typeof diffLevel !== 'undefined' && diffLevel === 'fly') ? '🪰 仿生蒼蠅' : '🪿 匹克鵝';
+                toast(whoName + ' 發球中 (' + (secondServe ? '2nd' : '1st') + ' Serve)', '站好底線,等球在對角區落地一次後回擊');
                 gooseServeTimer = later(gooseDoServe, 1600);
             }
             updateGoal();
@@ -748,14 +833,20 @@
 
         function gooseDoServe() {
             if (state !== 'SERVE_READY' || server !== 'GOOSE' || demoOn) return;
-            // ★ 先把球釘在鵝的腰部發球點,再從同一點解彈道(起點必須一致)
-            PH.setPos(gGrp.position.x, 0.80, gGrp.position.z + 0.30);
+            const isFly = (typeof diffLevel !== 'undefined' && diffLevel === 'fly');
+            PH.setPos(gGrp.position.x, isFly ? 0.95 : 0.80, gGrp.position.z + 0.30);
             state = 'SERVE_AIR'; lastHitter = 'GOOSE';
             rallyHits = 1; bounces = 0; gLock = 0.3; pLock = 0;
             const targetX = 1.4 * serveSide, targetZ = 2.6 + Math.random() * 1.6;
             solveArc(PH.pos.x, PH.pos.y, PH.pos.z, targetX, targetZ, PH.vel);
-            S.pop(0.65); popRing(gGrp.position.x, gGrp.position.z, 1.2, 0x38bdf8);
-            toast('🪿 匹克鵝下手發球!', '等球落地一次再回擊');
+            S.pop(0.65);
+            if (isFly) {
+                popRing(gGrp.position.x, gGrp.position.z, 1.4, 0xa855f7);
+                toast('🪰 仿生蒼蠅發球!', '等球落地一次再回擊');
+            } else {
+                popRing(gGrp.position.x, gGrp.position.z, 1.2, 0x38bdf8);
+                toast('🪿 匹克鵝下手發球!', '等球落地一次再回擊');
+            }
         }
 
 
@@ -1149,7 +1240,83 @@
         }
         function updateGoose(dt) {
             if (demoOn || !gGrp.visible) return;
+            const isFly = (typeof diffLevel !== 'undefined' && diffLevel === 'fly');
+            updateOpponentMeshVisibility();
+
             const active = (state === 'RALLY' || state === 'SERVE_AIR');
+
+            if (isFly) {
+                // ═══════ 仿生蒼蠅動畫與 GFS 巨大纖維反射核心 (Bio-Fly Connectome) ═══════
+                flyHoverTime += dt;
+
+                // 雙翼高頻拍動 (Buzzing Wings)
+                if (flyWings && flyWings.length) {
+                    const wingFreq = (flyState === 'LOOMING_REFLEX') ? 125 : (flyState === 'STUNNED' ? 14 : 70);
+                    const wingAmp = (flyState === 'STUNNED') ? 0.15 : 0.60;
+                    flyWings.forEach(w => {
+                        w.pivot.rotation.y = Math.sin(flyHoverTime * wingFreq) * wingAmp * w.side;
+                    });
+                }
+
+                // 暈眩狀態倒數 (Stunned / Grounded State)
+                if (flyState === 'STUNNED') {
+                    flyStunTimer -= dt;
+                    // 墜地動畫：高度迅速跌落至地面 (y = 0.08)，機身側翻
+                    gGrp.position.y = THREE.MathUtils.lerp(gGrp.position.y, 0.08, dt * 8);
+                    if (flyMesh) flyMesh.rotation.z = THREE.MathUtils.lerp(flyMesh.rotation.z, Math.PI * 0.45, dt * 6);
+                    if (flyDizzy) {
+                        flyDizzy.visible = true;
+                        flyDizzy.rotation.y += dt * 7;
+                    }
+                    if (flyStunTimer <= 0) {
+                        flyState = 'HOVER';
+                        if (flyMesh) flyMesh.rotation.z = 0;
+                        if (flyDizzy) flyDizzy.visible = false;
+                    }
+                } else {
+                    if (flyDizzy) flyDizzy.visible = false;
+                    if (flyMesh) flyMesh.rotation.z = 0;
+                    // 浮空盤旋與神經質抖動 (Hover Jitter)
+                    const targetY = 0.88 + Math.sin(flyHoverTime * 14) * 0.10;
+                    gGrp.position.y = THREE.MathUtils.lerp(gGrp.position.y, targetY, dt * 10);
+                }
+
+                // 即時光學逼近率評估 (Optical Looming Rate = Approach Velocity / Distance) - O(1) 複雜度
+                if (active && PH.vel.z < 0) {
+                    const bDist = Math.hypot(PH.pos.x - gGrp.position.x, PH.pos.z - gGrp.position.z);
+                    const vRel = -PH.vel.z;
+                    const loomingRate = (vRel > 0 ? vRel : 0) / Math.max(bDist, 0.35);
+                    const ballSpeed = PH.vel.length();
+
+                    // 1. 高逼近率 / 大力抽球 -> 激發巨纖維神經反射 (Giant Fiber Reflex)
+                    if ((ballSpeed >= 8.6 || loomingRate >= 2.0) && flyState !== 'STUNNED') {
+                        if (flyState !== 'LOOMING_REFLEX') {
+                            flyState = 'LOOMING_REFLEX';
+                            toast('🪰 巨纖維反射觸發！', '偵測到高速球逼近！蒼蠅瞬移極速截擊！');
+                            popRing(gGrp.position.x, gGrp.position.z, 1.4, 0xa855f7);
+                            if (typeof speechSay === 'function' && Math.random() < 0.3) speechSay('巨纖維反射！');
+                        }
+                    } 
+                    // 2. 低逼近率 / 廚房區柔和放小球 (Dink / 3rd Shot Drop) -> 複眼視盲墜地 (Sensory Vulnerability)
+                    else if (ballSpeed < 7.8 && loomingRate < 1.6 && PH.pos.z < 2.0 && flyState !== 'STUNNED') {
+                        const ap = predictApex();
+                        if (ap && ap.z > -KITCHEN_D - 1.2) {
+                            flyState = 'STUNNED';
+                            flyStunTimer = 1.6;
+                            consecutiveDinks++;
+                            toast('🪰 複眼視盲！蒼蠅墜地', '慢速小球避開了巨纖維反射，破綻大開！');
+                            if (typeof S !== 'undefined' && S.ding) S.ding();
+                            if (typeof speechSay === 'function' && Math.random() < 0.5) speechSay('小球破防！');
+                        }
+                    }
+                }
+            } else {
+                // 非蒼蠅模式，重置高度與暈眩動畫
+                gGrp.position.y = 0;
+                if (flyDizzy) flyDizzy.visible = false;
+                if (flyMesh) flyMesh.rotation.z = 0;
+            }
+
             if (active && PH.vel.z < 0) {
                 const ap = predictApex();
                 if (ap) {
@@ -1160,9 +1327,18 @@
                 if (server === 'GOOSE') { aiTo.x = -1.5 * serveSide; aiTo.z = -HALF_L - 0.35; }
                 else { aiTo.x = 0; aiTo.z = -HALF_L - 0.5; }
             } else if (active) { aiTo.x *= 0.9; aiTo.z = -KITCHEN_D - 0.5; }
-            // ★ v5.0.3: AI 難度係數 (僅對 Stage >= 4 生效，教學關維持引導移速)
-            const diffScale = stage >= 4 ? (DIFF_PRESETS[diffLevel]?.speedScale || 1.0) : 1.0;
-            const spd = (AI_SPEED[stage] || 5.5) * diffScale;
+
+            // 移速計算：蒼蠅在 LOOMING_REFLEX 時速度高達 26.0 (超速瞬移)，STUNNED 時速度為 0.5
+            let spd;
+            if (isFly) {
+                if (flyState === 'STUNNED') spd = 0.5;
+                else if (flyState === 'LOOMING_REFLEX') spd = 26.0;
+                else spd = 9.5;
+            } else {
+                const diffScale = stage >= 4 ? (DIFF_PRESETS[diffLevel]?.speedScale || 1.0) : 1.0;
+                spd = (AI_SPEED[stage] || 5.5) * diffScale;
+            }
+
             const dx = aiTo.x - gGrp.position.x, dz = aiTo.z - gGrp.position.z, d = Math.hypot(dx, dz);
             if (d > 1e-4) {
                 const mv = Math.min(d, spd * dt);
@@ -1173,17 +1349,45 @@
             const lx = THREE.MathUtils.clamp(PH.pos.x - gGrp.position.x, -0.8, 0.8);
             gPad.position.set(-lx, py, -0.34); gPad.rotation.set(0.24, 0, 0);
             gPad.getWorldPosition(gPadW);
-            limb(gArm, _b.set(0.18, 0.85, -0.05), _a.set(-lx, py - 0.17, -0.34));
+            if (!isFly) {
+                limb(gArm, _b.set(0.18, 0.85, -0.05), _a.set(-lx, py - 0.17, -0.34));
+            }
 
             // ★ 發球等待時球固定在腰部高度(不可回讀 PH.pos.y,否則會逐幀爬升)
             if (state === 'SERVE_READY' && server === 'GOOSE') {
-                PH.reset(gGrp.position.x, 0.80, gGrp.position.z + 0.30);
+                PH.reset(gGrp.position.x, isFly ? 0.95 : 0.80, gGrp.position.z + 0.30);
             }
             if (!active || gLock > 0 || locked) return;
             if (PH.pos.z > -0.05 || PH.vel.z > 0 || bounces === 0) return;
             const b = PH.pos, gp = gPadW;
             if (Math.abs(b.z - gp.z) > 0.62 + BALL_R || Math.abs(b.x - gp.x) > 0.80 + BALL_R ||
                 Math.abs(b.y - gp.y) > 0.75 + BALL_R) return;
+
+            // ★ 蒼蠅若處於暈眩狀態 (STUNNED)，無法回擊，造成破綻讓球落地！
+            if (isFly && flyState === 'STUNNED') {
+                return;
+            }
+
+            if (isFly) {
+                // ═══════ 仿生蒼蠅巨纖維反射超速回擊 ═══════
+                gLock = 0.20; pLock = 0.12; lastHitter = 'GOOSE'; rallyHits++; bounces = 0;
+                if (state === 'SERVE_AIR') state = 'RALLY';
+                PH.spin = (Math.random() - 0.5) * 4.2; // 蒼蠅回擊帶有強烈側旋
+                PH.spinInc = PH.spin;
+
+                // 刁鑽壓線深球反抽
+                const cornerX = (pPos.x > 0 ? -1.8 : 1.8) + (Math.random() - 0.5) * 0.6;
+                const targetZ = HALF_L - 0.35 + (Math.random() - 0.5) * 0.6;
+                solveArc(b.x, b.y, b.z, cornerX, targetZ, PH.vel);
+                PH.vel.x *= 1.25;
+                PH.vel.z *= 1.25;
+
+                popRing(gGrp.position.x, gGrp.position.z, 1.6, 0xa855f7);
+                S.pop(0.85);
+                flyState = 'HOVER';
+                toast('🪰 巨纖維瞬殺反抽！', '極速壓線深球回敬！');
+                return;
+            }
 
             // ★ 規格 6: 人性化失誤機制 + ★ v5.0.12 前三關新手教學失誤率極低 (2.5%)，第4~5關依難度調節
             const diffMult = stage >= 4 ? (DIFF_PRESETS[diffLevel]?.missMultiplier || 1.0) : 1.0;
