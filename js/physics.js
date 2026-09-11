@@ -223,6 +223,8 @@
             swingT = 0; pLock = 0; gLock = 0;
             D.pFill.style.width = '0%'; powerBarDisplay = 0;
             resetSwing(); resetServeFSM();
+            if (typeof dinkRallyCount !== 'undefined') dinkRallyCount = 0;
+            if (typeof isChanceBall !== 'undefined') isChanceBall = false;
         }
 
         /* ═══════ 雙軌物理模式切換控制器 (Dual Physics Controller) ═══════ */

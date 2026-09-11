@@ -15,8 +15,9 @@
         let ball, ballGlow, ballBlob, ballTrail = [];
         let pGrp, pPad, pArm, gGrp, gPad, gArm, netGrp;
         let gooseMesh = null, flyMesh = null, flyWings = [], flyDizzy = null;
-        let flyState = 'HOVER'; // 'HOVER' | 'LOOMING_REFLEX' | 'STUNNED'
+        let flyState = 'HOVER'; // 'HOVER' | 'LOOMING_REFLEX' | 'STUNNED' | 'DINK_APPROACH' | 'POPUP' | 'RECOVERY'
         let flyStunTimer = 0, flyHoverTime = 0, consecutiveDinks = 0;
+        let dinkRallyCount = 0, isChanceBall = false;
 
         function updateOpponentMeshVisibility() {
             const isFly = (typeof diffLevel !== 'undefined' && diffLevel === 'fly');
@@ -801,6 +802,9 @@
             servePrepared = false; calibT0 = 0; serveCooldown = 1.2;
             resetServeFSM(); kcReset();
 
+            dinkRallyCount = 0;
+            isChanceBall = false;
+
             if (typeof diffLevel !== 'undefined' && diffLevel === 'fly') {
                 flyState = 'HOVER'; flyStunTimer = 0;
                 if (flyMesh) flyMesh.rotation.z = 0;
@@ -1021,20 +1025,36 @@
                 kcReset();
             }
 
-            // ★ 擊球力道階梯: 支援前推速度與橫切速度
-            let ch = 0.55;
+            // ★ v5.0.14: 擊球力道四級階梯 (依手指揮動幅度/位移/速度精準判斷: 0動=被動擋球/掛網, 微動=廚房Dink, 中推=過渡深球, 大揮=抽殺)
+            const swipeDist = Math.hypot(SWIPE.distX, SWIPE.distY);
             const swipeSpeed = Math.hypot(SWIPE.peakVx * 0.65, SWIPE.peakVy);
-            const hasSwipe = (swipeSpeed > 75) || (Math.abs(SWIPE.distX) > 20) || (Math.abs(SWIPE.distY) > 20);
-            const swipePower = hasSwipe ? THREE.MathUtils.clamp((swipeSpeed - 50) / 850, 0.35, 1.0) : 0;
 
-            if (hasSwipe) {
-                ch = Math.max(swipePower, swingT > 0 ? (swingP / 100) : 0.45);
+            let ch = 0.20; // 預設柔和丁克
+            let isPassiveBlock = false;
+
+            if (webcamActive) {
+                ch = THREE.MathUtils.clamp(hitPower(KIN.vPeak, SWING.path) / 100, 0.15, 1.0);
             } else if (swingT > 0) {
-                ch = THREE.MathUtils.clamp(swingP / 100, 0.18, 1.0);
-            } else if (webcamActive) {
-                ch = THREE.MathUtils.clamp(hitPower(KIN.vPeak, SWING.path) / 100, 0.22, 1.0);
+                // 蓄力鍵擊球 (空白鍵 / 右鍵)
+                ch = THREE.MathUtils.clamp(swingP / 100, 0.15, 1.0);
+            } else if (swipeDist < 12 && swipeSpeed < 75) {
+                // 【第 0 級: 都沒有動 / 被動減力碰球 (Passive Block)】
+                isPassiveBlock = true;
+                ch = 0.12;
+            } else if (swipeDist < 45 && swipeSpeed < 320) {
+                // 【第 1 級: 稍微動一點點 (Gentle Kitchen Dink)】
+                // 手指滑動 12px ~ 45px，輕推小球
+                const t = Math.max(0, (swipeDist - 12) / 33);
+                ch = 0.18 + t * 0.06; // 0.18 ~ 0.24 (精準丁克力道)
+            } else if (swipeDist < 100 && swipeSpeed < 700) {
+                // 【第 2 級: 稍微動多一點 (Medium Push / 廚房後緣中深球)】
+                // 手指滑動 45px ~ 100px，中推
+                const t = Math.max(0, (swipeDist - 45) / 55);
+                ch = 0.28 + t * 0.18; // 0.28 ~ 0.46 (過渡區深球)
             } else {
-                ch = 0.48; // 微弱擋球
+                // 【第 3 級: 快速 / 大幅度滑動 (Drive / Speed-up / Smash)】
+                const t = Math.min(1.0, Math.max(0, (swipeSpeed - 700) / 800));
+                ch = 0.55 + t * 0.45; // 0.55 ~ 1.0 (重砲抽殺)
             }
             swingT = 0;
 
@@ -1059,25 +1079,63 @@
                 announceReferee(spinSideTxt, Math.abs(spin) > 1.25 ? '⚠️ 甩球過猛，球噴出界外！' : '精準曲球已觸發', false);
             }
 
-            // ★ v5.0.2 依力道連續階梯計算落點與動態初速 (solveArc 速度縮放)
+            // ★ v5.0.14 依手指滑動階梯精確解算落點 (0動=被動擋球/掛網, 微動=廚房丁克, 中推=深球, 大動=抽殺)
             let tz = -3.5, spdScale = 1.0;
-            if (ch < 0.25) {
-                // 輕推短球 (Dink): 初速柔和，高拋物線進廚房
-                tz = -(0.75 + ch * 2.0);
-                spdScale = 0.80;
+            if (isPassiveBlock) {
+                // 第 0 級：手指完全沒動 / 被動減力碰球 (Passive Block)
+                const incomingEnergy = Math.hypot(PH.vel.x, PH.vel.y, PH.vel.z);
+                const hitLow = (b.y < 0.38);
+                // 若來球慢 (< 6.2m/s) 或接觸點太低，減力過度，有 40% 機率能量不足掛網 (Net Error)！
+                if ((incomingEnergy < 6.2 || hitLow) && Math.random() < 0.40) {
+                    tz = -0.15; // 沒過網
+                    spdScale = 0.52;
+                    solveArc(b.x, b.y, b.z, tx, tz, PH.vel, spdScale);
+                    toast('⚠️ 減力擋球掛網', '手指完全沒動，能量不足掛網');
+                } else {
+                    // 借力剛好柔和過網，落入廚房前端 (0.70m ~ 1.15m)
+                    tz = -(0.70 + Math.random() * 0.45);
+                    spdScale = 0.72;
+                    solveArc(b.x, b.y, b.z, tx, tz, PH.vel, spdScale);
+                    toast('🎾 減力擋球 (Passive Block)', '借力剛好過網，落入廚房前端');
+                }
+            } else if (ch < 0.26) {
+                // 第 1 級：稍微動一點點 -> 100% 精準落在廚房區 (Kitchen Dink: 1.15m ~ 1.75m)
+                const k = (ch - 0.18) / 0.08;
+                tz = -(1.15 + k * 0.60); // 1.15m ~ 1.75m (廚房線以內)
+                spdScale = 0.82;
                 solveArc(b.x, b.y, b.z, tx, tz, PH.vel, spdScale);
-            } else if (ch < 0.65) {
-                // 中速後場球 (Drive)
-                const k = (ch - 0.25) / 0.40;
-                tz = -(2.20 + k * 2.80);
-                spdScale = 0.95 + k * 0.26;
+                toast('🎾 廚房區精準丁克 (Dink)', '柔和越網，貼網低彈跳！');
+            } else if (ch < 0.52) {
+                // 第 2 級：稍微動多一點 -> 落在廚房線後緣或過渡區 (Deep Dink / Drop: 2.10m ~ 3.60m)
+                const k = (ch - 0.26) / 0.26;
+                tz = -(2.10 + k * 1.50); // 2.10m ~ 3.60m
+                spdScale = 0.98 + k * 0.15;
                 solveArc(b.x, b.y, b.z, tx, tz, PH.vel, spdScale);
+                toast('🎾 過渡區深推球 (Deep Dink)', '壓制在對手腳邊');
             } else {
-                // 高速抽殺 (Power Shot / Smash): 初速極快
-                const k = (ch - 0.65) / 0.35;
-                tz = -(5.00 + k * 1.80);
-                spdScale = 1.22 + k * 0.38;
+                // 第 3 級：大幅/快速滑動 -> 底線平抽或扣殺 (Power Drive / Smash)
+                const k = (ch - 0.52) / 0.48;
+                tz = -(4.60 + k * 1.35); // 4.60m ~ 5.95m
+                spdScale = 1.25 + k * 0.35;
                 solveArc(b.x, b.y, b.z, tx, tz, PH.vel, spdScale);
+                if (isChanceBall) {
+                    toast('💥 扣殺得分 (SMASH WINNER)!', '完美抓到半高破綻，一擊必殺！');
+                    announceReferee('💥 扣殺得分！', '抓到浮高破綻一擊必殺！', true);
+                    isChanceBall = false;
+                    flyState = 'STUNNED';
+                    flyStunTimer = 1.5;
+                } else {
+                    toast('💥 重砲抽球 (Drive / Smash)', '極速直轟底線！');
+                }
+            }
+
+            // 擊球後重置本次滑動位移與峰值，避免延續至下一次碰球
+            if (typeof SWIPE !== 'undefined') {
+                SWIPE.distX = 0; SWIPE.distY = 0;
+                SWIPE.peakVx = 0; SWIPE.peakVy = 0;
+                SWIPE.vx = 0; SWIPE.vy = 0;
+                SWIPE.smoothedVx = 0; SWIPE.smoothedVy = 0;
+                SWIPE.startX = SWIPE.currX; SWIPE.startY = SWIPE.currY;
             }
 
             const hitMph = Math.round(PH.vel.length() * 2.23694);
@@ -1280,6 +1338,12 @@
                         if (flyMesh) flyMesh.rotation.z = 0;
                         if (flyDizzy) flyDizzy.visible = false;
                     }
+                } else if (flyState === 'RECOVERY') {
+                    // 浮高破綻後短暫低速回防 (2.8m/s)，無法發動巨纖維瞬移反抽
+                    if (flyDizzy) flyDizzy.visible = false;
+                    if (flyMesh) flyMesh.rotation.z = 0;
+                    const targetY = 0.65;
+                    gGrp.position.y = THREE.MathUtils.lerp(gGrp.position.y, targetY, dt * 6);
                 } else {
                     if (flyDizzy) flyDizzy.visible = false;
                     if (flyMesh) flyMesh.rotation.z = 0;
@@ -1299,7 +1363,8 @@
                         const loomingRate = (approachSpeed > 0 ? approachSpeed : 0) / bDist;
 
                         // 1. 高逼近率 / 抽球殺球 (Looming Threat) -> 激發巨纖維神經逃逸反射 (Giant Fiber Reflex)
-                        if ((ballSpeed >= 9.2 || loomingRate >= 1.6 || approachSpeed >= 7.8) && flyState !== 'STUNNED') {
+                        // 注意：若處於 RECOVERY 破綻狀態或 STUNNED 狀態，巨纖維反射暫時失效！
+                        if ((ballSpeed >= 9.2 || loomingRate >= 1.6 || approachSpeed >= 7.8) && flyState !== 'STUNNED' && flyState !== 'RECOVERY') {
                             if (flyState !== 'LOOMING_REFLEX') {
                                 flyState = 'LOOMING_REFLEX';
                                 toast('🪰 巨纖維反射觸發！', '偵測到高速球逼近！蒼蠅瞬移極速截擊！');
@@ -1307,17 +1372,18 @@
                                 if (typeof speechSay === 'function' && Math.random() < 0.3) speechSay('巨纖維反射！');
                             }
                         } 
-                        // 2. 低逼近率 / 廚房區柔和小球 (Dink / 3rd Shot Drop) -> 複眼視盲墜地破防 (Sensory Vulnerability)
-                        else if (ballSpeed < 7.6 && approachSpeed < 6.2 && loomingRate < 1.15 && flyState !== 'STUNNED') {
+                        // 2. 低逼近率 / 廚房區柔和小球 (Dink / 3rd Shot Drop) -> 網前丁克博弈 (Dink Battle)
+                        else if (ballSpeed < 8.2 && approachSpeed < 7.0 && loomingRate < 1.30 && flyState !== 'STUNNED') {
                             const ap = predictApex();
-                            // 嚴格限制於真正落入中興湖廚房區 (z: 0 ~ -2.13m) 或邊界 20cm 內的小球，不誤傷正常中後場抽球
+                            // 預測落入中興湖廚房區 (z: 0 ~ -2.13m) 或邊界 20cm 內的小球
                             if (ap && ap.z > -KITCHEN_D - 0.20) {
-                                flyState = 'STUNNED';
-                                flyStunTimer = 2.0;
-                                consecutiveDinks++;
-                                toast('🪰 複眼視盲！蒼蠅墜地', '慢速小球避開了巨纖維反射，破綻大開！');
-                                if (typeof S !== 'undefined' && S.ding) S.ding();
-                                if (typeof speechSay === 'function' && Math.random() < 0.5) speechSay('小球破防！');
+                                if (dinkRallyCount >= 2) {
+                                    // ★ 連續丁克 2 拍以上，果蠅微距立體深度神經超載，破綻大開！
+                                    flyState = 'POPUP';
+                                    toast('🪰 蒼蠅神經疲勞！', '連續小球拉鋸，微距視覺過載！');
+                                } else {
+                                    flyState = 'DINK_APPROACH'; // 主動壓向廚房線打拉鋸
+                                }
                             }
                         }
                     }
@@ -1333,17 +1399,26 @@
                 const ap = predictApex();
                 if (ap) {
                     aiTo.x = THREE.MathUtils.clamp(ap.x, -COURT_W / 2 - 0.7, COURT_W / 2 + 0.7);
-                    aiTo.z = THREE.MathUtils.clamp(ap.z, -HALF_L - 2.5, -0.9);
+                    if (ap.z > -KITCHEN_D - 0.20) {
+                        // ★ 小球落入廚房區：AI 快速壓上廚房線前 (z: -2.25m ~ -1.10m)，準備網前對攻！
+                        aiTo.z = THREE.MathUtils.clamp(ap.z - 0.15, -KITCHEN_D - 0.25, -0.95);
+                    } else {
+                        aiTo.z = THREE.MathUtils.clamp(ap.z, -HALF_L - 2.5, -0.9);
+                    }
                 }
             } else if (state === 'SERVE_READY') {
                 if (server === 'GOOSE') { aiTo.x = -1.5 * serveSide; aiTo.z = -HALF_L - 0.35; }
                 else { aiTo.x = 0; aiTo.z = -HALF_L - 0.5; }
-            } else if (active) { aiTo.x *= 0.9; aiTo.z = -KITCHEN_D - 0.5; }
+            } else if (active) {
+                aiTo.x *= 0.9;
+                aiTo.z = (dinkRallyCount > 0) ? (-KITCHEN_D - 0.20) : (-KITCHEN_D - 0.5);
+            }
 
-            // 移速計算：蒼蠅在 LOOMING_REFLEX 時速度高達 24.0 (超速瞬移)，平時巡航為 10.5，STUNNED 時速度為 0.2
+            // 移速計算：蒼蠅在 LOOMING_REFLEX 時速度高達 24.0 (超速瞬移)，平時巡航為 10.5，STUNNED 時速度為 0.2，RECOVERY 為 2.8
             let spd;
             if (isFly) {
                 if (flyState === 'STUNNED') spd = 0.2;
+                else if (flyState === 'RECOVERY') spd = 2.8;
                 else if (flyState === 'LOOMING_REFLEX') spd = 24.0;
                 else spd = 10.5;
             } else {
@@ -1428,6 +1503,41 @@
                     popRing(gGrp.position.x, gGrp.position.z, 1.6, 0xa855f7);
                     S.pop(0.85);
                     toast('🪰 巨纖維瞬殺反抽！', '極速壓線深球回敬！');
+                    dinkRallyCount = 0;
+                    isChanceBall = false;
+                } else if (flyState === 'POPUP') {
+                    // ★ 方案 A 核心破綻：果蠅深度視覺超載，失手回出浮高半高球 (Chance Ball / Pop-up)！
+                    targetX = (Math.random() - 0.5) * 1.5;
+                    targetZ = 2.40 + Math.random() * 0.70; // 落在玩家淺中場 (2.4m ~ 3.1m)
+                    spdScale = 0.96;
+                    spinVal = 0;
+                    solveArc(b.x, b.y, b.z, targetX, targetZ, PH.vel, spdScale);
+                    // 人為拉高出球垂直速度，讓球浮在網頂上方 50cm 以上，形成絕妙扣殺機會！
+                    PH.vel.y = Math.max(PH.vel.y, 4.2);
+                    isChanceBall = true;
+                    dinkRallyCount = 0;
+                    flyState = 'RECOVERY'; // 蒼蠅回防較慢，無法立刻發動巨纖維反抽
+                    popRing(gGrp.position.x, gGrp.position.z, 1.8, 0xfacc15);
+                    S.pop(0.45);
+                    toast('🔥 蒼蠅失誤浮高！ (CHANCE BALL)', '半高機會球！快往前凌空扣殺！');
+                    announceReferee('🔥 機會半高球！', '蒼蠅網前失手，抓機會扣殺！', true);
+                    return;
+                } else if (flyState === 'DINK_APPROACH' || (b.z > -KITCHEN_D - 0.20)) {
+                    // ★ 方案 A 核心拉鋸：蒼蠅精準回推斜線或直線丁克球給玩家！
+                    dinkRallyCount++;
+                    targetX = THREE.MathUtils.clamp(pPos.x * 0.45 + (Math.random() - 0.5) * 1.2, -1.6, 1.6);
+                    targetZ = 1.25 + Math.random() * 0.45; // 玩家廚房區 (1.25m ~ 1.70m)
+                    spdScale = 0.85;
+                    spinVal = (Math.random() - 0.5) * 0.08;
+                    popRing(gGrp.position.x, gGrp.position.z, 1.2, 0x38bdf8);
+                    S.pop(0.52);
+                    toast(`🎾 廚房區丁克對攻 × ${dinkRallyCount}`, '蒼蠅柔和回推小球！等球落地再推！');
+                    solveArc(b.x, b.y, b.z, targetX, targetZ, PH.vel, spdScale);
+                    PH.spin = spinVal;
+                    PH.spinInc = 0;
+                    flyState = 'HOVER';
+                    isChanceBall = false;
+                    return;
                 } else {
                     // 一般來回球：戰術性交替廚房短球 (30%) 與底線深球 (70%)
                     const shouldDink = Math.random() < 0.30;
@@ -1437,15 +1547,18 @@
                         spdScale = 0.92;
                         spinVal = 0;
                         toast('🪰 仿生蒼蠅吊球', '廚房區丁克小球');
+                        dinkRallyCount = 1;
                     } else {
                         targetX = (pPos.x > 0 ? -1.65 : 1.65) + (Math.random() - 0.5) * 0.30;
                         targetZ = HALF_L - 1.05 - Math.random() * 0.60; // 5.05m ~ 5.65m
                         spdScale = 1.05;
                         spinVal = (Math.random() - 0.5) * 0.15;
                         toast('🪰 仿生蒼蠅回擊', '底線壓制深球');
+                        dinkRallyCount = 0;
                     }
                     popRing(gGrp.position.x, gGrp.position.z, 1.2, 0xa855f7);
                     S.pop(0.65);
+                    isChanceBall = false;
                 }
 
                 // 呼叫 solveArc 精確解算彈道，禁止在解算後乘倍數破壞物理軌跡！
@@ -1494,6 +1607,12 @@
             if (state === 'SERVE_AIR') state = 'RALLY';
             PH.spin = 0; PH.spinInc = 0; // ★ 匹克鵝回擊時清除側旋與偏折，保證回球彈道乾淨平穩
             planShot(); solveArc(b.x, b.y, b.z, aiShot.x, aiShot.z, PH.vel); S.pop(0.6);
+            if (aiShot.z < KITCHEN_D) {
+                dinkRallyCount++;
+            } else {
+                dinkRallyCount = 0;
+                isChanceBall = false;
+            }
             if (stage === 2) toast('底線深球來了', '等它落地一次,再打回去就過關');
             else if (stage === 3 || aiShot.z < KITCHEN_D) toast('匹克鵝把球吊進中興湖廚房', '等落地再打');
         }
