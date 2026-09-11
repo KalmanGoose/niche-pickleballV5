@@ -3661,22 +3661,82 @@
                     </div>
 
                     <!-- 科普卡片 4 -->
-                    <div class="rule-card">
+                    <div class="rule-card" style="grid-column:1/-1;">
                         <div class="rule-card-top">
                             <span class="rule-num" style="background:var(--cool);color:#0f172a;">學術 04</span>
-                            <h4 class="rule-title">📐 物理引擎數值微分方程 (給教授的學術原理)</h4>
+                            <h4 class="rule-title">📐 物理引擎數值微分方程：全細項逐項拆解 (給教授與答辯的物理原理)</h4>
                         </div>
                         <p class="rule-desc">
-                            本遊戲 3D 物理引擎基於連續體力學簡化模型，即時以四階數值積分求解球體三維合力方程式：
+                            本遊戲 3D 物理引擎即時以四階數值積分求解球體在連續流體中的三維合力微分方程式：
                         </p>
-                        <div class="physics-formula">F_total = F_gravity + F_drag + F_Magnus
-m*(dv/dt) = m*g - 0.5*Cd*ρ*A*|v|*v + 0.5*CL*ρ*A*|v|² * ((ω × v) / |ω × v|)
-dω/dt = -β_perforated * ω   (多孔自旋角動量自然衰減)</div>
-                        <p class="rule-desc" style="font-size:11.5px;color:#cbd5e1;">
-                            • <b>球體質量</b> m = 26 g，直徑 D = 74 mm，迎風截面積 A ≈ 4.3×10⁻³ m²<br>
-                            • <b>空氣密度</b> ρ = 1.225 kg/m³，典型雷諾數 Re ≈ 4×10⁴ ~ 1.2×10⁵<br>
-                            • <b>阻力係數</b> Cd ≈ 0.58（多孔紊流），升力係數 CL 與自旋參數 Sp = (R·ω)/v 呈正相關。
-                        </p>
+                        <div class="physics-formula">【主運動微分方程式】
+m · (dv/dt) = F_total = F_gravity + F_drag + F_Magnus
+dx/dt = v
+dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
+
+                        <div style="margin-top:10px;display:flex;flex-direction:column;gap:10px;">
+                            <!-- 細項 1 -->
+                            <div style="background:rgba(15,23,42,0.6);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:10px 14px;">
+                                <div style="font-weight:800;color:var(--accent);font-size:13px;margin-bottom:4px;">
+                                    ① m · (dv/dt) ── 慣性與合加速度項 (Inertia & Acceleration)
+                                </div>
+                                <div style="font-size:12px;line-height:1.65;color:#cbd5e1;">
+                                    • <b>m（球體質量 / Mass）</b>：標準值 <b>26.0 g (0.026 kg)</b>（USA Pickleball 官方規範 22.1 ~ 26.5 g）。質量輕意味著微小的氣動力就能顯著改變飛行軌跡。<br>
+                                    • <b>dv/dt = a（瞬時加速度向量 / Acceleration）</b>：單位為 m/s²，代表球體在 X, Y, Z 三維軸向上每秒速度的向量變化量。
+                                </div>
+                            </div>
+
+                            <!-- 細項 2 -->
+                            <div style="background:rgba(15,23,42,0.6);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:10px 14px;">
+                                <div style="font-weight:800;color:var(--lime);font-size:13px;margin-bottom:4px;">
+                                    ② F_gravity = m · g ── 垂直重力下墜項 (Gravity)
+                                </div>
+                                <div style="font-size:12px;line-height:1.65;color:#cbd5e1;">
+                                    • <b>g（重力加速度向量）</b>：定義為 <b>(0, -9.81, 0) m/s²</b>，永遠朝向 Y 軸負方向（垂直朝向地心）。若無空氣外力，球體將呈標準古典拋物線運動。
+                                </div>
+                            </div>
+
+                            <!-- 細項 3 -->
+                            <div style="background:rgba(15,23,42,0.6);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:10px 14px;">
+                                <div style="font-weight:800;color:#f59e0b;font-size:13px;margin-bottom:4px;">
+                                    ③ F_drag = -½ · Cd · ρ · A · |v| · v ── 二次方空氣阻力項 (Quadratic Drag)
+                                </div>
+                                <div style="font-size:12px;line-height:1.65;color:#cbd5e1;">
+                                    • <b>負號（-）</b>：阻力方向永遠與前進速度向量 v <b>嚴格相反</b>，專職消耗球體動能。<br>
+                                    • <b>Cd（形狀阻力係數 / Drag Coefficient）</b>：基準值 <b>0.58</b>。光滑球體僅約 0.45，但匹克球表面有 <b>26~40 個孔洞</b>，高速運動引發強烈的<b>邊界層紊流脫離 (Turbulent Wake Separation)</b>，形成巨大壓差阻力。<br>
+                                    • <b>ρ（空氣密度 / Fluid Density）</b>：取標準大氣條件 <b>1.225 kg/m³</b>。<br>
+                                    • <b>A（迎風截面積 / Cross-sectional Area）</b>：公式 A = π·(D/2)²，直徑 D = 74 mm = 0.074 m，計算得 <b>A ≈ 4.30 × 10⁻³ m²</b>。<br>
+                                    • <b>|v|·v（速度平方項 / Velocity Squared Dependence）</b>：阻力與球速的<b>平方成正比</b>。出拍初速快（15~20 m/s）時阻力倍增，過網時球速衰減阻力驟降，<b>這正是匹克球「過網後自動溫柔減速、讓文組初學者有反應時間接球」的核心物理機制</b>！
+                                </div>
+                            </div>
+
+                            <!-- 細項 4 -->
+                            <div style="background:rgba(15,23,42,0.6);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:10px 14px;">
+                                <div style="font-weight:800;color:#ec4899;font-size:13px;margin-bottom:4px;">
+                                    ④ F_Magnus = ½ · CL · ρ · A · |v|² · ((ω × v) / |ω × v|) ── 馬格努斯旋轉偏折力項 (Magnus Force)
+                                </div>
+                                <div style="font-size:12px;line-height:1.65;color:#cbd5e1;">
+                                    • <b>ω（自旋角速度向量 / Angular Velocity）</b>：單位 rad/s，旋轉軸方向依循右手定則。<br>
+                                    • <b>ω × v（向量外積 / Cross Product）</b>：外積方向<b>同時垂直於自轉軸與飛行速度</b>！在數學上精確解釋了三大實戰球路：<br>
+                                    &nbsp;&nbsp;▸ <b>上旋球 (Topspin)</b>：ω 水平偏左，(ω × v) 指向<b>正下方</b>，球被大氣壓力強力下壓，達成<b>貼網急墜界內</b>！<br>
+                                    &nbsp;&nbsp;▸ <b>下旋球 (Backspin)</b>：ω 水平偏右，(ω × v) 指向<b>正上方</b>，產生向上升力抵抗重力，球<b>平漂滯空、落地低跳</b>。<br>
+                                    &nbsp;&nbsp;▸ <b>側旋球 (Sidespin)</b>：ω 垂直向上或向下，(ω × v) 指向<b>水平兩側</b>，劃出驚艷的<b>繞柱香蕉球 (ATP)</b>！<br>
+                                    • <b>CL（升力係數 / Lift Coefficient）</b>：與無量綱旋轉參數 Sp = (R·|ω|)/|v| 正相關。自旋越劇烈、偏折力道越強。
+                                </div>
+                            </div>
+
+                            <!-- 細項 5 -->
+                            <div style="background:rgba(15,23,42,0.6);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:10px 14px;">
+                                <div style="font-weight:800;color:var(--cool);font-size:13px;margin-bottom:4px;">
+                                    ⑤ dω/dt = -β_perforated · ω ── 多孔角動量自旋阻尼衰減項 (Spin Dissipation)
+                                </div>
+                                <div style="font-size:12px;line-height:1.65;color:#cbd5e1;">
+                                    • <b>β_perforated（多孔空氣剪切阻尼係數）</b>：取值 <b>0.35 s⁻¹</b>。<br>
+                                    • <b>物理意義</b>：空氣高速穿梭貫穿球體的 26~40 個孔洞時，球內腔與外側氣流產生強烈剪切摩擦，使自旋角速度以指數形式衰減 ω(t) = ω₀ · e^(-β·t)。<br>
+                                    • <b>運動學效果</b>：保證匹克球的弧線是「平穩收斂的微側弧線（0.15m~0.22m）」，絕不會像乒乓球那樣飄移暴衝，手腕極度受控安全。
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- 科普卡片 5 -->
