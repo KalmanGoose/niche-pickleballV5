@@ -2759,6 +2759,22 @@
             animation: pulseGlow 2.5s infinite;
         }
 
+        /* 最小化狀態：整條選單列與二級下拉選單徹底隱藏，只顯示懸浮球 */
+        #nav-wrapper.minimized #nav,
+        #nav-wrapper.minimized #nav-subbar {
+            display: none !important;
+        }
+        #nav-wrapper.minimized #nav-minimized-pill {
+            display: flex !important;
+        }
+        #nav-wrapper:not(.minimized) #nav-minimized-pill {
+            display: none !important;
+        }
+        #nav-wrapper.minimized {
+            width: auto !important;
+            max-width: none !important;
+        }
+
         /* ── 頂部簡潔主選單 (#nav) ── */
         #nav, body.layout-v4 #nav {
             display: flex !important;
@@ -6121,24 +6137,33 @@ dω/dt = -β_perforated * ω   (多孔自旋角動量自然衰減)</div>
 
         /* ── 選單最小化 / 還原懸浮球控制器 ── */
         function toggleNavMinimize(forceMin) {
+            const wrapper = document.getElementById('nav-wrapper');
             const pill = document.getElementById('nav-minimized-pill');
             const nav = document.getElementById('nav');
             const subbar = document.getElementById('nav-subbar');
-            if (!pill || !nav) return;
+            if (!wrapper || !pill || !nav) return;
 
-            const isMin = (forceMin !== undefined) ? !!forceMin : (nav.style.display !== 'none');
+            const isCurrentlyMin = wrapper.classList.contains('minimized');
+            const isMin = (forceMin !== undefined) ? !!forceMin : !isCurrentlyMin;
+
             if (isMin) {
-                nav.style.display = 'none';
+                wrapper.classList.add('minimized');
+                nav.style.setProperty('display', 'none', 'important');
+                pill.style.setProperty('display', 'flex', 'important');
                 if (subbar) {
                     subbar.classList.remove('open');
+                    subbar.style.setProperty('display', 'none', 'important');
                     activeNavMenu = null;
                 }
-                pill.style.display = 'flex';
                 try { localStorage.setItem('nchu_nav_minimized', '1'); } catch (e) {}
-                if (typeof toast === 'function') toast('⚙️ 選單已縮小為懸浮球', '點擊懸浮球即可還原，亦可按住拖曳移動');
+                if (typeof toast === 'function') toast('⚙️ 選單已收入懸浮球', '整列選單已完全收合！點擊懸浮球即可展開，可自由拖曳');
             } else {
-                nav.style.display = 'flex';
-                pill.style.display = 'none';
+                wrapper.classList.remove('minimized');
+                nav.style.removeProperty('display');
+                pill.style.removeProperty('display');
+                if (subbar) {
+                    subbar.style.removeProperty('display');
+                }
                 try { localStorage.setItem('nchu_nav_minimized', '0'); } catch (e) {}
             }
         }
