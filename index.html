@@ -10620,6 +10620,11 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
         },
 
         triggerPickup: function(item, pos) {
+            // 若原先已持有道具（例如巨無霸球拍、縮小拍等），先清理舊狀態以防球拍縮放卡住
+            if (this.activeBuff) {
+                this.clearPlayerBuff();
+            }
+
             this.activeBuff = item.id;
             this.buffTimer = item.dur;
             this.buffMaxTime = item.dur;
@@ -10934,9 +10939,12 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
         },
 
         clearPlayerBuff: function() {
-            if (this.activeBuff === 'MEGA_PADDLE' || this.activeBuff === 'MINI_PADDLE') {
-                if (typeof pPad !== 'undefined') pPad.scale.setScalar(this.originalPadScale);
-            } else if (this.activeBuff === 'ELECTRIC_SWATTER') {
+            // 無論前一個 activeBuff 是什麼，一律重設球拍大小確保永遠不卡住
+            if (typeof pPad !== 'undefined') {
+                pPad.scale.setScalar(this.originalPadScale || 2.175);
+            }
+
+            if (this.activeBuff === 'ELECTRIC_SWATTER') {
                 if (this.swatterSparkGroup) this.swatterSparkGroup.visible = false;
                 if (this.guidanceGroup) this.guidanceGroup.visible = false;
                 this.hideGuideBanner();
@@ -12112,6 +12120,11 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
                 if (flyDizzy) flyDizzy.visible = false;
             }
 
+            // 🍄 回合重置時，若 buff 已結束或不在娛樂模式，強制確保球拍縮放復原
+            if (typeof FunMode !== 'undefined' && (!FunMode.activeBuff || !FunMode.enabled)) {
+                FunMode.clearPlayerBuff();
+            }
+
             if (server === 'PLAYER') {
                 pPos.x = 1.5 * serveSide; pPos.z = HALF_L + 0.35;
                 serveFromRight = pPos.x >= 0;
@@ -12849,6 +12862,18 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
             }
             pPad.position.set(padX, padY, -0.24);
             pPad.rotation.set(-0.24, 0, -padX * 0.5);
+            // 🍄 動態平滑同步球拍縮放，確保道具狀態結束或切換時 100% 縮回原本大小，絕不卡死
+            if (typeof FunMode !== 'undefined' && typeof pPad !== 'undefined') {
+                const baseScale = FunMode.originalPadScale || 2.175;
+                let targetScale = baseScale;
+                if (FunMode.activeBuff === 'MEGA_PADDLE') {
+                    targetScale = baseScale * 2.8;
+                } else if (FunMode.activeBuff === 'MINI_PADDLE') {
+                    targetScale = baseScale * 0.35;
+                }
+                const currentScale = pPad.scale.x;
+                pPad.scale.setScalar(THREE.MathUtils.lerp(currentScale, targetScale, Math.min(1, dt * 14)));
+            }
             pPad.getWorldPosition(padW);
             limb(pArm, _b.set(0.2, 1.16, 0.02), _a.set(padX, padY - 0.17, -0.24));
             if (state === 'SERVE_READY' && server === 'PLAYER') PH.reset(padW.x - 0.22, Math.max(BALL_R, padW.y + 0.1), padW.z - 0.06);

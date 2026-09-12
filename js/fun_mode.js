@@ -913,6 +913,11 @@
         },
 
         triggerPickup: function(item, pos) {
+            // 若原先已持有道具（例如巨無霸球拍、縮小拍等），先清理舊狀態以防球拍縮放卡住
+            if (this.activeBuff) {
+                this.clearPlayerBuff();
+            }
+
             this.activeBuff = item.id;
             this.buffTimer = item.dur;
             this.buffMaxTime = item.dur;
@@ -1227,9 +1232,12 @@
         },
 
         clearPlayerBuff: function() {
-            if (this.activeBuff === 'MEGA_PADDLE' || this.activeBuff === 'MINI_PADDLE') {
-                if (typeof pPad !== 'undefined') pPad.scale.setScalar(this.originalPadScale);
-            } else if (this.activeBuff === 'ELECTRIC_SWATTER') {
+            // 無論前一個 activeBuff 是什麼，一律重設球拍大小確保永遠不卡住
+            if (typeof pPad !== 'undefined') {
+                pPad.scale.setScalar(this.originalPadScale || 2.175);
+            }
+
+            if (this.activeBuff === 'ELECTRIC_SWATTER') {
                 if (this.swatterSparkGroup) this.swatterSparkGroup.visible = false;
                 if (this.guidanceGroup) this.guidanceGroup.visible = false;
                 this.hideGuideBanner();

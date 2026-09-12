@@ -872,6 +872,11 @@
                 if (flyDizzy) flyDizzy.visible = false;
             }
 
+            // 🍄 回合重置時，若 buff 已結束或不在娛樂模式，強制確保球拍縮放復原
+            if (typeof FunMode !== 'undefined' && (!FunMode.activeBuff || !FunMode.enabled)) {
+                FunMode.clearPlayerBuff();
+            }
+
             if (server === 'PLAYER') {
                 pPos.x = 1.5 * serveSide; pPos.z = HALF_L + 0.35;
                 serveFromRight = pPos.x >= 0;
@@ -1609,6 +1614,18 @@
             }
             pPad.position.set(padX, padY, -0.24);
             pPad.rotation.set(-0.24, 0, -padX * 0.5);
+            // 🍄 動態平滑同步球拍縮放，確保道具狀態結束或切換時 100% 縮回原本大小，絕不卡死
+            if (typeof FunMode !== 'undefined' && typeof pPad !== 'undefined') {
+                const baseScale = FunMode.originalPadScale || 2.175;
+                let targetScale = baseScale;
+                if (FunMode.activeBuff === 'MEGA_PADDLE') {
+                    targetScale = baseScale * 2.8;
+                } else if (FunMode.activeBuff === 'MINI_PADDLE') {
+                    targetScale = baseScale * 0.35;
+                }
+                const currentScale = pPad.scale.x;
+                pPad.scale.setScalar(THREE.MathUtils.lerp(currentScale, targetScale, Math.min(1, dt * 14)));
+            }
             pPad.getWorldPosition(padW);
             limb(pArm, _b.set(0.2, 1.16, 0.02), _a.set(padX, padY - 0.17, -0.24));
             if (state === 'SERVE_READY' && server === 'PLAYER') PH.reset(padW.x - 0.22, Math.max(BALL_R, padW.y + 0.1), padW.z - 0.06);
