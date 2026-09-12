@@ -84,7 +84,10 @@
             toast(msg, sub || '練習關不扣分,按空白鍵重來');
             later(resetServe, 1650);
         }
-        function serveFail(msg, sub) { if (scoring()) endRally(server === 'PLAYER' ? 'GOOSE' : 'PLAYER', msg, sub); else fail(msg, sub); }
+        function serveFail(msg, sub) {
+            if (typeof FunMode !== 'undefined' && FunMode.activeBuff === 'ELECTRIC_SWATTER') return;
+            if (scoring()) endRally(server === 'PLAYER' ? 'GOOSE' : 'PLAYER', msg, sub); else fail(msg, sub);
+        }
         function clearStage() {
             updateLastAuditOutcome('關卡順利通過');
             state = 'FAULT'; freeze(); clearTimers(); locked = true; S.point();

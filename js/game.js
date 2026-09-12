@@ -900,6 +900,11 @@
 /* ═══════ 玩家操作、揮拍擊球、匹克鵝 AI 與主動畫迴圈 ═══════ */
         function beginCharge() {
             S.init(); closePanel();
+            if (typeof FunMode !== 'undefined' && FunMode.activeBuff === 'ELECTRIC_SWATTER') {
+                swingT = 0.28;
+                FunMode.tryElectrocuteFly();
+                return;
+            }
             if (camEdit) return;                       // 編輯視角時不蓄力
             if (demoOn) { skipDemo(); return; }
             if (locked) return;
@@ -909,6 +914,10 @@
             if (state === 'SERVE_READY' || state === 'RALLY') charging = true;
         }
         function release() {
+            if (typeof FunMode !== 'undefined' && FunMode.activeBuff === 'ELECTRIC_SWATTER') {
+                swingT = 0.28;
+                FunMode.tryElectrocuteFly();
+            }
             if (!charging) return;
             charging = false;
             const p = power; power = 0; powerDir = 1; D.pFill.style.width = '0%';
@@ -1351,6 +1360,57 @@
                 return;
             }
 
+            // ★ ⚡ 霹靂電蚊拍：超狂自動鎖定衝鋒過網追殺 (Auto-Homing Rush across the Net)
+            const isHunting = (typeof FunMode !== 'undefined' && FunMode.activeBuff === 'ELECTRIC_SWATTER');
+            if (isHunting) {
+                // 不論在體感、手機觸控、滑鼠或鍵盤模式，一律自動以 9.2 m/s 極速直搗對面追殺蒼蠅/匹克鵝！
+                const targetObj = (typeof gGrp !== 'undefined' && gGrp) ? gGrp.position : { x: 0, z: -HALF_L * 0.7 };
+                const dx = targetObj.x - pPos.x;
+                const dz = targetObj.z - pPos.z;
+                const dist = Math.hypot(dx, dz) || 1;
+
+                // 基礎全速衝刺速度：每秒 9.2 公尺 (蒼蠅逃跑速度 4.5m/s，保證 1.5 秒內衝破球網並追上)
+                const rushSpeed = 9.2;
+                let targetVx = (dx / dist) * rushSpeed;
+                let targetVz = (dz / dist) * rushSpeed;
+
+                // 支援玩家手動操縱搖桿或 WASD 靈敏夾擊與左右微調
+                if (Math.hypot(joyAnalog.x, joyAnalog.z) > 0.05) {
+                    targetVx += joyAnalog.x * 4.0;
+                    targetVz += joyAnalog.z * 4.0;
+                } else {
+                    if (keys.a) targetVx -= 4.0;
+                    if (keys.d) targetVx += 4.0;
+                    if (keys.w) targetVz -= 4.0;
+                    if (keys.s) targetVz += 4.0;
+                }
+
+                playerVel.x += (targetVx - playerVel.x) * Math.min(1, dt * 26);
+                playerVel.z += (targetVz - playerVel.z) * Math.min(1, dt * 26);
+
+                pPos.x += playerVel.x * dt;
+                pPos.z += playerVel.z * dt;
+
+                // ★ 徹底解除球網限制 (z < 0)！允許直搗對手底線深處 (-(HALF_L + 1.8))
+                pPos.x = THREE.MathUtils.clamp(pPos.x, -COURT_W / 2 - 0.7, COURT_W / 2 + 0.7);
+                pPos.z = THREE.MathUtils.clamp(pPos.z, -(HALF_L + 1.8), HALF_L + 1.6);
+                pGrp.position.set(pPos.x, 0, pPos.z);
+
+                // 電蚊拍往前平舉並揮動電弧 (動態瞄準蒼蠅)
+                padX = THREE.MathUtils.clamp((targetObj.x - pPos.x) * 0.75, -0.95, 0.95);
+                padY = 0.85 + Math.sin(performance.now() * 0.02) * 0.25;
+                pPad.position.set(padX, padY, -0.28);
+                pPad.rotation.set(-0.35 + Math.sin(performance.now() * 0.03) * 0.35, 0, -padX * 0.6);
+                pPad.getWorldPosition(padW);
+                limb(pArm, _b.set(0.2, 1.16, 0.02), _a.set(padX, padY - 0.17, -0.24));
+
+                // ★ 靠近至 2.4 米內，立即引爆高壓電弧電爛蒼蠅！
+                if (dist < 2.4) {
+                    FunMode.executeFlyZap();
+                }
+                return;
+            }
+
             if (webcamActive) {
                 if (state === 'SERVE_READY') {
                     pPos.x += (1.5 * serveSide - pPos.x) * Math.min(1, dt * 18);
@@ -1369,11 +1429,10 @@
             } else {
                 // ★ v5.0.2 人物走位物理加速度與煞車慣性 (起步加速 a=26, 煞車減速 friction=18)
                 let targetVx = 0, targetVz = 0;
-                const isHunting = (typeof FunMode !== 'undefined' && FunMode.activeBuff === 'ELECTRIC_SWATTER');
                 const baseSpd = (typeof JOY_SPEED_PRESETS !== 'undefined' && JOY_SPEED_PRESETS[joySpeedLevel])
                     ? JOY_SPEED_PRESETS[joySpeedLevel].speed
                     : 5.5;
-                const maxSpeed = isHunting ? baseSpd * 1.65 : baseSpd; // ★ 電蚊拍衝刺加速 65%！
+                const maxSpeed = baseSpd;
 
                 if (Math.hypot(joyAnalog.x, joyAnalog.z) > 0.05) {
                     targetVx = joyAnalog.x * maxSpeed;
@@ -1410,9 +1469,7 @@
                 pPos.x += playerVel.x * dt;
                 pPos.z += playerVel.z * dt;
             }
-            const minZ = (typeof FunMode !== 'undefined' && FunMode.activeBuff === 'ELECTRIC_SWATTER')
-                ? -(HALF_L + 1.2)  // ★ 電蚊拍直接衝進對手場地底線追殺蒼蠅！
-                : 0.3;
+            const minZ = 0.3;
             pPos.x = THREE.MathUtils.clamp(pPos.x, -COURT_W / 2 - 0.7, COURT_W / 2 + 0.7);
             pPos.z = THREE.MathUtils.clamp(pPos.z, minZ, HALF_L + 1.6);
             pGrp.position.set(pPos.x, 0, pPos.z);
@@ -2238,7 +2295,16 @@
             const sx = (Math.random() - 0.5) * shake;
             const sy = (Math.random() - 0.5) * shake * 0.7;
 
-            if (camViewMode === 0) {
+            const isHuntingCam = (typeof FunMode !== 'undefined' && FunMode.activeBuff === 'ELECTRIC_SWATTER');
+            if (isHuntingCam) {
+                // ★ ⚡ 霹靂電蚊拍電影級第三人稱追擊視角！
+                // 鏡頭動態貼附在玩家身後上方，視線直指前方驚慌逃竄的蒼蠅，宛如動作動作遊戲！
+                const targetCamZ = pPos.z + 4.6;
+                const targetCamY = 2.4;
+                cam.position.set(pPos.x * 0.6 + sx, targetCamY + sy, targetCamZ);
+                const lookTarget = (typeof gGrp !== 'undefined' && gGrp) ? gGrp.position : { x: 0, z: -HALF_L * 0.7 };
+                cam.lookAt(lookTarget.x * 0.3 + pPos.x * 0.7, 0.85, lookTarget.z);
+            } else if (camViewMode === 0) {
                 // ★ 智慧超感相機 (相機位置平滑追蹤)
                 const cfg = (typeof getResponsiveCameraConfig === 'function')
                     ? getResponsiveCameraConfig()

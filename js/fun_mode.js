@@ -314,10 +314,11 @@
                         ballGlow.material.opacity = 0.85;
                     }
 
-                    // ★ 玩家衝到蒼蠅身邊（2.05米以內），直接引爆電擊！
-                    if (typeof pPos !== 'undefined' && typeof gGrp !== 'undefined' && gGrp) {
-                        const distToFly = Math.hypot(pPos.x - gGrp.position.x, pPos.z - gGrp.position.z);
-                        if (distToFly < 2.05 && typeof flyState !== 'undefined' && flyState !== 'ELECTROCUTED') {
+                    // ★ 玩家衝到蒼蠅身邊（2.4米以內），直接引爆電擊！
+                    const targetObj = (typeof gGrp !== 'undefined' && gGrp) ? gGrp.position : null;
+                    if (targetObj && typeof pPos !== 'undefined') {
+                        const distToFly = Math.hypot(pPos.x - targetObj.x, pPos.z - targetObj.z);
+                        if (distToFly < 2.4 && (typeof flyState === 'undefined' || flyState !== 'ELECTROCUTED')) {
                             this.executeFlyZap();
                         }
                     }
@@ -329,13 +330,15 @@
                             toast('💨 蒼蠅逃脫成功！', '電蚊拍電力耗盡，蒼蠅逃過一劫！');
                         }
                         if (typeof announceReferee === 'function') {
-                            announceReferee('💨 蒼蠅逃脫！', '電蚊拍電力耗盡，蒼蠅撿回一命！', false);
+                            announceReferee('💨 蒼蠅逃脫！', '電蚊拍電力耗盡，蒼蠅撿回一命！', true);
                         }
+                        this.clearPlayerBuff();
                         if (typeof freeze === 'function') freeze();
                         if (typeof state !== 'undefined') state = 'FAULT';
                         if (typeof later === 'function' && typeof resetServe === 'function') {
                             later(resetServe, 1800);
                         }
+                        return;
                     }
                     this.clearPlayerBuff();
                 }
@@ -387,6 +390,19 @@
                 }
             } else if (item.id === 'ELECTRIC_SWATTER') {
                 if (this.swatterSparkGroup) this.swatterSparkGroup.visible = true;
+                // ★ 立即解除任何鎖定與中斷，強行保證追殺暢行無阻！
+                if (typeof locked !== 'undefined') locked = false;
+                if (typeof state !== 'undefined' && state !== 'OVER') state = 'RALLY';
+                if (typeof clearTimers === 'function') clearTimers();
+                if (typeof S !== 'undefined' && S.tone) {
+                    S.tone('sawtooth', 220, 580, 0.35, 0.4);
+                }
+                if (typeof toast === 'function') {
+                    toast('⚡ 霹靂電蚊拍發動！全速衝鋒！', '不管球了！衝過網把那隻蒼蠅電爛才會贏！');
+                }
+                if (typeof announceReferee === 'function') {
+                    announceReferee('⚡ 進入追殺模式！', '衝過網電死蒼蠅才算贏！球落地不結算！', false);
+                }
             } else if (item.id === 'MEGA_BALL') {
                 if (typeof ball !== 'undefined') {
                     ball.scale.setScalar(2.8);
@@ -437,13 +453,12 @@
         // 當玩家揮動電蚊拍靠近蒼蠅時觸發電擊
         tryElectrocuteFly: function() {
             if (this.activeBuff !== 'ELECTRIC_SWATTER') return false;
-            if (typeof diffLevel === 'undefined' || diffLevel !== 'fly') return false;
-            if (typeof gGrp === 'undefined' || !gGrp) return false;
-            if (typeof pPos === 'undefined') return false;
+            const targetObj = (typeof gGrp !== 'undefined' && gGrp) ? gGrp.position : null;
+            if (!targetObj || typeof pPos === 'undefined') return false;
 
-            const dist = Math.hypot(pPos.x - gGrp.position.x, pPos.z - gGrp.position.z);
-            // 只要網前 2.5 米揮拍，直接電擊
-            if (dist < 2.6) {
+            const dist = Math.hypot(pPos.x - targetObj.x, pPos.z - targetObj.z);
+            // 只要 3.0 米揮拍或靠近，直接電擊
+            if (dist < 3.0) {
                 this.executeFlyZap();
                 return true;
             }
@@ -465,20 +480,22 @@
                 flyMesh.position.y = -0.55; // 墜地
             }
 
-            // 電擊音效
+            // 電擊音效與震撼
             if (typeof S !== 'undefined' && S.tone) {
                 S.tone('sawtooth', 180, 50, 0.45, 0.45);
                 S.tone('square', 880, 220, 0.25, 0.35);
             }
-            if (typeof addShake === 'function') addShake(0.25);
-            if (typeof popRing === 'function') {
-                popRing(gGrp.position.x, gGrp.position.z, 2.5, 0xa855f7);
+            if (typeof addShake === 'function') addShake(0.35);
+            if (typeof popRing === 'function' && typeof gGrp !== 'undefined' && gGrp) {
+                popRing(gGrp.position.x, gGrp.position.z, 2.8, 0xa855f7);
+                popRing(gGrp.position.x, gGrp.position.z, 3.8, 0x38bdf8);
             }
 
             // 示波器彩蛋：過載短路波形
-            if (typeof flySnn !== 'undefined' && flySnn && flySnn.gfVm !== undefined) {
-                flySnn.gfVm = 45.0; // 狂飆爆表
-                if (typeof snnCircuitStatusEl !== 'undefined' && snnCircuitStatusEl) {
+            if (window.FLY_BRAIN) {
+                if (window.FLY_BRAIN.gfVm !== undefined) window.FLY_BRAIN.gfVm = 48.0; // 狂飆爆表
+                const snnCircuitStatusEl = document.getElementById('fly-snn-status');
+                if (snnCircuitStatusEl) {
                     snnCircuitStatusEl.innerText = '⚡ OVERVOLTAGE / SHORT CIRCUIT (電蚊拍過載短路!)';
                     snnCircuitStatusEl.style.color = '#ef4444';
                 }
@@ -499,12 +516,23 @@
                 toast('⚡ 啪滋！電爆蒼蠅獲勝！', '衝過網電爛蒼蠅！不管球了，這分直接算你贏！');
             }
             if (typeof announceReferee === 'function') {
-                announceReferee('⚡ 電蚊拍大獲全勝！', '玩家衝過網電爆蒼蠅！直接獲得 1 分！', true);
+                announceReferee('⚡ 電蚊拍大獲全勝！', '衝過網電死蒼蠅！直接獲得 1 分！', false);
             }
 
             this.clearPlayerBuff();
 
             // 結算當前回合
+            const isMatch = (typeof stage !== 'undefined' && (stage === 4 || stage === 5));
+            if (isMatch && typeof serveSide !== 'undefined') {
+                serveSide *= -1;
+                if (typeof secondServe !== 'undefined') secondServe = false;
+            }
+            const goal = (typeof STAGES !== 'undefined' && STAGES[stage]) ? STAGES[stage].goal : 11;
+            if (typeof stage !== 'undefined' && (stage === 3 || stage === 4 || stage === 5) && pScore >= goal) {
+                if (typeof clearStage === 'function') clearStage();
+                return;
+            }
+
             if (typeof freeze === 'function') freeze();
             if (typeof state !== 'undefined') state = 'FAULT';
             if (typeof later === 'function' && typeof resetServe === 'function') {
@@ -547,8 +575,8 @@
             }
 
             if (typeof pPos !== 'undefined' && pPos.z < 0.3) {
-                pPos.z = 0.8;
-                if (typeof pGrp !== 'undefined') pGrp.position.z = 0.8;
+                pPos.z = 1.2;
+                if (typeof pGrp !== 'undefined') pGrp.position.z = 1.2;
             }
 
             this.activeBuff = null;
@@ -567,6 +595,7 @@
         },
 
         clearCourtItems: function() {
+            if (this.activeBuff === 'ELECTRIC_SWATTER') return;
             if (typeof scene !== 'undefined') {
                 for (const it of this.items) scene.remove(it);
             }

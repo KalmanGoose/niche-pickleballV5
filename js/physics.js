@@ -168,11 +168,15 @@
 
         function onNet() {
             if (demoOn) return;
+            // ★ 🍄 瘋狂道具戰：電蚊拍追殺模式下，球掛網完全不結算！必須衝過去電到蒼蠅才算贏！
+            if (typeof FunMode !== 'undefined' && FunMode.activeBuff === 'ELECTRIC_SWATTER') return;
             if (scoring()) endRally(lastHitter === 'GOOSE' ? 'PLAYER' : 'GOOSE', '掛網', '球沒過網');
             else fail('掛網', '擊球點再放低一點,往前送出去');
         }
         function onBounce() {
             if (demoOn) return;
+            // ★ 🍄 瘋狂道具戰：電蚊拍追殺模式下，球落地多次/出界不判定失誤！
+            if (typeof FunMode !== 'undefined' && FunMode.activeBuff === 'ELECTRIC_SWATTER') return;
             bounces++;
             const x = PH.pos.x, z = PH.pos.z;
             if (bounces === 1) {
@@ -195,6 +199,8 @@
         }
         function onDead() {
             if (demoOn) return;
+            // ★ 🍄 瘋狂道具戰：電蚊拍追殺模式下，死球不結算！
+            if (typeof FunMode !== 'undefined' && FunMode.activeBuff === 'ELECTRIC_SWATTER') return;
             if (scoring()) {
                 if (lastHitter === 'PLAYER' && PH.pos.z < 0) endRally('PLAYER', '得分', '球已停止');
                 else if (lastHitter === 'GOOSE' && PH.pos.z > 0) endRally('GOOSE', '失分', '球已停止');
@@ -202,6 +208,8 @@
             } else fail('球已停止', '按空白鍵重新開始');
         }
         function checkServeLanding(x, z) {
+            // ★ 🍄 瘋狂道具戰：電蚊拍追殺模式下，不判定發球落地
+            if (typeof FunMode !== 'undefined' && FunMode.activeBuff === 'ELECTRIC_SWATTER') return;
             if (lastHitter === 'PLAYER') {
                 if (z > -0.02) serveFail('發球太短', '沒過網,加大蓄力');
                 else if (z > -KITCHEN_D) serveFail('落入對面中興湖廚房', '落點圈必須越過廚房線');
@@ -221,6 +229,8 @@
             }
         }
         function onLegalServe() {
+            // ★ 🍄 瘋狂道具戰：電蚊拍追殺模式下，不執行換邊發球鎖定
+            if (typeof FunMode !== 'undefined' && FunMode.activeBuff === 'ELECTRIC_SWATTER') return;
             updateLastAuditOutcome('合法發球進區');
             if (stage !== 1) { toast('GOOD SERVE', '合法過網落地,進入對打'); return; }
             legalServes++; updateGoal();
@@ -231,6 +241,8 @@
             later(() => { locked = false; resetServe(); }, 1500);
         }
         function freeze() {
+            // ★ 🍄 瘋狂道具戰：電蚊拍追殺模式下，嚴禁 freeze 清除道具與阻斷追殺
+            if (typeof FunMode !== 'undefined' && FunMode.activeBuff === 'ELECTRIC_SWATTER') return;
             PH.vel.set(0, 0, 0);
             charging = false; power = 0; powerDir = 1;
             swingT = 0; pLock = 0; gLock = 0;
