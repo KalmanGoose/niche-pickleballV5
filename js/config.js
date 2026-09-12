@@ -564,6 +564,9 @@
             diffLevel = level;
             try { localStorage.setItem('nchu_pb_diff', level); } catch(e) {}
             syncDifficultyUI();
+            if (typeof FunMode !== 'undefined' && FunMode.onDifficultyChange) {
+                FunMode.onDifficultyChange(level);
+            }
             const msg = (level === 'fly') ? '🪰 仿生蒼蠅已上陣 (巨纖維反射/小球視盲)' : (DIFF_PRESETS[level].label + ' 已套用');
             toast('🤖 AI 對手模式', msg);
         }

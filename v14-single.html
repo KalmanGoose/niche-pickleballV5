@@ -5412,6 +5412,9 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
             diffLevel = level;
             try { localStorage.setItem('nchu_pb_diff', level); } catch(e) {}
             syncDifficultyUI();
+            if (typeof FunMode !== 'undefined' && FunMode.onDifficultyChange) {
+                FunMode.onDifficultyChange(level);
+            }
             const msg = (level === 'fly') ? '🪰 仿生蒼蠅已上陣 (巨纖維反射/小球視盲)' : (DIFF_PRESETS[level].label + ' 已套用');
             toast('🤖 AI 對手模式', msg);
         }
@@ -9382,11 +9385,13 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
         isStroking: false,
         questionBoxTex: null,  // 問號箱材質
         originalPadScale: 2.175,
+        pityNonSwatterCount: 0, // 保底計數器：連續未出現電蚊拍次數
+        hasSpawnedFirstFlyBox: false, // 蒼蠅模式首箱旗標
 
         // 道具清單定義
         ITEMS: [
-            { id: 'MEGA_PADDLE', name: '巨無霸球拍', icon: '🎾', color: '#facc15', dur: 4.5, desc: '球拍膨脹 2.8 倍，閉著眼睛都能接到！' },
-            { id: 'ELECTRIC_SWATTER', name: '霹靂電蚊拍', icon: '⚡', color: '#a855f7', dur: 7.5, desc: '不管球了！衝過網直接把蒼蠅電爛才會贏！' },
+            { id: 'MEGA_PADDLE', name: '巨無霸球拍', icon: '🎾', color: '#facc15', dur: 5.0, desc: '球拍膨脹 2.8 倍，閉著眼睛都能接到！' },
+            { id: 'ELECTRIC_SWATTER', name: '霹靂電蚊拍', icon: '⚡', color: '#a855f7', dur: 9.0, desc: '不管球了！衝過網直接把蒼蠅電爛才會贏！' },
             { id: 'MEGA_BALL', name: '巨無霸鐵球', icon: '💣', color: '#64748b', dur: 5.0, desc: '球體膨脹為 1 米巨鐵球，落地引發地震波！' },
             { id: 'GIANT_PLAYER', name: '超巨大化球員', icon: '🍄', color: '#ef4444', dur: 5.0, desc: '人偶體積放大 2 倍，無敵重扣覆蓋全場！' }
         ],
@@ -9397,10 +9402,14 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
             } catch (e) {
                 this.enabled = false;
             }
+            this.hasSpawnedFirstFlyBox = false;
+            this.pityNonSwatterCount = 0;
+            this.spawnCooldown = 1.0;
             this.buildQuestionBoxTexture();
             this.buildFlyHexaPaddles();
             this.buildSwatterSparks();
             this.syncUI();
+            this.bindDevShortcuts();
         },
 
         buildQuestionBoxTexture: function() {
@@ -9789,7 +9798,16 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
                 this.clearAll();
                 if (typeof toast === 'function') toast('🍄 道具戰已關閉', '已切換為正規匹克球模式');
             } else {
-                if (typeof toast === 'function') toast('🍄 瘋狂道具戰已啟動！', '球場隨機掉落問號箱，踩到自動啟動超能力！');
+                this.hasSpawnedFirstFlyBox = false;
+                this.pityNonSwatterCount = 0;
+                this.spawnCooldown = 0.8; // 開啟後 0.8 秒立刻掉出第一顆箱子！
+                const isFly = (typeof diffLevel !== 'undefined' && diffLevel === 'fly');
+                if (typeof toast === 'function') {
+                    toast(
+                        '🍄 瘋狂道具戰已啟動！',
+                        isFly ? '⚡ 蒼蠅模式鎖定電蚊拍高機率必出！踩中即可衝過網！' : '球場隨機掉落問號箱，踩到自動啟動超能力！'
+                    );
+                }
                 if (typeof S !== 'undefined' && S.tone) {
                     S.tone('triangle', 440, 880, 0.18, 0.25);
                 }
@@ -9815,13 +9833,73 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
             }
         },
 
-        spawnItemBox: function() {
-            if (typeof THREE === 'undefined' || typeof scene === 'undefined') return;
-            if (this.items.length >= 2) return;
+        onDifficultyChange: function(level) {
+            if (level === 'fly') {
+                this.hasSpawnedFirstFlyBox = false;
+                this.pityNonSwatterCount = 0;
+                if (this.items.length === 0) {
+                    this.spawnCooldown = 0.8;
+                }
+            }
+        },
 
-            // 隨機在玩家半場生成 (x: -2.1 ~ +2.1, z: 1.6 ~ 5.5)
-            const sx = (Math.random() - 0.5) * 4.2;
-            const sz = 1.6 + Math.random() * 3.8;
+        pickWeightedItem: function() {
+            const isFly = (typeof diffLevel !== 'undefined' && diffLevel === 'fly');
+            const swatterItem = this.ITEMS.find(i => i.id === 'ELECTRIC_SWATTER') || this.ITEMS[1];
+            const otherItems = this.ITEMS.filter(i => i.id !== 'ELECTRIC_SWATTER');
+
+            // 1. 果蠅模式 (diffLevel === 'fly')：首箱 100% 必出，後續超高機率 70% + 連續 1 顆未出必保底！
+            if (isFly) {
+                // 首顆箱子 100% 必出霹靂電蚊拍
+                if (!this.hasSpawnedFirstFlyBox) {
+                    this.hasSpawnedFirstFlyBox = true;
+                    this.pityNonSwatterCount = 0;
+                    return swatterItem;
+                }
+                // 保底機制：連續 1 顆未出電蚊拍，下一顆 100% 必出電蚊拍
+                if (this.pityNonSwatterCount >= 1) {
+                    this.pityNonSwatterCount = 0;
+                    return swatterItem;
+                }
+                // 70% 出電蚊拍，30% 出其他道具
+                if (Math.random() < 0.70) {
+                    this.pityNonSwatterCount = 0;
+                    return swatterItem;
+                } else {
+                    this.pityNonSwatterCount++;
+                    return otherItems[Math.floor(Math.random() * otherItems.length)];
+                }
+            }
+
+            // 2. 一般對手模式：保底與權重 (連續 2 顆未出電蚊拍則保底必出)
+            if (this.pityNonSwatterCount >= 2) {
+                this.pityNonSwatterCount = 0;
+                return swatterItem;
+            }
+            if (Math.random() < 0.40) {
+                this.pityNonSwatterCount = 0;
+                return swatterItem;
+            } else {
+                this.pityNonSwatterCount++;
+                return otherItems[Math.floor(Math.random() * otherItems.length)];
+            }
+        },
+
+        spawnItemBox: function(overrideType) {
+            if (typeof THREE === 'undefined' || typeof scene === 'undefined') return;
+            if (this.items.length >= 2 && !overrideType) return;
+
+            // 隨機在玩家半場生成
+            let sx, sz;
+            const isFly = (typeof diffLevel !== 'undefined' && diffLevel === 'fly');
+            if (!this.hasSpawnedFirstFlyBox && isFly) {
+                // 果蠅模式第一顆箱子出現在玩家正前偏中位置，讓玩家毫不費力踩到
+                sx = (Math.random() - 0.5) * 1.8;
+                sz = 3.2 + Math.random() * 1.4;
+            } else {
+                sx = (Math.random() - 0.5) * 3.6;
+                sz = 1.8 + Math.random() * 3.2;
+            }
 
             const boxGrp = new THREE.Group();
             boxGrp.position.set(sx, 0.55, sz);
@@ -9852,11 +9930,13 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
             floorRing.position.y = -0.53;
             boxGrp.add(floorRing);
 
+            const chosenType = overrideType ? (this.ITEMS.find(i => i.id === overrideType) || this.ITEMS[1]) : this.pickWeightedItem();
+
             boxGrp.userData = {
                 baseY: 0.55,
                 rotSpeed: 2.2 + Math.random() * 0.8,
                 bobPhase: Math.random() * Math.PI * 2,
-                itemType: this.ITEMS[Math.floor(Math.random() * this.ITEMS.length)]
+                itemType: chosenType
             };
 
             scene.add(boxGrp);
@@ -9872,12 +9952,13 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
 
             const now = performance.now() / 1000;
 
-            // 1. 道具箱生成計時器
+            // 1. 道具箱生成計時器 (在 SERVE_READY, SERVE_AIR 或 RALLY 都正常倒數與生成)
             this.spawnCooldown -= dt;
-            if (typeof state !== 'undefined' && state === 'RALLY') {
+            const canSpawnState = (typeof state !== 'undefined') ? (state === 'RALLY' || state === 'SERVE_READY' || state === 'SERVE_AIR') : true;
+            if (canSpawnState) {
                 if (this.spawnCooldown <= 0 && this.items.length < 2) {
                     this.spawnItemBox();
-                    this.spawnCooldown = 8.0 + Math.random() * 6.0; // 8~14秒生成一顆
+                    this.spawnCooldown = (this.items.length >= 1) ? (6.0 + Math.random() * 2.0) : (3.5 + Math.random() * 2.0);
                 }
             }
 
@@ -9887,13 +9968,14 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
                 it.rotation.y += it.userData.rotSpeed * dt;
                 it.position.y = it.userData.baseY + Math.sin(now * 3.5 + it.userData.bobPhase) * 0.12;
 
-                // 撿拾碰撞檢測 (玩家靠近至 0.85 米)
+                // 撿拾碰撞檢測 (半徑放寬至 1.05 米，操作更流暢)
                 if (typeof pPos !== 'undefined') {
                     const dist = Math.hypot(pPos.x - it.position.x, pPos.z - it.position.z);
-                    if (dist < 0.85) {
+                    if (dist < 1.05) {
                         this.triggerPickup(it.userData.itemType, it.position);
                         scene.remove(it);
                         this.items.splice(i, 1);
+                        this.spawnCooldown = Math.min(this.spawnCooldown, 3.0);
                     }
                 }
             }
@@ -10327,19 +10409,32 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
             this.flyBuffTimer = 0;
         },
 
-        clearCourtItems: function() {
-            if (this.activeBuff === 'ELECTRIC_SWATTER') return;
+        clearCourtItems: function(force) {
+            // 如果正在使用電蚊拍衝場電蒼蠅，絕不清除道具
+            if (this.activeBuff === 'ELECTRIC_SWATTER' && !force) return;
+
+            // 回合結束 (resetRally) 時，保留場上未拾取的道具箱！避免短回合直接把箱子吞掉
+            if (!force) {
+                // 如果場上空空如也，縮短冷卻，讓發球準備階段迅速掉落新道具箱
+                if (this.items.length === 0) {
+                    this.spawnCooldown = Math.min(this.spawnCooldown, 1.2);
+                }
+                return;
+            }
+
             if (typeof scene !== 'undefined') {
                 for (const it of this.items) scene.remove(it);
             }
             this.items = [];
-            this.spawnCooldown = 4.0;
+            this.spawnCooldown = 1.0;
         },
 
         clearAll: function() {
-            this.clearCourtItems();
+            this.clearCourtItems(true);
             this.clearPlayerBuff();
             this.clearFlyBuff();
+            this.hasSpawnedFirstFlyBox = false;
+            this.pityNonSwatterCount = 0;
             this.zapCombo = 0;
             this.zapCooldown = 0;
             this.isFaceOff = false;
@@ -10354,6 +10449,55 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
             }
             if (this.guidanceGroup) this.guidanceGroup.visible = false;
             this.hideGuideBanner();
+        },
+
+        forceItem: function(itemId) {
+            const item = this.ITEMS.find(i => i.id === itemId) || this.ITEMS.find(i => i.id === 'ELECTRIC_SWATTER');
+            if (item) {
+                const spawnPos = (typeof pPos !== 'undefined') ? pPos : { x: 0, y: 0.5, z: 4.0 };
+                this.triggerPickup(item, spawnPos);
+            }
+        },
+
+        bindDevShortcuts: function() {
+            if (typeof window === 'undefined') return;
+            window.giveSwatter = () => {
+                if (!this.enabled) this.toggle(true);
+                this.forceItem('ELECTRIC_SWATTER');
+            };
+            window.giveItem = (id) => {
+                if (!this.enabled) this.toggle(true);
+                this.forceItem(id || 'ELECTRIC_SWATTER');
+            };
+            window.spawnBox = (type) => {
+                if (!this.enabled) this.toggle(true);
+                this.spawnItemBox(type);
+            };
+
+            // 鍵盤 'E' 快捷鍵一鍵召喚電蚊拍 (若未聚焦在輸入框)
+            window.addEventListener('keydown', (e) => {
+                if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) return;
+                if (e.key === 'e' || e.key === 'E') {
+                    if (this.enabled) {
+                        this.forceItem('ELECTRIC_SWATTER');
+                    }
+                }
+            });
+
+            // 雙擊道具按鈕立即召喚電蚊拍
+            const bindBtn = (id) => {
+                const b = document.getElementById(id);
+                if (b) {
+                    b.addEventListener('dblclick', (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        if (!this.enabled) this.toggle(true);
+                        this.forceItem('ELECTRIC_SWATTER');
+                    });
+                }
+            };
+            bindBtn('nav-fun-btn');
+            bindBtn('subbar-fun-btn');
         },
 
         // ═══════ HUD 徽章顯示 ═══════
@@ -10396,6 +10540,14 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
 
     window.FunMode = FunMode;
     window.toggleFunMode = function(force) { FunMode.toggle(force); };
+    window.giveSwatter = function() {
+        if (!FunMode.enabled) FunMode.toggle(true);
+        FunMode.forceItem('ELECTRIC_SWATTER');
+    };
+    window.giveItem = function(id) {
+        if (!FunMode.enabled) FunMode.toggle(true);
+        FunMode.forceItem(id || 'ELECTRIC_SWATTER');
+    };
 
 })(typeof window !== 'undefined' ? window : this);
 
