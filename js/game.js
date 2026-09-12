@@ -1331,23 +1331,18 @@
         function updatePlayer(dt) {
             if (demoOn) return;
 
-            // ★ ⚡ 霹靂電蚊拍：超狂第一人稱 (FPS) 自動鎖定與觸控拖曳過網追殺 (Auto-Homing Rush & Touch Drag across the Net)
+            // ★ ⚡ 霹靂電蚊拍：第三人稱動態越肩自動鎖定與觸控拖曳過網追殺 (Third-Person Chase & Rush across the Net)
             const isHunting = (typeof FunMode !== 'undefined' && FunMode.activeBuff === 'ELECTRIC_SWATTER');
             if (isHunting) {
-                // 1. 設定第一人稱視角隱藏身體軀幹，僅保留手持之霹靂電蚊拍與右手臂
-                if (pTorso) pTorso.visible = false;
-                if (pLegs) pLegs.visible = false;
-                if (pHead) pHead.visible = false;
-                if (pLeftArm) pLeftArm.visible = false;
+                // 保持主角身體完整可見，展現衝鋒跨網奔跑英姿 (第三人稱動態越肩視角)
+                if (pTorso && !pTorso.visible) pTorso.visible = true;
+                if (pLegs && !pLegs.visible) pLegs.visible = true;
+                if (pHead && !pHead.visible) pHead.visible = true;
+                if (pLeftArm && !pLeftArm.visible) pLeftArm.visible = true;
 
                 const targetObj = (typeof gGrp !== 'undefined' && gGrp) ? gGrp.position : { x: 0, z: -HALF_L * 0.7 };
 
-                // 2. 檢測玩家是否正在觸控/拖曳螢幕 (直接把它拉去對手的場上！)
-                let targetX = targetObj.x;
-                let targetZ = targetObj.z;
-                let isDraggingToTarget = false;
-
-                // 2. 判斷是否已接近蒼蠅進入「近身對峙揮砍」模式 (distToFly <= 2.0m)
+                // 判斷是否已接近蒼蠅進入「近身對峙揮砍」模式 (distToFly <= 2.0m)
                 const distToFly = Math.hypot(pPos.x - targetObj.x, pPos.z - targetObj.z);
                 const isClose = (distToFly <= 2.0);
                 if (typeof FunMode !== 'undefined') {
@@ -1403,16 +1398,17 @@
 
                     pPos.x = THREE.MathUtils.clamp(pPos.x, -COURT_W / 2 - 0.7, COURT_W / 2 + 0.7);
                     pPos.z = THREE.MathUtils.clamp(pPos.z, -(HALF_L + 1.8), HALF_L + 1.6);
-                    pGrp.position.set(pPos.x, 0, pPos.z);
+                    const runBob = isClose ? 0 : Math.sin(performance.now() * 0.018) * 0.035;
+                    pGrp.position.set(pPos.x, runBob, pPos.z);
                 }
 
-                // 第一人稱手持電蚊拍姿勢：位於鏡頭右前下方
-                let padX = 0.26 + Math.sin(performance.now() * 0.01) * 0.03;
-                let padY = 1.12 + Math.sin(performance.now() * 0.015) * 0.04;
-                let padZ = -0.38;
-                let rotPitch = -0.35;
-                let rotYaw = 0;
-                let rotRoll = -padX * 0.6;
+                // 第三人稱手持電蚊拍姿勢：右手持拍向前微傾，電弧環繞
+                let padX = 0.35 + Math.sin(performance.now() * 0.014) * 0.03;
+                let padY = 0.96 + Math.sin(performance.now() * 0.018) * 0.03;
+                let padZ = -0.32;
+                let rotPitch = -0.25;
+                let rotYaw = -0.15;
+                let rotRoll = -0.20;
 
                 // 手勢揮砍動畫 (Slash Swat Animation)
                 if (typeof FunMode !== 'undefined' && FunMode.slashTimer > 0) {
@@ -1420,21 +1416,21 @@
                     const curve = Math.sin(phase * Math.PI); // 0 -> 1 -> 0
                     if (FunMode.slashDir === 'RIGHT') {
                         // 從左向右猛烈橫斬
-                        padX = 0.26 - 0.45 + curve * 0.90;
-                        padY = 1.12 - 0.15 + curve * 0.30;
-                        rotRoll += -0.8 + curve * 1.6;
-                        rotYaw += -0.6 + curve * 1.2;
+                        padX = 0.35 - 0.48 + curve * 1.05;
+                        padY = 0.96 - 0.12 + curve * 0.32;
+                        rotRoll += -0.7 + curve * 1.5;
+                        rotYaw += -0.5 + curve * 1.2;
                     } else if (FunMode.slashDir === 'LEFT') {
                         // 從右向左猛烈反斬
-                        padX = 0.26 + 0.45 - curve * 0.90;
-                        padY = 1.12 + 0.15 - curve * 0.30;
-                        rotRoll += 0.8 - curve * 1.6;
-                        rotYaw += 0.6 - curve * 1.2;
+                        padX = 0.35 + 0.48 - curve * 1.05;
+                        padY = 0.96 + 0.12 - curve * 0.32;
+                        rotRoll += 0.7 - curve * 1.5;
+                        rotYaw += 0.5 - curve * 1.2;
                     } else {
                         // 向上或向下劈砍
                         rotPitch += -curve * 1.1;
-                        padZ -= curve * 0.22;
-                        padY -= curve * 0.35;
+                        padZ -= curve * 0.30;
+                        padY -= curve * 0.38;
                     }
                 }
 
@@ -1442,9 +1438,12 @@
                 pPad.rotation.set(rotPitch, rotYaw, rotRoll);
                 pPad.getWorldPosition(padW);
                 limb(pArm, _b.set(0.24, 1.16, 0.02), _a.set(padX, padY - 0.17, padZ));
+                if (pLeftArm) {
+                    pLeftArm.rotation.x = isClose ? 0.2 : Math.sin(performance.now() * 0.016) * 0.45;
+                }
                 return;
             } else {
-                // 恢復第三人稱身體可見度
+                // 恢復正常身體可見度
                 if (pTorso && !pTorso.visible) pTorso.visible = true;
                 if (pLegs && !pLegs.visible) pLegs.visible = true;
                 if (pHead && !pHead.visible) pHead.visible = true;
@@ -2362,6 +2361,10 @@
         let camX = 0, last = performance.now();
         let loopFrameCount = 0;
         const camLookTarget = new THREE.Vector3(0, 0.85, 0.3);
+        const huntCamPos = new THREE.Vector3();
+        const huntCamLook = new THREE.Vector3();
+        let huntCamActive = false;
+        let huntReturnTimer = 0;
         let cachedMiniSpd = null, cachedMiniPwr = null;
 
         function loop() {
@@ -2422,25 +2425,56 @@
 
             const isHuntingCam = (typeof FunMode !== 'undefined' && FunMode.activeBuff === 'ELECTRIC_SWATTER');
             if (isHuntingCam) {
-                // ★ ⚡ 霹靂電蚊拍超刺激第一人稱 (FPS) 視角！
-                // 鏡頭位於玩家眼部高度 (1.40m)，視線筆直穿透球網直視逃竄的蒼蠅，極具臨場感！
-                cam.position.set(pPos.x + sx * 0.15, 1.40 + sy * 0.15, pPos.z - 0.12);
+                huntReturnTimer = 0.45; // 標記離開追殺時需平滑回航
                 const targetObj = (typeof gGrp !== 'undefined' && gGrp) ? gGrp.position : { x: 0, z: -HALF_L * 0.7 };
+                const desiredPos = new THREE.Vector3();
+                const desiredLook = new THREE.Vector3();
+
                 if (typeof FunMode !== 'undefined' && FunMode.isFaceOff) {
-                    // 近身對峙時：鏡頭牢牢盯死蒼蠅正中央，平視對決
-                    cam.lookAt(targetObj.x, 1.25, targetObj.z);
+                    // ★ 近身對峙階段：精準對決特寫 (舒適視角，鏡頭高度 2.05m、身後 2.7m，蒼蠅在中央優雅呈現，絕不爆炸貼臉)
+                    desiredPos.set(pPos.x * 0.45 + sx * 0.05, 2.05 + sy * 0.05, pPos.z + 2.7);
+                    desiredLook.set(targetObj.x, 1.25, targetObj.z);
                 } else {
-                    const lookZ = Math.min(pPos.z - 5.0, targetObj.z);
-                    cam.lookAt(targetObj.x * 0.35 + pPos.x * 0.65, 1.05, lookZ);
+                    // ★ 跨網衝鋒階段：第三人稱動態越肩追擊視角 (高度 3.25m、身後 4.2m，視野開闊清爽，清晰看清球網、地面跑道與前方蒼蠅)
+                    desiredPos.set(pPos.x * 0.55 + sx * 0.06, 3.25 + sy * 0.06, pPos.z + 4.2);
+                    const lookAheadZ = Math.min(pPos.z - 4.5, targetObj.z);
+                    desiredLook.set(targetObj.x * 0.35 + pPos.x * 0.65, 1.20, lookAheadZ);
                 }
+
+                if (!huntCamActive) {
+                    huntCamActive = true;
+                    huntCamPos.copy(cam.position);
+                    huntCamLook.set(camX * 0.25, 0.85, -0.4);
+                }
+
+                // 舒適平滑漸進 (Smooth Lerp，約 0.35 秒平順拉近，徹底告別貼臉爆衝感)
+                const lerpSpd = Math.min(1.0, dt * 7.5);
+                huntCamPos.lerp(desiredPos, lerpSpd);
+                huntCamLook.lerp(desiredLook, lerpSpd);
+
+                cam.position.copy(huntCamPos);
+                cam.lookAt(huntCamLook);
             } else if (camViewMode === 0) {
                 // ★ 智慧超感相機 (相機位置平滑追蹤)
                 const cfg = (typeof getResponsiveCameraConfig === 'function')
                     ? getResponsiveCameraConfig()
                     : { camH: 6.1, camDist: 11.5, lookY: 0.85, lookZ: -0.4, fov: 50 };
 
-                cam.position.set(camX * 0.4 + sx, cfg.camH + sy, cfg.camDist);
-                cam.lookAt(camX * 0.25, cfg.lookY, cfg.lookZ);
+                const normalTargetPos = new THREE.Vector3(camX * 0.4 + sx, cfg.camH + sy, cfg.camDist);
+                const normalTargetLook = new THREE.Vector3(camX * 0.25, cfg.lookY, cfg.lookZ);
+
+                if (huntReturnTimer > 0) {
+                    huntReturnTimer -= dt;
+                    // 從追殺鏡頭平滑退回到正常高空賽事視角
+                    const returnLerp = Math.min(1.0, dt * 5.5);
+                    cam.position.lerp(normalTargetPos, returnLerp);
+                    camLookTarget.lerp(normalTargetLook, returnLerp);
+                    cam.lookAt(camLookTarget);
+                } else {
+                    huntCamActive = false;
+                    cam.position.copy(normalTargetPos);
+                    cam.lookAt(normalTargetLook);
+                }
             } else if (camViewMode === 1) {
                 cam.position.set(sx, 14.5 + sy, 7.5);
                 cam.lookAt(0, 0, -1.0);

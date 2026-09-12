@@ -260,8 +260,8 @@
                 }
             }
 
-            let subText = '👆 手指按住往前拖曳 · 衝過球網逼近蒼蠅！';
-            let titleText = '⚡ 第一人稱狂暴衝鋒 · 跨網封印解除！ ⚡';
+            let subText = '👆 按住往前衝過球網 · 直搗對手半場抓蒼蠅！';
+            let titleText = '⚡ 狂暴追殺衝鋒 · 跨網封印解除！ ⚡';
 
             if (this.isFaceOff) {
                 if (combo === 0) {
