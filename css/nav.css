@@ -58,6 +58,8 @@
             border: 1px solid rgba(255, 255, 255, 0.22) !important;
             padding: 0 !important;
             margin-left: 2px !important;
+            margin-right: 4px !important;
+            flex-shrink: 0 !important;
             cursor: pointer !important;
             transition: all 0.18s ease !important;
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25) !important;

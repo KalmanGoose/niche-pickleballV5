@@ -1008,39 +1008,43 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
             <!-- 頂部精緻主選單 (#nav) -->
             <div id="nav" class="card">
                 <div class="nav-drag-handle" title="按住拖曳整組選單，雙擊重置回預設位置">⠿</div>
+                <button class="nav-min-btn" onclick="toggleNavMinimize(true)" title="收折最小化為懸浮球"><span class="nav-min-icon">−</span></button>
                 <button data-menu="settings" onclick="toggleNavMenu('settings')">⚙️ 設定 ▾</button>
                 <button data-menu="stage" onclick="toggleNavMenu('stage')">🎯 關卡 ▾</button>
                 <button data-menu="ai" onclick="toggleNavMenu('ai')">🤖 體感 ▾</button>
                 <button data-menu="fun" id="nav-fun-btn" onclick="toggleFunMode()" style="color:#fbbf24;">🍄 道具: <span id="nav-fun-lbl">關</span></button>
                 <button data-menu="social" onclick="openSocial()">🏆 社交</button>
                 <button data-menu="quit" onclick="forfeitMatch()" style="color:var(--bad);">🏳️ 棄賽</button>
-                <button class="nav-min-btn" onclick="toggleNavMinimize(true)" title="收折最小化為懸浮球"><span class="nav-min-icon">−</span></button>
             </div>
 
             <!-- ★ 二級下拉選單列 (#nav-subbar) -->
             <div id="nav-subbar" class="card">
-                <!-- 個人設定子排 (採用 3 大分類頁籤，杜絕無止盡橫向滾動) -->
+                <!-- 個人設定子排 (3 大清晰分類 + 快捷收合) -->
                 <div class="subbar-group" id="subbar-settings" style="display:none;flex-direction:column;gap:6px;width:100%;align-items:center;">
                     <!-- 分類頁籤按鈕 (Tabs) -->
-                    <div style="display:flex;gap:4px;background:rgba(255,255,255,0.06);padding:3px;border-radius:99px;max-width:100%;justify-content:center;">
-                        <button type="button" class="settings-tab-btn on" id="stab-btn-view" onclick="switchSettingsTab('view')">🎮 視角排版</button>
-                        <button type="button" class="settings-tab-btn" id="stab-btn-user" onclick="switchSettingsTab('user')">👤 個人輔助</button>
-                        <button type="button" class="settings-tab-btn" id="stab-btn-data" onclick="switchSettingsTab('data')">🤖 體感數據</button>
+                    <div style="display:flex;gap:4px;background:rgba(255,255,255,0.06);padding:3px;border-radius:99px;max-width:100%;justify-content:center;align-items:center;">
+                        <button type="button" class="settings-tab-btn on" id="stab-btn-view" onclick="switchSettingsTab('view')">🎮 視角畫面</button>
+                        <button type="button" class="settings-tab-btn" id="stab-btn-control" onclick="switchSettingsTab('control')">🕹️ 操作手感</button>
+                        <button type="button" class="settings-tab-btn" id="stab-btn-system" onclick="switchSettingsTab('system')">⚙️ 系統偏好</button>
+                        <button type="button" onclick="toggleNavMenu('settings')" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.18);padding:3px 8px;border-radius:99px;font-size:11px;color:var(--dim);cursor:pointer;" title="收折設定選單">✕</button>
                     </div>
 
-                    <!-- 分類 1: 視角排版 (精簡按鈕 + 緊湊難度微型子排) -->
-                    <div id="stab-pane-view" class="settings-tab-pane" style="display:flex;flex-direction:column;gap:6px;width:100%;align-items:center;">
+                    <!-- 分類 1: 視角與畫面 (純粹視覺排版) -->
+                    <div id="stab-pane-view" class="settings-tab-pane" style="display:flex;gap:4px;flex-wrap:wrap;justify-content:center;width:100%;">
+                        <button onclick="cycleCamView()">🙈 切換視角</button>
+                        <button onclick="enterCamEdit()" style="color:var(--accent);">🎨 自訂視角</button>
+                        <button onclick="cycleCardScaleQuick()" style="color:var(--cool);">📐 卡片: <span id="quick-scale-lbl">100%</span></button>
+                        <button onclick="cycleRefereeModeQuick()" style="color:var(--lime);">📢 轉播: <span id="ref-mode-lbl">電視條</span></button>
+                    </div>
+
+                    <!-- 分類 2: 操作與手感 (手感靈敏度、物理模擬與AI對戰難度) -->
+                    <div id="stab-pane-control" class="settings-tab-pane" style="display:none;flex-direction:column;gap:6px;width:100%;align-items:center;">
                         <div style="display:flex;gap:4px;flex-wrap:wrap;justify-content:center;">
-                            <button onclick="cycleCamView()">🙈 切換視角</button>
-                            <button onclick="enterCamEdit()" style="color:var(--accent);">🎨 自訂視角</button>
-                            <button onclick="cycleCardScaleQuick()" style="color:var(--cool);">📐 卡片: <span id="quick-scale-lbl">100%</span></button>
-                            <button onclick="cycleRefereeModeQuick()" style="color:var(--lime);">📢 轉播: <span id="ref-mode-lbl">電視條</span></button>
                             <button onclick="cycleJoySpeedQuick()" style="color:var(--ok);">🕹️ 搖桿: <span id="joy-speed-lbl">標準</span></button>
                             <button onclick="togglePhysicsMode()" style="color:#c7d2fe;">🌪️ 物理: <span id="physics-mode-pill">⚡ 極速</span></button>
-                            <button id="subbar-fun-btn" onclick="toggleFunMode()" style="color:#fbbf24;">🍄 道具戰: <span id="subbar-fun-lbl">關</span></button>
-                            <button id="subbar-cards-btn" onclick="openItemCardsModal()" style="color:#f59e0b;font-weight:700;">🃏 道具卡包</button>
+                            <button onclick="showFingerTutorial()" style="color:var(--ok);">👆 揮拍教學</button>
                         </div>
-                        <!-- 難度快速切換列 (初階/中等/困難/仿生蒼蠅) -->
+                        <!-- 難度快速切換列 -->
                         <div style="display:flex;align-items:center;gap:4px;border-top:1px solid rgba(255,255,255,0.08);padding-top:5px;width:100%;justify-content:center;">
                             <span style="font-size:10px;font-weight:800;color:var(--dim);white-space:nowrap;">🤖 AI 難度:</span>
                             <button class="diff-btn on" data-diff="easy" onclick="setDifficulty('easy')">🟢 初階</button>
@@ -1050,20 +1054,15 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
                         </div>
                     </div>
 
-                    <!-- 分類 2: 個人輔助 -->
-                    <div id="stab-pane-user" class="settings-tab-pane" style="display:none;gap:4px;flex-wrap:wrap;justify-content:center;">
+                    <!-- 分類 3: 系統偏好與文獻手冊 -->
+                    <div id="stab-pane-system" class="settings-tab-pane" style="display:none;gap:4px;flex-wrap:wrap;justify-content:center;width:100%;">
                         <button onclick="openProfileModal()">👤 個人檔案</button>
                         <button onclick="openAudioModal()">🎶 音效語音</button>
-                        <button onclick="openRulesModal('rules')" style="color:var(--lime);">📖 競賽與物理手冊</button>
-                        <button onclick="showFingerTutorial()" style="color:var(--ok);">👆 揮拍教學</button>
-                    </div>
-
-                    <!-- 分類 3: 體感數據 -->
-                    <div id="stab-pane-data" class="settings-tab-pane" style="display:none;gap:4px;flex-wrap:wrap;justify-content:center;">
-                        <button onclick="startSpotlightTour(true)">✨ 互動導覽</button>
-                        <button onclick="openAuditModal()" style="color:var(--accent);">📋 審計日誌</button>
+                        <button onclick="openRulesModal('rules')" style="color:var(--lime);">📖 競賽規則手冊</button>
+                        <button onclick="openRulesModal('physics')" style="color:var(--cool);">🌪️ 旋球物理文獻</button>
+                        <button onclick="startSpotlightTour(true)">✨ 介面導覽</button>
+                        <button onclick="openAuditModal()" style="color:var(--accent);">📋 物理日誌</button>
                         <button onclick="syncDigitalTwin()" style="color:var(--ok);">🤖 數位孿生</button>
-                        <button onclick="openRulesModal('physics')" style="color:var(--lime);">🌪️ 旋球物理文獻</button>
                     </div>
                 </div>
 

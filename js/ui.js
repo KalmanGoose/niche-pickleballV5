@@ -252,9 +252,9 @@
             if (typeof syncJoySpeedUI === 'function') syncJoySpeedUI();
         }
 
-        /* ── 個人設定子分類頁籤切換 ── */
+        /* ── 個人設定子分類頁籤切換 (3 大清晰分類) ── */
         function switchSettingsTab(tab) {
-            const tabs = ['view', 'user', 'data'];
+            const tabs = ['view', 'control', 'system'];
             tabs.forEach(t => {
                 const btn = document.getElementById(`stab-btn-${t}`);
                 const pane = document.getElementById(`stab-pane-${t}`);
@@ -354,14 +354,140 @@
             }
         };
 
+        // 🌟 全域 HUD 層級管理器 (保證最後被點擊/拖曳者永遠在最頂層)
+        let _globalHudZIndex = 50;
+        window.getNextHudZIndex = function () {
+            return ++_globalHudZIndex;
+        };
+
+        /**
+         * 🧩 智慧 HUD 模組防重疊避讓與安全停靠系統 (Anti-Overlap Collision Avoidance)
+         * 當任一模組被拖曳移動後，自動偵測並避讓其他可見浮動模組，絕不堆疊覆蓋
+         */
+        window.resolveHudOverlap = function (targetEl) {
+            if (!targetEl) return false;
+            const winW = window.innerWidth;
+            const winH = window.innerHeight;
+            const margin = 8;
+            const gap = 10; // 模組之間的舒適間距
+
+            const hudSelectors = ['.hud-draggable', '#nav-wrapper', '#info', '#board', '#speed-hud-mini', '#fly-snn-hud', '#fun-item-hud'];
+            const allHudElements = Array.from(new Set(
+                Array.from(document.querySelectorAll(hudSelectors.join(',')))
+            )).filter(el => {
+                if (!el || el === targetEl) return false;
+                if (el.offsetParent === null && el.style.display === 'none') return false;
+                const style = window.getComputedStyle(el);
+                if (style.display === 'none' || style.visibility === 'hidden' || parseFloat(style.opacity) === 0) return false;
+                const r = el.getBoundingClientRect();
+                return r.width > 0 && r.height > 0;
+            });
+
+            let hasAdjusted = false;
+            // 最多 4 輪迭代檢查重疊，防止鏈式碰撞引發無限迴圈
+            for (let iter = 0; iter < 4; iter++) {
+                const tRect = targetEl.getBoundingClientRect();
+                let collisionFound = false;
+
+                for (const other of allHudElements) {
+                    const oRect = other.getBoundingClientRect();
+
+                    // AABB 碰撞偵測 (加間距 gap)
+                    const overlapX = Math.min(tRect.right, oRect.right) - Math.max(tRect.left, oRect.left);
+                    const overlapY = Math.min(tRect.bottom, oRect.bottom) - Math.max(tRect.top, oRect.top);
+
+                    if (overlapX > 0 && overlapY > 0) {
+                        collisionFound = true;
+                        hasAdjusted = true;
+
+                        // 4 個鄰近避開候選點 (下方、右方、左方、上方)
+                        const candidates = [
+                            // 1. 停靠在下方 (最自然習慣)
+                            {
+                                top: oRect.bottom + gap,
+                                left: Math.max(margin, Math.min(winW - tRect.width - margin, tRect.left)),
+                                dist: Math.abs((oRect.bottom + gap) - tRect.top),
+                                valid: (oRect.bottom + gap + tRect.height) <= (winH - margin)
+                            },
+                            // 2. 停靠在右方
+                            {
+                                top: Math.max(margin, Math.min(winH - tRect.height - margin, tRect.top)),
+                                left: oRect.right + gap,
+                                dist: Math.abs((oRect.right + gap) - tRect.left),
+                                valid: (oRect.right + gap + tRect.width) <= (winW - margin)
+                            },
+                            // 3. 停靠在左方
+                            {
+                                top: Math.max(margin, Math.min(winH - tRect.height - margin, tRect.top)),
+                                left: oRect.left - tRect.width - gap,
+                                dist: Math.abs((oRect.left - tRect.width - gap) - tRect.left),
+                                valid: (oRect.left - tRect.width - gap) >= margin
+                            },
+                            // 4. 停靠在上方
+                            {
+                                top: oRect.top - tRect.height - gap,
+                                left: Math.max(margin, Math.min(winW - tRect.width - margin, tRect.left)),
+                                dist: Math.abs((oRect.top - tRect.height - gap) - tRect.top),
+                                valid: (oRect.top - tRect.height - gap) >= margin
+                            }
+                        ];
+
+                        const validOnes = candidates.filter(c => c.valid);
+                        let chosen = null;
+                        if (validOnes.length > 0) {
+                            validOnes.sort((a, b) => a.dist - b.dist);
+                            chosen = validOnes[0];
+                        } else {
+                            candidates.sort((a, b) => a.dist - b.dist);
+                            chosen = candidates[0];
+                        }
+
+                        if (chosen) {
+                            // 柔和過渡動畫平滑歸位
+                            targetEl.style.transition = 'left 0.22s cubic-bezier(0.2, 0.8, 0.2, 1), top 0.22s cubic-bezier(0.2, 0.8, 0.2, 1)';
+                            targetEl.style.left = chosen.left + 'px';
+                            targetEl.style.top = chosen.top + 'px';
+                            targetEl.style.right = 'auto';
+                            targetEl.style.bottom = 'auto';
+                            setTimeout(() => {
+                                if (targetEl) targetEl.style.transition = '';
+                            }, 250);
+                        }
+                        break;
+                    }
+                }
+                if (!collisionFound) break;
+            }
+
+            window.clampHudElement(targetEl);
+            return hasAdjusted;
+        };
+
+        /**
+         * 🧩 全域巡檢並解開所有浮動模組重疊
+         */
+        window.resolveAllHudOverlaps = function () {
+            const ids = ['info', 'board', 'nav-wrapper', 'speed-hud-mini', 'fly-snn-hud', 'fun-item-hud'];
+            ids.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) {
+                    window.clampHudElement(el);
+                    window.resolveHudOverlap(el);
+                }
+            });
+        };
+
         /**
          * 🛡️ 全域巡檢並回彈所有浮動 HUD
          */
         window.clampAllHuds = function () {
-            const ids = ['info', 'board', 'fly-snn-hud', 'nav-wrapper', 'fun-item-hud'];
+            const ids = ['info', 'board', 'fly-snn-hud', 'nav-wrapper', 'fun-item-hud', 'speed-hud-mini'];
             ids.forEach(id => {
                 const el = document.getElementById(id);
-                if (el) window.clampHudElement(el);
+                if (el) {
+                    window.clampHudElement(el);
+                    window.resolveHudOverlap(el);
+                }
             });
         };
 
@@ -406,7 +532,10 @@
                             if (p.transform) el.style.transform = p.transform;
                             else el.style.transform = 'none';
 
-                            requestAnimationFrame(() => window.clampHudElement(el));
+                            requestAnimationFrame(() => {
+                                window.clampHudElement(el);
+                                window.resolveHudOverlap(el);
+                            });
                         }
                     }
                 } catch (_) {}
@@ -438,6 +567,7 @@
                 el.style.top = initTop + 'px';
                 el.style.right = 'auto';
                 el.style.bottom = 'auto';
+                el.style.zIndex = '9999';
                 el.classList.add('hud-dragging');
 
                 try { dragTrigger.setPointerCapture(e.pointerId); } catch (_) {}
@@ -475,20 +605,32 @@
                 if (!isDragging) return;
                 isDragging = false;
                 el.classList.remove('hud-dragging');
+                el.style.zIndex = String(window.getNextHudZIndex());
                 try { dragTrigger.releasePointerCapture(e.pointerId); } catch (_) {}
 
                 const now = Date.now();
                 if (hasMoved) {
+                    // 若進行了拖曳，阻斷其後的 click 事件防止誤觸內嵌按鈕
+                    const killClick = (ev) => {
+                        ev.stopPropagation();
+                        ev.preventDefault();
+                    };
+                    window.addEventListener('click', killClick, { capture: true, once: true });
+                    setTimeout(() => window.removeEventListener('click', killClick, { capture: true }), 160);
+
+                    // 智慧防重疊避讓與邊界防爆框
+                    window.resolveHudOverlap(el);
                     window.clampHudElement(el);
+
                     const curLeft = parseFloat(el.style.left);
                     const curTop = parseFloat(el.style.top);
-                    if (storageKey) {
+                    if (storageKey && !isNaN(curLeft) && !isNaN(curTop)) {
                         try {
-                            localStorage.setItem(storageKey, JSON.stringify({ left: curLeft, top: curTop }));
+                            localStorage.setItem(storageKey, JSON.stringify({ left: Math.round(curLeft), top: Math.round(curTop) }));
                         } catch (_) {}
                     }
                     if (typeof toast === 'function') {
-                        toast(`📍 ${name}位置已記憶`, '已放置於自訂畫面位置');
+                        toast(`📍 ${name}位置已就緒`, '自動避讓重疊並記憶位置');
                     }
                 } else {
                     // 雙擊 / 雙點擊判定 (320ms 內連續輕點重置位置)
@@ -580,7 +722,6 @@
             const wrapper = document.getElementById('nav-wrapper');
             const handle = document.querySelector('.nav-drag-handle');
             const pill = document.getElementById('nav-minimized-pill');
-            const nav = document.getElementById('nav');
             if (!wrapper) return;
 
             // 讀取上次記憶的位置 (防卡死與邊界守護)
@@ -598,7 +739,10 @@
                         wrapper.style.left = pos.left + 'px';
                         wrapper.style.top = pos.top + 'px';
                         wrapper.style.transform = 'none';
-                        requestAnimationFrame(() => window.clampHudElement(wrapper));
+                        requestAnimationFrame(() => {
+                            window.clampHudElement(wrapper);
+                            window.resolveHudOverlap(wrapper);
+                        });
                     }
                 }
                 const savedMin = localStorage.getItem('nchu_nav_minimized');
@@ -631,6 +775,7 @@
                     wrapper.style.transform = 'none';
                     wrapper.style.left = initLeft + 'px';
                     wrapper.style.top = initTop + 'px';
+                    wrapper.style.zIndex = '9999';
 
                     try { el.setPointerCapture(e.pointerId); } catch (err) {}
                     e.stopPropagation();
@@ -661,14 +806,17 @@
                 const endDrag = (e) => {
                     if (!dragging) return;
                     dragging = false;
+                    wrapper.style.zIndex = String(window.getNextHudZIndex());
                     try { el.releasePointerCapture(e.pointerId); } catch (err) {}
 
                     const now = Date.now();
                     if (hasMoved) {
+                        // 拖曳結束：防重疊避讓與邊界防爆框
+                        window.resolveHudOverlap(wrapper);
                         window.clampHudElement(wrapper);
                         const rect = wrapper.getBoundingClientRect();
                         try {
-                            localStorage.setItem('nchu_nav_pos', JSON.stringify({ left: rect.left, top: rect.top }));
+                            localStorage.setItem('nchu_nav_pos', JSON.stringify({ left: Math.round(rect.left), top: Math.round(rect.top) }));
                         } catch (err) {}
                     } else {
                         // 雙擊 / 雙點擊判定 (320ms 內連續點擊拖曳手柄或懸浮球重置位置)
@@ -695,9 +843,31 @@
                 });
             }
 
+            // 僅由拖曳手柄與懸浮球負責位移，選單卡片本體維持原生水平滑動與點擊，絕不衝突
             bindDrag(handle, false);
             bindDrag(pill, true);
-            if (nav) bindDrag(nav, false);
+        };
+
+        /* ── 球速指示微型膠囊 (#speed-hud-mini) 直接拖曳與防重疊支援 ── */
+        window.initSpeedHudDrag = function () {
+            const speedHud = document.getElementById('speed-hud-mini');
+            if (!speedHud || speedHud._hudDragInit) return;
+            speedHud._hudDragInit = true;
+
+            window.makeHudDraggable(speedHud, {
+                storageKey: 'nchu_speed_pos',
+                name: '球速指示膠囊',
+                onTap: () => {
+                    if (typeof toggleBottomCollapse === 'function') toggleBottomCollapse();
+                },
+                defaultStyles: {
+                    bottom: 'calc(14px + env(safe-area-inset-bottom))',
+                    right: 'calc(14px + env(safe-area-inset-right))',
+                    left: 'auto',
+                    top: 'auto',
+                    transform: 'none'
+                }
+            });
         };
 
         function resetNavPosition() {
@@ -710,18 +880,22 @@
             if (typeof toast === 'function') toast('🔄 選單位置已重置', '已還原至預設頂部置中位置');
         }
 
-        // 自動初始化 HUD 拖曳
+        // 自動初始化所有 HUD 拖曳與防重疊避讓
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', () => {
                 window.initInfoDrag();
                 window.initBoardDrag();
                 window.initNavDrag();
+                window.initSpeedHudDrag();
+                setTimeout(window.resolveAllHudOverlaps, 150);
             });
         } else {
             setTimeout(() => {
                 window.initInfoDrag();
                 window.initBoardDrag();
                 window.initNavDrag();
+                window.initSpeedHudDrag();
+                setTimeout(window.resolveAllHudOverlaps, 150);
             }, 50);
         }
 
@@ -918,114 +1092,15 @@
         }
 
         /* ═══════════════════════════════════════════════
-           ★ v5.0.3: 輕量化純觸控/滑鼠長按可拖曳 HUD 系統 (Zero Engine Overhead)
+           ★ v5.0.14: 全域整合至 makeHudDraggable 與智慧防重疊避讓體系 (Zero Conflict)
            ═══════════════════════════════════════════════ */
         function initDraggableHUD() {
-            const STORAGE_KEY = 'nchu_pb_hud_positions';
-            let savedPositions = {};
-            try {
-                savedPositions = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
-            } catch(e) {}
-
-            let activeDrag = null;
-
-            function makeDraggable(el, id) {
-                if (!el) return;
-                el.classList.add('hud-draggable');
-
-                // 載入並校驗儲存位置 (防止超出目前解析度)
-                if (savedPositions[id]) {
-                    const { left, top } = savedPositions[id];
-                    const maxL = window.innerWidth - 60;
-                    const maxT = window.innerHeight - 50;
-                    if (left >= 0 && left < maxL && top >= 0 && top < maxT) {
-                        el.style.left = left + 'px';
-                        el.style.top = top + 'px';
-                        el.style.right = 'auto';
-                        el.style.bottom = 'auto';
-                    }
-                }
-
-                let pressTimer = null;
-                let isDragging = false;
-                let startX = 0, startY = 0;
-                let elemInitL = 0, elemInitT = 0;
-
-                const startPress = (clientX, clientY) => {
-                    const rect = el.getBoundingClientRect();
-                    elemInitL = rect.left;
-                    elemInitT = rect.top;
-                    startX = clientX;
-                    startY = clientY;
-
-                    pressTimer = setTimeout(() => {
-                        isDragging = true;
-                        el.classList.add('hud-dragging');
-                        if (navigator.vibrate) navigator.vibrate(28);
-                    }, 360); // 360ms 長按判定觸發拖曳
-
-                    activeDrag = {
-                        doMove: (clientX, clientY) => {
-                            if (!isDragging) {
-                                if (Math.hypot(clientX - startX, clientY - startY) > 8) {
-                                    clearTimeout(pressTimer);
-                                }
-                                return;
-                            }
-                            const dx = clientX - startX;
-                            const dy = clientY - startY;
-                            const newL = Math.max(8, Math.min(window.innerWidth - el.offsetWidth - 8, elemInitL + dx));
-                            const newT = Math.max(8, Math.min(window.innerHeight - el.offsetHeight - 8, elemInitT + dy));
-                            el.style.left = newL + 'px';
-                            el.style.top = newT + 'px';
-                            el.style.right = 'auto';
-                            el.style.bottom = 'auto';
-                        },
-                        endPress: () => {
-                            clearTimeout(pressTimer);
-                            if (isDragging) {
-                                isDragging = false;
-                                el.classList.remove('hud-dragging');
-                                const rect = el.getBoundingClientRect();
-                                savedPositions[id] = { left: Math.round(rect.left), top: Math.round(rect.top) };
-                                try { localStorage.setItem(STORAGE_KEY, JSON.stringify(savedPositions)); } catch(e) {}
-                            }
-                            activeDrag = null;
-                        },
-                        isDragging: () => isDragging
-                    };
-                };
-
-                // 行動端觸控事件
-                el.addEventListener('touchstart', (e) => {
-                    if (e.touches.length !== 1) return;
-                    if (e.target.tagName === 'BUTTON' || e.target.tagName === 'A' || e.target.classList.contains('info-toggle-btn')) return;
-                    startPress(e.touches[0].clientX, e.touches[0].clientY);
-                }, { passive: true });
-
-                // 桌機端滑鼠事件
-                el.addEventListener('mousedown', (e) => {
-                    if (e.button !== 0) return;
-                    if (e.target.tagName === 'BUTTON' || e.target.tagName === 'A' || e.target.classList.contains('info-toggle-btn')) return;
-                    startPress(e.clientX, e.clientY);
-                });
+            if (typeof window.initSpeedHudDrag === 'function') {
+                window.initSpeedHudDrag();
             }
-
-            // 單一全域視窗監聽，杜絕重複綁定與記憶體洩漏
-            window.addEventListener('touchmove', (e) => {
-                if (activeDrag && e.touches.length === 1) {
-                    if (activeDrag.isDragging()) e.preventDefault();
-                    activeDrag.doMove(e.touches[0].clientX, e.touches[0].clientY);
-                }
-            }, { passive: false });
-
-            window.addEventListener('touchend', () => { if (activeDrag) activeDrag.endPress(); }, { passive: true });
-            window.addEventListener('touchcancel', () => { if (activeDrag) activeDrag.endPress(); }, { passive: true });
-            window.addEventListener('mousemove', (e) => { if (activeDrag) activeDrag.doMove(e.clientX, e.clientY); });
-            window.addEventListener('mouseup', () => { if (activeDrag) activeDrag.endPress(); });
-
-            makeDraggable(document.getElementById('info'), 'info');
-            makeDraggable(document.getElementById('speed-hud-mini'), 'speed_hud');
+            if (typeof window.resolveAllHudOverlaps === 'function') {
+                window.resolveAllHudOverlaps();
+            }
         }
         function setupJoystick() {
             const jc = document.getElementById('joy'), nub = document.getElementById('nub');

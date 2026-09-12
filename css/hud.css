@@ -1194,15 +1194,15 @@
 /* ── 速度膠囊、難度按鈕與 HUD 拖曳手勢效果 ── */
         /* 速度膠囊 Tabular Nums 防跳字與 Safe Area 適配 - ★ v5.0.3 修復重疊: 手機版預設置於右下角，避開左下角虛擬搖桿 */
         #speed-hud-mini {
-            bottom: calc(14px + env(safe-area-inset-bottom)) !important;
-            right: calc(14px + env(safe-area-inset-right)) !important;
-            left: auto !important;
+            bottom: calc(14px + env(safe-area-inset-bottom));
+            right: calc(14px + env(safe-area-inset-right));
+            left: auto;
             font-variant-numeric: tabular-nums;
         }
         @media (min-width: 821px) {
             #speed-hud-mini {
-                left: calc(14px + env(safe-area-inset-left)) !important;
-                right: auto !important;
+                left: calc(14px + env(safe-area-inset-left));
+                right: auto;
             }
         }
 
