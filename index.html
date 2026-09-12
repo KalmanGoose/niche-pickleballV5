@@ -2996,9 +2996,9 @@
             transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.35s ease;
         }
         #bottom.collapsed {
-            transform: translateY(calc(100% + 24px));
-            opacity: 0;
-            pointer-events: none;
+            transform: translate(-50%, calc(100% + 35px)) !important;
+            opacity: 0 !important;
+            pointer-events: none !important;
         }
 
         #speed-hud-mini {
@@ -3573,7 +3573,7 @@
         <span id="mini-spd-val">0.0 mph</span>
         <span style="color:var(--dim);">|</span>
         <span style="color:var(--ok);">⚡ <span id="mini-pwr-val">0%</span></span>
-        <span id="mini-toggle-icon" style="font-size:10px;color:var(--dim);margin-left:2px;">▾</span>
+        <span id="mini-toggle-icon" style="font-size:10px;color:var(--dim);margin-left:2px;">▸</span>
     </div>
 
     <!-- ══════ 好友個人名片與特徵雷達圖 ══════ -->
@@ -4404,7 +4404,7 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
         </div>
         <div id="demo-watermark" style="display:none;">🤖 電腦動作示範中 (DEMO)</div>
 
-        <div id="bottom">
+        <div id="bottom" class="collapsed">
             <div id="meter" class="card">
                 <div id="m-top"><span>Ball Speed</span><b><span id="sp">0.0</span> mph</b></div>
                 <div id="p-track">
@@ -8768,12 +8768,17 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
             else el.classList.remove('collapsed');
         }
 
-        let bottomCollapsed = false;
-        function toggleBottomCollapse() {
+        // ★ 預設收合底端操作面板 (保留視野乾淨清爽)
+        let bottomCollapsed = true;
+        try {
+            const savedBottom = localStorage.getItem('nchu_pb_bottom_collapsed');
+            if (savedBottom !== null) bottomCollapsed = (savedBottom === 'true');
+        } catch(e) {}
+
+        function syncBottomCollapseUI() {
             const el = document.getElementById('bottom');
             const icon = document.getElementById('mini-toggle-icon');
             if (!el) return;
-            bottomCollapsed = !bottomCollapsed;
             if (bottomCollapsed) {
                 el.classList.add('collapsed');
                 if (icon) icon.innerText = '▸';
@@ -8781,6 +8786,12 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
                 el.classList.remove('collapsed');
                 if (icon) icon.innerText = '▾';
             }
+        }
+
+        function toggleBottomCollapse() {
+            bottomCollapsed = !bottomCollapsed;
+            try { localStorage.setItem('nchu_pb_bottom_collapsed', bottomCollapsed); } catch(e) {}
+            syncBottomCollapseUI();
         }
 
         function toggleKeysCollapse() {
@@ -10281,6 +10292,7 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
         applyPerfPreset(perfLevel);
         syncPerfButtons();
         syncAimPips();
+        syncBottomCollapseUI();
         if (typeof syncJoySpeedUI === 'function') syncJoySpeedUI();
         updateCamEditUI();
         loop();

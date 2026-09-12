@@ -723,12 +723,17 @@
             else el.classList.remove('collapsed');
         }
 
-        let bottomCollapsed = false;
-        function toggleBottomCollapse() {
+        // ★ 預設收合底端操作面板 (保留視野乾淨清爽)
+        let bottomCollapsed = true;
+        try {
+            const savedBottom = localStorage.getItem('nchu_pb_bottom_collapsed');
+            if (savedBottom !== null) bottomCollapsed = (savedBottom === 'true');
+        } catch(e) {}
+
+        function syncBottomCollapseUI() {
             const el = document.getElementById('bottom');
             const icon = document.getElementById('mini-toggle-icon');
             if (!el) return;
-            bottomCollapsed = !bottomCollapsed;
             if (bottomCollapsed) {
                 el.classList.add('collapsed');
                 if (icon) icon.innerText = '▸';
@@ -736,6 +741,12 @@
                 el.classList.remove('collapsed');
                 if (icon) icon.innerText = '▾';
             }
+        }
+
+        function toggleBottomCollapse() {
+            bottomCollapsed = !bottomCollapsed;
+            try { localStorage.setItem('nchu_pb_bottom_collapsed', bottomCollapsed); } catch(e) {}
+            syncBottomCollapseUI();
         }
 
         function toggleKeysCollapse() {
@@ -2236,6 +2247,7 @@
         applyPerfPreset(perfLevel);
         syncPerfButtons();
         syncAimPips();
+        syncBottomCollapseUI();
         if (typeof syncJoySpeedUI === 'function') syncJoySpeedUI();
         updateCamEditUI();
         loop();

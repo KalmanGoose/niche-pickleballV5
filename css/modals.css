@@ -732,9 +732,9 @@
             transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.35s ease;
         }
         #bottom.collapsed {
-            transform: translateY(calc(100% + 24px));
-            opacity: 0;
-            pointer-events: none;
+            transform: translate(-50%, calc(100% + 35px)) !important;
+            opacity: 0 !important;
+            pointer-events: none !important;
         }
 
         #speed-hud-mini {
