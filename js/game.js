@@ -735,13 +735,8 @@
             if (l2Twin) l2Twin.style.display = (sub === 'twin') ? 'flex' : 'none';
         }
 
-        let infoCollapsed = false;
         function toggleInfoCollapse() {
-            const el = document.getElementById('info');
-            if (!el) return;
-            infoCollapsed = !infoCollapsed;
-            if (infoCollapsed) el.classList.add('collapsed');
-            else el.classList.remove('collapsed');
+            // 已固定精簡縮小狀態，移除展開/收折行為
         }
 
         // ★ 預設收合底端操作面板 (保留視野乾淨清爽)
