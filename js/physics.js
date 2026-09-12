@@ -82,8 +82,8 @@
                 // ★ 寶可夢 GO 曲球側向力 (符合流體力學 Magnus 原理：無過網奇點，連續平滑香蕉弧線)
                 if (Math.abs(this.spin) > 0.04) {
                     const spdForward = Math.min(12, Math.max(2, Math.abs(this.vel.z)));
-                    // 側向加速度：正比於自旋量與前進分速，過網時平滑順暢，絕不卡頓停滯
-                    const magnusAcc = this.spin * 5.2 * (0.80 + 0.20 * (spdForward / 8.0));
+                    // 側向加速度：正比於自旋量與前進分速，過網時平滑順暢，絕不卡頓停滯 (校準係數 3.6，極限出界不超過1米)
+                    const magnusAcc = this.spin * 3.6 * (0.80 + 0.20 * (spdForward / 8.0));
                     this.vel.x += magnusAcc * h;
                     this.spin *= (1 - 0.14 * h); // 飛行中平穩溫和衰減
                 }
