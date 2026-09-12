@@ -635,6 +635,45 @@
             });
         }
 
+        /* ═══════ 網前自動走位助攻設定 (Net Auto-Assist Config) ═══════ */
+        // 預設關閉，杜絕純手動走位時擅自往前衝；體感模式或手動開啟時方生效
+        let netAssistEnabled = false;
+        try {
+            const savedAssist = localStorage.getItem('nchu_pb_net_assist');
+            if (savedAssist !== null) netAssistEnabled = (savedAssist === 'true');
+        } catch (e) { }
+
+        function setNetAssist(enabled) {
+            netAssistEnabled = !!enabled;
+            try { localStorage.setItem('nchu_pb_net_assist', netAssistEnabled); } catch (e) { }
+            syncNetAssistUI();
+            if (typeof toast === 'function') {
+                toast('🏃 網前自動走位', netAssistEnabled ? '✅ 已開啟 (落入廚房自動前踏)' : '❌ 已關閉 (純手動走位)');
+            }
+        }
+
+        function toggleNetAssist() {
+            setNetAssist(!netAssistEnabled);
+        }
+
+        function syncNetAssistUI() {
+            const btn = document.getElementById('subbar-net-assist-btn');
+            if (btn) {
+                if (netAssistEnabled) {
+                    btn.innerHTML = '🏃 網前助攻: 開';
+                    btn.style.color = 'var(--ok)';
+                } else {
+                    btn.innerHTML = '🏃 網前助攻: 關';
+                    btn.style.color = 'var(--dim)';
+                }
+            }
+            const drawerBtn = document.getElementById('drawer-net-assist-btn');
+            if (drawerBtn) {
+                drawerBtn.innerHTML = `🏃 網前自動走位: ${netAssistEnabled ? '✅ 開啟' : '❌ 關閉'}`;
+                drawerBtn.classList.toggle('on', netAssistEnabled);
+            }
+        }
+
 
 
         const D = {

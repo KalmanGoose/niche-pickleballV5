@@ -1013,6 +1013,7 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
                     <button id="subbar-teach-btn" onclick="cycleTeachLevelQuick()">🎚️ 體感判定: 寬鬆</button>
                     <button id="subbar-diff-btn" onclick="cycleDifficultyQuick()">🤖 匹克鵝難度: 初階</button>
                     <button id="subbar-joy-btn" onclick="cycleJoySpeedQuick()" style="color:var(--ok);">🕹️ 搖桿: 標準</button>
+                    <button id="subbar-net-assist-btn" onclick="toggleNetAssist()" style="color:var(--dim);">🏃 網前助攻: 關</button>
                     <button id="subbar-perf-btn" onclick="cyclePerfQuick()">⚡ 畫質: 原生高畫質</button>
                     <button id="subbar-phys-btn" onclick="togglePhysicsMode()" style="color:#c7d2fe;">🌪️ 物理: ⚡極速</button>
                 </div>
@@ -1063,6 +1064,7 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
             <div class="sheet-sec" data-sec="settings-motion" id="settings-l2-motion" style="display:none;">
                 <button onclick="openSettingsSub('main')" style="background:rgba(255,255,255,0.08);color:var(--dim);font-weight:700;">‹ 返回設定主頁</button>
                 <button id="ai-toggle-btn-sub" onclick="toggleWebcamAI()">📷 體感模式: 關</button>
+                <button id="drawer-net-assist-btn" onclick="toggleNetAssist()">🏃 網前自動走位: ❌ 關閉</button>
                 <div class="sheet-div"></div>
                 <div style="font-size:10px;font-weight:700;color:var(--dim);margin:4px 0 2px;">🎯 瞄準輔助模式</div>
                 <button data-aim="LOCKED" class="on" onclick="setAimMode('LOCKED')">🔒 自動對角</button>

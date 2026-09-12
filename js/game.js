@@ -1347,8 +1347,9 @@
                         targetVz *= 0.7071;
                     }
 
-                    // ★ 網前智慧助攻：當玩家未手動撥動搖桿/按鍵時，若來球落在玩家廚房區或正處於丁克拉鋸中，自動平滑前踏就位廚房線！
-                    if (targetVx === 0 && targetVz === 0 && (state === 'RALLY' || state === 'SERVE_AIR')) {
+                    // ★ 網前自動跑位助攻：僅在體感模式或手動開啟設定時啟用，預設關閉以保證純手動走位！
+                    const allowNetAssist = (typeof netAssistEnabled !== 'undefined' && netAssistEnabled);
+                    if (allowNetAssist && targetVx === 0 && targetVz === 0 && (state === 'RALLY' || state === 'SERVE_AIR')) {
                         if (predictLanding(_land) && _land.z > 0 && _land.z < KITCHEN_D + 0.40) {
                             const wantZ = KITCHEN_D + 0.28; // 廚房線後 28cm 安全站位
                             targetVz = (wantZ - pPos.z) * 3.6;
@@ -2249,5 +2250,6 @@
         syncAimPips();
         syncBottomCollapseUI();
         if (typeof syncJoySpeedUI === 'function') syncJoySpeedUI();
+        if (typeof syncNetAssistUI === 'function') syncNetAssistUI();
         updateCamEditUI();
         loop();

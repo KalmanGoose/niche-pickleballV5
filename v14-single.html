@@ -4226,6 +4226,7 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
                     <button id="subbar-teach-btn" onclick="cycleTeachLevelQuick()">🎚️ 體感判定: 寬鬆</button>
                     <button id="subbar-diff-btn" onclick="cycleDifficultyQuick()">🤖 匹克鵝難度: 初階</button>
                     <button id="subbar-joy-btn" onclick="cycleJoySpeedQuick()" style="color:var(--ok);">🕹️ 搖桿: 標準</button>
+                    <button id="subbar-net-assist-btn" onclick="toggleNetAssist()" style="color:var(--dim);">🏃 網前助攻: 關</button>
                     <button id="subbar-perf-btn" onclick="cyclePerfQuick()">⚡ 畫質: 原生高畫質</button>
                     <button id="subbar-phys-btn" onclick="togglePhysicsMode()" style="color:#c7d2fe;">🌪️ 物理: ⚡極速</button>
                 </div>
@@ -4276,6 +4277,7 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
             <div class="sheet-sec" data-sec="settings-motion" id="settings-l2-motion" style="display:none;">
                 <button onclick="openSettingsSub('main')" style="background:rgba(255,255,255,0.08);color:var(--dim);font-weight:700;">‹ 返回設定主頁</button>
                 <button id="ai-toggle-btn-sub" onclick="toggleWebcamAI()">📷 體感模式: 關</button>
+                <button id="drawer-net-assist-btn" onclick="toggleNetAssist()">🏃 網前自動走位: ❌ 關閉</button>
                 <div class="sheet-div"></div>
                 <div style="font-size:10px;font-weight:700;color:var(--dim);margin:4px 0 2px;">🎯 瞄準輔助模式</div>
                 <button data-aim="LOCKED" class="on" onclick="setAimMode('LOCKED')">🔒 自動對角</button>
@@ -5060,6 +5062,45 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
             document.querySelectorAll('[data-joy-speed]').forEach(b => {
                 b.classList.toggle('on', b.getAttribute('data-joy-speed') === joySpeedLevel);
             });
+        }
+
+        /* ═══════ 網前自動走位助攻設定 (Net Auto-Assist Config) ═══════ */
+        // 預設關閉，杜絕純手動走位時擅自往前衝；體感模式或手動開啟時方生效
+        let netAssistEnabled = false;
+        try {
+            const savedAssist = localStorage.getItem('nchu_pb_net_assist');
+            if (savedAssist !== null) netAssistEnabled = (savedAssist === 'true');
+        } catch (e) { }
+
+        function setNetAssist(enabled) {
+            netAssistEnabled = !!enabled;
+            try { localStorage.setItem('nchu_pb_net_assist', netAssistEnabled); } catch (e) { }
+            syncNetAssistUI();
+            if (typeof toast === 'function') {
+                toast('🏃 網前自動走位', netAssistEnabled ? '✅ 已開啟 (落入廚房自動前踏)' : '❌ 已關閉 (純手動走位)');
+            }
+        }
+
+        function toggleNetAssist() {
+            setNetAssist(!netAssistEnabled);
+        }
+
+        function syncNetAssistUI() {
+            const btn = document.getElementById('subbar-net-assist-btn');
+            if (btn) {
+                if (netAssistEnabled) {
+                    btn.innerHTML = '🏃 網前助攻: 開';
+                    btn.style.color = 'var(--ok)';
+                } else {
+                    btn.innerHTML = '🏃 網前助攻: 關';
+                    btn.style.color = 'var(--dim)';
+                }
+            }
+            const drawerBtn = document.getElementById('drawer-net-assist-btn');
+            if (drawerBtn) {
+                drawerBtn.innerHTML = `🏃 網前自動走位: ${netAssistEnabled ? '✅ 開啟' : '❌ 關閉'}`;
+                drawerBtn.classList.toggle('on', netAssistEnabled);
+            }
         }
 
 
@@ -9392,8 +9433,9 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
                         targetVz *= 0.7071;
                     }
 
-                    // ★ 網前智慧助攻：當玩家未手動撥動搖桿/按鍵時，若來球落在玩家廚房區或正處於丁克拉鋸中，自動平滑前踏就位廚房線！
-                    if (targetVx === 0 && targetVz === 0 && (state === 'RALLY' || state === 'SERVE_AIR')) {
+                    // ★ 網前自動跑位助攻：僅在體感模式或手動開啟設定時啟用，預設關閉以保證純手動走位！
+                    const allowNetAssist = (typeof netAssistEnabled !== 'undefined' && netAssistEnabled);
+                    if (allowNetAssist && targetVx === 0 && targetVz === 0 && (state === 'RALLY' || state === 'SERVE_AIR')) {
                         if (predictLanding(_land) && _land.z > 0 && _land.z < KITCHEN_D + 0.40) {
                             const wantZ = KITCHEN_D + 0.28; // 廚房線後 28cm 安全站位
                             targetVz = (wantZ - pPos.z) * 3.6;
@@ -10294,6 +10336,7 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
         syncAimPips();
         syncBottomCollapseUI();
         if (typeof syncJoySpeedUI === 'function') syncJoySpeedUI();
+        if (typeof syncNetAssistUI === 'function') syncNetAssistUI();
         updateCamEditUI();
         loop();
 
