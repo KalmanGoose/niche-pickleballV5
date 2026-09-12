@@ -1112,7 +1112,7 @@
                 targetSelector: '#nav button[data-panel="board"]',
                 title: '🪿 第二站：社交名片與數位孿生對戰',
                 badge: '第 2 / 3 站 · 零延遲 Mock 示範',
-                desc: '點擊【榜單】即可展開球員個人名片與 5 維特徵雷達圖，還能直接點擊【⚔️ 挑戰數位孿生】與好友 AI 對決！',
+                desc: '點擊【社交】即可展開球員個人名片與 5 維特徵雷達圖，還能直接點擊【⚔️ 挑戰數位孿生】與好友 AI 對決！',
                 onEnter: () => {
                     openSocial();
                     setTimeout(() => {

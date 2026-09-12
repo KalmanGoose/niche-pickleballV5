@@ -2440,7 +2440,7 @@
                 aimMode: AIM.mode, teachLevel: TEACH.level, perfLevel: perfLevel,
                 webcamUsed: webcamActive, device: IS_MOBILE ? 'mobile' : 'desktop'
             }).then(r => {
-                if (r && r.ok) toast('✨ 戰績已登錄中興英雄榜!', '最佳成績 ' + r.bestScore + ' · 點榜單查看排名');
+                if (r && r.ok) toast('✨ 戰績已登錄中興英雄榜!', '最佳成績 ' + r.bestScore + ' · 點社交查看排名');
                 else toast('登錄失敗', (r && r.err) || '請稍後再試');
             });
         }
