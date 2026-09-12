@@ -384,15 +384,16 @@
             _q.setFromUnitVectors(UPY, _c.set(dx / len, dy / len, dz / len));
             mesh.quaternion.copy(_q); mesh.scale.set(1, len, 1);
         }
+        let pTorso = null, pLegs = null, pHead = null, pLeftArm = null;
         function buildSteve() {
             pGrp = new THREE.Group();
             const skin = new THREE.MeshStandardMaterial({ color: 0xf0b085, roughness: 0.6 });
             const shirt = new THREE.MeshStandardMaterial({ color: 0x2fd4c4, roughness: 0.5 });
             const pants = new THREE.MeshStandardMaterial({ color: 0x4265a8, roughness: 0.66 });
-            const torso = new THREE.Mesh(new THREE.BoxGeometry(0.44, 0.6, 0.24), shirt);
-            torso.position.y = 0.82; torso.castShadow = true; pGrp.add(torso);
-            const legs = new THREE.Mesh(new THREE.BoxGeometry(0.41, 0.52, 0.23), pants);
-            legs.position.y = 0.26; legs.castShadow = true; pGrp.add(legs);
+            pTorso = new THREE.Mesh(new THREE.BoxGeometry(0.44, 0.6, 0.24), shirt);
+            pTorso.position.y = 0.82; pTorso.castShadow = true; pGrp.add(pTorso);
+            pLegs = new THREE.Mesh(new THREE.BoxGeometry(0.41, 0.52, 0.23), pants);
+            pLegs.position.y = 0.26; pLegs.castShadow = true; pGrp.add(pLegs);
             const hc = document.createElement('canvas'); hc.width = hc.height = 32;
             const h = hc.getContext('2d');
             h.fillStyle = '#f0b085'; h.fillRect(0, 0, 32, 32);
@@ -401,11 +402,11 @@
             h.fillStyle = '#33518f'; h.fillRect(9, 14, 4, 4); h.fillRect(19, 14, 4, 4);
             h.fillStyle = 'rgba(150,90,55,.55)'; h.fillRect(11, 23, 10, 3);
             const ht = new THREE.CanvasTexture(hc); ht.magFilter = THREE.NearestFilter; ht.encoding = THREE.sRGBEncoding;
-            const head = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.35, 0.35),
+            pHead = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.35, 0.35),
                 new THREE.MeshStandardMaterial({ map: ht, roughness: 0.6 }));
-            head.position.y = 1.29; head.castShadow = true; pGrp.add(head);
-            const la = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.54, 0.14), shirt);
-            la.position.set(-0.29, 0.8, 0.02); la.rotation.z = 0.16; la.castShadow = true; pGrp.add(la);
+            pHead.position.y = 1.29; pHead.castShadow = true; pGrp.add(pHead);
+            pLeftArm = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.54, 0.14), shirt);
+            pLeftArm.position.set(-0.29, 0.8, 0.02); pLeftArm.rotation.z = 0.16; pLeftArm.castShadow = true; pGrp.add(pLeftArm);
             pArm = new THREE.Mesh(new THREE.BoxGeometry(0.135, 1, 0.135), skin);
             pArm.castShadow = true; pGrp.add(pArm);
             pPad = new THREE.Group();
@@ -1323,8 +1324,92 @@
         }
         const joyAnalog = { x: 0, z: 0 };
         const playerVel = { x: 0, z: 0 };
+        const dragRay = new THREE.Raycaster();
+        const groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+        const groundHit = new THREE.Vector3();
+
         function updatePlayer(dt) {
             if (demoOn) return;
+
+            // ★ ⚡ 霹靂電蚊拍：超狂第一人稱 (FPS) 自動鎖定與觸控拖曳過網追殺 (Auto-Homing Rush & Touch Drag across the Net)
+            const isHunting = (typeof FunMode !== 'undefined' && FunMode.activeBuff === 'ELECTRIC_SWATTER');
+            if (isHunting) {
+                // 1. 設定第一人稱視角隱藏身體軀幹，僅保留手持之霹靂電蚊拍與右手臂
+                if (pTorso) pTorso.visible = false;
+                if (pLegs) pLegs.visible = false;
+                if (pHead) pHead.visible = false;
+                if (pLeftArm) pLeftArm.visible = false;
+
+                const targetObj = (typeof gGrp !== 'undefined' && gGrp) ? gGrp.position : { x: 0, z: -HALF_L * 0.7 };
+
+                // 2. 檢測玩家是否正在觸控/拖曳螢幕 (直接把它拉去對手的場上！)
+                let targetX = targetObj.x;
+                let targetZ = targetObj.z;
+                let isDraggingToTarget = false;
+
+                if (window.isScreenTouching && cam) {
+                    dragRay.setFromCamera(mouse, cam);
+                    if (dragRay.ray.intersectPlane(groundPlane, groundHit)) {
+                        // 玩家正在手指拖曳！以觸控點作為拉引目標，允許直接拉過廚房線與球網，直闖對手場地！
+                        targetX = THREE.MathUtils.clamp(groundHit.x, -COURT_W / 2 - 0.7, COURT_W / 2 + 0.7);
+                        targetZ = THREE.MathUtils.clamp(groundHit.z, -(HALF_L + 1.8), HALF_L + 1.2);
+                        isDraggingToTarget = true;
+                    }
+                }
+
+                const dx = targetX - pPos.x;
+                const dz = targetZ - pPos.z;
+                const dist = Math.hypot(dx, dz) || 1;
+
+                // 基礎全速衝刺與拖曳拉動速度：每秒 10.8 公尺 (極速狂衝！)
+                const rushSpeed = isDraggingToTarget ? 11.2 : 9.6;
+                let targetVx = (dx / dist) * Math.min(rushSpeed, Math.max(2.5, dist * 8.0));
+                let targetVz = (dz / dist) * Math.min(rushSpeed, Math.max(2.5, dist * 8.0));
+
+                // 支援玩家手動操縱搖桿或 WASD 靈敏夾擊與左右微調
+                if (Math.hypot(joyAnalog.x, joyAnalog.z) > 0.05) {
+                    targetVx += joyAnalog.x * 4.5;
+                    targetVz += joyAnalog.z * 4.5;
+                } else {
+                    if (keys.a) targetVx -= 4.5;
+                    if (keys.d) targetVx += 4.5;
+                    if (keys.w) targetVz -= 4.5;
+                    if (keys.s) targetVz += 4.5;
+                }
+
+                playerVel.x += (targetVx - playerVel.x) * Math.min(1, dt * 28);
+                playerVel.z += (targetVz - playerVel.z) * Math.min(1, dt * 28);
+
+                pPos.x += playerVel.x * dt;
+                pPos.z += playerVel.z * dt;
+
+                // ★ 徹底解除球網限制 (z < 0)！允許直搗對手底線深處 (-(HALF_L + 1.8))
+                pPos.x = THREE.MathUtils.clamp(pPos.x, -COURT_W / 2 - 0.7, COURT_W / 2 + 0.7);
+                pPos.z = THREE.MathUtils.clamp(pPos.z, -(HALF_L + 1.8), HALF_L + 1.6);
+                pGrp.position.set(pPos.x, 0, pPos.z);
+
+                // 第一人稱手持電蚊拍姿勢：位於鏡頭右前下方，揮動藍紫電弧
+                padX = 0.26 + Math.sin(performance.now() * 0.01) * 0.04;
+                padY = 1.12 + Math.sin(performance.now() * 0.015) * 0.06;
+                pPad.position.set(padX, padY, -0.38);
+                pPad.rotation.set(-0.35 + Math.sin(performance.now() * 0.03) * 0.25, 0, -padX * 0.6);
+                pPad.getWorldPosition(padW);
+                limb(pArm, _b.set(0.24, 1.16, 0.02), _a.set(padX, padY - 0.17, -0.38));
+
+                // ★ 靠近至 2.5 米內，立即引爆高壓電弧電爛蒼蠅！
+                const distToFly = Math.hypot(pPos.x - targetObj.x, pPos.z - targetObj.z);
+                if (distToFly < 2.5) {
+                    FunMode.executeFlyZap();
+                }
+                return;
+            } else {
+                // 恢復第三人稱身體可見度
+                if (pTorso && !pTorso.visible) pTorso.visible = true;
+                if (pLegs && !pLegs.visible) pLegs.visible = true;
+                if (pHead && !pHead.visible) pHead.visible = true;
+                if (pLeftArm && !pLeftArm.visible) pLeftArm.visible = true;
+            }
+
             if (camEdit) {                              // ★編輯視角時鎖住走位
                 pGrp.position.set(pPos.x, 0, pPos.z);
                 pPad.position.set(padX, padY, -0.24);
@@ -1357,57 +1442,6 @@
                 pPad.getWorldPosition(padW);
                 limb(pArm, _b.set(0.2, 1.16, 0.02), _a.set(padX, padY - 0.17, -0.24));
                 if (server === 'PLAYER') PH.reset(padW.x - 0.22, Math.max(BALL_R, padW.y + 0.1), padW.z - 0.06);
-                return;
-            }
-
-            // ★ ⚡ 霹靂電蚊拍：超狂自動鎖定衝鋒過網追殺 (Auto-Homing Rush across the Net)
-            const isHunting = (typeof FunMode !== 'undefined' && FunMode.activeBuff === 'ELECTRIC_SWATTER');
-            if (isHunting) {
-                // 不論在體感、手機觸控、滑鼠或鍵盤模式，一律自動以 9.2 m/s 極速直搗對面追殺蒼蠅/匹克鵝！
-                const targetObj = (typeof gGrp !== 'undefined' && gGrp) ? gGrp.position : { x: 0, z: -HALF_L * 0.7 };
-                const dx = targetObj.x - pPos.x;
-                const dz = targetObj.z - pPos.z;
-                const dist = Math.hypot(dx, dz) || 1;
-
-                // 基礎全速衝刺速度：每秒 9.2 公尺 (蒼蠅逃跑速度 4.5m/s，保證 1.5 秒內衝破球網並追上)
-                const rushSpeed = 9.2;
-                let targetVx = (dx / dist) * rushSpeed;
-                let targetVz = (dz / dist) * rushSpeed;
-
-                // 支援玩家手動操縱搖桿或 WASD 靈敏夾擊與左右微調
-                if (Math.hypot(joyAnalog.x, joyAnalog.z) > 0.05) {
-                    targetVx += joyAnalog.x * 4.0;
-                    targetVz += joyAnalog.z * 4.0;
-                } else {
-                    if (keys.a) targetVx -= 4.0;
-                    if (keys.d) targetVx += 4.0;
-                    if (keys.w) targetVz -= 4.0;
-                    if (keys.s) targetVz += 4.0;
-                }
-
-                playerVel.x += (targetVx - playerVel.x) * Math.min(1, dt * 26);
-                playerVel.z += (targetVz - playerVel.z) * Math.min(1, dt * 26);
-
-                pPos.x += playerVel.x * dt;
-                pPos.z += playerVel.z * dt;
-
-                // ★ 徹底解除球網限制 (z < 0)！允許直搗對手底線深處 (-(HALF_L + 1.8))
-                pPos.x = THREE.MathUtils.clamp(pPos.x, -COURT_W / 2 - 0.7, COURT_W / 2 + 0.7);
-                pPos.z = THREE.MathUtils.clamp(pPos.z, -(HALF_L + 1.8), HALF_L + 1.6);
-                pGrp.position.set(pPos.x, 0, pPos.z);
-
-                // 電蚊拍往前平舉並揮動電弧 (動態瞄準蒼蠅)
-                padX = THREE.MathUtils.clamp((targetObj.x - pPos.x) * 0.75, -0.95, 0.95);
-                padY = 0.85 + Math.sin(performance.now() * 0.02) * 0.25;
-                pPad.position.set(padX, padY, -0.28);
-                pPad.rotation.set(-0.35 + Math.sin(performance.now() * 0.03) * 0.35, 0, -padX * 0.6);
-                pPad.getWorldPosition(padW);
-                limb(pArm, _b.set(0.2, 1.16, 0.02), _a.set(padX, padY - 0.17, -0.24));
-
-                // ★ 靠近至 2.4 米內，立即引爆高壓電弧電爛蒼蠅！
-                if (dist < 2.4) {
-                    FunMode.executeFlyZap();
-                }
                 return;
             }
 
@@ -2297,13 +2331,12 @@
 
             const isHuntingCam = (typeof FunMode !== 'undefined' && FunMode.activeBuff === 'ELECTRIC_SWATTER');
             if (isHuntingCam) {
-                // ★ ⚡ 霹靂電蚊拍電影級第三人稱追擊視角！
-                // 鏡頭動態貼附在玩家身後上方，視線直指前方驚慌逃竄的蒼蠅，宛如動作動作遊戲！
-                const targetCamZ = pPos.z + 4.6;
-                const targetCamY = 2.4;
-                cam.position.set(pPos.x * 0.6 + sx, targetCamY + sy, targetCamZ);
-                const lookTarget = (typeof gGrp !== 'undefined' && gGrp) ? gGrp.position : { x: 0, z: -HALF_L * 0.7 };
-                cam.lookAt(lookTarget.x * 0.3 + pPos.x * 0.7, 0.85, lookTarget.z);
+                // ★ ⚡ 霹靂電蚊拍超刺激第一人稱 (FPS) 視角！
+                // 鏡頭位於玩家眼部高度 (1.40m)，視線筆直穿透球網直視逃竄的蒼蠅，極具臨場感！
+                cam.position.set(pPos.x + sx * 0.15, 1.40 + sy * 0.15, pPos.z - 0.12);
+                const targetObj = (typeof gGrp !== 'undefined' && gGrp) ? gGrp.position : { x: 0, z: -HALF_L * 0.7 };
+                const lookZ = Math.min(pPos.z - 5.0, targetObj.z);
+                cam.lookAt(targetObj.x * 0.35 + pPos.x * 0.65, 1.05, lookZ);
             } else if (camViewMode === 0) {
                 // ★ 智慧超感相機 (相機位置平滑追蹤)
                 const cfg = (typeof getResponsiveCameraConfig === 'function')

@@ -172,6 +172,71 @@
             pPad.add(this.swatterSparkGroup);
         },
 
+        buildRunwayGuidance: function() {
+            if (typeof THREE === 'undefined' || typeof scene === 'undefined') return;
+            if (this.guidanceGroup) return;
+
+            this.guidanceGroup = new THREE.Group();
+            this.guidanceGroup.name = 'swatterRunwayGuidance';
+
+            // 光毯地面箭頭 (從後場一路延伸跨越球網至對手場地)
+            const arrowMat = new THREE.MeshBasicMaterial({
+                color: 0x38bdf8,
+                transparent: true,
+                opacity: 0.7,
+                side: THREE.DoubleSide,
+                depthWrite: false
+            });
+
+            // 鋪設跨越球網的前進能量箭頭
+            for (let i = 0; i < 9; i++) {
+                const z = 3.6 - i * 1.15; // 跨越 2.13 (廚房線) 與 0 (球網) 至 -5.6
+                const arrowGeo = new THREE.ConeGeometry(0.32, 0.60, 3);
+                const arrow = new THREE.Mesh(arrowGeo, arrowMat);
+                arrow.rotation.x = -Math.PI / 2;
+                arrow.rotation.z = Math.PI;
+                arrow.position.set(0, 0.02, z);
+                arrow.name = 'guideArrow_' + i;
+                this.guidanceGroup.add(arrow);
+            }
+
+            // 球網破除電弧光環
+            const netRingGeo = new THREE.RingGeometry(0.65, 0.95, 24);
+            const netRingMat = new THREE.MeshBasicMaterial({
+                color: 0xc084fc,
+                transparent: true,
+                opacity: 0.75,
+                side: THREE.DoubleSide
+            });
+            const netRing = new THREE.Mesh(netRingGeo, netRingMat);
+            netRing.position.set(0, 0.45, 0); // 剛好在球網中央
+            netRing.name = 'netBreakRing';
+            this.guidanceGroup.add(netRing);
+
+            this.guidanceGroup.visible = false;
+            scene.add(this.guidanceGroup);
+        },
+
+        showGuideBanner: function() {
+            let el = document.getElementById('swatter-guide-banner');
+            if (!el) {
+                el = document.createElement('div');
+                el.id = 'swatter-guide-banner';
+                el.className = 'swatter-guide-banner';
+                document.body.appendChild(el);
+            }
+            el.innerHTML = `
+                <div class="sg-pulse">⚡ 第一人稱狂暴獵殺 · 跨網封印解除！ ⚡</div>
+                <div class="sg-sub">👆 手指按住往前拖曳 · 直接拉去對面電爛蒼蠅！</div>
+            `;
+            el.style.display = 'flex';
+        },
+
+        hideGuideBanner: function() {
+            const el = document.getElementById('swatter-guide-banner');
+            if (el) el.style.display = 'none';
+        },
+
         toggle: function(forceState) {
             this.enabled = (typeof forceState === 'boolean') ? forceState : !this.enabled;
             try {
@@ -314,6 +379,25 @@
                         ballGlow.material.opacity = 0.85;
                     }
 
+                    // 更新 3D 引導光毯
+                    if (!this.guidanceGroup) this.buildRunwayGuidance();
+                    if (this.guidanceGroup) {
+                        this.guidanceGroup.visible = true;
+                        const gTime = performance.now() * 0.005;
+                        for (let i = 0; i < 9; i++) {
+                            const arr = this.guidanceGroup.getObjectByName('guideArrow_' + i);
+                            if (arr) {
+                                arr.position.y = 0.02 + Math.sin(gTime * 3 + i * 0.6) * 0.015;
+                                arr.material.opacity = 0.35 + Math.sin(gTime * 4 - i * 0.8) * 0.35;
+                            }
+                        }
+                        const nRing = this.guidanceGroup.getObjectByName('netBreakRing');
+                        if (nRing) {
+                            nRing.rotation.z += 4.0 * dt;
+                            nRing.scale.setScalar(1.0 + Math.sin(gTime * 5) * 0.15);
+                        }
+                    }
+
                     // ★ 玩家衝到蒼蠅身邊（2.4米以內），直接引爆電擊！
                     const targetObj = (typeof gGrp !== 'undefined' && gGrp) ? gGrp.position : null;
                     if (targetObj && typeof pPos !== 'undefined') {
@@ -322,6 +406,8 @@
                             this.executeFlyZap();
                         }
                     }
+                } else {
+                    if (this.guidanceGroup) this.guidanceGroup.visible = false;
                 }
 
                 if (this.buffTimer <= 0) {
@@ -342,6 +428,8 @@
                     }
                     this.clearPlayerBuff();
                 }
+            } else {
+                if (this.guidanceGroup) this.guidanceGroup.visible = false;
             }
 
             // 4. 更新蒼蠅狂暴/壓扁狀態
@@ -394,6 +482,8 @@
                 if (typeof locked !== 'undefined') locked = false;
                 if (typeof state !== 'undefined' && state !== 'OVER') state = 'RALLY';
                 if (typeof clearTimers === 'function') clearTimers();
+                if (typeof dismissFingerTutorial === 'function') dismissFingerTutorial();
+                this.showGuideBanner();
                 if (typeof S !== 'undefined' && S.tone) {
                     S.tone('sawtooth', 220, 580, 0.35, 0.4);
                 }
@@ -561,6 +651,8 @@
                 if (typeof pPad !== 'undefined') pPad.scale.setScalar(this.originalPadScale);
             } else if (this.activeBuff === 'ELECTRIC_SWATTER') {
                 if (this.swatterSparkGroup) this.swatterSparkGroup.visible = false;
+                if (this.guidanceGroup) this.guidanceGroup.visible = false;
+                this.hideGuideBanner();
             } else if (this.activeBuff === 'MEGA_BALL') {
                 if (typeof ball !== 'undefined') {
                     ball.scale.setScalar(1.0);
@@ -582,6 +674,8 @@
             this.activeBuff = null;
             this.buffTimer = 0;
             this.hideHudBadge();
+            this.hideGuideBanner();
+            if (this.guidanceGroup) this.guidanceGroup.visible = false;
         },
 
         clearFlyBuff: function() {
@@ -607,6 +701,8 @@
             this.clearCourtItems();
             this.clearPlayerBuff();
             this.clearFlyBuff();
+            if (this.guidanceGroup) this.guidanceGroup.visible = false;
+            this.hideGuideBanner();
         },
 
         // ═══════ HUD 徽章顯示 ═══════

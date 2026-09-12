@@ -566,11 +566,14 @@
                     swipeMove(e.clientX, e.clientY);
                 }
             });
+            window.isScreenTouching = false;
             ren.domElement.addEventListener('mousedown', e => {
+                window.isScreenTouching = true;
                 swipeStart(e.clientX, e.clientY);
                 beginCharge();
             });
             window.addEventListener('mouseup', e => {
+                window.isScreenTouching = false;
                 swipeEnd();
                 release();
             });
@@ -589,6 +592,7 @@
             el.addEventListener('touchstart', e => {
                 e.preventDefault();
                 if (tid === null && e.changedTouches.length) {
+                    window.isScreenTouching = true;
                     const t = e.changedTouches[0];
                     tid = t.identifier;
                     aimT(t);
@@ -611,6 +615,7 @@
                 for (let i = 0; i < e.changedTouches.length; i++) {
                     if (e.changedTouches[i].identifier === tid) {
                         tid = null;
+                        window.isScreenTouching = false;
                         swipeEnd();
                         release();
                         break;
