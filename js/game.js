@@ -894,42 +894,94 @@
          * - 滑動太猛 / 刻意滑太多: 回傳超過 1.3~1.6 (球在空中強烈拐彎直接噴出界外，達成失誤判定!)
          */
         /**
-         * ★ 寶可夢 GO 精靈球曲球機制 (Pokémon GO Curveball Throw Mechanics):
-         * 1. 直球高容寬 (Straight Throw Tolerance):
-         *    - 玩家正常向前推球時 (即便手指出手稍微歪 15~20 度，橫向位移 < 45px 且峰值橫速 < 220px/s)
+         * ★ 取得當前有效揮拍手勢快照 (Active or Recent Swipe Snapshot)
+         * - 若手指正在滑動且已具備動量，優先採用當前手勢
+         * - 若手指剛離手 (320ms 內)，採用已完成手勢快照，杜絕擊球時手勢被早洩截斷
+         */
+        function getActiveSwipe() {
+            if (typeof SWIPE === 'undefined') return { distX: 0, distY: 0, peakVx: 0, peakVy: 0, sagitta: 0, spinArea: 0, spin: 0 };
+            const now = performance.now();
+            const curDist = Math.hypot(SWIPE.distX, SWIPE.distY);
+            const curSpeed = Math.hypot(SWIPE.peakVx, SWIPE.peakVy);
+            const ls = SWIPE.lastStroke;
+            if (SWIPE.active && (curDist >= 15 || curSpeed >= 120)) {
+                return SWIPE;
+            }
+            if (ls && (now - ls.time) < 320) {
+                const lsDist = Math.hypot(ls.distX, ls.distY);
+                if (lsDist >= curDist) return ls;
+            }
+            return SWIPE;
+        }
+
+        /**
+         * ★ 寶可夢 GO 精靈球曲球幾何流體感應器 (Pokémon GO Curveball Sensor):
+         * 1. 純直球高容寬保證 (Straight Throw Deadzone):
+         *    - 弦線拱高偏折 |sagitta| < 12px 且 橫向位移 |distX| < 22px 且 橫向速度 |peakVx| < 160px/s 且 無畫圓旋轉 (|spinArea| < 350px²)
          *    - 判定為純直球 (Curve = 0)，100% 筆直向前飛行，零偏漂、零誤觸！
-         * 2. 刻意甩弧曲球 ("灰很多才觸發" / Curveball Spin):
-         *    - 手指刻意往側邊大角度劃弧或側切刷拍 (橫向位移 >= 45px 或 速度 >= 220px/s)
-         *    - 超出門檻後才開始平滑累積自旋量 (0.28 ~ 0.95)，球體發出星芒流光，空中劃出滑順圓潤的香蕉弧線！
-         * 3. 灰太多噴出去 (Excessive Whipping / Spray Out of Bounds):
-         *    - 橫向滑動過猛 (自旋 > 1.35)，弧線過大整顆球直接飛出球場邊線界外！
+         * 2. 幾何多源感測曲球 (Arc Sagitta + Brush Ratio + Circular Spin):
+         *    - 拱高偏折量 (Sagitta): 解決「向外畫弧再收回」淨位移小問題，精準捕捉弧線凸出程度與方向
+         *    - 側切刷拍 (Brush Ratio): 捕捉快速側斜刷推
+         *    - 畫圓積分 (Green's Theorem Spin Area): 捕捉發球前畫圈蓄力
+         * 3. 連續平滑漸進自旋 (Smooth Continuous Scaling):
+         *    - 微弧切球 (0.20 ~ 0.35) -> 標準香蕉曲球 (0.40 ~ 0.85) -> 大幅度拐彎 (0.90 ~ 1.25) -> 甩過猛噴界外 (> 1.35)
          */
         function getSwipeCurve() {
             if (webcamActive) {
                 return THREE.MathUtils.clamp((RIGHT.padXFree || 0) * 0.7, -1.2, 1.2);
             }
-            const distX = SWIPE.distX;   // 橫向位移 (px, 右正左負)
-            const peakVx = SWIPE.peakVx; // 橫向瞬態峰值速度 (px/s, 右正左負)
+            const s = getActiveSwipe();
+            const distX = s.distX || 0;
+            const peakVx = s.peakVx || 0;
+            const sagitta = s.sagitta || 0;
+            const spinArea = s.spinArea || 0;
 
-            // ① 寶可夢直球高寬容度死區：一般向前推球絕不誤觸曲球
-            if (Math.abs(distX) < 45 && Math.abs(peakVx) < 220) {
+            // ① 直球高容寬死區判定：正常向前推球絕不誤觸曲球
+            const isStraightSagitta = Math.abs(sagitta) < 12;
+            const isStraightDist = Math.abs(distX) < 22;
+            const isStraightSpeed = Math.abs(peakVx) < 160;
+            const isStraightSpinArea = Math.abs(spinArea) < 350;
+
+            if (isStraightSagitta && isStraightDist && isStraightSpeed && isStraightSpinArea) {
                 return 0;
             }
 
-            // ② 方向判定
-            const dir = (Math.abs(distX) > 15) ? Math.sign(distX) : Math.sign(peakVx);
-            if (!dir) return 0;
+            // ② 多源幾何分量綜合計算
+            const chordLen = Math.hypot(distX, s.distY || 0);
 
-            // ③ 扣除寬容死區，計算超出門檻的「灰很多」純自旋量
-            const excessDist = Math.max(0, Math.abs(distX) - 45);
-            const excessSpeed = Math.max(0, Math.abs(peakVx) - 220);
-            const curveAmount = (excessDist / 65) * 0.60 + (excessSpeed / 380) * 0.40;
+            // 弧線拱高分量 (每 65px 拱高約 1.0 曲率)
+            const arcContrib = sagitta / 65;
+
+            // 橫向側刷與速度分量 (靈敏捕捉側刷，平滑增益)
+            const brushRatio = Math.abs(distX) / Math.max(30, Math.abs(s.distY || 0));
+            const brushContrib = (distX / 50) * 0.60 + (peakVx / 450) * 0.40;
+
+            // 畫圈旋轉積分分量 (僅在短位移原地畫圈蓄力時生效，避免干擾長劃弧)
+            let spinAreaContrib = 0;
+            if (chordLen < 75 && Math.abs(spinArea) > 250) {
+                spinAreaContrib = THREE.MathUtils.clamp(-spinArea / 1400, -0.85, 0.85);
+            }
+
+            // 綜合加權：
+            // 長畫弧手勢 (chordLen >= 75): 拱高 55% + 側刷 45% + 側斜超額加成
+            // 短位移或原地畫圈: 加入自旋積分
+            let rawCurve = 0;
+            if (chordLen >= 75) {
+                const slashBoost = (brushRatio > 0.7) ? (brushRatio - 0.7) * 0.65 * Math.sign(distX) : 0;
+                rawCurve = arcContrib * 0.55 + brushContrib * 0.45 + slashBoost;
+            } else {
+                rawCurve = arcContrib * 0.45 + brushContrib * 0.30 + spinAreaContrib * 0.50;
+            }
+            const absCurve = Math.abs(rawCurve);
 
             // 微弱超標仍視為手指微抖，不啟動曲球
-            if (curveAmount < 0.12) return 0;
+            if (absCurve < 0.12) return 0;
 
-            // ④ 寶可夢曲球自旋係數：普通曲球 0.30~0.75，大幅曲球 0.85~1.2，灰太多 > 1.35 (噴出去)
-            return dir * THREE.MathUtils.clamp(curveAmount, 0.28, 1.8);
+            const dir = Math.sign(rawCurve);
+
+            // ③ 連續平滑無斷層映射：起步 0.18，平滑過渡至 1.8
+            const curveVal = dir * THREE.MathUtils.clamp(0.18 + (absCurve - 0.12) * 0.85, 0.20, 1.8);
+            return curveVal;
         }
 
         function serveTarget(p) {
@@ -941,8 +993,14 @@
                 // ★ 基準鎖定合法對角發球區 (diagSign * COURT_W/4)
                 const baseBoxX = diagSign() * (COURT_W / 4);
                 const curve = getSwipeCurve();
-                // 瞄準點微調：直球精確指向中心；曲球微調指向；灰太多直接飛出邊界
-                serveTgt.x = baseBoxX + curve * 0.35;
+                // 瞄準點微調：曲球先朝內側啟動，由馬格努斯側向力優雅拐入對角發球區
+                if (Math.abs(curve) > 1.35) {
+                    serveTgt.x = Math.sign(curve) * (COURT_W / 2 + 0.65); // 甩出邊線界外
+                } else if (Math.abs(curve) >= 0.20) {
+                    serveTgt.x = baseBoxX - curve * 0.22; // 微向內引，弧線向外兜入
+                } else {
+                    serveTgt.x = baseBoxX; // 純直球直轟發球區中央
+                }
             }
             return serveTgt;
         }
@@ -1034,8 +1092,9 @@
             }
 
             // ★ v5.0.14: 擊球力道四級階梯 (依手指揮動幅度/位移/速度精準判斷: 0動=被動擋球/掛網, 微動=廚房Dink, 中推=過渡深球, 大揮=抽殺)
-            const swipeDist = Math.hypot(SWIPE.distX, SWIPE.distY);
-            const swipeSpeed = Math.hypot(SWIPE.peakVx * 0.65, SWIPE.peakVy);
+            const sw = (typeof getActiveSwipe === 'function') ? getActiveSwipe() : SWIPE;
+            const swipeDist = Math.hypot(sw.distX, sw.distY);
+            const swipeSpeed = Math.hypot(sw.peakVx * 0.65, sw.peakVy);
 
             let ch = 0.20; // 預設柔和丁克
             let isPassiveBlock = false;
@@ -1075,16 +1134,25 @@
                 spin = getSwipeCurve();
             } else {
                 spin = getSwipeCurve();
-                // 初速瞄準微調：直球 tx=0 筆直向前；曲球微調指向；灰太大時初速與弧線一同噴向界外
-                tx = spin * 0.28;
+                // 初速瞄準微調：曲球先朝內側啟動，再由馬格努斯側向力向外劃出經典香蕉弧線
+                // 若甩球過猛 (|spin| > 1.35)，初速與超強弧線一同將球甩飛出邊線界外
+                if (Math.abs(spin) > 1.35) {
+                    tx = Math.sign(spin) * (COURT_W / 2 + 0.65); // 甩向場外界外
+                } else if (Math.abs(spin) >= 0.20) {
+                    // 香蕉弧線初始彈道：略向內偏移，讓流體力學拉出優雅弧線
+                    tx = -spin * 0.20 + (padX * 0.4);
+                } else {
+                    // 純直球：依照拍面橫向位置自然微調瞄準，零自旋零偏漂
+                    tx = THREE.MathUtils.clamp(padX * 0.85, -1.8, 1.8);
+                }
             }
 
             PH.spin = spin; PH.spinInc = 0;
 
             // 側旋切球裁判廣播
-            if (Math.abs(spin) >= 0.25) {
+            if (Math.abs(spin) >= 0.20) {
                 const spinSideTxt = spin > 0 ? '⭐ 寶可夢式右曲球 (RIGHT CURVE)' : '⭐ 寶可夢式左曲球 (LEFT CURVE)';
-                announceReferee(spinSideTxt, Math.abs(spin) > 1.25 ? '⚠️ 甩球過猛，球噴出界外！' : '精準曲球已觸發', false);
+                announceReferee(spinSideTxt, Math.abs(spin) > 1.35 ? '⚠️ 甩球過猛，球噴出界外！' : '精準曲球已觸發', false);
             }
 
             // ★ v5.0.14 依手指滑動階梯精確解算落點 (0動=被動擋球/掛網, 微動=廚房丁克, 中推=深球, 大動=抽殺)
@@ -1148,13 +1216,16 @@
                 toast('💥 重砲抽球 (Drive / Smash)', '極速直轟底線！');
             }
 
-            // 擊球後重置本次滑動位移與峰值，避免延續至下一次碰球
+            // 擊球後重置本次滑動位移、幾何分析與快照，避免延續至下一次碰球
             if (typeof SWIPE !== 'undefined') {
                 SWIPE.distX = 0; SWIPE.distY = 0;
                 SWIPE.peakVx = 0; SWIPE.peakVy = 0;
                 SWIPE.vx = 0; SWIPE.vy = 0;
                 SWIPE.smoothedVx = 0; SWIPE.smoothedVy = 0;
+                SWIPE.sagitta = 0; SWIPE.spinArea = 0; SWIPE.spin = 0;
+                SWIPE.history = [];
                 SWIPE.startX = SWIPE.currX; SWIPE.startY = SWIPE.currY;
+                SWIPE.lastStroke = null;
             }
 
             const hitMph = Math.round(PH.vel.length() * 2.23694);

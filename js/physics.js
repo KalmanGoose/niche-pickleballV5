@@ -57,7 +57,13 @@
                 ballBlob.material.opacity = THREE.MathUtils.lerp(0.5, 0.09, hh / 3.2);
             }
             setPos(x, y, z) { this.pos.set(x, y, z); if (ball) this.sync(); }
-            reset(x, y, z) { this.setPos(x, y, z); this.vel.set(0, 0, 0); this.spin = 0; this.spinInc = 0; }
+            reset(x, y, z) {
+                this.setPos(x, y, z);
+                this.vel.set(0, 0, 0);
+                this.spin = 0;
+                this.spinInc = 0;
+                if (ball) ball.rotation.set(0, 0, 0);
+            }
             update(dt) {
                 if (state === 'SERVE_READY' || state === 'FAULT' || state === 'OVER') { this.sync(); return; }
                 // ★ 120Hz 微步長 (保證亞毫米精度，同時降低 50% 物理 CPU 運算開銷，消除延遲惡性循環)
@@ -73,19 +79,25 @@
                 const pz = this.pos.z;
                 this.vel.y -= GRAVITY * h;
 
-                // ★ 寶可夢 GO 曲球側向力 (柔和、滑順、直推100%筆直、灰很多才拐彎、灰太大噴出界)
-                if (Math.abs(this.spin) > 0.05) {
-                    const curveFlightFactor = Math.sin(Math.min(1, Math.abs(this.pos.z) / HALF_L) * Math.PI);
-                    // 側向加速度：溫和適中 (4.5 m/s²)，滑順圓潤，絕不劇烈暴衝亂漂
-                    const magnusAcc = this.spin * 4.5 * (0.85 + 0.45 * curveFlightFactor);
+                // ★ 寶可夢 GO 曲球側向力 (符合流體力學 Magnus 原理：無過網奇點，連續平滑香蕉弧線)
+                if (Math.abs(this.spin) > 0.04) {
+                    const spdForward = Math.min(12, Math.max(2, Math.abs(this.vel.z)));
+                    // 側向加速度：正比於自旋量與前進分速，過網時平滑順暢，絕不卡頓停滯
+                    const magnusAcc = this.spin * 5.2 * (0.80 + 0.20 * (spdForward / 8.0));
                     this.vel.x += magnusAcc * h;
-                    this.spin *= (1 - 0.16 * h); // 飛行中平穩溫和衰減
+                    this.spin *= (1 - 0.14 * h); // 飛行中平穩溫和衰減
                 }
                 this.spinInc = 0;
 
                 // 自然空氣阻尼 (穩定線性衰減)
                 this.vel.x *= (1 - 0.09 * h);
                 this.vel.z *= (1 - 0.09 * h);
+
+                // ★ 3D 球體空旋視覺 (Pokémon GO 旋轉球滾翻與側旋陀螺自旋)
+                if (ball) {
+                    ball.rotation.x -= this.vel.z * 3.6 * h; // 前進滾翻
+                    ball.rotation.y += this.spin * 16.0 * h; // 側旋陀螺自旋
+                }
 
                 this.pos.addScaledVector(this.vel, h);
                 if (pz !== this.pos.z && pz * this.pos.z <= 0) {
@@ -103,8 +115,9 @@
                     this.vel.y = -this.vel.y * REST_Y;
                     this.vel.x *= REST_XZ;
                     this.vel.z *= REST_XZ;
+                    this.vel.x += this.spin * 0.75; // ★ 落地彈跳時側旋帶動橫向切速偏折
                     this.spin *= 0.35; // 落地彈跳大幅衰減側旋
-                    this.spinInc = 0;  // ★ 落地瞬間側向滑動速度歸零，防止球在地面橫向滑移
+                    this.spinInc = 0;  // 落地瞬間側向滑動速度歸零，防止球在地面橫向滑移
                     ballSquash = Math.min(1, imp / 7);
                     S.thump(imp / 8);
                     popRing(this.pos.x, this.pos.z, 1.6 + imp * 0.14, 0xffffff);

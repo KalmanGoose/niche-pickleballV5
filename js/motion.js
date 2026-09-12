@@ -434,11 +434,13 @@
 
         /* ═══════════════════════════════════════════════
            🏸 滑動速度向量與指向感應模組 (Swipe Kinematics)
+           ★ 寶可夢 GO 弧線曲球幾何分析：弦線拱高(Sagitta) + 畫圓旋轉面積(Green's Theorem) + 側切刷拍
            ═══════════════════════════════════════════════ */
         const SWIPE = {
             active: false,
             startX: 0,
             startY: 0,
+            startTime: 0,
             prevX: 0,
             prevY: 0,
             currX: 0,
@@ -452,7 +454,12 @@
             smoothedVy: 0,
             peakVx: 0,
             peakVy: 0,
-            spin: 0
+            spin: 0,
+            // ★ 寶可夢曲球幾何分析欄位
+            history: [],   // 軌跡點序列 [{x, y, t}]
+            sagitta: 0,    // 弧度拱高垂直偏移量 (px, 右凸為正, 左凸為負)
+            spinArea: 0,   // 有向多邊形面積 (px², 順時針正, 逆時針負)
+            lastStroke: null // 最近剛完成的手勢快照 (保留 320ms，杜絕擊球時手勢早洩截斷)
         };
 
         function swipeStart(x, y) {
@@ -461,12 +468,16 @@
             SWIPE.active = true;
             SWIPE.startX = SWIPE.prevX = SWIPE.currX = x;
             SWIPE.startY = SWIPE.prevY = SWIPE.currY = y;
+            SWIPE.startTime = now;
             SWIPE.distX = SWIPE.distY = 0;
             SWIPE.lastTime = now;
             SWIPE.vx = SWIPE.vy = 0;
             SWIPE.smoothedVx = SWIPE.smoothedVy = 0;
             SWIPE.peakVx = SWIPE.peakVy = 0;
             SWIPE.spin = 0;
+            SWIPE.sagitta = 0;
+            SWIPE.spinArea = 0;
+            SWIPE.history = [{ x, y, t: now }];
         }
 
         function swipeMove(x, y) {
@@ -476,7 +487,7 @@
             SWIPE.lastTime = now;
 
             const dx = x - SWIPE.prevX;
-            const dy = SWIPE.prevY - y; // 向上為正
+            const dy = SWIPE.prevY - y; // 向上為正 (螢幕 Y 向上滑 dy > 0)
             SWIPE.currX = x;
             SWIPE.currY = y;
             SWIPE.distX = x - SWIPE.startX;
@@ -496,9 +507,49 @@
             if (Math.abs(SWIPE.vx) > Math.abs(SWIPE.peakVx)) SWIPE.peakVx = SWIPE.vx;
             if (SWIPE.vy > SWIPE.peakVy) SWIPE.peakVy = SWIPE.vy;
 
-            // ★ 側旋量即時估算 (敏銳響應左右滑動，平滑增益)
+            // 軌跡歷史儲存 (保留最近 24 個採樣點，約 300ms)
+            SWIPE.history.push({ x, y, t: now });
+            while (SWIPE.history.length > 24 || (SWIPE.history.length > 3 && now - SWIPE.history[0].t > 320)) {
+                SWIPE.history.shift();
+            }
+
+            // ★ 幾何分析 1: 弦線外凸拱高 (Arc Sagitta / Perpendicular Excursion)
+            // 螢幕坐標中起點 (x0, y0) 到當前點 (x, y)，向量 C = (dxc, dyc)。
+            // 螢幕向前推 dyc < 0。若向右畫凸弧，(dxc * dy_i - dyc * dx_i) 為正。
+            const x0 = SWIPE.startX, y0 = SWIPE.startY;
+            const dxc = x - x0, dyc = y - y0;
+            const chordLen = Math.hypot(dxc, dyc);
+
+            let maxSagitta = 0;
+            if (chordLen > 15 && SWIPE.history.length >= 4) {
+                for (let i = 1; i < SWIPE.history.length - 1; i++) {
+                    const pt = SWIPE.history[i];
+                    const distPerp = (dxc * (pt.y - y0) - dyc * (pt.x - x0)) / chordLen;
+                    if (Math.abs(distPerp) > Math.abs(maxSagitta)) {
+                        maxSagitta = distPerp;
+                    }
+                }
+            }
+            SWIPE.sagitta = maxSagitta;
+
+            // ★ 幾何分析 2: 有向多邊形面積 (Green's Theorem for Circular Spin)
+            // 捕捉寶可夢畫圓蓄力自旋 (順時針正，逆時針負)
+            let area = 0;
+            if (SWIPE.history.length >= 6) {
+                for (let i = 1; i < SWIPE.history.length; i++) {
+                    const pA = SWIPE.history[i - 1];
+                    const pB = SWIPE.history[i];
+                    area += (pA.x - x0) * (pB.y - y0) - (pB.x - x0) * (pA.y - y0);
+                }
+            }
+            SWIPE.spinArea = area * 0.5;
+
+            // ★ 側旋量即時估算 (敏銳響應左右劃弧、側刷、畫圈)
             const brushRatio = SWIPE.vx / Math.max(120, Math.abs(SWIPE.vy) + 80);
-            SWIPE.spin = THREE.MathUtils.clamp((SWIPE.vx / 600) * 0.55 + brushRatio * 0.30, -0.85, 0.85);
+            SWIPE.spin = THREE.MathUtils.clamp(
+                (SWIPE.vx / 550) * 0.45 + (SWIPE.sagitta / 45) * 0.40 + brushRatio * 0.25,
+                -1.2, 1.2
+            );
 
             SWIPE.prevX = x;
             SWIPE.prevY = y;
@@ -506,6 +557,19 @@
 
         function swipeEnd() {
             SWIPE.active = false;
+            // 建立完整手勢快照快取 (供 tryHit 擊球時讀取，杜絕時序早洩截斷)
+            SWIPE.lastStroke = {
+                distX: SWIPE.distX,
+                distY: SWIPE.distY,
+                vx: SWIPE.vx,
+                vy: SWIPE.vy,
+                peakVx: SWIPE.peakVx,
+                peakVy: SWIPE.peakVy,
+                sagitta: SWIPE.sagitta,
+                spinArea: SWIPE.spinArea,
+                spin: SWIPE.spin,
+                time: performance.now()
+            };
         }
 
         /* ═══════════════════════════════════════════════
