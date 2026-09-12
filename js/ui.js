@@ -190,6 +190,8 @@
             if (refLbl && typeof REFEREE_MODES !== 'undefined' && REFEREE_MODES[refereeMode]) {
                 refLbl.innerText = REFEREE_MODES[refereeMode];
             }
+            // 同步各處難度切換鈕高亮
+            if (typeof syncDifficultyUI === 'function') syncDifficultyUI();
         }
 
         /* ── 個人設定子分類頁籤切換 ── */

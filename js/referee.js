@@ -173,10 +173,10 @@
         let refT = null;
         let refereeMode = parseInt(localStorage.getItem('nchu_referee_mode') || '1');
         const REFEREE_MODES = {
-            1: '1.電視轉播條',
-            2: '2.球員戰報',
-            3: '3.極簡靈動島',
-            4: '4.3D現場投影'
+            1: '電視條',
+            2: '球員卡',
+            3: '靈動島',
+            4: '3D投影'
         };
 
         function setRefereeMode(mode, save) {

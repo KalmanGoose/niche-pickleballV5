@@ -937,24 +937,13 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
                 <button data-menu="ai" onclick="toggleNavMenu('ai')">🤖 體感 ▾</button>
                 <button data-menu="social" onclick="openSocial()">🏆 榜單</button>
                 <button data-menu="quit" onclick="forfeitMatch()" style="color:var(--bad);">🏳️ 棄賽</button>
-                <button class="nav-min-btn" onclick="toggleNavMinimize(true)" title="收折最小化為懸浮球">➖</button>
+                <button class="nav-min-btn" onclick="toggleNavMinimize(true)" title="收折最小化為懸浮球"><span class="nav-min-icon">−</span></button>
             </div>
 
             <!-- ★ 二級下拉選單列 (#nav-subbar) -->
             <div id="nav-subbar" class="card">
                 <!-- 個人設定子排 (採用 3 大分類頁籤，杜絕無止盡橫向滾動) -->
                 <div class="subbar-group" id="subbar-settings" style="display:none;flex-direction:column;gap:6px;width:100%;align-items:center;">
-                    <!-- 難度快速切換列 (初階/中等/困難/仿生蒼蠅) -->
-                    <div style="display:flex;align-items:center;gap:4px;background:rgba(255,255,255,0.06);padding:3px 8px;border-radius:99px;border:1px solid rgba(255,255,255,0.1);max-width:100%;">
-                        <span style="font-size:10.5px;font-weight:800;color:var(--dim);white-space:nowrap;">🤖 對手:</span>
-                        <div style="display:flex;gap:3px;">
-                            <button class="diff-btn on" data-diff="easy" onclick="setDifficulty('easy')">🟢 初階</button>
-                            <button class="diff-btn" data-diff="medium" onclick="setDifficulty('medium')">🟡 中等</button>
-                            <button class="diff-btn" data-diff="hard" onclick="setDifficulty('hard')">🔴 困難</button>
-                            <button class="diff-btn" data-diff="fly" onclick="setDifficulty('fly')">🪰 蒼蠅</button>
-                        </div>
-                    </div>
-
                     <!-- 分類頁籤按鈕 (Tabs) -->
                     <div style="display:flex;gap:4px;background:rgba(255,255,255,0.06);padding:3px;border-radius:99px;max-width:100%;justify-content:center;">
                         <button type="button" class="settings-tab-btn on" id="stab-btn-view" onclick="switchSettingsTab('view')">🎮 視角排版</button>
@@ -962,13 +951,23 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
                         <button type="button" class="settings-tab-btn" id="stab-btn-data" onclick="switchSettingsTab('data')">🤖 體感數據</button>
                     </div>
 
-                    <!-- 分類 1: 視角排版 (4個精簡按鈕，無需橫滑) -->
-                    <div id="stab-pane-view" class="settings-tab-pane" style="display:flex;gap:4px;flex-wrap:wrap;justify-content:center;">
-                        <button onclick="cycleCamView()">🙈 切換視角</button>
-                        <button onclick="enterCamEdit()" style="color:var(--accent);">🎨 自訂視角</button>
-                        <button onclick="cycleCardScaleQuick()" style="color:var(--cool);">📐 卡片縮放 (<span id="quick-scale-lbl">100%</span>)</button>
-                        <button onclick="cycleRefereeModeQuick()" style="color:var(--lime);">📢 轉播樣式 (<span id="ref-mode-lbl">1.電視轉播條</span>)</button>
-                        <button onclick="togglePhysicsMode()" style="color:#c7d2fe;">🌪️ 物理: <span id="physics-mode-pill">⚡ 極速</span></button>
+                    <!-- 分類 1: 視角排版 (精簡按鈕 + 緊湊難度微型子排) -->
+                    <div id="stab-pane-view" class="settings-tab-pane" style="display:flex;flex-direction:column;gap:6px;width:100%;align-items:center;">
+                        <div style="display:flex;gap:4px;flex-wrap:wrap;justify-content:center;">
+                            <button onclick="cycleCamView()">🙈 切換視角</button>
+                            <button onclick="enterCamEdit()" style="color:var(--accent);">🎨 自訂視角</button>
+                            <button onclick="cycleCardScaleQuick()" style="color:var(--cool);">📐 卡片: <span id="quick-scale-lbl">100%</span></button>
+                            <button onclick="cycleRefereeModeQuick()" style="color:var(--lime);">📢 轉播: <span id="ref-mode-lbl">電視條</span></button>
+                            <button onclick="togglePhysicsMode()" style="color:#c7d2fe;">🌪️ 物理: <span id="physics-mode-pill">⚡ 極速</span></button>
+                        </div>
+                        <!-- 難度快速切換列 (初階/中等/困難/仿生蒼蠅) -->
+                        <div style="display:flex;align-items:center;gap:4px;border-top:1px solid rgba(255,255,255,0.08);padding-top:5px;width:100%;justify-content:center;">
+                            <span style="font-size:10px;font-weight:800;color:var(--dim);white-space:nowrap;">🤖 AI 難度:</span>
+                            <button class="diff-btn on" data-diff="easy" onclick="setDifficulty('easy')">🟢 初階</button>
+                            <button class="diff-btn" data-diff="medium" onclick="setDifficulty('medium')">🟡 中等</button>
+                            <button class="diff-btn" data-diff="hard" onclick="setDifficulty('hard')">🔴 困難</button>
+                            <button class="diff-btn" data-diff="fly" onclick="setDifficulty('fly')">🪰 蒼蠅</button>
+                        </div>
                     </div>
 
                     <!-- 分類 2: 個人輔助 -->

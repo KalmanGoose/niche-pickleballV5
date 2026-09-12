@@ -54,18 +54,29 @@
             width: 22px !important;
             height: 22px !important;
             border-radius: 99px !important;
-            background: rgba(255, 255, 255, 0.08) !important;
-            font-size: 11px !important;
-            color: var(--dim) !important;
+            background: rgba(255, 255, 255, 0.12) !important;
+            border: 1px solid rgba(255, 255, 255, 0.22) !important;
             padding: 0 !important;
             margin-left: 2px !important;
             cursor: pointer !important;
-            border: 0 !important;
-            transition: all 0.15s !important;
+            transition: all 0.18s ease !important;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25) !important;
         }
         .nav-min-btn:hover {
-            color: #fff !important;
-            background: rgba(255, 255, 255, 0.2) !important;
+            background: rgba(255, 255, 255, 0.25) !important;
+            border-color: rgba(255, 255, 255, 0.45) !important;
+            box-shadow: 0 0 8px rgba(255, 255, 255, 0.3) !important;
+        }
+        .nav-min-icon {
+            display: inline-block !important;
+            color: #f1f5f9 !important;
+            font-size: 15px !important;
+            font-weight: 800 !important;
+            line-height: 1 !important;
+            transform: translateY(-1px) !important;
+            user-select: none !important;
+            -webkit-user-select: none !important;
+            text-shadow: 0 0 4px rgba(255, 255, 255, 0.5) !important;
         }
 
         /* 最小化後的精緻懸浮球 (#nav-minimized-pill: 小一點窄一點、可任意拖曳停靠螢幕邊緣、絕不爆框) */
@@ -158,11 +169,21 @@
             border-radius: 20px !important;
             box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5), 0 0 14px rgba(56, 189, 248, 0.25) !important;
             max-width: min(96vw, 680px) !important;
-            white-space: nowrap !important;
         }
         #nav-subbar.open {
             display: flex !important;
             animation: subbarSlideDown 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes subbarSlideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-6px) scale(0.98);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
         }
 
         .settings-tab-btn {
@@ -186,7 +207,7 @@
             box-shadow: inset 0 0 0 1px rgba(56, 189, 248, 0.45) !important;
         }
 
-        #nav-subbar button:not(.settings-tab-btn) {
+        #nav-subbar button:not(.settings-tab-btn):not(.diff-btn) {
             font-size: 11.5px !important;
             font-weight: 700 !important;
             padding: 5px 12px !important;
@@ -200,17 +221,61 @@
             min-height: 28px !important;
             transition: all 0.15s ease !important;
         }
-        #nav-subbar button:not(.settings-tab-btn):hover,
-        #nav-subbar button:not(.settings-tab-btn):active {
+        #nav-subbar button:not(.settings-tab-btn):not(.diff-btn):hover,
+        #nav-subbar button:not(.settings-tab-btn):not(.diff-btn):active {
             background: rgba(56, 189, 248, 0.25) !important;
             border-color: var(--accent) !important;
             color: #fff !important;
         }
-        #nav-subbar button:not(.settings-tab-btn).on {
+        #nav-subbar button:not(.settings-tab-btn):not(.diff-btn).on {
             background: rgba(56, 189, 248, 0.30) !important;
             border-color: var(--accent) !important;
             color: var(--accent) !important;
             box-shadow: 0 0 8px rgba(56, 189, 248, 0.4) !important;
+        }
+
+        /* 難度微型膠囊按鈕 (初階/中等/困難/仿生蒼蠅: 精緻緊湊、色彩鮮明、絕不爆框) */
+        #nav-subbar .diff-btn {
+            font-size: 10.5px !important;
+            font-weight: 700 !important;
+            padding: 2.5px 8px !important;
+            border-radius: 99px !important;
+            background: rgba(255, 255, 255, 0.08) !important;
+            border: 1px solid rgba(255, 255, 255, 0.16) !important;
+            color: #94a3b8 !important;
+            min-height: 22px !important;
+            line-height: 1.2 !important;
+            cursor: pointer !important;
+            transition: all 0.15s ease !important;
+            flex-shrink: 0 !important;
+        }
+        #nav-subbar .diff-btn:hover {
+            background: rgba(255, 255, 255, 0.16) !important;
+            color: #fff !important;
+        }
+        #nav-subbar .diff-btn.on[data-diff="easy"] {
+            background: rgba(34, 197, 94, 0.28) !important;
+            border-color: #22c55e !important;
+            color: #4ade80 !important;
+            box-shadow: 0 0 8px rgba(34, 197, 94, 0.4) !important;
+        }
+        #nav-subbar .diff-btn.on[data-diff="medium"] {
+            background: rgba(234, 179, 8, 0.28) !important;
+            border-color: #eab308 !important;
+            color: #facc15 !important;
+            box-shadow: 0 0 8px rgba(234, 179, 8, 0.4) !important;
+        }
+        #nav-subbar .diff-btn.on[data-diff="hard"] {
+            background: rgba(239, 68, 68, 0.28) !important;
+            border-color: #ef4444 !important;
+            color: #f87171 !important;
+            box-shadow: 0 0 8px rgba(239, 68, 68, 0.4) !important;
+        }
+        #nav-subbar .diff-btn.on[data-diff="fly"] {
+            background: rgba(168, 85, 247, 0.35) !important;
+            border-color: #a855f7 !important;
+            color: #c084fc !important;
+            box-shadow: 0 0 10px rgba(168, 85, 247, 0.5) !important;
         }
 
 
@@ -228,7 +293,7 @@
                 padding: 4px 6px !important;
                 gap: 4px !important;
             }
-            #nav-subbar button:not(.settings-tab-btn) {
+            #nav-subbar button:not(.settings-tab-btn):not(.diff-btn) {
                 font-size: 11px !important;
                 padding: 5px 10px !important;
                 min-height: 30px !important;
@@ -264,7 +329,7 @@
                 gap: 4px !important;
                 z-index: 40 !important;
             }
-            #nav-subbar button:not(.settings-tab-btn) {
+            #nav-subbar button:not(.settings-tab-btn):not(.diff-btn) {
                 font-size: 10.5px !important;
                 padding: 4px 8px !important;
                 min-height: 26px !important;
