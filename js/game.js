@@ -1,7 +1,7 @@
 /* ═══════════════════════════════════════════════════════════════════
-   NCHU Pickleball V5 - 3D 渲染主引擎、匹克鵝 AI 與遊戲主迴圈 (Game Engine)
+   NCHU Pickleball V5 -  主引擎跟有的美的
    ═══════════════════════════════════════════════════════════════════ */
-/* ═══════ 教學寬容度設定 ═══════ */
+/* ═══════ 寬容度設定 ═══════ */
         const TEACH = { level: 'easy', scale: { easy: 0.55, normal: 0.8, strict: 1.0 } };
         function tScale() { return TEACH.scale[TEACH.level]; }
         function setTeachLevel(l) {
