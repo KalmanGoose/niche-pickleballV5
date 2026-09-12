@@ -649,19 +649,20 @@
             const back = HALF_L + 0.35;
             if (st === 1) {
                 add(0.0, '發球預備: 站進右側藍圈，拍面自然就位', 'STEP 1 站位預備', () => { dMove(1.5, back); dPaddle(0.34, 0.74); dDemoTgt.x = -1.5; dDemoTgt.z = -4.8; });
-                add(1.8, '拍面低於腰部 = 合法下手臂發球', 'STEP 2 擊球點高度', () => dPaddle(0.31, 0.60));
-                add(3.2, '👆 向上滑動推拍: 對角送進綠色發球區', 'STEP 3 直推發球', () => { triggerFingerDemoSwipe(0); dHit(-1.5, -4.8, 0); });
+                add(1.0, '👆 向上滑動推拍: 對角送進綠色發球區', 'STEP 2 滑動教學', () => { triggerFingerDemoSwipe(0); dPaddle(0.31, 0.60); });
+                add(3.2, '拍面低於腰部 = 合法下手臂直推發球！', 'STEP 3 直推發球', () => { dHit(-1.5, -4.8, 0); });
                 add(5.6, '收拍時手腕自然抬高過肩', 'STEP 3.5 完整收拍');
                 add(6.8, '走到左側藍圈，準備示範側旋發球', 'STEP 4 換邊發球', () => { dMove(-1.5, back); dPaddle(-0.31, 0.60); dDemoTgt.x = 1.5; dDemoTgt.z = -4.8; });
-                add(8.6, '🌪️ 右上刷切揮拍: 劃出微弧線落入右側發球區', 'STEP 5 側切發球', () => { triggerFingerDemoSwipe(1); dHit(1.5, -4.8, 0.65); });
+                add(7.4, '🌪️ 右上刷切揮拍: 劃出微弧線落入右側發球區', 'STEP 5 側切教學', () => { triggerFingerDemoSwipe(1); });
+                add(8.6, '香蕉側旋弧線球成功擊出！', 'STEP 5.5 側切發球', () => { dHit(1.5, -4.8, 0.65); });
                 add(11.0, '左右發球各成功一次即過關！點擊畫面開始', '通關重點');
             } else if (st === 2) {
                 add(0.0, '先正常對角發球過網', 'STEP 1 發球', () => { dMove(1.5, back); dPaddle(0.31, 0.60); dG(0, -HALF_L - 0.5); dDemoTgt.x = -1.6; dDemoTgt.z = -4.8; });
                 add(1.4, null, null, () => dHit(-1.6, -4.8));
                 add(3.4, '匹克鵝回擊一顆底線深球', 'STEP 2 對手深球', () => { dG(-1.4, -3.2); dDemoTgt.x = 1.2; dDemoTgt.z = 5.8; });
                 add(4.2, null, null, () => dGHit(1.2, 5.8));
-                add(5.4, '⚠️ 核心法則: 接發球必須等球落地彈跳一次！', 'STEP 3 等球落地', () => { dMove(1.2, 6.0); dPaddle(0.27, 0.54); dDemoTgt.x = -1.2; dDemoTgt.z = -3.6; });
-                add(7.8, '落地彈起後平穩回擊，完成雙彈跳規則！', 'STEP 4 合法回擊', () => { triggerFingerDemoSwipe(0); dHit(-1.2, -3.6); });
+                add(5.2, '⚠️ 核心法則: 接發球必須等球落地彈跳一次！', 'STEP 3 等球落地', () => { triggerFingerDemoSwipe(0); dMove(1.2, 6.0); dPaddle(0.27, 0.54); dDemoTgt.x = -1.2; dDemoTgt.z = -3.6; });
+                add(7.8, '落地彈起後平穩回擊，完成雙彈跳規則！', 'STEP 4 合法回擊', () => { dHit(-1.2, -3.6); });
                 add(10.0, '雙方各落地一次後，方開放凌空截擊', '雙彈跳核心');
             } else if (st === 3) {
                 add(0.0, '中興湖畔 7 呎廚房非截擊區 (Kitchen)', 'STEP 1 網前規則', () => { dMove(1.5, back); dPaddle(0.31, 0.60); dG(0, -HALF_L - 0.5); dDemoTgt.x = -1.6; dDemoTgt.z = -4.8; });
@@ -669,8 +670,8 @@
                 add(3.4, '匹克鵝把球輕吊進廚房區', 'STEP 2 對手吊球', () => { dG(-1.2, -3.0); dDemoTgt.x = 0.8; dDemoTgt.z = 1.35; });
                 add(4.2, null, null, () => dGHit(0.8, 1.35));
                 add(5.6, '❌ 球未落地就在廚房內揮拍 = KITCHEN FAULT 犯規', '錯誤示範', () => { dMove(0.8, 1.5); dPaddle(0.29, 1.0); dBad(); });
-                add(7.6, '✅ 正確做法: 耐心等球落地彈起後再輕推 (Dink)', '正確做法', () => { dPaddle(0.25, 0.48); dDemoTgt.x = -0.9; dDemoTgt.z = -1.7; });
-                add(9.2, '落地後輕推小球安全過網，成功通關！', 'STEP 3 廚房輕推', () => { triggerFingerDemoSwipe(0); dHit(-0.9, -1.7); });
+                add(7.4, '✅ 正確做法: 耐心等球落地彈起後再輕推 (Dink)', '正確做法', () => { triggerFingerDemoSwipe(0); dPaddle(0.25, 0.48); dDemoTgt.x = -0.9; dDemoTgt.z = -1.7; });
+                add(9.2, '落地後輕推小球安全過網，成功通關！', 'STEP 3 廚房輕推', () => { dHit(-0.9, -1.7); });
                 add(11.4, '廚房區落地後方可入內擊球', '通關重點');
             } else if (st === 4) {
                 add(0.0, '對決關卡: 先得 3 分者獲勝', 'STEP 1 對決匹克鵝', () => { dMove(1.5, back); dPaddle(0.31, 0.60); dG(0, -HALF_L - 0.5); dDemoTgt.x = -1.6; dDemoTgt.z = -4.8; });
@@ -1367,9 +1368,9 @@
 
                 const targetObj = (typeof gGrp !== 'undefined' && gGrp) ? gGrp.position : { x: 0, z: -HALF_L * 0.7 };
 
-                // 判斷是否已接近蒼蠅進入「近身對峙揮砍」模式 (distToFly <= 2.0m) 或已在處決死亡結算
+                // 判斷是否已接近蒼蠅進入「近身對峙揮砍」模式 (distToFly <= 3.8m) 或已在處決死亡結算
                 const distToFly = Math.hypot(pPos.x - targetObj.x, pPos.z - targetObj.z);
-                const isClose = (distToFly <= 2.0) || (typeof FunMode !== 'undefined' && FunMode.isKODeathSequence);
+                const isClose = (distToFly <= 3.8) || (typeof FunMode !== 'undefined' && FunMode.isKODeathSequence);
                 if (typeof FunMode !== 'undefined') {
                     const wasClose = FunMode.isFaceOff;
                     FunMode.isFaceOff = isClose;
@@ -1377,10 +1378,10 @@
                 }
 
                 if (isClose) {
-                    // ★ 近身對峙：平滑鎖定在蒼蠅前方約 1.35 米處對峙，維持面對蒼蠅，不穿透衝過頭
-                    const standZ = targetObj.z + 1.35;
-                    pPos.x += (targetObj.x - pPos.x) * Math.min(1, dt * 10);
-                    pPos.z += (standZ - pPos.z) * Math.min(1, dt * 10);
+                    // ★ 近身對峙：平滑鎖定在蒼蠅前方約 1.6 米處對峙，維持面對蒼蠅，不穿透衝過頭
+                    const standZ = targetObj.z + 1.60;
+                    pPos.x += (targetObj.x - pPos.x) * Math.min(1, dt * 8);
+                    pPos.z += (standZ - pPos.z) * Math.min(1, dt * 8);
                     pGrp.position.set(pPos.x, 0, pPos.z);
                 } else {
                     // ★ 衝刺逼近階段：手指拖曳或全速自動衝鋒

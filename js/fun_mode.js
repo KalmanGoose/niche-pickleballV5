@@ -455,8 +455,8 @@
             const dy = y - this.strokeStartY;
             const dist = Math.hypot(dx, dy);
 
-            // 滑動距離超過 28px 且處於近身對峙時觸發揮砍
-            if (dist > 28 && this.activeBuff === 'ELECTRIC_SWATTER' && this.isFaceOff) {
+            // 滑動距離超過 18px 且處於近身對峙時觸發揮砍 (更靈敏絲滑)
+            if (dist > 18 && this.activeBuff === 'ELECTRIC_SWATTER' && this.isFaceOff) {
                 this.handleSwipeSlash(dx, dy, x, y);
                 this.strokeStartX = x;
                 this.strokeStartY = y;
@@ -835,12 +835,12 @@
                         }
                     }
 
-                    // 偵測是否進入近身對峙揮砍距離（2.0米以內）
+                    // 偵測是否進入近身對峙揮砍距離（3.8米以內，及早喚起滑動揮拍對峙指引）
                     const targetObj = (typeof gGrp !== 'undefined' && gGrp) ? gGrp.position : null;
                     if (targetObj && typeof pPos !== 'undefined') {
                         const distToFly = Math.hypot(pPos.x - targetObj.x, pPos.z - targetObj.z);
                         const wasFaceOff = this.isFaceOff;
-                        this.isFaceOff = (distToFly <= 2.0);
+                        this.isFaceOff = (distToFly <= 3.8);
                         if (wasFaceOff !== this.isFaceOff) {
                             this.updateGuideBanner();
                         }
