@@ -26,6 +26,15 @@
             if (gArm) gArm.visible = !isFly;
             const aiWho = document.getElementById('ai-who-label');
             if (aiWho) aiWho.innerText = isFly ? '🪰 仿生蒼蠅' : '🪿 匹克鵝';
+
+            const snnHud = document.getElementById('fly-snn-hud');
+            if (snnHud) {
+                if (isFly && snnHud.dataset.userClosed !== 'true') {
+                    snnHud.style.display = 'flex';
+                } else if (!isFly) {
+                    snnHud.style.display = 'none';
+                }
+            }
         }
         let zoneServe, arc, ringLand, ringSpot, warnKitchen, rings = [];
 
@@ -1436,19 +1445,24 @@
             const active = (state === 'RALLY' || state === 'SERVE_AIR');
 
             if (isFly) {
-                // ═══════ 仿生蒼蠅動畫與 GFS 巨大纖維反射核心 (Bio-Fly Connectome) ═══════
+                // ═══════ 普林斯頓 FlyWire 巨大纖維視覺逃逸神經迴路 (LIF-A SNN) ═══════
                 flyHoverTime += dt;
 
-                // 雙翼高頻拍動 (Buzzing Wings)
+                // 1. 執行 SNN 生物物理單步模擬 (LIF-A 膜電位與 Tsodyks-Markram STD)
+                if (window.FLY_BRAIN) {
+                    FLY_BRAIN.step(dt, PH.pos, PH.vel, gGrp.position, active, dinkRallyCount);
+                }
+
+                // 2. 雙翼高頻拍動 (由 DLMn 飛行肌運動神經元即時驅動: 70Hz ~ 125Hz)
                 if (flyWings && flyWings.length) {
-                    const wingFreq = (flyState === 'LOOMING_REFLEX') ? 125 : (flyState === 'STUNNED' ? 14 : 70);
+                    const wingFreq = window.FLY_BRAIN ? FLY_BRAIN.dlmnFreq : ((flyState === 'LOOMING_REFLEX') ? 125 : (flyState === 'STUNNED' ? 14 : 70));
                     const wingAmp = (flyState === 'STUNNED') ? 0.15 : 0.60;
                     flyWings.forEach(w => {
                         w.pivot.rotation.y = Math.sin(flyHoverTime * wingFreq) * wingAmp * w.side;
                     });
                 }
 
-                // 暈眩狀態倒數 (Stunned / Grounded State)
+                // 3. 暈眩狀態倒數 (Stunned / Grounded State)
                 if (flyState === 'STUNNED') {
                     flyStunTimer -= dt;
                     // 墜地動畫：高度迅速跌落至地面 (y = 0.08)，機身側翻
@@ -1462,6 +1476,7 @@
                         flyState = 'HOVER';
                         if (flyMesh) flyMesh.rotation.z = 0;
                         if (flyDizzy) flyDizzy.visible = false;
+                        if (window.FLY_BRAIN) FLY_BRAIN.reset();
                     }
                 } else if (flyState === 'RECOVERY') {
                     // 浮高破綻後短暫低速回防 (2.8m/s)，無法發動巨纖維瞬移反抽
@@ -1477,36 +1492,34 @@
                     gGrp.position.y = THREE.MathUtils.lerp(gGrp.position.y, targetY, dt * 10);
                 }
 
-                // 即時光學逼近率評估 (Optical Looming Rate & Sensory Vulnerability) - O(1) 複雜度
+                // 4. 根據生物神經元輸出驅動行為 (Spike / STD Fatigue / Dink Approach)
                 if (active && PH.vel.z < 0) {
                     const bDist = Math.hypot(PH.pos.x - gGrp.position.x, PH.pos.z - gGrp.position.z);
-                    const ballSpeed = PH.vel.length();
-                    const approachSpeed = -PH.vel.z;
                     const ap = predictApex();
-
-                    // ★ 關鍵修復：使用 predictLanding(_land) 獲取第一次地面著陸點，100% 準確判讀是否進廚房！
                     const hasLand = predictLanding(_land);
                     const isKitchenBound = hasLand ? (_land.z < 0 && _land.z > -KITCHEN_D - 0.25) : (ap ? (ap.z > -KITCHEN_D - 0.35) : false);
 
                     if (isKitchenBound) {
-                        // ★ 廚房區柔和小球 (Dink / 3rd Shot Drop) -> 腹側視野降落感應，巨纖維神經絕對靜默 (100% 免疫巨纖維反抽)！
+                        // ★ 廚房區柔和小球 (Dink): 檢視突觸抑制狀態 (Tsodyks-Markram x < 0.26)
                         if (flyState !== 'STUNNED' && flyState !== 'RECOVERY') {
-                            if (dinkRallyCount >= 2) {
+                            const isVesicleDepleted = window.FLY_BRAIN && FLY_BRAIN.isFatigued;
+                            if (isVesicleDepleted || dinkRallyCount >= 2) {
                                 if (flyState !== 'POPUP') {
                                     flyState = 'POPUP';
-                                    toast('🪰 蒼蠅微距視覺過載！', '連續小球拉鋸，微距神經疲勞！');
+                                    toast('🪰 突觸囊泡枯竭！ (STD 過載)', 'Tsodyks-Markram x < 0.26，微距視覺癱瘓！');
+                                    if (typeof speechSay === 'function' && Math.random() < 0.4) speechSay('微距視盲過載！');
                                 }
                             } else {
                                 flyState = 'DINK_APPROACH'; // 壓向廚房線打拉鋸
                             }
                         }
-                    } else if (bDist >= 1.2 && flyState !== 'STUNNED' && flyState !== 'RECOVERY') {
-                        // ★ 僅針對非廚房球 (中後場高速抽球/殺球) 進行巨纖維逃逸反射判定
-                        const loomingRate = (approachSpeed > 0 ? approachSpeed : 0) / bDist;
-                        if (ballSpeed >= 9.2 || (loomingRate >= 2.2 && approachSpeed >= 7.8)) {
+                    } else if (bDist >= 0.8 && flyState !== 'STUNNED' && flyState !== 'RECOVERY') {
+                        // ★ 非廚房球：檢驗巨纖維 (GF) 膜電位是否突破 -45mV 爆發動作電位
+                        const hasSpike = window.FLY_BRAIN ? FLY_BRAIN.gfSpike : false;
+                        if (hasSpike) {
                             if (flyState !== 'LOOMING_REFLEX') {
                                 flyState = 'LOOMING_REFLEX';
-                                toast('🪰 巨纖維反射觸發！', '偵測到高速球逼近！蒼蠅瞬移極速截擊！');
+                                toast('🪰 巨纖維動作電位放電！', '普林斯頓 FlyWire GF 膜電位突破 -45mV！瞬移逃逸！');
                                 popRing(gGrp.position.x, gGrp.position.z, 1.4, 0xa855f7);
                                 if (typeof speechSay === 'function' && Math.random() < 0.3) speechSay('巨纖維反射！');
                             }
@@ -1625,11 +1638,12 @@
                 let targetX, targetZ, spdScale, spinVal;
 
                 if (isCounter) {
-                    // 巨纖維神經極速反抽：瞄準遠離玩家的對角底線壓線區 (絕對在界內！)
-                    targetX = (pPos.x > 0 ? -1.75 : 1.75) + (Math.random() - 0.5) * 0.20;
+                    // 巨纖維神經極速反抽：結合 DNa01/02 下行轉向神經元，精準壓向遠離玩家之對角底線
+                    const steerDir = (window.FLY_BRAIN && FLY_BRAIN.dnaSteer !== 0) ? -Math.sign(FLY_BRAIN.dnaSteer) : (pPos.x > 0 ? -1 : 1);
+                    targetX = (steerDir < 0 ? -1.75 : 1.75) + (Math.random() - 0.5) * 0.20;
                     targetZ = HALF_L - 0.85 + (Math.random() - 0.5) * 0.20; // 5.75m ~ 5.95m (底線前安全界內)
                     spdScale = 1.20; // 呼叫 solveArc 內建高速運算，精確計算飛行初速，保證落點合規
-                    spinVal = (pPos.x > 0 ? -0.16 : 0.16); // 正式競賽微側旋切球 (在合法死區內)
+                    spinVal = (steerDir < 0 ? -0.16 : 0.16); // 正式競賽微側旋切球 (在合法死區內)
                     popRing(gGrp.position.x, gGrp.position.z, 1.6, 0xa855f7);
                     S.pop(0.85);
                     toast('🪰 巨纖維瞬殺反抽！', '極速壓線深球回敬！');
@@ -2124,6 +2138,19 @@
                 if (D.sp) D.sp.innerText = mphStr;
                 if (!cachedMiniSpd) cachedMiniSpd = document.getElementById('mini-spd-val');
                 if (cachedMiniSpd) cachedMiniSpd.innerText = mphStr + ' mph';
+
+                // 更新神經示波器遙測文字
+                if (window.FLY_BRAIN && typeof diffLevel !== 'undefined' && diffLevel === 'fly') {
+                    FLY_BRAIN.updateDomReadouts();
+                }
+            }
+
+            // 即時渲染果蠅神經電生理示波器 Canvas (60FPS 流暢波形)
+            if (window.FLY_BRAIN && typeof diffLevel !== 'undefined' && diffLevel === 'fly') {
+                const snnC = document.getElementById('fly-snn-canvas');
+                if (snnC && snnC.offsetParent !== null) {
+                    FLY_BRAIN.renderOscilloscope(snnC);
+                }
             }
 
             const k = 1 - Math.pow(0.01, dt);

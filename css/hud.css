@@ -1646,3 +1646,187 @@
     padding: 4px 7px !important;
     min-height: 28px !important;
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   普林斯頓 FlyWire 果蠅神經電生理示波器 HUD (#fly-snn-hud)
+   ═══════════════════════════════════════════════════════════════════ */
+#fly-snn-hud {
+    position: absolute;
+    top: calc(96px + env(safe-area-inset-top));
+    right: 8px;
+    width: 236px;
+    max-width: calc(100% - 16px);
+    background: rgba(3, 8, 14, 0.94);
+    border: 1.5px solid rgba(168, 85, 247, 0.6);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6), 0 0 16px rgba(168, 85, 247, 0.25);
+    border-radius: 12px;
+    padding: 8px 10px;
+    z-index: 45;
+    flex-direction: column;
+    gap: 6px;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: manipulation;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+.snn-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    padding-bottom: 4px;
+}
+
+.snn-title {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.snn-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #22c55e;
+    box-shadow: 0 0 6px #22c55e;
+    animation: snn-pulse 1.6s infinite ease-in-out;
+}
+
+@keyframes snn-pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(0.85); }
+}
+
+.snn-name {
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    color: #f1f5f9;
+}
+
+.snn-tag {
+    font-size: 8px;
+    padding: 1px 4px;
+    border-radius: 4px;
+    background: rgba(168, 85, 247, 0.2);
+    border: 1px solid rgba(168, 85, 247, 0.4);
+    color: #c084fc;
+}
+
+.snn-ctrls {
+    display: flex;
+    align-items: center;
+}
+
+.snn-min-btn {
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.5);
+    cursor: pointer;
+    font-size: 11px;
+    padding: 2px 4px;
+    line-height: 1;
+    border-radius: 4px;
+    transition: color 0.15s;
+}
+
+.snn-min-btn:hover {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.snn-body {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.snn-scope-wrap {
+    position: relative;
+    width: 216px;
+    height: 85px;
+    border-radius: 6px;
+    overflow: hidden;
+    border: 1px solid rgba(34, 197, 94, 0.3);
+    background: #03080e;
+    box-shadow: inset 0 0 12px rgba(0, 0, 0, 0.8);
+    margin: 0 auto;
+}
+
+#fly-snn-canvas {
+    display: block;
+    width: 216px;
+    height: 85px;
+}
+
+.snn-scanline {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%);
+    background-size: 100% 4px;
+}
+
+.snn-telemetry {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px 8px;
+    padding-top: 2px;
+}
+
+.snn-stat-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 9px;
+    line-height: 1.2;
+}
+
+.snn-lbl {
+    color: rgba(148, 163, 184, 0.8);
+    font-weight: 600;
+}
+
+.snn-val {
+    font-weight: 700;
+    color: #22c55e;
+}
+
+.snn-status {
+    font-size: 8px;
+    font-weight: 800;
+    padding: 1px 4px;
+    border-radius: 3px;
+    white-space: nowrap;
+}
+
+.snn-status.rest {
+    color: #4ade80;
+    background: rgba(34, 197, 94, 0.15);
+}
+
+.snn-status.excited {
+    color: #38bdf8;
+    background: rgba(56, 189, 248, 0.15);
+}
+
+.snn-status.spike {
+    color: #f43f5e;
+    background: rgba(244, 63, 94, 0.25);
+    box-shadow: 0 0 6px rgba(244, 63, 94, 0.4);
+    animation: snn-spike-flash 0.2s alternate infinite;
+}
+
+.snn-status.stunned {
+    color: #fbbf24;
+    background: rgba(245, 158, 11, 0.2);
+}
+
+@keyframes snn-spike-flash {
+    from { opacity: 0.7; }
+    to { opacity: 1.0; }
+}

@@ -858,6 +858,44 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
         <canvas id="skeleton-canvas" class="card"
             style="position:absolute;top:14px;right:150px;width:130px;height:95px;z-index:20;display:none;pointer-events:none;"></canvas>
 
+        <!-- ═══════ 普林斯頓 FlyWire 果蠅神經電生理示波器 HUD (#fly-snn-hud) ═══════ -->
+        <div id="fly-snn-hud" class="card" style="display:none;">
+            <div class="snn-header">
+                <div class="snn-title">
+                    <span class="snn-dot"></span>
+                    <span class="snn-name">FLY-SNN MONITOR</span>
+                    <span class="snn-tag">FlyWire v24</span>
+                </div>
+                <div class="snn-ctrls">
+                    <button class="snn-min-btn" onclick="toggleSnnHud()" title="關閉示波器">✕</button>
+                </div>
+            </div>
+            <div class="snn-body">
+                <div class="snn-scope-wrap">
+                    <canvas id="fly-snn-canvas" width="216" height="85"></canvas>
+                    <div class="snn-scanline"></div>
+                </div>
+                <div class="snn-telemetry">
+                    <div class="snn-stat-row">
+                        <span class="snn-lbl">Vm (GF)</span>
+                        <span class="snn-val" id="snn-vm">-65.0 mV</span>
+                    </div>
+                    <div class="snn-stat-row">
+                        <span class="snn-lbl">dθ/dt</span>
+                        <span class="snn-val" id="snn-dtheta">0.00 rad/s</span>
+                    </div>
+                    <div class="snn-stat-row">
+                        <span class="snn-lbl">囊泡池 x</span>
+                        <span class="snn-val" id="snn-vesicle">100%</span>
+                    </div>
+                    <div class="snn-stat-row">
+                        <span class="snn-lbl">狀態</span>
+                        <span class="snn-status rest" id="snn-circuit-state">LIF 靜息</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
     <div id="hud">
         <!-- ★ V5 虛擬裁判浮動即時裁決膠囊 -->
         <div id="referee-announcement" aria-live="polite" role="status">
@@ -1018,6 +1056,7 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
                     <button id="subbar-net-assist-btn" onclick="toggleNetAssist()" style="color:var(--dim);">🏃 網前助攻: 關</button>
                     <button id="subbar-perf-btn" onclick="cyclePerfQuick()">⚡ 畫質: 原生高畫質</button>
                     <button id="subbar-phys-btn" onclick="togglePhysicsMode()" style="color:#c7d2fe;">🌪️ 物理: ⚡極速</button>
+                    <button id="subbar-snn-btn" onclick="toggleSnnHud()" style="color:#c084fc;">⚡ 示波器: 開</button>
                 </div>
             </div>
         </div>
@@ -1223,6 +1262,7 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
     <script src="./js/motion.js"></script>
     <script src="./js/ui.js"></script>
     <script src="./js/social.js"></script>
+    <script src="./js/fly_connectome.js"></script>
     <script src="./js/game.js"></script>
 </body>
 </html>
