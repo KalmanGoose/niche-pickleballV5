@@ -238,6 +238,7 @@
             resetSwing(); resetServeFSM();
             if (typeof dinkRallyCount !== 'undefined') dinkRallyCount = 0;
             if (typeof isChanceBall !== 'undefined') isChanceBall = false;
+            if (typeof FunMode !== 'undefined' && FunMode.clearCourtItems) FunMode.clearCourtItems();
         }
 
         /* ═══════ 雙軌物理模式切換控制器 (Dual Physics Controller) ═══════ */

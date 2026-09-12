@@ -1940,3 +1940,80 @@
     from { opacity: 0.7; }
     to { opacity: 1.0; }
 }
+
+/* ═══════ 🍄 瘋狂道具戰 HUD 徽章與動態 ═══════ */
+.fun-item-hud {
+    position: fixed;
+    top: 62px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: none;
+    align-items: center;
+    gap: 10px;
+    background: rgba(15, 23, 42, 0.88);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 1.5px solid rgba(251, 191, 36, 0.6);
+    border-radius: 999px;
+    padding: 6px 14px 6px 10px;
+    box-shadow: 0 8px 28px -4px rgba(245, 158, 11, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    z-index: 1000;
+    pointer-events: none;
+    animation: fun-hud-pop 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes fun-hud-pop {
+    from { transform: translateX(-50%) scale(0.6); opacity: 0; }
+    to { transform: translateX(-50%) scale(1.0); opacity: 1; }
+}
+
+.fun-item-icon {
+    font-size: 22px;
+    line-height: 1;
+    filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.4));
+    animation: fun-icon-wobble 1.2s infinite ease-in-out;
+}
+
+@keyframes fun-icon-wobble {
+    0%, 100% { transform: rotate(0deg) scale(1.0); }
+    25% { transform: rotate(-8deg) scale(1.1); }
+    75% { transform: rotate(8deg) scale(1.1); }
+}
+
+.fun-item-info {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.fun-item-name {
+    font-size: 11px;
+    font-weight: 800;
+    color: #ffffff;
+    letter-spacing: 0.3px;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+}
+
+.fun-item-bar-wrap {
+    width: 85px;
+    height: 5px;
+    background: rgba(255, 255, 255, 0.16);
+    border-radius: 99px;
+    overflow: hidden;
+}
+
+.fun-item-bar {
+    height: 100%;
+    width: 100%;
+    border-radius: 99px;
+    transition: width 0.08s linear;
+}
+
+.fun-item-time {
+    font-size: 11px;
+    font-weight: 800;
+    color: #facc15;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    min-width: 32px;
+    text-align: right;
+}

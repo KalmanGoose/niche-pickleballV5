@@ -42,6 +42,7 @@ const jsFiles = [
   'ui.js',
   'social.js',
   'fly_connectome.js',
+  'fun_mode.js',
   'game.js'
 ];
 

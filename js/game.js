@@ -152,6 +152,7 @@
             buildLights(); buildEnvironment(); buildCourt(); buildNet();
             buildBall(); buildSteve(); buildCreeper(); buildGuides();
             buildAimZones(); buildRingPool();
+            if (typeof FunMode !== 'undefined' && FunMode.init) FunMode.init();
         }
         function buildLights() {
             scene.add(new THREE.HemisphereLight(0xdcefff, 0x7d9c5e, GRADE.hemiI));
@@ -1093,7 +1094,8 @@
             if (state !== 'RALLY' || pLock > 0 || locked) return;
             if (PH.vel.z <= 0 || PH.pos.z < 0.05) return;
             const b = PH.pos, p = padW;
-            const padScale = 1.5; // ★ 球拍放大 1.5 倍，擊球容錯判定範圍同步擴大 1.5 倍 (超寬容錯不易揮空)
+            const isMegaPad = (typeof FunMode !== 'undefined' && FunMode.activeBuff === 'MEGA_PADDLE');
+            const padScale = isMegaPad ? 3.8 : 1.5; // ★ 巨無霸球拍 3.8 倍超寬判定，一般 1.5 倍
             const assist = (webcamActive ? 1.45 : 1.0) * padScale;
             const r = swingT > 0
                 ? { z: (0.62 + BALL_R) * assist, x: (0.82 + BALL_R) * assist, y: (0.78 + BALL_R) * assist }
@@ -1108,6 +1110,23 @@
             }
             if (volley && needBounce()) { endRally('GOOSE', '雙彈跳違規', '接發球必須等球落地一次'); return; }
             pLock = 0.28; lastHitter = 'PLAYER'; rallyHits++; bounces = 0;
+
+            // 🍄 瘋狂道具戰：擊球特殊觸發 (電蚊拍電擊、巨球震撼、巨拍轟擊)
+            if (typeof FunMode !== 'undefined' && FunMode.activeBuff) {
+                if (FunMode.activeBuff === 'ELECTRIC_SWATTER') {
+                    FunMode.tryElectrocuteFly();
+                    popRing(b.x, b.z, 2.2, 0x38bdf8);
+                    if (typeof S !== 'undefined' && S.tone) S.tone('sawtooth', 360, 100, 0.14, 0.25);
+                } else if (FunMode.activeBuff === 'MEGA_BALL') {
+                    popRing(b.x, b.z, 2.8, 0x64748b);
+                    addShake(0.24);
+                    if (typeof S !== 'undefined' && S.thump) S.thump(1.6);
+                } else if (FunMode.activeBuff === 'MEGA_PADDLE') {
+                    popRing(b.x, b.z, 2.5, 0xfacc15);
+                    addShake(0.12);
+                    if (typeof S !== 'undefined' && S.pop) S.pop(1.0);
+                }
+            }
 
             // ★ 動力鏈評分
             let chainRes = null;
@@ -1465,19 +1484,28 @@
                     });
                 }
 
-                // 3. 暈眩狀態倒數 (Stunned / Grounded State)
-                if (flyState === 'STUNNED') {
+                // 3. 暈眩/電擊狀態倒數 (Stunned / Electrocuted / Grounded State)
+                if (flyState === 'STUNNED' || flyState === 'ELECTROCUTED') {
                     flyStunTimer -= dt;
-                    // 墜地動畫：高度迅速跌落至地面 (y = 0.08)，機身側翻
-                    gGrp.position.y = THREE.MathUtils.lerp(gGrp.position.y, 0.08, dt * 8);
-                    if (flyMesh) flyMesh.rotation.z = THREE.MathUtils.lerp(flyMesh.rotation.z, Math.PI * 0.45, dt * 6);
+                    // 墜地動畫：高度迅速跌落至地面 (y = 0.08)，機身側翻或翻肚抽搐
+                    gGrp.position.y = THREE.MathUtils.lerp(gGrp.position.y, 0.08, dt * 10);
+                    if (flyMesh) {
+                        const targetTilt = (flyState === 'ELECTROCUTED') ? Math.PI * 0.75 : Math.PI * 0.45;
+                        flyMesh.rotation.z = THREE.MathUtils.lerp(flyMesh.rotation.z, targetTilt, dt * 8);
+                        if (flyState === 'ELECTROCUTED') {
+                            flyMesh.position.x = (Math.random() - 0.5) * 0.08; // 高壓電弧微震抽搐
+                        }
+                    }
                     if (flyDizzy) {
                         flyDizzy.visible = true;
-                        flyDizzy.rotation.y += dt * 7;
+                        flyDizzy.rotation.y += dt * 12;
                     }
                     if (flyStunTimer <= 0) {
                         flyState = 'HOVER';
-                        if (flyMesh) flyMesh.rotation.z = 0;
+                        if (flyMesh) {
+                            flyMesh.rotation.z = 0;
+                            flyMesh.position.set(0, 0, 0);
+                        }
                         if (flyDizzy) flyDizzy.visible = false;
                         if (window.FLY_BRAIN) FLY_BRAIN.reset();
                     }
@@ -1601,8 +1629,14 @@
             if (Math.abs(b.z - gp.z) > zTol + BALL_R || Math.abs(b.x - gp.x) > xTol + BALL_R ||
                 Math.abs(b.y - gp.y) > yTol + BALL_R) return;
 
-            // ★ 蒼蠅若處於暈眩狀態 (STUNNED)，無法回擊，造成破綻讓球落地！
-            if (isFly && flyState === 'STUNNED') {
+            // ★ 蒼蠅若處於暈眩或電擊狀態 (STUNNED / ELECTROCUTED)，無法回擊，造成破綻讓球落地！
+            if (isFly && (flyState === 'STUNNED' || flyState === 'ELECTROCUTED')) {
+                return;
+            }
+
+            // ★ 🍄 瘋狂道具戰：若玩家打出巨無霸鐵球，蒼蠅硬接直接被砸成一張紙片！
+            if (isFly && typeof FunMode !== 'undefined' && FunMode.activeBuff === 'MEGA_BALL') {
+                FunMode.squashFly();
                 return;
             }
 
@@ -1610,6 +1644,16 @@
                 // ═══════ 仿生蒼蠅官方規則遵循與巨纖維反擊機制 ═══════
                 gLock = 0.24; pLock = 0.14; lastHitter = 'GOOSE'; rallyHits++; bounces = 0;
                 if (state === 'SERVE_AIR') state = 'RALLY';
+
+                // 🪰⚔️ 六刀流阿修羅蒼蠅多重連擊音效
+                if (typeof FunMode !== 'undefined' && FunMode.flyBuff === 'HEXA_PADDLE') {
+                    if (typeof S !== 'undefined' && S.pop) {
+                        S.pop(0.5);
+                        later(() => S.pop(0.7), 50);
+                        later(() => S.pop(0.95), 100);
+                    }
+                    popRing(gGrp.position.x, gGrp.position.z, 2.4, 0xef4444);
+                }
 
                 // 1. 新手教學關卡規則 (Stage 2 & 3 嚴格配合教學)
                 if (stage === 2) {
@@ -2133,6 +2177,7 @@
             }
 
             PH.update(dt); tryHit(); updateGoose(dt); updateGuides(dt);
+            if (typeof FunMode !== 'undefined') FunMode.update(dt);
             updateAimZones(dt); updateRings(dt);
 
             // 速度儀表文字降頻更新 (每 4 幀更新一次，徹底消除 Layout Reflow 造成的掉幀)
