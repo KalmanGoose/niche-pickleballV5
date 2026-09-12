@@ -812,7 +812,38 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
         </div>
     </div>
 
+    <!-- ══════ 🃏 瘋狂道具卡片包 (Item Cards Pack Modal) ══════ -->
+    <div id="item-cards-modal" class="modal-overlay" style="display:none;" onclick="if(event.target===this)closeItemCardsModal()">
+        <div class="modal-card">
+            <div class="cards-pack-header">
+                <div style="text-align:left;">
+                    <h2 style="margin:0;display:flex;align-items:center;gap:8px;font-size:18px;">
+                        <span>🃏</span> <span>瘋狂道具卡片包</span>
+                        <span style="font-size:11px;background:#f59e0b;color:#020617;padding:2px 8px;border-radius:99px;font-weight:800;">ALMANAC</span>
+                    </h2>
+                    <div style="font-size:11px;color:#94a3b8;margin-top:2px;">《瑪利歐賽車》式盲盒體驗 · 神裝與踩雷全收錄！點擊「試用」可直接裝備測試！</div>
+                </div>
+                <button class="btn" onclick="closeItemCardsModal()" style="padding:4px 10px;font-size:16px;line-height:1;">✕</button>
+            </div>
 
+            <!-- 分類標籤 (Tabs) -->
+            <div class="cards-pack-tabs">
+                <button class="cards-pack-tab on" id="card-tab-all" onclick="filterItemCards('all')">⭐ 全部道具 (8)</button>
+                <button class="cards-pack-tab" id="card-tab-buff" onclick="filterItemCards('buff')">🌟 神奇增益 (4)</button>
+                <button class="cards-pack-tab" id="card-tab-debuff" onclick="filterItemCards('debuff')">💀 搞怪陷阱 (4)</button>
+            </div>
+
+            <!-- 卡片展示網格 (Grid) -->
+            <div class="cards-grid" id="cards-pack-grid">
+                <!-- 由 JS 動態生成 8 張精美道具卡片 -->
+            </div>
+
+            <div style="margin-top:14px;display:flex;justify-content:space-between;align-items:center;border-top:1px solid rgba(255,255,255,0.08);padding-top:10px;">
+                <div style="font-size:11px;color:#64748b;text-align:left;">💡 提示：在遊戲中踩中盲盒時點擊頂部 HUD 徽章亦可快速打開此圖鑑</div>
+                <button class="btn btn-primary" onclick="closeItemCardsModal()" style="background:#f59e0b;color:#0f172a;font-weight:800;padding:6px 18px;">返回賽場</button>
+            </div>
+        </div>
+    </div>
 
     <!-- ══════ Spotlight 聚光燈互動導覽 (A+B 方案) ══════ -->
     <div id="spotlight-tour">
@@ -1009,6 +1040,7 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
                             <button onclick="cycleJoySpeedQuick()" style="color:var(--ok);">🕹️ 搖桿: <span id="joy-speed-lbl">標準</span></button>
                             <button onclick="togglePhysicsMode()" style="color:#c7d2fe;">🌪️ 物理: <span id="physics-mode-pill">⚡ 極速</span></button>
                             <button id="subbar-fun-btn" onclick="toggleFunMode()" style="color:#fbbf24;">🍄 道具戰: <span id="subbar-fun-lbl">關</span></button>
+                            <button id="subbar-cards-btn" onclick="openItemCardsModal()" style="color:#f59e0b;font-weight:700;">🃏 道具卡包</button>
                         </div>
                         <!-- 難度快速切換列 (初階/中等/困難/仿生蒼蠅) -->
                         <div style="display:flex;align-items:center;gap:4px;border-top:1px solid rgba(255,255,255,0.08);padding-top:5px;width:100%;justify-content:center;">
@@ -1046,6 +1078,7 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
                         <button class="stage-btn" data-stage="4" onclick="switchStage(4)">4 對決</button>
                         <button class="stage-btn" data-stage="5" onclick="switchStage(5)">5 冠軍賽</button>
                         <button class="stage-btn" data-stage="6" onclick="switchStage(6)" style="color:#fbbf24;font-weight:700;">6 娛樂戰</button>
+                        <button class="stage-btn" onclick="openItemCardsModal()" style="color:#f59e0b;font-weight:700;">🃏 卡包</button>
                     </div>
                     <div style="display:flex;align-items:center;gap:4px;border-top:1px solid rgba(255,255,255,0.1);padding-top:4px;width:100%;justify-content:center;">
                         <span style="font-size:10px;font-weight:800;color:var(--dim);white-space:nowrap;">🤖 AI 難度:</span>
@@ -1163,6 +1196,7 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
                 <button data-stage="4" onclick="switchStage(4)">4 對決</button>
                 <button data-stage="5" onclick="switchStage(5)">5 魔王戰</button>
                 <button data-stage="6" onclick="switchStage(6)" style="color:#fbbf24;font-weight:700;">6 娛樂戰</button>
+                <button onclick="openItemCardsModal()" style="color:#f59e0b;font-weight:700;">🃏 道具卡包</button>
                 <button onclick="replayDemo()">▶ 示範</button>
                 <div class="sheet-div"></div>
                 <div style="font-size:10px;font-weight:700;color:var(--dim);margin:4px 0 2px;">🤖 匹克鵝 / 仿生蒼蠅難度 (第4~6關生效)</div>

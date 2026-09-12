@@ -966,3 +966,166 @@
         #nub {
             will-change: transform;
         }
+
+        /* ═══════ 🃏 瘋狂道具卡片包 (Item Card Collection) ═══════ */
+        #item-cards-modal .modal-card {
+            width: min(96vw, 780px);
+            max-height: 88vh;
+            padding: 20px 16px;
+            background: radial-gradient(circle at 50% 0%, #1e1b4b 0%, #0f172a 70%, #020617 100%);
+            border: 1.5px solid rgba(251, 191, 36, 0.4);
+            box-shadow: 0 25px 60px -15px rgba(245, 158, 11, 0.25), 0 0 40px rgba(0, 0, 0, 0.8);
+        }
+
+        .cards-pack-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding-bottom: 10px;
+            margin-bottom: 12px;
+        }
+
+        .cards-pack-tabs {
+            display: flex;
+            gap: 6px;
+            justify-content: center;
+            margin-bottom: 12px;
+        }
+
+        .cards-pack-tab {
+            padding: 6px 14px;
+            border-radius: 99px;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            color: #cbd5e1;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .cards-pack-tab.on {
+            background: #f59e0b;
+            color: #020617;
+            border-color: #fbbf24;
+            box-shadow: 0 0 12px rgba(245, 158, 11, 0.4);
+        }
+
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 12px;
+            max-height: 56vh;
+            overflow-y: auto;
+            padding: 4px 6px;
+        }
+
+        .item-card {
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-radius: 14px;
+            border: 1.5px solid rgba(255, 255, 255, 0.12);
+            padding: 12px 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            position: relative;
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .item-card:hover {
+            transform: translateY(-3px) scale(1.02);
+        }
+
+        .item-card.buff {
+            border-color: rgba(251, 191, 36, 0.5);
+            background: linear-gradient(180deg, rgba(245, 158, 11, 0.1) 0%, rgba(15, 23, 42, 0.9) 100%);
+            box-shadow: 0 4px 16px rgba(245, 158, 11, 0.15);
+        }
+
+        .item-card.debuff {
+            border-color: rgba(244, 63, 94, 0.5);
+            background: linear-gradient(180deg, rgba(244, 63, 94, 0.1) 0%, rgba(15, 23, 42, 0.9) 100%);
+            box-shadow: 0 4px 16px rgba(244, 63, 94, 0.15);
+        }
+
+        .item-card-badge {
+            font-size: 10px;
+            font-weight: 800;
+            padding: 2px 8px;
+            border-radius: 99px;
+            margin-bottom: 6px;
+            letter-spacing: 0.05em;
+        }
+
+        .item-card.buff .item-card-badge {
+            background: rgba(245, 158, 11, 0.25);
+            color: #fbbf24;
+            border: 1px solid rgba(251, 191, 36, 0.4);
+        }
+
+        .item-card.debuff .item-card-badge {
+            background: rgba(244, 63, 94, 0.25);
+            color: #f43f5e;
+            border: 1px solid rgba(244, 63, 94, 0.4);
+        }
+
+        .item-card-icon {
+            font-size: 38px;
+            margin: 4px 0;
+            filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.5));
+            line-height: 1;
+        }
+
+        .item-card-title {
+            font-size: 14px;
+            font-weight: 800;
+            color: #f8fafc;
+            margin-bottom: 4px;
+        }
+
+        .item-card-desc {
+            font-size: 11px;
+            color: #cbd5e1;
+            line-height: 1.4;
+            margin-bottom: 6px;
+            flex-grow: 1;
+        }
+
+        .item-card-tip {
+            font-size: 10px;
+            line-height: 1.35;
+            background: rgba(0, 0, 0, 0.35);
+            border-radius: 6px;
+            padding: 4px 6px;
+            color: #94a3b8;
+            margin-bottom: 8px;
+            border-left: 2px solid #38bdf8;
+            text-align: left;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .item-card-try-btn {
+            width: 100%;
+            padding: 6px 0;
+            font-size: 11px;
+            font-weight: 700;
+            border-radius: 6px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            background: rgba(255, 255, 255, 0.08);
+            color: #f8fafc;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .item-card-try-btn:hover {
+            background: #f59e0b;
+            color: #020617;
+            border-color: #fbbf24;
+            box-shadow: 0 0 10px rgba(245, 158, 11, 0.4);
+        }

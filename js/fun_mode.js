@@ -40,19 +40,92 @@
         consecutiveDebuffCount: 0, // 連續抽中負面道具次數 (防連續中雷)
         slipTimer: 0,          // 香蕉皮打滑失控計時器
         hasSpawnedFirstFlyBox: false, // 蒼蠅模式首箱旗標
+        lastPickedId: null,    // 上一次抽中的道具 ID，用於防止道具完全連發
 
         // 道具清單定義 (4 神裝 Buff + 4 搞怪踩雷 Debuff)
         ITEMS: [
             // ── 正面神裝 (Buffs) ──
-            { id: 'MEGA_PADDLE', name: '巨無霸球拍', icon: '🎾', color: '#facc15', dur: 5.0, type: 'buff', desc: '球拍膨脹 2.8 倍，閉著眼睛都能接到！' },
-            { id: 'ELECTRIC_SWATTER', name: '霹靂電蚊拍', icon: '⚡', color: '#a855f7', dur: 9.0, type: 'buff', desc: '不管球了！衝過網直接把蒼蠅電爛才會贏！' },
-            { id: 'MEGA_BALL', name: '巨無霸鐵球', icon: '💣', color: '#64748b', dur: 5.0, type: 'buff', desc: '球體膨脹為 1 米巨鐵球，落地引發地震波！' },
-            { id: 'GIANT_PLAYER', name: '超巨大化球員', icon: '🍄', color: '#ef4444', dur: 5.0, type: 'buff', desc: '人偶體積放大 2 倍，無敵重扣覆蓋全場！' },
+            {
+                id: 'MEGA_PADDLE',
+                name: '巨無霸球拍',
+                icon: '🎾',
+                color: '#facc15',
+                dur: 5.0,
+                type: 'buff',
+                desc: '球拍瞬間膨脹 2.8 倍！防守面積媲美防空雷達！',
+                tip: '擊球判定半徑大幅提升 3.8 倍，閉著眼睛都能把刁鑽擦邊球撈回來！'
+            },
+            {
+                id: 'ELECTRIC_SWATTER',
+                name: '霹靂電蚊拍',
+                icon: '⚡',
+                color: '#a855f7',
+                dur: 9.0,
+                type: 'buff',
+                desc: '不管球了！跨越中網衝鋒直接狂電蒼蠅！',
+                tip: '進入動態越肩視角，靠近蒼蠅連續手勢揮擊 3 刀直接處決得 1 分！'
+            },
+            {
+                id: 'MEGA_BALL',
+                name: '巨無霸鐵球',
+                icon: '💣',
+                color: '#64748b',
+                dur: 5.0,
+                type: 'buff',
+                desc: '球體膨脹為 1 米重型鐵球，砸地引發地震波！',
+                tip: '蒼蠅如果試圖硬接鐵球，會被直接砸成一張紙片壓扁！'
+            },
+            {
+                id: 'GIANT_PLAYER',
+                name: '超巨大化球員',
+                icon: '🍄',
+                color: '#ef4444',
+                dur: 5.0,
+                type: 'buff',
+                desc: '球員直接化身 2 倍高的小巨人，震撼全場！',
+                tip: '高空攔截與網前暴扣覆蓋整個半場，對手根本打不過半場！'
+            },
             // ── 負面踩雷 (Debuffs) ──
-            { id: 'MINI_PADDLE', name: '迷你牙籤拍', icon: '🏓', color: '#f43f5e', dur: 5.0, type: 'debuff', desc: '球拍縮水成牙籤！判定範圍極度縮水極易揮空！' },
-            { id: 'BANANA_SLIP', name: '香蕉皮打滑', icon: '🍌', color: '#eab308', dur: 1.4, type: 'debuff', desc: '踩到香蕉皮！原地打轉摔倒停不下來！' },
-            { id: 'REVERSE_CONTROLS', name: '混亂顛倒', icon: '🌀', color: '#8b5cf6', dur: 4.5, type: 'debuff', desc: '吃了混亂毒菇！操作上下左右方向完全相反！' },
-            { id: 'HEAVY_FEET', name: '千斤鉛塊步', icon: '🪨', color: '#475569', dur: 4.5, type: 'debuff', desc: '腳踩千斤重鉛！移動速度暴降 60%！' }
+            {
+                id: 'MINI_PADDLE',
+                name: '迷你牙籤拍',
+                icon: '🏓',
+                color: '#f43f5e',
+                dur: 5.0,
+                type: 'debuff',
+                desc: '球拍縮水 70%！手裡拿著一根火柴棒打球！',
+                tip: '判定半徑縮小到 0.45x，極度容易揮空！建議站定球路正中央精密迎擊！'
+            },
+            {
+                id: 'BANANA_SLIP',
+                name: '香蕉皮打滑',
+                icon: '🍌',
+                color: '#eab308',
+                dur: 1.4,
+                type: 'debuff',
+                desc: '腳底抹油！原地踉蹌狂轉 360° 摔跤停不下來！',
+                tip: '打滑期間完全失去轉向控制！此時只能祈禱對手回球直接出界或掛網！'
+            },
+            {
+                id: 'REVERSE_CONTROLS',
+                name: '混亂顛倒',
+                icon: '🌀',
+                color: '#8b5cf6',
+                dur: 4.5,
+                type: 'debuff',
+                desc: '吃了混亂毒菇！搖桿與方向完全上下左右顛倒！',
+                tip: '大腦瞬間打結！想往右跑請往左推搖桿，想前進請往後拉！'
+            },
+            {
+                id: 'HEAVY_FEET',
+                name: '千斤鉛塊步',
+                icon: '🪨',
+                color: '#475569',
+                dur: 4.5,
+                type: 'debuff',
+                desc: '腳底綁上千斤重鉛！移動速度暴降 60%！',
+                tip: '移速極度緩慢宛如太空漫步，面對短球或大角度回球只能用眼神防守！'
+            }
         ],
 
         init: function() {
@@ -534,70 +607,66 @@
         pickWeightedItem: function() {
             const isFly = (typeof diffLevel !== 'undefined' && diffLevel === 'fly');
             const swatterItem = this.ITEMS.find(i => i.id === 'ELECTRIC_SWATTER') || this.ITEMS[1];
-            const buffItems = this.ITEMS.filter(i => i.type === 'buff' && i.id !== 'ELECTRIC_SWATTER');
-            const debuffItems = this.ITEMS.filter(i => i.type === 'debuff');
 
-            // 1. 果蠅模式 (diffLevel === 'fly')：首箱 100% 必出電蚊拍，後續兼具電蚊拍保底與盲盒反差
-            if (isFly) {
-                if (!this.hasSpawnedFirstFlyBox) {
-                    this.hasSpawnedFirstFlyBox = true;
-                    this.pityNonSwatterCount = 0;
-                    this.consecutiveDebuffCount = 0;
-                    return swatterItem;
-                }
-                // 保底機制：連續 1 顆未出電蚊拍，下一顆必出電蚊拍
-                if (this.pityNonSwatterCount >= 1) {
-                    this.pityNonSwatterCount = 0;
-                    this.consecutiveDebuffCount = 0;
-                    return swatterItem;
-                }
-                // 55% 出電蚊拍
-                if (Math.random() < 0.55) {
-                    this.pityNonSwatterCount = 0;
-                    this.consecutiveDebuffCount = 0;
-                    return swatterItem;
-                } else {
-                    this.pityNonSwatterCount++;
-                    // 防連續中雷：連續中過 1 次負面，下次必給正面 Buff
-                    if (this.consecutiveDebuffCount >= 1 || Math.random() < 0.50) {
-                        this.consecutiveDebuffCount = 0;
-                        return buffItems[Math.floor(Math.random() * buffItems.length)];
-                    } else {
-                        this.consecutiveDebuffCount++;
-                        return debuffItems[Math.floor(Math.random() * debuffItems.length)];
-                    }
-                }
-            }
-
-            // 2. 一般對手模式：
-            // 電蚊拍保底 (連續 3 次未出必出)
-            if (this.pityNonSwatterCount >= 3) {
+            // 1. 溫和保底機制：僅在蒼蠅對決中連續 5 次都未出電蚊拍，第 6 顆才保底給電蚊拍
+            if (isFly && this.pityNonSwatterCount >= 5) {
                 this.pityNonSwatterCount = 0;
                 this.consecutiveDebuffCount = 0;
+                this.lastPickedId = 'ELECTRIC_SWATTER';
                 return swatterItem;
             }
 
-            // 防連續中雷
-            if (this.consecutiveDebuffCount >= 1) {
-                this.consecutiveDebuffCount = 0;
-                const allBuffs = this.ITEMS.filter(i => i.type === 'buff');
-                const picked = allBuffs[Math.floor(Math.random() * allBuffs.length)];
-                if (picked.id === 'ELECTRIC_SWATTER') this.pityNonSwatterCount = 0; else this.pityNonSwatterCount++;
-                return picked;
+            // 2. 防連續踩雷保護：如果已經連續 2 次抽中負面 Debuff，強制給正面 Buff
+            const forceBuff = (this.consecutiveDebuffCount >= 2);
+
+            // 3. 道具獨立權重池 (總分 100)
+            // 正面神裝 (60%): 電蚊拍 18%, 巨無霸球拍 14%, 巨無霸鐵球 14%, 超大球員 14%
+            // 搞怪負面 (40%): 迷你拍 10%, 香蕉皮 10%, 混亂顛倒 10%, 千斤鉛塊 10%
+            const candidates = this.ITEMS.map(item => {
+                let weight = 0;
+                if (item.type === 'buff') {
+                    if (item.id === 'ELECTRIC_SWATTER') {
+                        weight = isFly ? 18 : 12; // 蒼蠅模式下電蚊拍佔 18%，絕不會次次都是電蚊拍！
+                    } else {
+                        weight = 14;
+                    }
+                } else {
+                    weight = forceBuff ? 0 : 10;
+                }
+                // 微調：避免連續兩次抽到一模一樣的道具，大幅提升隨機豐富感
+                if (item.id === this.lastPickedId) {
+                    weight = Math.max(1, weight * 0.35);
+                }
+                return { item, weight };
+            });
+
+            const totalWeight = candidates.reduce((sum, c) => sum + c.weight, 0);
+            let rnd = Math.random() * totalWeight;
+            let pickedItem = candidates[0].item;
+
+            for (const c of candidates) {
+                if (rnd < c.weight) {
+                    pickedItem = c.item;
+                    break;
+                }
+                rnd -= c.weight;
             }
 
-            // 60% 機率出正面神裝，40% 機率踩中搞怪負面陷阱！
-            if (Math.random() < 0.60) {
-                this.consecutiveDebuffCount = 0;
-                const allBuffs = this.ITEMS.filter(i => i.type === 'buff');
-                const picked = allBuffs[Math.floor(Math.random() * allBuffs.length)];
-                if (picked.id === 'ELECTRIC_SWATTER') this.pityNonSwatterCount = 0; else this.pityNonSwatterCount++;
-                return picked;
+            // 更新計數器狀態
+            if (pickedItem.id === 'ELECTRIC_SWATTER') {
+                this.pityNonSwatterCount = 0;
             } else {
-                this.consecutiveDebuffCount++;
                 this.pityNonSwatterCount++;
-                return debuffItems[Math.floor(Math.random() * debuffItems.length)];
             }
+
+            if (pickedItem.type === 'debuff') {
+                this.consecutiveDebuffCount++;
+            } else {
+                this.consecutiveDebuffCount = 0;
+            }
+
+            this.lastPickedId = pickedItem.id;
+            return pickedItem;
         },
 
         spawnItemBox: function(overrideType) {
@@ -1345,6 +1414,11 @@
                 </div>
                 <div class="fun-item-time" id="fun-item-time">${item.dur.toFixed(1)}s</div>
             `;
+            el.style.cursor = 'pointer';
+            el.title = '點擊查看道具介紹卡片包';
+            el.onclick = () => {
+                if (typeof window.openItemCardsModal === 'function') window.openItemCardsModal();
+            };
             el.style.display = 'flex';
         },
 
@@ -1363,6 +1437,51 @@
         hideHudBadge: function() {
             const el = document.getElementById('fun-item-hud');
             if (el) el.style.display = 'none';
+        },
+
+        // ═══════ 🃏 瘋狂道具卡片包 (Item Card Collection) ═══════
+        renderCardsPack: function(filter = 'all') {
+            const container = document.getElementById('cards-pack-grid');
+            if (!container) return;
+            const items = (filter === 'all')
+                ? this.ITEMS
+                : this.ITEMS.filter(i => i.type === filter);
+
+            container.innerHTML = items.map(item => {
+                const isBuff = item.type === 'buff';
+                const badgeText = isBuff ? '🌟 神裝 BUFF' : '💀 踩雷 DEBUFF';
+                const durText = `⏱️ ${item.dur.toFixed(1)} 秒`;
+                return `
+                    <div class="item-card ${item.type}">
+                        <div class="item-card-badge">${badgeText} · ${durText}</div>
+                        <div class="item-card-icon">${item.icon}</div>
+                        <div class="item-card-title">${item.name}</div>
+                        <div class="item-card-desc">${item.desc}</div>
+                        <div class="item-card-tip"><b>💡 攻略密技：</b>${item.tip || ''}</div>
+                        <button class="item-card-try-btn" onclick="testItemFromCard('${item.id}')">🧪 立即試用手感</button>
+                    </div>
+                `;
+            }).join('');
+        },
+
+        openItemCardsModal: function() {
+            const modal = document.getElementById('item-cards-modal');
+            if (!modal) return;
+            this.renderCardsPack('all');
+            document.querySelectorAll('.cards-pack-tab').forEach(t => t.classList.toggle('on', t.id === 'card-tab-all'));
+            modal.style.display = 'flex';
+        },
+
+        closeItemCardsModal: function() {
+            const modal = document.getElementById('item-cards-modal');
+            if (modal) modal.style.display = 'none';
+        },
+
+        filterItemCards: function(type) {
+            document.querySelectorAll('.cards-pack-tab').forEach(t => {
+                t.classList.toggle('on', t.id === 'card-tab-' + type);
+            });
+            this.renderCardsPack(type);
         }
     };
 
@@ -1375,6 +1494,18 @@
     window.giveItem = function(id) {
         if (!FunMode.enabled) FunMode.toggle(true);
         FunMode.forceItem(id || 'ELECTRIC_SWATTER');
+    };
+    window.openItemCardsModal = function() { FunMode.openItemCardsModal(); };
+    window.closeItemCardsModal = function() { FunMode.closeItemCardsModal(); };
+    window.filterItemCards = function(type) { FunMode.filterItemCards(type); };
+    window.testItemFromCard = function(id) {
+        FunMode.closeItemCardsModal();
+        if (typeof switchStage === 'function' && typeof stage !== 'undefined' && stage <= 4) {
+            switchStage(6);
+        } else if (!FunMode.enabled) {
+            FunMode.toggle(true);
+        }
+        FunMode.forceItem(id);
     };
 
 })(typeof window !== 'undefined' ? window : this);
