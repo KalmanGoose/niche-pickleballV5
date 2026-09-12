@@ -55,13 +55,30 @@
             width: 100vw !important;
             max-width: 100vw !important;
             height: 100% !important;
+            height: 100dvh !important;
             overflow: hidden !important;
             overflow-x: hidden !important;
             overflow-y: hidden !important;
             position: fixed;
-            background: var(--bg);
+            background: #070a12;
             color: var(--txt);
             touch-action: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* ── 全局直立模式核心視窗容器 (#game-container: 寫死直立黃金比例) ── */
+        #game-container {
+            position: relative;
+            width: 100vw;
+            max-width: min(100vw, calc(100dvh * 0.6), 540px);
+            height: 100%;
+            height: 100dvh;
+            margin: 0 auto;
+            overflow: hidden;
+            background: #020617;
+            box-shadow: 0 0 50px rgba(0, 0, 0, 0.85), 0 0 0 1px rgba(255, 255, 255, 0.08);
         }
 
         #stage3d {
@@ -77,6 +94,8 @@
         #vignette {
             position: absolute;
             inset: 0;
+            width: 100%;
+            height: 100%;
             z-index: 4;
             pointer-events: none;
             background: radial-gradient(ellipse 82% 74% at 50% 44%, transparent 58%, rgba(2, 6, 23, .4) 100%),
@@ -86,8 +105,8 @@
         #hud {
             position: absolute;
             inset: 0;
-            width: 100vw !important;
-            max-width: 100vw !important;
+            width: 100% !important;
+            max-width: 100% !important;
             height: 100% !important;
             overflow: hidden !important;
             pointer-events: none;
@@ -1267,11 +1286,11 @@
             letter-spacing: 0.4px;
         }
 
-        /* 手機直向旋轉引導層 (Orientation Prompt) */
+        /* 手機橫向模式直立旋轉引導層 (Orientation Prompt) */
         .rotate-prompt {
             display: none;
         }
-        @media (orientation: portrait) and (max-width: 900px) {
+        @media (orientation: landscape) and (max-height: 560px) and (pointer: coarse) {
             .rotate-prompt {
                 display: flex;
                 flex-direction: column;
@@ -1322,9 +1341,9 @@
             }
         }
         @keyframes v5-spin-phone {
-            0%, 20% { transform: rotate(0deg); }
-            50%, 70% { transform: rotate(90deg); }
-            100% { transform: rotate(0deg); }
+            0%, 20% { transform: rotate(90deg); }
+            50%, 70% { transform: rotate(0deg); }
+            100% { transform: rotate(90deg); }
         }
 
 
@@ -1652,251 +1671,137 @@
         }
 
 
-/* ── 行動端直向專屬排版 (Portrait HUD) ── */
-@media (orientation: portrait), (max-width: 768px), (max-aspect-ratio: 1/1) {
-            /* 1. 第一排左側：關卡資訊框輕量膠囊化 */
-            #info, body.layout-v4 #info {
-                top: calc(8px + env(safe-area-inset-top)) !important;
-                left: calc(8px + env(safe-area-inset-left)) !important;
-                width: auto !important;
-                max-width: 52vw !important;
-                min-width: 0 !important;
-                padding: 6px 10px !important;
-                border-radius: 14px !important;
-                background: rgba(15, 23, 42, 0.88) !important;
-                backdrop-filter: blur(14px) !important;
-                -webkit-backdrop-filter: blur(14px) !important;
-                box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4) !important;
-                z-index: 30 !important;
-            }
-            #info #chip {
-                font-size: 8.5px !important;
-                padding: 2px 6px !important;
-                margin-bottom: 2px !important;
-            }
-            #info #s-name {
-                font-size: 14px !important;
-                font-weight: 800 !important;
-                margin: 1px 0 !important;
-                display: inline-block !important;
-            }
-            #info #s-sub,
-            #info #s-desc,
-            #info #waist-row,
-            #info #stance-row {
-                display: none !important;
-            }
-            #info #info-diff-row {
-                display: flex !important;
-                margin-top: 5px !important;
-                padding-top: 4px !important;
-                border-top: 1px solid rgba(255, 255, 255, 0.12) !important;
-                align-items: center !important;
-                justify-content: space-between !important;
-                gap: 2px !important;
-                width: 100% !important;
-            }
-            #info #info-diff-row .diff-btn {
-                padding: 2px 4px !important;
-                font-size: 9.5px !important;
-                min-width: 0 !important;
-                flex: 1 !important;
-                text-align: center !important;
-                border-radius: 6px !important;
-            }
-            #info #goal-row {
-                margin-top: 3px !important;
-                gap: 6px !important;
-            }
-            #info #goal-track {
-                height: 4px !important;
-            }
-            #info #goal-txt {
-                font-size: 11.5px !important;
-                font-weight: 800 !important;
-            }
-            #info #hint {
-                font-size: 10px !important;
-                margin-top: 2px !important;
-                white-space: nowrap !important;
-                overflow: hidden !important;
-                text-overflow: ellipsis !important;
-                max-width: 48vw !important;
-            }
-
-            /* 2. 第一排右側：比分板輕量化 */
-            #board, body.layout-v4 #board {
-                top: calc(8px + env(safe-area-inset-top)) !important;
-                right: calc(8px + env(safe-area-inset-right)) !important;
-                left: auto !important;
-                display: flex !important;
-                padding: 4px 8px !important;
-                gap: 6px !important;
-                border-radius: 14px !important;
-                background: rgba(15, 23, 42, 0.88) !important;
-                backdrop-filter: blur(14px) !important;
-                -webkit-backdrop-filter: blur(14px) !important;
-                box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4) !important;
-                z-index: 30 !important;
-            }
-            #board .side {
-                min-width: 36px !important;
-                padding: 0 2px !important;
-            }
-            #board .side .who {
-                font-size: 9px !important;
-                font-weight: 800 !important;
-            }
-            #board .side .num {
-                font-size: 20px !important;
-                font-weight: 800 !important;
-                margin-top: 1px !important;
-            }
-
-            /* 3. 頂部活動式容器 (#nav-wrapper) 居中於第 2 排 (top: 58px) */
-            #nav-wrapper {
-                top: calc(58px + env(safe-area-inset-top));
-                width: max-content !important;
-                max-width: calc(100vw - 16px) !important;
-                box-sizing: border-box !important;
-            }
-            #nav-wrapper.minimized {
-                width: max-content !important;
-                max-width: none !important;
-            }
-            #nav, body.layout-v4 #nav {
-                position: relative !important;
-                top: auto !important;
-                left: auto !important;
-                transform: none !important;
-                width: max-content !important;
-                max-width: calc(100vw - 16px) !important;
-                padding: 3px 6px !important;
-                gap: 3px !important;
-                overflow-x: auto !important;
-                scrollbar-width: none !important;
-                z-index: 35 !important;
-            }
-            #nav::-webkit-scrollbar { display: none !important; }
-            #nav button:not(.nav-min-btn) {
-                font-size: 10.5px !important;
-                padding: 4px 7px !important;
-                min-height: 28px !important;
-            }
-
+/* ── 全局標準直向排版 (Universal Portrait HUD: 鎖定直向黃金比例) ── */
+/* 1. 第一排左側：關卡資訊框輕量膠囊化 */
+#info, body.layout-v4 #info {
+    top: calc(8px + env(safe-area-inset-top)) !important;
+    left: calc(8px + env(safe-area-inset-left)) !important;
+    width: auto !important;
+    max-width: 52% !important;
+    min-width: 0 !important;
+    padding: 6px 10px !important;
+    border-radius: 14px !important;
+    background: rgba(15, 23, 42, 0.88) !important;
+    backdrop-filter: blur(14px) !important;
+    -webkit-backdrop-filter: blur(14px) !important;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4) !important;
+    z-index: 30 !important;
+}
+#info #chip {
+    font-size: 8.5px !important;
+    padding: 2px 6px !important;
+    margin-bottom: 2px !important;
+}
+#info #s-name {
+    font-size: 14px !important;
+    font-weight: 800 !important;
+    margin: 1px 0 !important;
+    display: inline-block !important;
+}
+#info #s-sub,
+#info #s-desc,
+#info #waist-row,
+#info #stance-row {
+    display: none !important;
+}
+#info #info-diff-row {
+    display: flex !important;
+    margin-top: 5px !important;
+    padding-top: 4px !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.12) !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 2px !important;
+    width: 100% !important;
+}
+#info #info-diff-row .diff-btn {
+    padding: 2px 4px !important;
+    font-size: 9.5px !important;
+    min-width: 0 !important;
+    flex: 1 !important;
+    text-align: center !important;
+    border-radius: 6px !important;
+}
+#info #goal-row {
+    margin-top: 3px !important;
+    gap: 6px !important;
+}
+#info #goal-track {
+    height: 4px !important;
+}
+#info #goal-txt {
+    font-size: 11.5px !important;
+    font-weight: 800 !important;
+}
+#info #hint {
+    font-size: 10px !important;
+    margin-top: 2px !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    max-width: 48% !important;
 }
 
-/* ── 行動端橫向專屬排版 (Landscape HUD) ── */
-@media (orientation: landscape) and (max-height: 560px), (orientation: landscape) and (max-height: 500px) {
-            /* 1. 關卡資訊框橫向超緊湊小卡 */
-            #info, body.layout-v4 #info {
-                top: calc(6px + env(safe-area-inset-top)) !important;
-                left: calc(8px + env(safe-area-inset-left)) !important;
-                width: auto !important;
-                max-width: 190px !important;
-                min-width: 0 !important;
-                padding: 4px 8px !important;
-                border-radius: 12px !important;
-                z-index: 30 !important;
-            }
-            #info #chip {
-                font-size: 8px !important;
-                padding: 1px 4px !important;
-                margin-bottom: 1px !important;
-            }
-            #info #s-name {
-                font-size: 13px !important;
-                font-weight: 800 !important;
-                margin: 0 !important;
-            }
-            #info #s-sub,
-            #info #s-desc,
-            #info #waist-row,
-            #info #stance-row,
-            #info #hint {
-                display: none !important;
-            }
-            #info #info-diff-row {
-                display: flex !important;
-                margin-top: 3px !important;
-                padding-top: 3px !important;
-                border-top: 1px solid rgba(255, 255, 255, 0.12) !important;
-                align-items: center !important;
-                justify-content: space-between !important;
-                gap: 2px !important;
-                width: 100% !important;
-            }
-            #info #info-diff-row .diff-btn {
-                padding: 1.5px 3.5px !important;
-                font-size: 8.5px !important;
-                min-width: 0 !important;
-                flex: 1 !important;
-                text-align: center !important;
-                border-radius: 6px !important;
-            }
-            #info #goal-row {
-                margin-top: 2px !important;
-                gap: 4px !important;
-            }
-            #info #goal-track {
-                height: 3px !important;
-            }
-            #info #goal-txt {
-                font-size: 10.5px !important;
-            }
+/* 2. 第一排右側：比分板輕量化 */
+#board, body.layout-v4 #board {
+    top: calc(8px + env(safe-area-inset-top)) !important;
+    right: calc(8px + env(safe-area-inset-right)) !important;
+    left: auto !important;
+    display: flex !important;
+    padding: 4px 8px !important;
+    gap: 6px !important;
+    border-radius: 14px !important;
+    background: rgba(15, 23, 42, 0.88) !important;
+    backdrop-filter: blur(14px) !important;
+    -webkit-backdrop-filter: blur(14px) !important;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4) !important;
+    z-index: 30 !important;
+}
+#board .side {
+    min-width: 36px !important;
+    padding: 0 2px !important;
+}
+#board .side .who {
+    font-size: 9px !important;
+    font-weight: 800 !important;
+}
+#board .side .num {
+    font-size: 20px !important;
+    font-weight: 800 !important;
+    margin-top: 1px !important;
+}
 
-            /* 2. 比分板橫向超緊湊小卡 */
-            #board, body.layout-v4 #board {
-                top: calc(6px + env(safe-area-inset-top)) !important;
-                right: calc(8px + env(safe-area-inset-right)) !important;
-                left: auto !important;
-                padding: 3px 8px !important;
-                gap: 6px !important;
-                border-radius: 12px !important;
-                z-index: 30 !important;
-            }
-            #board .side {
-                min-width: 32px !important;
-                padding: 0 !important;
-            }
-            #board .side .who {
-                font-size: 8.5px !important;
-            }
-            #board .side .num {
-                font-size: 18px !important;
-                margin-top: 0 !important;
-            }
-
-            /* 3. 頂部活動式容器 (#nav-wrapper) 完美置頂 */
-            #nav-wrapper {
-                top: calc(6px + env(safe-area-inset-top));
-                width: max-content !important;
-                max-width: calc(100vw - 340px) !important;
-                box-sizing: border-box !important;
-            }
-            #nav-wrapper.minimized {
-                width: max-content !important;
-                max-width: none !important;
-            }
-            #nav, body.layout-v4 #nav {
-                position: relative !important;
-                top: auto !important;
-                left: auto !important;
-                transform: none !important;
-                max-width: 100% !important;
-                padding: 3px 6px !important;
-                gap: 3px !important;
-                overflow-x: auto !important;
-                scrollbar-width: none !important;
-                z-index: 35 !important;
-            }
-            #nav::-webkit-scrollbar { display: none !important; }
-            #nav button:not(.nav-min-btn) {
-                font-size: 11px !important;
-                padding: 4px 8px !important;
-                min-height: 28px !important;
-            }
-
+/* 3. 頂部活動式容器 (#nav-wrapper) 居中於第 2 排 (top: 58px) */
+#nav-wrapper {
+    top: calc(58px + env(safe-area-inset-top));
+    width: max-content !important;
+    max-width: calc(100% - 16px) !important;
+    box-sizing: border-box !important;
+}
+#nav-wrapper.minimized {
+    width: max-content !important;
+    max-width: none !important;
+}
+#nav, body.layout-v4 #nav {
+    position: relative !important;
+    top: auto !important;
+    left: auto !important;
+    transform: none !important;
+    width: max-content !important;
+    max-width: calc(100% - 16px) !important;
+    padding: 3px 6px !important;
+    gap: 3px !important;
+    overflow-x: auto !important;
+    scrollbar-width: none !important;
+    -webkit-overflow-scrolling: touch !important;
+    touch-action: pan-x !important;
+    z-index: 35 !important;
+}
+#nav::-webkit-scrollbar { display: none !important; }
+#nav button:not(.nav-min-btn) {
+    font-size: 10.5px !important;
+    padding: 4px 7px !important;
+    min-height: 28px !important;
 }
 
 /* ─── nav.css ─── */
@@ -2063,18 +1968,58 @@
             flex-direction: column !important;
             align-items: center !important;
             gap: 6px !important;
-            padding: 6px 10px !important;
+            padding: 6px 8px !important;
             background: rgba(15, 23, 42, 0.95) !important;
             backdrop-filter: blur(16px) !important;
             -webkit-backdrop-filter: blur(16px) !important;
             border: 1px solid rgba(56, 189, 248, 0.35) !important;
             border-radius: 20px !important;
             box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5), 0 0 14px rgba(56, 189, 248, 0.25) !important;
-            max-width: min(96vw, 680px) !important;
+            width: 100% !important;
+            max-width: min(94vw, 440px) !important;
+            box-sizing: border-box !important;
+            overflow: hidden !important;
+            touch-action: pan-x !important;
         }
         #nav-subbar.open {
             display: flex !important;
             animation: subbarSlideDown 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        /* 子排分組基底樣式 */
+        .subbar-group {
+            display: none;
+            width: 100% !important;
+            max-width: 100% !important;
+            box-sizing: border-box !important;
+        }
+
+        /* ★ AI 體感子排 (精準修復滑動問題: 原生觸控平滑滾動 + 觸控手勢保護 + 滑鼠抓取) */
+        #subbar-ai {
+            display: none;
+            flex-direction: row !important;
+            flex-wrap: nowrap !important;
+            align-items: center !important;
+            justify-content: flex-start !important;
+            gap: 6px !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            box-sizing: border-box !important;
+            overflow-x: auto !important;
+            overflow-y: hidden !important;
+            -webkit-overflow-scrolling: touch !important;
+            touch-action: pan-x !important;
+            scrollbar-width: none !important;
+            padding: 3px 6px !important;
+            user-select: none !important;
+            -webkit-user-select: none !important;
+            cursor: grab !important;
+        }
+        #subbar-ai:active {
+            cursor: grabbing !important;
+        }
+        #subbar-ai::-webkit-scrollbar {
+            display: none !important;
         }
 
         @keyframes subbarSlideDown {
@@ -2215,49 +2160,6 @@
             #keys {
                 font-size: 12px !important;
                 padding: 6px 12px !important;
-            }
-        }
-
-/* ── 手機橫向模式導覽列排版 ── */
-@media (orientation: landscape) and (min-aspect-ratio: 1/1) {
-            /* 4. 二級下拉選單列 (#nav-subbar) 緊密浮動於 #nav 下方 */
-            #nav-subbar {
-                position: relative !important;
-                top: auto !important;
-                left: auto !important;
-                transform: none !important;
-                max-width: 100% !important;
-                padding: 3px 6px !important;
-                gap: 4px !important;
-                z-index: 40 !important;
-            }
-            #nav-subbar button:not(.settings-tab-btn):not(.diff-btn) {
-                font-size: 10.5px !important;
-                padding: 4px 8px !important;
-                min-height: 26px !important;
-            }
-
-            /* 5. 橫向隱藏 PC 鍵盤說明與重複大 meter，徹底解放 3D 視野 */
-            #meter {
-                display: none !important;
-            }
-            #keys {
-                display: none !important;
-            }
-            #bottom {
-                display: none !important;
-            }
-            #joy {
-                bottom: calc(12px + env(safe-area-inset-bottom)) !important;
-                left: calc(12px + env(safe-area-inset-left)) !important;
-                width: 76px !important;
-                height: 76px !important;
-            }
-            #speed-hud-mini {
-                bottom: calc(10px + env(safe-area-inset-bottom)) !important;
-                left: calc(96px + env(safe-area-inset-left)) !important;
-                font-size: 12.5px !important;
-                padding: 5px 12px !important;
             }
         }
 
@@ -4042,32 +3944,34 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
         </div>
     </div>
 
-    <div id="calibration-box">
-        <div id="calib-text">✋ 請將【左手】舉高過頭<br>維持 1.5 秒解鎖球場!</div>
-    </div>
-    <div id="stage3d"></div>
-    <div id="vignette"></div>
-
-    <!-- 虛擬搖桿 + ★手機視角高低鈕 -->
-    <div id="joy">
-        <div id="nub"></div>
-    </div>
-    <div id="cam-vert">
-        <button id="cv-up" type="button">▲</button>
-        <button id="cv-down" type="button">▼</button>
-    </div>
-
-    <!-- ★ V5 手機直向優雅旋轉提示遮罩 (集中於 Overlay 區段) -->
+    <!-- ★ 手機橫向轉直向引導提示遮罩 (Orientation Prompt: 行動端橫向時優雅提醒) -->
     <div id="rotate-prompt" class="rotate-prompt" role="alert">
-        <div class="rotate-icon">⛶</div>
-        <h2>請將手機旋轉為橫向</h2>
-        <p>橫向握持可解鎖最廣闊的 3D 透視視野與最佳雙拇指體感操控體驗。</p>
-        <button class="rotate-skip-btn" onclick="dismissRotatePrompt()">仍以直向遊玩</button>
+        <div class="rotate-icon">📱</div>
+        <h2>請將手機轉為直立握持</h2>
+        <p>《中興匹克鵝打秋》已全面升級為直立沉浸模式，請直立握持手機以獲得最佳視角與體感操控！</p>
+        <button class="rotate-skip-btn" onclick="dismissRotatePrompt()">仍在此方向遊玩</button>
     </div>
 
-    <video id="webcam-video" style="display:none;" playsinline></video>
-    <canvas id="skeleton-canvas" class="card"
-        style="position:absolute;top:14px;right:150px;width:130px;height:95px;z-index:20;display:none;pointer-events:none;"></canvas>
+    <!-- ═══════ 全局直立模式核心視窗容器 (#game-container) ═══════ -->
+    <div id="game-container">
+        <div id="calibration-box">
+            <div id="calib-text">✋ 請將【左手】舉高過頭<br>維持 1.5 秒解鎖球場!</div>
+        </div>
+        <div id="stage3d"></div>
+        <div id="vignette"></div>
+
+        <!-- 虛擬搖桿 + ★手機視角高低鈕 -->
+        <div id="joy">
+            <div id="nub"></div>
+        </div>
+        <div id="cam-vert">
+            <button id="cv-up" type="button">▲</button>
+            <button id="cv-down" type="button">▼</button>
+        </div>
+
+        <video id="webcam-video" style="display:none;" playsinline></video>
+        <canvas id="skeleton-canvas" class="card"
+            style="position:absolute;top:14px;right:150px;width:130px;height:95px;z-index:20;display:none;pointer-events:none;"></canvas>
 
     <div id="hud">
         <!-- ★ V5 虛擬裁判浮動即時裁決膠囊 -->
@@ -4219,8 +4123,8 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
                     </div>
                 </div>
 
-                <!-- AI體感子排 -->
-                <div class="subbar-group" id="subbar-ai" style="display:none;">
+                <!-- AI體感子排 (支援原生觸控滑動、滑鼠拖曳滑動與滾輪滑動) -->
+                <div class="subbar-group" id="subbar-ai" style="display:none;flex-direction:row;flex-wrap:nowrap;align-items:center;justify-content:flex-start;gap:6px;width:100%;max-width:100%;box-sizing:border-box;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;touch-action:pan-x;scrollbar-width:none;padding:3px 6px;">
                     <button id="subbar-ai-btn" onclick="toggleWebcamAI()" style="color:var(--ok);">📷 體感: 關</button>
                     <button id="subbar-aim-btn" onclick="cycleAimModeQuick()">🎯 瞄準: 自動</button>
                     <button id="subbar-teach-btn" onclick="cycleTeachLevelQuick()">🎚️ 體感判定: 寬鬆</button>
@@ -4424,6 +4328,7 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
             </div>
         </div>
     </div>
+    </div> <!-- /#game-container -->
     <script>
 
 /* ─── config.js ─── */
@@ -5720,8 +5625,10 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
             perfLevel = level; frameSkip = p.frameSkip;
             try { localStorage.setItem('nchu_pb_perf', level); } catch(e) {}
             const dpr = Math.min(window.devicePixelRatio || 2, p.pixelRatio);
-            ren.setPixelRatio(dpr);
-            ren.setSize(window.innerWidth, window.innerHeight);
+            const stageEl = document.getElementById('stage3d');
+            const sw = (stageEl && stageEl.clientWidth) ? stageEl.clientWidth : window.innerWidth;
+            const sh = (stageEl && stageEl.clientHeight) ? stageEl.clientHeight : window.innerHeight;
+            ren.setSize(sw, sh);
             if (sunKey) {
                 const want = p.shadow > 0;
                 sunKey.castShadow = want;
@@ -6713,6 +6620,53 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
         function togglePanel(name) { toggleNavMenu(name); }
         function closePanel() { if (activeNavMenu) toggleNavMenu(activeNavMenu); }
 
+        /* ★ 橫向滑動加強輔助器 (支援手機原生滑動、桌機滑鼠抓取拖曳與滑鼠滾輪橫向滾動) */
+        function enableHorizontalDragScroll(el) {
+            if (!el || el._hDragInit) return;
+            el._hDragInit = true;
+            let isDown = false;
+            let startX = 0, scrollLeft = 0, moved = false;
+
+            el.addEventListener('mousedown', (e) => {
+                if (e.button !== 0) return;
+                isDown = true;
+                moved = false;
+                startX = e.pageX - el.offsetLeft;
+                scrollLeft = el.scrollLeft;
+            });
+
+            window.addEventListener('mousemove', (e) => {
+                if (!isDown) return;
+                const x = e.pageX - el.offsetLeft;
+                const walk = (x - startX) * 1.5;
+                if (Math.abs(walk) > 4) moved = true;
+                el.scrollLeft = scrollLeft - walk;
+            });
+
+            window.addEventListener('mouseup', () => {
+                if (isDown) {
+                    isDown = false;
+                }
+            });
+
+            // 若使用者進行了拖動 (距離 > 4px)，阻斷 click 事件防止誤觸按鈕
+            el.addEventListener('click', (e) => {
+                if (moved) {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    moved = false;
+                }
+            }, true);
+
+            // 滑鼠垂直滾輪轉換為水平滑動
+            el.addEventListener('wheel', (e) => {
+                if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+                    el.scrollLeft += e.deltaY;
+                    e.preventDefault();
+                }
+            }, { passive: false });
+        }
+
         // 點擊空白處自動關閉下拉子排
         document.addEventListener('pointerdown', (e) => {
             if (!activeNavMenu) return;
@@ -6964,15 +6918,7 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
             const wrapper = document.getElementById('nav-wrapper');
             if (!wrapper) return;
             wrapper.style.left = '50%';
-            const isPortrait = window.matchMedia('(max-width: 768px) and (orientation: portrait)').matches;
-            const isLandscape = window.matchMedia('(orientation: landscape) and (max-height: 500px)').matches;
-            if (isPortrait) {
-                wrapper.style.top = 'calc(58px + env(safe-area-inset-top))';
-            } else if (isLandscape) {
-                wrapper.style.top = 'calc(6px + env(safe-area-inset-top))';
-            } else {
-                wrapper.style.top = 'calc(14px + env(safe-area-inset-top))';
-            }
+            wrapper.style.top = 'calc(58px + env(safe-area-inset-top))';
             wrapper.style.transform = 'translateX(-50%)';
             try { localStorage.removeItem('nchu_nav_pos'); } catch (e) {}
             if (typeof toast === 'function') toast('🔄 選單位置已重置', '已還原至預設頂部置中位置');
@@ -7090,9 +7036,10 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
             });
 
             window.addEventListener('mousemove', e => {
-                if (!webcamActive && !camEdit) {
-                    const nx = (e.clientX / window.innerWidth) * 2 - 1;
-                    const ny = -(e.clientY / window.innerHeight) * 2 + 1;
+                if (!webcamActive && !camEdit && ren && ren.domElement) {
+                    const rect = ren.domElement.getBoundingClientRect();
+                    const nx = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+                    const ny = -((e.clientY - rect.top) / rect.height) * 2 + 1;
                     mouse.x = nx;
                     mouse.y = ny;
                     swipeMove(e.clientX, e.clientY);
@@ -7109,9 +7056,10 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
 
             const el = ren.domElement;
             const aimT = t => {
-                if (!webcamActive && !camEdit) {
-                    const nx = (t.clientX / window.innerWidth) * 2 - 1;
-                    const ny = -(t.clientY / window.innerHeight) * 2 + 1;
+                if (!webcamActive && !camEdit && ren && ren.domElement) {
+                    const rect = ren.domElement.getBoundingClientRect();
+                    const nx = ((t.clientX - rect.left) / rect.width) * 2 - 1;
+                    const ny = -((t.clientY - rect.top) / rect.height) * 2 + 1;
                     mouse.x = nx;
                     mouse.y = ny;
                 }
@@ -7155,6 +7103,8 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
             setupCamVertButtons();
             initDraggableHUD();
             syncDifficultyUI();
+            enableHorizontalDragScroll(document.getElementById('subbar-ai'));
+            enableHorizontalDragScroll(document.getElementById('nav'));
             window.addEventListener('blur', () => {
                 clearKeys(); camPad.vert = 0;
                 Object.keys(camKeys).forEach(k => camKeys[k] = false);
@@ -8166,27 +8116,34 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
         }
         let TEX_GLOW, TEX_BLOB;
 
-        /* ★ v5.0.14: 智慧相機自適應解算器 (使用者最佳化預設視角: 高度 6.1, 距離 11.5, 視角親近沉浸) */
-        function getResponsiveCameraConfig() {
-            const w = window.innerWidth, h = window.innerHeight;
-            const aspect = w / h;
-            const isMob = w <= 950 || h <= 550 || (typeof IS_MOBILE !== 'undefined' && IS_MOBILE);
-
-            if (!isMob) {
-                // 桌機寬螢幕：舒適沉浸視角 (高度 6.1, 距離 11.5)
-                return { fov: 50, camH: 6.1, camDist: 11.5, lookY: 0.85, lookZ: -0.4, ballScale: 1.0, glowScale: 7, glowOpacity: 0.26 };
+        /* ★ 智慧相機自適應解算器 (純直立模式鎖定: 高度 6.1, 距離 11.5, 視角親近沉浸, 垂直視場角自適應) */
+        function getStageDimensions() {
+            const stageEl = document.getElementById('stage3d');
+            if (stageEl && stageEl.clientWidth > 0 && stageEl.clientHeight > 0) {
+                return { w: stageEl.clientWidth, h: stageEl.clientHeight };
             }
+            return { w: window.innerWidth, h: window.innerHeight };
+        }
 
-            if (aspect < 0.95) {
-                // ★ 手機直向模式 (Portrait): 依使用者喜好設為最佳預設視角 (高度 6.1, 距離 11.5)
-                const targetHFOVRad = 48 * Math.PI / 180;
-                const vFOVRad = 2 * Math.atan(Math.tan(targetHFOVRad / 2) / aspect);
-                const fov = Math.min(84, Math.max(55, vFOVRad * 180 / Math.PI));
-                return { fov: fov, camH: 6.1, camDist: 11.5, lookY: 0.85, lookZ: -0.4, ballScale: 1.25, glowScale: 8, glowOpacity: 0.35 };
-            } else {
-                // ★ 手機橫向模式 (Landscape): 視角高度 6.1, 距離 11.5
-                return { fov: 48, camH: 6.1, camDist: 11.5, lookY: 0.85, lookZ: -0.5, ballScale: 1.20, glowScale: 7.5, glowOpacity: 0.32 };
-            }
+        function getResponsiveCameraConfig(customW, customH) {
+            const dims = (customW && customH) ? { w: customW, h: customH } : getStageDimensions();
+            const aspect = dims.w / dims.h;
+
+            // ★ 寫死純直立視角 (Locked Portrait Mode Only):
+            // 透過垂直視場角 (vFoV) 自適應計算，保障球場左右邊界、發球區與對手鵝都在視野黃金分割區
+            const targetHFOVRad = 48 * Math.PI / 180;
+            const vFOVRad = 2 * Math.atan(Math.tan(targetHFOVRad / 2) / Math.min(aspect, 0.72));
+            const fov = Math.min(84, Math.max(52, vFOVRad * 180 / Math.PI));
+            return {
+                fov: fov,
+                camH: 6.1,
+                camDist: 11.5,
+                lookY: 0.85,
+                lookZ: -0.4,
+                ballScale: 1.25,
+                glowScale: 8,
+                glowOpacity: 0.35
+            };
         }
 
         function init3D() {
@@ -8194,8 +8151,9 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
             scene.background = skyTex();
             scene.fog = new THREE.Fog(0xc3ddee, GRADE.fogNear, GRADE.fogFar);
 
-            const camCfg = getResponsiveCameraConfig();
-            cam = new THREE.PerspectiveCamera(camCfg.fov, window.innerWidth / window.innerHeight, 0.1, 200);
+            const dims = getStageDimensions();
+            const camCfg = getResponsiveCameraConfig(dims.w, dims.h);
+            cam = new THREE.PerspectiveCamera(camCfg.fov, dims.w / dims.h, 0.1, 200);
             cam.position.set(0, camCfg.camH, camCfg.camDist);
             try {
                 ren = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
@@ -8208,7 +8166,7 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
             }
             const initPR = Math.min(window.devicePixelRatio || 2, (typeof PERF_PRESETS !== 'undefined' && typeof perfLevel !== 'undefined' && PERF_PRESETS[perfLevel]) ? PERF_PRESETS[perfLevel].pixelRatio : 2.0);
             ren.setPixelRatio(initPR);
-            ren.setSize(window.innerWidth, window.innerHeight);
+            ren.setSize(dims.w, dims.h);
             ren.outputEncoding = THREE.sRGBEncoding;
             ren.toneMapping = THREE.LinearToneMapping;
             ren.toneMappingExposure = GRADE.exposure;
@@ -10239,10 +10197,12 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
             ren.render(scene, cam);
         }
 
-        window.addEventListener('resize', () => {
-            cam.aspect = window.innerWidth / window.innerHeight;
+        function handleStageResize() {
+            if (!cam || !ren) return;
+            const dims = getStageDimensions();
+            cam.aspect = dims.w / dims.h;
             if (typeof getResponsiveCameraConfig === 'function') {
-                const cfg = getResponsiveCameraConfig();
+                const cfg = getResponsiveCameraConfig(dims.w, dims.h);
                 cam.fov = cfg.fov;
                 if (ball && cfg.ballScale) ball.scale.set(cfg.ballScale, cfg.ballScale, cfg.ballScale);
                 if (ballGlow && cfg.glowScale) ballGlow.scale.set(BALL_R * cfg.glowScale, BALL_R * cfg.glowScale, 1);
@@ -10250,8 +10210,18 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
             cam.updateProjectionMatrix();
             const curPR = (typeof PERF_PRESETS !== 'undefined' && PERF_PRESETS[perfLevel]) ? PERF_PRESETS[perfLevel].pixelRatio : 2.0;
             ren.setPixelRatio(Math.min(window.devicePixelRatio || 2, curPR));
-            ren.setSize(window.innerWidth, window.innerHeight);
+            ren.setSize(dims.w, dims.h);
+        }
+
+        window.addEventListener('resize', handleStageResize);
+        window.addEventListener('orientationchange', () => {
+            setTimeout(handleStageResize, 150);
         });
+        if (typeof ResizeObserver !== 'undefined') {
+            const stageObserver = new ResizeObserver(() => handleStageResize());
+            const sEl = document.getElementById('stage3d') || document.getElementById('game-container');
+            if (sEl) stageObserver.observe(sEl);
+        }
 
         
         /* ═══════════════════════════════════════════════

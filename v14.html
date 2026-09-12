@@ -829,32 +829,34 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
         </div>
     </div>
 
-    <div id="calibration-box">
-        <div id="calib-text">✋ 請將【左手】舉高過頭<br>維持 1.5 秒解鎖球場!</div>
-    </div>
-    <div id="stage3d"></div>
-    <div id="vignette"></div>
-
-    <!-- 虛擬搖桿 + ★手機視角高低鈕 -->
-    <div id="joy">
-        <div id="nub"></div>
-    </div>
-    <div id="cam-vert">
-        <button id="cv-up" type="button">▲</button>
-        <button id="cv-down" type="button">▼</button>
-    </div>
-
-    <!-- ★ V5 手機直向優雅旋轉提示遮罩 (集中於 Overlay 區段) -->
+    <!-- ★ 手機橫向轉直向引導提示遮罩 (Orientation Prompt: 行動端橫向時優雅提醒) -->
     <div id="rotate-prompt" class="rotate-prompt" role="alert">
-        <div class="rotate-icon">⛶</div>
-        <h2>請將手機旋轉為橫向</h2>
-        <p>橫向握持可解鎖最廣闊的 3D 透視視野與最佳雙拇指體感操控體驗。</p>
-        <button class="rotate-skip-btn" onclick="dismissRotatePrompt()">仍以直向遊玩</button>
+        <div class="rotate-icon">📱</div>
+        <h2>請將手機轉為直立握持</h2>
+        <p>《中興匹克鵝打秋》已全面升級為直立沉浸模式，請直立握持手機以獲得最佳視角與體感操控！</p>
+        <button class="rotate-skip-btn" onclick="dismissRotatePrompt()">仍在此方向遊玩</button>
     </div>
 
-    <video id="webcam-video" style="display:none;" playsinline></video>
-    <canvas id="skeleton-canvas" class="card"
-        style="position:absolute;top:14px;right:150px;width:130px;height:95px;z-index:20;display:none;pointer-events:none;"></canvas>
+    <!-- ═══════ 全局直立模式核心視窗容器 (#game-container) ═══════ -->
+    <div id="game-container">
+        <div id="calibration-box">
+            <div id="calib-text">✋ 請將【左手】舉高過頭<br>維持 1.5 秒解鎖球場!</div>
+        </div>
+        <div id="stage3d"></div>
+        <div id="vignette"></div>
+
+        <!-- 虛擬搖桿 + ★手機視角高低鈕 -->
+        <div id="joy">
+            <div id="nub"></div>
+        </div>
+        <div id="cam-vert">
+            <button id="cv-up" type="button">▲</button>
+            <button id="cv-down" type="button">▼</button>
+        </div>
+
+        <video id="webcam-video" style="display:none;" playsinline></video>
+        <canvas id="skeleton-canvas" class="card"
+            style="position:absolute;top:14px;right:150px;width:130px;height:95px;z-index:20;display:none;pointer-events:none;"></canvas>
 
     <div id="hud">
         <!-- ★ V5 虛擬裁判浮動即時裁決膠囊 -->
@@ -1006,8 +1008,8 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
                     </div>
                 </div>
 
-                <!-- AI體感子排 -->
-                <div class="subbar-group" id="subbar-ai" style="display:none;">
+                <!-- AI體感子排 (支援原生觸控滑動、滑鼠拖曳滑動與滾輪滑動) -->
+                <div class="subbar-group" id="subbar-ai" style="display:none;flex-direction:row;flex-wrap:nowrap;align-items:center;justify-content:flex-start;gap:6px;width:100%;max-width:100%;box-sizing:border-box;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;touch-action:pan-x;scrollbar-width:none;padding:3px 6px;">
                     <button id="subbar-ai-btn" onclick="toggleWebcamAI()" style="color:var(--ok);">📷 體感: 關</button>
                     <button id="subbar-aim-btn" onclick="cycleAimModeQuick()">🎯 瞄準: 自動</button>
                     <button id="subbar-teach-btn" onclick="cycleTeachLevelQuick()">🎚️ 體感判定: 寬鬆</button>
@@ -1211,6 +1213,7 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
             </div>
         </div>
     </div>
+    </div> <!-- /#game-container -->
 
     <!-- ═══════ NCHU Pickleball V5 模組化 JavaScript 核心 ═══════ -->
     <script src="./js/config.js"></script>

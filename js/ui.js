@@ -141,6 +141,53 @@
         function togglePanel(name) { toggleNavMenu(name); }
         function closePanel() { if (activeNavMenu) toggleNavMenu(activeNavMenu); }
 
+        /* ★ 橫向滑動加強輔助器 (支援手機原生滑動、桌機滑鼠抓取拖曳與滑鼠滾輪橫向滾動) */
+        function enableHorizontalDragScroll(el) {
+            if (!el || el._hDragInit) return;
+            el._hDragInit = true;
+            let isDown = false;
+            let startX = 0, scrollLeft = 0, moved = false;
+
+            el.addEventListener('mousedown', (e) => {
+                if (e.button !== 0) return;
+                isDown = true;
+                moved = false;
+                startX = e.pageX - el.offsetLeft;
+                scrollLeft = el.scrollLeft;
+            });
+
+            window.addEventListener('mousemove', (e) => {
+                if (!isDown) return;
+                const x = e.pageX - el.offsetLeft;
+                const walk = (x - startX) * 1.5;
+                if (Math.abs(walk) > 4) moved = true;
+                el.scrollLeft = scrollLeft - walk;
+            });
+
+            window.addEventListener('mouseup', () => {
+                if (isDown) {
+                    isDown = false;
+                }
+            });
+
+            // 若使用者進行了拖動 (距離 > 4px)，阻斷 click 事件防止誤觸按鈕
+            el.addEventListener('click', (e) => {
+                if (moved) {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    moved = false;
+                }
+            }, true);
+
+            // 滑鼠垂直滾輪轉換為水平滑動
+            el.addEventListener('wheel', (e) => {
+                if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+                    el.scrollLeft += e.deltaY;
+                    e.preventDefault();
+                }
+            }, { passive: false });
+        }
+
         // 點擊空白處自動關閉下拉子排
         document.addEventListener('pointerdown', (e) => {
             if (!activeNavMenu) return;
@@ -392,15 +439,7 @@
             const wrapper = document.getElementById('nav-wrapper');
             if (!wrapper) return;
             wrapper.style.left = '50%';
-            const isPortrait = window.matchMedia('(max-width: 768px) and (orientation: portrait)').matches;
-            const isLandscape = window.matchMedia('(orientation: landscape) and (max-height: 500px)').matches;
-            if (isPortrait) {
-                wrapper.style.top = 'calc(58px + env(safe-area-inset-top))';
-            } else if (isLandscape) {
-                wrapper.style.top = 'calc(6px + env(safe-area-inset-top))';
-            } else {
-                wrapper.style.top = 'calc(14px + env(safe-area-inset-top))';
-            }
+            wrapper.style.top = 'calc(58px + env(safe-area-inset-top))';
             wrapper.style.transform = 'translateX(-50%)';
             try { localStorage.removeItem('nchu_nav_pos'); } catch (e) {}
             if (typeof toast === 'function') toast('🔄 選單位置已重置', '已還原至預設頂部置中位置');
@@ -518,9 +557,10 @@
             });
 
             window.addEventListener('mousemove', e => {
-                if (!webcamActive && !camEdit) {
-                    const nx = (e.clientX / window.innerWidth) * 2 - 1;
-                    const ny = -(e.clientY / window.innerHeight) * 2 + 1;
+                if (!webcamActive && !camEdit && ren && ren.domElement) {
+                    const rect = ren.domElement.getBoundingClientRect();
+                    const nx = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+                    const ny = -((e.clientY - rect.top) / rect.height) * 2 + 1;
                     mouse.x = nx;
                     mouse.y = ny;
                     swipeMove(e.clientX, e.clientY);
@@ -537,9 +577,10 @@
 
             const el = ren.domElement;
             const aimT = t => {
-                if (!webcamActive && !camEdit) {
-                    const nx = (t.clientX / window.innerWidth) * 2 - 1;
-                    const ny = -(t.clientY / window.innerHeight) * 2 + 1;
+                if (!webcamActive && !camEdit && ren && ren.domElement) {
+                    const rect = ren.domElement.getBoundingClientRect();
+                    const nx = ((t.clientX - rect.left) / rect.width) * 2 - 1;
+                    const ny = -((t.clientY - rect.top) / rect.height) * 2 + 1;
                     mouse.x = nx;
                     mouse.y = ny;
                 }
@@ -583,6 +624,8 @@
             setupCamVertButtons();
             initDraggableHUD();
             syncDifficultyUI();
+            enableHorizontalDragScroll(document.getElementById('subbar-ai'));
+            enableHorizontalDragScroll(document.getElementById('nav'));
             window.addEventListener('blur', () => {
                 clearKeys(); camPad.vert = 0;
                 Object.keys(camKeys).forEach(k => camKeys[k] = false);

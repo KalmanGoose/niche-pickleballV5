@@ -21,8 +21,10 @@
             perfLevel = level; frameSkip = p.frameSkip;
             try { localStorage.setItem('nchu_pb_perf', level); } catch(e) {}
             const dpr = Math.min(window.devicePixelRatio || 2, p.pixelRatio);
-            ren.setPixelRatio(dpr);
-            ren.setSize(window.innerWidth, window.innerHeight);
+            const stageEl = document.getElementById('stage3d');
+            const sw = (stageEl && stageEl.clientWidth) ? stageEl.clientWidth : window.innerWidth;
+            const sh = (stageEl && stageEl.clientHeight) ? stageEl.clientHeight : window.innerHeight;
+            ren.setSize(sw, sh);
             if (sunKey) {
                 const want = p.shadow > 0;
                 sunKey.castShadow = want;

@@ -80,27 +80,34 @@
         }
         let TEX_GLOW, TEX_BLOB;
 
-        /* ★ v5.0.14: 智慧相機自適應解算器 (使用者最佳化預設視角: 高度 6.1, 距離 11.5, 視角親近沉浸) */
-        function getResponsiveCameraConfig() {
-            const w = window.innerWidth, h = window.innerHeight;
-            const aspect = w / h;
-            const isMob = w <= 950 || h <= 550 || (typeof IS_MOBILE !== 'undefined' && IS_MOBILE);
-
-            if (!isMob) {
-                // 桌機寬螢幕：舒適沉浸視角 (高度 6.1, 距離 11.5)
-                return { fov: 50, camH: 6.1, camDist: 11.5, lookY: 0.85, lookZ: -0.4, ballScale: 1.0, glowScale: 7, glowOpacity: 0.26 };
+        /* ★ 智慧相機自適應解算器 (純直立模式鎖定: 高度 6.1, 距離 11.5, 視角親近沉浸, 垂直視場角自適應) */
+        function getStageDimensions() {
+            const stageEl = document.getElementById('stage3d');
+            if (stageEl && stageEl.clientWidth > 0 && stageEl.clientHeight > 0) {
+                return { w: stageEl.clientWidth, h: stageEl.clientHeight };
             }
+            return { w: window.innerWidth, h: window.innerHeight };
+        }
 
-            if (aspect < 0.95) {
-                // ★ 手機直向模式 (Portrait): 依使用者喜好設為最佳預設視角 (高度 6.1, 距離 11.5)
-                const targetHFOVRad = 48 * Math.PI / 180;
-                const vFOVRad = 2 * Math.atan(Math.tan(targetHFOVRad / 2) / aspect);
-                const fov = Math.min(84, Math.max(55, vFOVRad * 180 / Math.PI));
-                return { fov: fov, camH: 6.1, camDist: 11.5, lookY: 0.85, lookZ: -0.4, ballScale: 1.25, glowScale: 8, glowOpacity: 0.35 };
-            } else {
-                // ★ 手機橫向模式 (Landscape): 視角高度 6.1, 距離 11.5
-                return { fov: 48, camH: 6.1, camDist: 11.5, lookY: 0.85, lookZ: -0.5, ballScale: 1.20, glowScale: 7.5, glowOpacity: 0.32 };
-            }
+        function getResponsiveCameraConfig(customW, customH) {
+            const dims = (customW && customH) ? { w: customW, h: customH } : getStageDimensions();
+            const aspect = dims.w / dims.h;
+
+            // ★ 寫死純直立視角 (Locked Portrait Mode Only):
+            // 透過垂直視場角 (vFoV) 自適應計算，保障球場左右邊界、發球區與對手鵝都在視野黃金分割區
+            const targetHFOVRad = 48 * Math.PI / 180;
+            const vFOVRad = 2 * Math.atan(Math.tan(targetHFOVRad / 2) / Math.min(aspect, 0.72));
+            const fov = Math.min(84, Math.max(52, vFOVRad * 180 / Math.PI));
+            return {
+                fov: fov,
+                camH: 6.1,
+                camDist: 11.5,
+                lookY: 0.85,
+                lookZ: -0.4,
+                ballScale: 1.25,
+                glowScale: 8,
+                glowOpacity: 0.35
+            };
         }
 
         function init3D() {
@@ -108,8 +115,9 @@
             scene.background = skyTex();
             scene.fog = new THREE.Fog(0xc3ddee, GRADE.fogNear, GRADE.fogFar);
 
-            const camCfg = getResponsiveCameraConfig();
-            cam = new THREE.PerspectiveCamera(camCfg.fov, window.innerWidth / window.innerHeight, 0.1, 200);
+            const dims = getStageDimensions();
+            const camCfg = getResponsiveCameraConfig(dims.w, dims.h);
+            cam = new THREE.PerspectiveCamera(camCfg.fov, dims.w / dims.h, 0.1, 200);
             cam.position.set(0, camCfg.camH, camCfg.camDist);
             try {
                 ren = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
@@ -122,7 +130,7 @@
             }
             const initPR = Math.min(window.devicePixelRatio || 2, (typeof PERF_PRESETS !== 'undefined' && typeof perfLevel !== 'undefined' && PERF_PRESETS[perfLevel]) ? PERF_PRESETS[perfLevel].pixelRatio : 2.0);
             ren.setPixelRatio(initPR);
-            ren.setSize(window.innerWidth, window.innerHeight);
+            ren.setSize(dims.w, dims.h);
             ren.outputEncoding = THREE.sRGBEncoding;
             ren.toneMapping = THREE.LinearToneMapping;
             ren.toneMappingExposure = GRADE.exposure;
@@ -2153,10 +2161,12 @@
             ren.render(scene, cam);
         }
 
-        window.addEventListener('resize', () => {
-            cam.aspect = window.innerWidth / window.innerHeight;
+        function handleStageResize() {
+            if (!cam || !ren) return;
+            const dims = getStageDimensions();
+            cam.aspect = dims.w / dims.h;
             if (typeof getResponsiveCameraConfig === 'function') {
-                const cfg = getResponsiveCameraConfig();
+                const cfg = getResponsiveCameraConfig(dims.w, dims.h);
                 cam.fov = cfg.fov;
                 if (ball && cfg.ballScale) ball.scale.set(cfg.ballScale, cfg.ballScale, cfg.ballScale);
                 if (ballGlow && cfg.glowScale) ballGlow.scale.set(BALL_R * cfg.glowScale, BALL_R * cfg.glowScale, 1);
@@ -2164,8 +2174,18 @@
             cam.updateProjectionMatrix();
             const curPR = (typeof PERF_PRESETS !== 'undefined' && PERF_PRESETS[perfLevel]) ? PERF_PRESETS[perfLevel].pixelRatio : 2.0;
             ren.setPixelRatio(Math.min(window.devicePixelRatio || 2, curPR));
-            ren.setSize(window.innerWidth, window.innerHeight);
+            ren.setSize(dims.w, dims.h);
+        }
+
+        window.addEventListener('resize', handleStageResize);
+        window.addEventListener('orientationchange', () => {
+            setTimeout(handleStageResize, 150);
         });
+        if (typeof ResizeObserver !== 'undefined') {
+            const stageObserver = new ResizeObserver(() => handleStageResize());
+            const sEl = document.getElementById('stage3d') || document.getElementById('game-container');
+            if (sEl) stageObserver.observe(sEl);
+        }
 
         
         /* ═══════════════════════════════════════════════

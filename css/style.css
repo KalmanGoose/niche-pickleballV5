@@ -35,13 +35,30 @@
             width: 100vw !important;
             max-width: 100vw !important;
             height: 100% !important;
+            height: 100dvh !important;
             overflow: hidden !important;
             overflow-x: hidden !important;
             overflow-y: hidden !important;
             position: fixed;
-            background: var(--bg);
+            background: #070a12;
             color: var(--txt);
             touch-action: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* ── 全局直立模式核心視窗容器 (#game-container: 寫死直立黃金比例) ── */
+        #game-container {
+            position: relative;
+            width: 100vw;
+            max-width: min(100vw, calc(100dvh * 0.6), 540px);
+            height: 100%;
+            height: 100dvh;
+            margin: 0 auto;
+            overflow: hidden;
+            background: #020617;
+            box-shadow: 0 0 50px rgba(0, 0, 0, 0.85), 0 0 0 1px rgba(255, 255, 255, 0.08);
         }
 
         #stage3d {
@@ -57,6 +74,8 @@
         #vignette {
             position: absolute;
             inset: 0;
+            width: 100%;
+            height: 100%;
             z-index: 4;
             pointer-events: none;
             background: radial-gradient(ellipse 82% 74% at 50% 44%, transparent 58%, rgba(2, 6, 23, .4) 100%),
@@ -66,8 +85,8 @@
         #hud {
             position: absolute;
             inset: 0;
-            width: 100vw !important;
-            max-width: 100vw !important;
+            width: 100% !important;
+            max-width: 100% !important;
             height: 100% !important;
             overflow: hidden !important;
             pointer-events: none;

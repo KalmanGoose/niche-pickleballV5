@@ -1129,11 +1129,11 @@
             letter-spacing: 0.4px;
         }
 
-        /* 手機直向旋轉引導層 (Orientation Prompt) */
+        /* 手機橫向模式直立旋轉引導層 (Orientation Prompt) */
         .rotate-prompt {
             display: none;
         }
-        @media (orientation: portrait) and (max-width: 900px) {
+        @media (orientation: landscape) and (max-height: 560px) and (pointer: coarse) {
             .rotate-prompt {
                 display: flex;
                 flex-direction: column;
@@ -1184,9 +1184,9 @@
             }
         }
         @keyframes v5-spin-phone {
-            0%, 20% { transform: rotate(0deg); }
-            50%, 70% { transform: rotate(90deg); }
-            100% { transform: rotate(0deg); }
+            0%, 20% { transform: rotate(90deg); }
+            50%, 70% { transform: rotate(0deg); }
+            100% { transform: rotate(90deg); }
         }
 
 
@@ -1514,249 +1514,135 @@
         }
 
 
-/* ── 行動端直向專屬排版 (Portrait HUD) ── */
-@media (orientation: portrait), (max-width: 768px), (max-aspect-ratio: 1/1) {
-            /* 1. 第一排左側：關卡資訊框輕量膠囊化 */
-            #info, body.layout-v4 #info {
-                top: calc(8px + env(safe-area-inset-top)) !important;
-                left: calc(8px + env(safe-area-inset-left)) !important;
-                width: auto !important;
-                max-width: 52vw !important;
-                min-width: 0 !important;
-                padding: 6px 10px !important;
-                border-radius: 14px !important;
-                background: rgba(15, 23, 42, 0.88) !important;
-                backdrop-filter: blur(14px) !important;
-                -webkit-backdrop-filter: blur(14px) !important;
-                box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4) !important;
-                z-index: 30 !important;
-            }
-            #info #chip {
-                font-size: 8.5px !important;
-                padding: 2px 6px !important;
-                margin-bottom: 2px !important;
-            }
-            #info #s-name {
-                font-size: 14px !important;
-                font-weight: 800 !important;
-                margin: 1px 0 !important;
-                display: inline-block !important;
-            }
-            #info #s-sub,
-            #info #s-desc,
-            #info #waist-row,
-            #info #stance-row {
-                display: none !important;
-            }
-            #info #info-diff-row {
-                display: flex !important;
-                margin-top: 5px !important;
-                padding-top: 4px !important;
-                border-top: 1px solid rgba(255, 255, 255, 0.12) !important;
-                align-items: center !important;
-                justify-content: space-between !important;
-                gap: 2px !important;
-                width: 100% !important;
-            }
-            #info #info-diff-row .diff-btn {
-                padding: 2px 4px !important;
-                font-size: 9.5px !important;
-                min-width: 0 !important;
-                flex: 1 !important;
-                text-align: center !important;
-                border-radius: 6px !important;
-            }
-            #info #goal-row {
-                margin-top: 3px !important;
-                gap: 6px !important;
-            }
-            #info #goal-track {
-                height: 4px !important;
-            }
-            #info #goal-txt {
-                font-size: 11.5px !important;
-                font-weight: 800 !important;
-            }
-            #info #hint {
-                font-size: 10px !important;
-                margin-top: 2px !important;
-                white-space: nowrap !important;
-                overflow: hidden !important;
-                text-overflow: ellipsis !important;
-                max-width: 48vw !important;
-            }
-
-            /* 2. 第一排右側：比分板輕量化 */
-            #board, body.layout-v4 #board {
-                top: calc(8px + env(safe-area-inset-top)) !important;
-                right: calc(8px + env(safe-area-inset-right)) !important;
-                left: auto !important;
-                display: flex !important;
-                padding: 4px 8px !important;
-                gap: 6px !important;
-                border-radius: 14px !important;
-                background: rgba(15, 23, 42, 0.88) !important;
-                backdrop-filter: blur(14px) !important;
-                -webkit-backdrop-filter: blur(14px) !important;
-                box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4) !important;
-                z-index: 30 !important;
-            }
-            #board .side {
-                min-width: 36px !important;
-                padding: 0 2px !important;
-            }
-            #board .side .who {
-                font-size: 9px !important;
-                font-weight: 800 !important;
-            }
-            #board .side .num {
-                font-size: 20px !important;
-                font-weight: 800 !important;
-                margin-top: 1px !important;
-            }
-
-            /* 3. 頂部活動式容器 (#nav-wrapper) 居中於第 2 排 (top: 58px) */
-            #nav-wrapper {
-                top: calc(58px + env(safe-area-inset-top));
-                width: max-content !important;
-                max-width: calc(100vw - 16px) !important;
-                box-sizing: border-box !important;
-            }
-            #nav-wrapper.minimized {
-                width: max-content !important;
-                max-width: none !important;
-            }
-            #nav, body.layout-v4 #nav {
-                position: relative !important;
-                top: auto !important;
-                left: auto !important;
-                transform: none !important;
-                width: max-content !important;
-                max-width: calc(100vw - 16px) !important;
-                padding: 3px 6px !important;
-                gap: 3px !important;
-                overflow-x: auto !important;
-                scrollbar-width: none !important;
-                z-index: 35 !important;
-            }
-            #nav::-webkit-scrollbar { display: none !important; }
-            #nav button:not(.nav-min-btn) {
-                font-size: 10.5px !important;
-                padding: 4px 7px !important;
-                min-height: 28px !important;
-            }
-
+/* ── 全局標準直向排版 (Universal Portrait HUD: 鎖定直向黃金比例) ── */
+/* 1. 第一排左側：關卡資訊框輕量膠囊化 */
+#info, body.layout-v4 #info {
+    top: calc(8px + env(safe-area-inset-top)) !important;
+    left: calc(8px + env(safe-area-inset-left)) !important;
+    width: auto !important;
+    max-width: 52% !important;
+    min-width: 0 !important;
+    padding: 6px 10px !important;
+    border-radius: 14px !important;
+    background: rgba(15, 23, 42, 0.88) !important;
+    backdrop-filter: blur(14px) !important;
+    -webkit-backdrop-filter: blur(14px) !important;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4) !important;
+    z-index: 30 !important;
+}
+#info #chip {
+    font-size: 8.5px !important;
+    padding: 2px 6px !important;
+    margin-bottom: 2px !important;
+}
+#info #s-name {
+    font-size: 14px !important;
+    font-weight: 800 !important;
+    margin: 1px 0 !important;
+    display: inline-block !important;
+}
+#info #s-sub,
+#info #s-desc,
+#info #waist-row,
+#info #stance-row {
+    display: none !important;
+}
+#info #info-diff-row {
+    display: flex !important;
+    margin-top: 5px !important;
+    padding-top: 4px !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.12) !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 2px !important;
+    width: 100% !important;
+}
+#info #info-diff-row .diff-btn {
+    padding: 2px 4px !important;
+    font-size: 9.5px !important;
+    min-width: 0 !important;
+    flex: 1 !important;
+    text-align: center !important;
+    border-radius: 6px !important;
+}
+#info #goal-row {
+    margin-top: 3px !important;
+    gap: 6px !important;
+}
+#info #goal-track {
+    height: 4px !important;
+}
+#info #goal-txt {
+    font-size: 11.5px !important;
+    font-weight: 800 !important;
+}
+#info #hint {
+    font-size: 10px !important;
+    margin-top: 2px !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    max-width: 48% !important;
 }
 
-/* ── 行動端橫向專屬排版 (Landscape HUD) ── */
-@media (orientation: landscape) and (max-height: 560px), (orientation: landscape) and (max-height: 500px) {
-            /* 1. 關卡資訊框橫向超緊湊小卡 */
-            #info, body.layout-v4 #info {
-                top: calc(6px + env(safe-area-inset-top)) !important;
-                left: calc(8px + env(safe-area-inset-left)) !important;
-                width: auto !important;
-                max-width: 190px !important;
-                min-width: 0 !important;
-                padding: 4px 8px !important;
-                border-radius: 12px !important;
-                z-index: 30 !important;
-            }
-            #info #chip {
-                font-size: 8px !important;
-                padding: 1px 4px !important;
-                margin-bottom: 1px !important;
-            }
-            #info #s-name {
-                font-size: 13px !important;
-                font-weight: 800 !important;
-                margin: 0 !important;
-            }
-            #info #s-sub,
-            #info #s-desc,
-            #info #waist-row,
-            #info #stance-row,
-            #info #hint {
-                display: none !important;
-            }
-            #info #info-diff-row {
-                display: flex !important;
-                margin-top: 3px !important;
-                padding-top: 3px !important;
-                border-top: 1px solid rgba(255, 255, 255, 0.12) !important;
-                align-items: center !important;
-                justify-content: space-between !important;
-                gap: 2px !important;
-                width: 100% !important;
-            }
-            #info #info-diff-row .diff-btn {
-                padding: 1.5px 3.5px !important;
-                font-size: 8.5px !important;
-                min-width: 0 !important;
-                flex: 1 !important;
-                text-align: center !important;
-                border-radius: 6px !important;
-            }
-            #info #goal-row {
-                margin-top: 2px !important;
-                gap: 4px !important;
-            }
-            #info #goal-track {
-                height: 3px !important;
-            }
-            #info #goal-txt {
-                font-size: 10.5px !important;
-            }
+/* 2. 第一排右側：比分板輕量化 */
+#board, body.layout-v4 #board {
+    top: calc(8px + env(safe-area-inset-top)) !important;
+    right: calc(8px + env(safe-area-inset-right)) !important;
+    left: auto !important;
+    display: flex !important;
+    padding: 4px 8px !important;
+    gap: 6px !important;
+    border-radius: 14px !important;
+    background: rgba(15, 23, 42, 0.88) !important;
+    backdrop-filter: blur(14px) !important;
+    -webkit-backdrop-filter: blur(14px) !important;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4) !important;
+    z-index: 30 !important;
+}
+#board .side {
+    min-width: 36px !important;
+    padding: 0 2px !important;
+}
+#board .side .who {
+    font-size: 9px !important;
+    font-weight: 800 !important;
+}
+#board .side .num {
+    font-size: 20px !important;
+    font-weight: 800 !important;
+    margin-top: 1px !important;
+}
 
-            /* 2. 比分板橫向超緊湊小卡 */
-            #board, body.layout-v4 #board {
-                top: calc(6px + env(safe-area-inset-top)) !important;
-                right: calc(8px + env(safe-area-inset-right)) !important;
-                left: auto !important;
-                padding: 3px 8px !important;
-                gap: 6px !important;
-                border-radius: 12px !important;
-                z-index: 30 !important;
-            }
-            #board .side {
-                min-width: 32px !important;
-                padding: 0 !important;
-            }
-            #board .side .who {
-                font-size: 8.5px !important;
-            }
-            #board .side .num {
-                font-size: 18px !important;
-                margin-top: 0 !important;
-            }
-
-            /* 3. 頂部活動式容器 (#nav-wrapper) 完美置頂 */
-            #nav-wrapper {
-                top: calc(6px + env(safe-area-inset-top));
-                width: max-content !important;
-                max-width: calc(100vw - 340px) !important;
-                box-sizing: border-box !important;
-            }
-            #nav-wrapper.minimized {
-                width: max-content !important;
-                max-width: none !important;
-            }
-            #nav, body.layout-v4 #nav {
-                position: relative !important;
-                top: auto !important;
-                left: auto !important;
-                transform: none !important;
-                max-width: 100% !important;
-                padding: 3px 6px !important;
-                gap: 3px !important;
-                overflow-x: auto !important;
-                scrollbar-width: none !important;
-                z-index: 35 !important;
-            }
-            #nav::-webkit-scrollbar { display: none !important; }
-            #nav button:not(.nav-min-btn) {
-                font-size: 11px !important;
-                padding: 4px 8px !important;
-                min-height: 28px !important;
-            }
-
+/* 3. 頂部活動式容器 (#nav-wrapper) 居中於第 2 排 (top: 58px) */
+#nav-wrapper {
+    top: calc(58px + env(safe-area-inset-top));
+    width: max-content !important;
+    max-width: calc(100% - 16px) !important;
+    box-sizing: border-box !important;
+}
+#nav-wrapper.minimized {
+    width: max-content !important;
+    max-width: none !important;
+}
+#nav, body.layout-v4 #nav {
+    position: relative !important;
+    top: auto !important;
+    left: auto !important;
+    transform: none !important;
+    width: max-content !important;
+    max-width: calc(100% - 16px) !important;
+    padding: 3px 6px !important;
+    gap: 3px !important;
+    overflow-x: auto !important;
+    scrollbar-width: none !important;
+    -webkit-overflow-scrolling: touch !important;
+    touch-action: pan-x !important;
+    z-index: 35 !important;
+}
+#nav::-webkit-scrollbar { display: none !important; }
+#nav button:not(.nav-min-btn) {
+    font-size: 10.5px !important;
+    padding: 4px 7px !important;
+    min-height: 28px !important;
 }
