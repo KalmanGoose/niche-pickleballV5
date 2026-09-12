@@ -43,8 +43,9 @@
             top: 14px;
             left: 14px;
             padding: 13px 17px;
-            min-width: 262px;
-            max-width: 44vw
+            width: fit-content;
+            min-width: 0;
+            max-width: calc(100vw - 28px);
         }
 
         #chip {
@@ -1637,9 +1638,11 @@
 }
 #nav::-webkit-scrollbar { display: none !important; }
 #nav button:not(.nav-min-btn) {
-    font-size: 10.5px !important;
-    padding: 4px 7px !important;
-    min-height: 28px !important;
+    font-size: 11.5px !important;
+    padding: 5px 9px !important;
+    min-height: 32px !important;
+    border-radius: 99px !important;
+    white-space: nowrap !important;
 }
 
 /* ═══════════════════════════════════════════════════════════════════

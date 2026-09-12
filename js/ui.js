@@ -542,6 +542,7 @@
             }
 
             let isDragging = false;
+            let pointerDownActive = false;
             let startPointerX = 0, startPointerY = 0;
             let initLeft = 0, initTop = 0;
             let hasMoved = false;
@@ -553,7 +554,8 @@
                 if (e.button && e.button !== 0) return;
                 if (ignoreSelector && e.target.closest(ignoreSelector)) return;
 
-                isDragging = true;
+                pointerDownActive = true;
+                isDragging = false;
                 hasMoved = false;
                 startPointerX = e.clientX;
                 startPointerY = e.clientY;
@@ -561,27 +563,31 @@
                 const rect = el.getBoundingClientRect();
                 initLeft = rect.left;
                 initTop = rect.top;
-
-                el.style.transform = 'none';
-                el.style.left = initLeft + 'px';
-                el.style.top = initTop + 'px';
-                el.style.right = 'auto';
-                el.style.bottom = 'auto';
-                el.style.zIndex = '9999';
-                el.classList.add('hud-dragging');
-
-                try { dragTrigger.setPointerCapture(e.pointerId); } catch (_) {}
-                e.stopPropagation();
             });
 
             dragTrigger.addEventListener('pointermove', (e) => {
-                if (!isDragging) return;
+                if (!pointerDownActive) return;
                 const dx = e.clientX - startPointerX;
                 const dy = e.clientY - startPointerY;
-                if (Math.hypot(dx, dy) > 4) {
-                    hasMoved = true;
+                const dist = Math.hypot(dx, dy);
+
+                // 8px 門檻值：未達 8px 視為正常點按，絕不干擾/攔截子元素點擊
+                if (!isDragging) {
+                    if (dist > 8) {
+                        isDragging = true;
+                        hasMoved = true;
+                        el.style.transform = 'none';
+                        el.style.left = initLeft + 'px';
+                        el.style.top = initTop + 'px';
+                        el.style.right = 'auto';
+                        el.style.bottom = 'auto';
+                        el.style.zIndex = '9999';
+                        el.classList.add('hud-dragging');
+                        try { dragTrigger.setPointerCapture(e.pointerId); } catch (_) {}
+                    } else {
+                        return;
+                    }
                 }
-                if (!hasMoved) return;
 
                 const rect = el.getBoundingClientRect();
                 const winW = window.innerWidth;
@@ -602,21 +608,22 @@
             });
 
             const endDrag = (e) => {
-                if (!isDragging) return;
-                isDragging = false;
-                el.classList.remove('hud-dragging');
-                el.style.zIndex = String(window.getNextHudZIndex());
-                try { dragTrigger.releasePointerCapture(e.pointerId); } catch (_) {}
+                if (!pointerDownActive) return;
+                pointerDownActive = false;
 
-                const now = Date.now();
-                if (hasMoved) {
-                    // 若進行了拖曳，阻斷其後的 click 事件防止誤觸內嵌按鈕
+                if (isDragging) {
+                    isDragging = false;
+                    el.classList.remove('hud-dragging');
+                    el.style.zIndex = String(window.getNextHudZIndex());
+                    try { dragTrigger.releasePointerCapture(e.pointerId); } catch (_) {}
+
+                    // 真正位移拖曳才阻斷 click，保護單純輕點操作
                     const killClick = (ev) => {
                         ev.stopPropagation();
                         ev.preventDefault();
                     };
                     window.addEventListener('click', killClick, { capture: true, once: true });
-                    setTimeout(() => window.removeEventListener('click', killClick, { capture: true }), 160);
+                    setTimeout(() => window.removeEventListener('click', killClick, { capture: true }), 180);
 
                     // 智慧防重疊避讓與邊界防爆框
                     window.resolveHudOverlap(el);
@@ -633,7 +640,8 @@
                         toast(`📍 ${name}位置已就緒`, '自動避讓重疊並記憶位置');
                     }
                 } else {
-                    // 雙擊 / 雙點擊判定 (320ms 內連續輕點重置位置)
+                    // 單純輕點操作：支援雙擊重置與點擊回調
+                    const now = Date.now();
                     if (now - lastTapTime < 320) {
                         resetToDefault();
                         lastTapTime = 0;
@@ -686,7 +694,6 @@
             window.makeHudDraggable(info, {
                 storageKey: 'nchu_info_pos',
                 name: '關卡資訊框',
-                ignoreSelector: 'button, .diff-btn, .card-resize-handle, .info-toggle-btn',
                 defaultStyles: {
                     top: 'calc(8px + env(safe-area-inset-top))',
                     left: 'calc(8px + env(safe-area-inset-left))',
@@ -755,6 +762,7 @@
                 if (!el || el._dragBound) return;
                 el._dragBound = true;
                 let dragging = false;
+                let pointerDown = false;
                 let startX = 0, startY = 0;
                 let initLeft = 0, initTop = 0;
                 let hasMoved = false;
@@ -762,8 +770,8 @@
 
                 el.addEventListener('pointerdown', (e) => {
                     if (e.button && e.button !== 0) return;
-                    if (!isPill && e.target.closest('button')) return;
-                    dragging = true;
+                    pointerDown = true;
+                    dragging = false;
                     hasMoved = false;
                     startX = e.clientX;
                     startY = e.clientY;
@@ -771,24 +779,29 @@
                     const rect = wrapper.getBoundingClientRect();
                     initLeft = rect.left;
                     initTop = rect.top;
-
-                    wrapper.style.transform = 'none';
-                    wrapper.style.left = initLeft + 'px';
-                    wrapper.style.top = initTop + 'px';
-                    wrapper.style.zIndex = '9999';
-
-                    try { el.setPointerCapture(e.pointerId); } catch (err) {}
-                    e.stopPropagation();
                 });
 
                 el.addEventListener('pointermove', (e) => {
-                    if (!dragging) return;
+                    if (!pointerDown) return;
                     const dx = e.clientX - startX;
                     const dy = e.clientY - startY;
-                    if (Math.hypot(dx, dy) > 4) {
-                        hasMoved = true;
+                    const dist = Math.hypot(dx, dy);
+
+                    // 8px 門檻值：未達 8px 視為單純輕點操作，絕不干擾按鈕點擊
+                    if (!dragging) {
+                        if (dist > 8) {
+                            dragging = true;
+                            hasMoved = true;
+                            wrapper.style.transform = 'none';
+                            wrapper.style.left = initLeft + 'px';
+                            wrapper.style.top = initTop + 'px';
+                            wrapper.style.zIndex = '9999';
+                            wrapper.classList.add('hud-dragging');
+                            try { el.setPointerCapture(e.pointerId); } catch (err) {}
+                        } else {
+                            return;
+                        }
                     }
-                    if (!hasMoved) return;
 
                     const rect = wrapper.getBoundingClientRect();
                     const w = rect.width || 60;
@@ -801,16 +814,29 @@
 
                     wrapper.style.left = newL + 'px';
                     wrapper.style.top = newT + 'px';
+
+                    e.stopPropagation();
+                    e.preventDefault();
                 });
 
                 const endDrag = (e) => {
-                    if (!dragging) return;
-                    dragging = false;
-                    wrapper.style.zIndex = String(window.getNextHudZIndex());
-                    try { el.releasePointerCapture(e.pointerId); } catch (err) {}
+                    if (!pointerDown) return;
+                    pointerDown = false;
 
-                    const now = Date.now();
-                    if (hasMoved) {
+                    if (dragging) {
+                        dragging = false;
+                        wrapper.classList.remove('hud-dragging');
+                        wrapper.style.zIndex = String(window.getNextHudZIndex());
+                        try { el.releasePointerCapture(e.pointerId); } catch (err) {}
+
+                        // 真正拖動才阻斷 click，防止放開時誤觸放開點的按鈕
+                        const killClick = (ev) => {
+                            ev.stopPropagation();
+                            ev.preventDefault();
+                        };
+                        window.addEventListener('click', killClick, { capture: true, once: true });
+                        setTimeout(() => window.removeEventListener('click', killClick, { capture: true }), 180);
+
                         // 拖曳結束：防重疊避讓與邊界防爆框
                         window.resolveHudOverlap(wrapper);
                         window.clampHudElement(wrapper);
@@ -818,8 +844,10 @@
                         try {
                             localStorage.setItem('nchu_nav_pos', JSON.stringify({ left: Math.round(rect.left), top: Math.round(rect.top) }));
                         } catch (err) {}
+                        if (typeof toast === 'function') toast('📍 選單位置已就緒', '自動避讓重疊並記憶位置');
                     } else {
-                        // 雙擊 / 雙點擊判定 (320ms 內連續點擊拖曳手柄或懸浮球重置位置)
+                        // 單純輕點操作：雙擊重置或點擊還原懸浮球
+                        const now = Date.now();
                         if (now - lastTap < 320) {
                             resetNavPosition();
                             lastTap = 0;
@@ -837,14 +865,13 @@
                 el.addEventListener('pointercancel', endDrag);
 
                 el.addEventListener('dblclick', (e) => {
-                    if (!isPill && e.target.closest('button')) return;
                     e.stopPropagation();
                     resetNavPosition();
                 });
             }
 
-            // 僅由拖曳手柄與懸浮球負責位移，選單卡片本體維持原生水平滑動與點擊，絕不衝突
-            bindDrag(handle, false);
+            // 直接按著整個選單容器或懸浮球即可拖曳移動，輕點按鈕依然 100% 順暢精準觸發！
+            bindDrag(wrapper, false);
             bindDrag(pill, true);
         };
 
@@ -1084,7 +1111,6 @@
             initDraggableHUD();
             syncDifficultyUI();
             enableHorizontalDragScroll(document.getElementById('subbar-ai'));
-            enableHorizontalDragScroll(document.getElementById('nav'));
             window.addEventListener('blur', () => {
                 clearKeys(); camPad.vert = 0;
                 Object.keys(camKeys).forEach(k => camKeys[k] = false);
