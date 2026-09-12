@@ -50,6 +50,7 @@
             }
             const t = new THREE.CanvasTexture(c);
             t.encoding = THREE.sRGBEncoding; t.wrapS = t.wrapT = THREE.RepeatWrapping;
+            t.anisotropy = 4;
             return t;
         }
         function glowTex() {
@@ -119,6 +120,8 @@
                     '請改用 Chrome / Edge 最新版,或在瀏覽器設定中開啟硬體加速。</div>';
                 throw e;
             }
+            const initPR = Math.min(window.devicePixelRatio || 2, (typeof PERF_PRESETS !== 'undefined' && typeof perfLevel !== 'undefined' && PERF_PRESETS[perfLevel]) ? PERF_PRESETS[perfLevel].pixelRatio : 2.0);
+            ren.setPixelRatio(initPR);
             ren.setSize(window.innerWidth, window.innerHeight);
             ren.outputEncoding = THREE.sRGBEncoding;
             ren.toneMapping = THREE.LinearToneMapping;
@@ -315,13 +318,17 @@
             scene.add(netGrp);
         }
         function buildBall() {
-            const c = document.createElement('canvas'); c.width = 128; c.height = 64;
+            const c = document.createElement('canvas'); c.width = 256; c.height = 128;
             const x = c.getContext('2d');
-            x.fillStyle = '#eaff52'; x.fillRect(0, 0, 128, 64);
-            x.fillStyle = 'rgba(70,92,12,.5)';
-            for (let i = 0; i < 22; i++) { x.beginPath(); x.arc((i * 31) % 128, (i * 19) % 64, 4.5, 0, Math.PI * 2); x.fill(); }
-            const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding;
-            ball = new THREE.Mesh(new THREE.SphereGeometry(BALL_R, 22, 22),
+            x.fillStyle = '#eaff52'; x.fillRect(0, 0, 256, 128);
+            x.fillStyle = 'rgba(60,82,10,.6)';
+            for (let i = 0; i < 26; i++) {
+                x.beginPath();
+                x.arc((i * 59) % 256, (i * 37) % 128, 7.5, 0, Math.PI * 2);
+                x.fill();
+            }
+            const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; t.anisotropy = 4;
+            ball = new THREE.Mesh(new THREE.SphereGeometry(BALL_R, 32, 32),
                 new THREE.MeshStandardMaterial({
                     map: t, roughness: 0.32, metalness: 0.02,
                     emissive: 0x93b800, emissiveIntensity: 0.14
@@ -393,7 +400,7 @@
             const grip = new THREE.Mesh(new THREE.BoxGeometry(0.055, 0.16, 0.055),
                 new THREE.MeshStandardMaterial({ color: 0x24304a, roughness: 0.8 }));
             grip.position.y = -0.055; pPad.add(grip);
-            pPad.scale.setScalar(1.45); pGrp.add(pPad);
+            pPad.scale.setScalar(2.175); pGrp.add(pPad); // ★ 球拍放大 1.5 倍 (1.45 * 1.5 = 2.175)
             scene.add(pGrp);
         }
         function buildCreeper() {
@@ -491,7 +498,7 @@
             const ge = new THREE.Mesh(new THREE.BoxGeometry(0.29, 0.38, 0.02),
                 new THREE.MeshStandardMaterial({ color: 0x24304a, roughness: 0.5 }));
             ge.position.set(0, 0.18, 0.012); gPad.add(ge);
-            gPad.scale.setScalar(1.45); gGrp.add(gPad);
+            gPad.scale.setScalar(2.175); gGrp.add(gPad); // ★ 對手球拍同步放大 1.5 倍
             scene.add(gGrp);
             updateOpponentMeshVisibility();
         }
@@ -998,7 +1005,8 @@
             if (state !== 'RALLY' || pLock > 0 || locked) return;
             if (PH.vel.z <= 0 || PH.pos.z < 0.05) return;
             const b = PH.pos, p = padW;
-            const assist = webcamActive ? 1.45 : 1.0;
+            const padScale = 1.5; // ★ 球拍放大 1.5 倍，擊球容錯判定範圍同步擴大 1.5 倍 (超寬容錯不易揮空)
+            const assist = (webcamActive ? 1.45 : 1.0) * padScale;
             const r = swingT > 0
                 ? { z: (0.62 + BALL_R) * assist, x: (0.82 + BALL_R) * assist, y: (0.78 + BALL_R) * assist }
                 : { z: (0.45 + BALL_R) * assist, x: (0.60 + BALL_R) * assist, y: (0.55 + BALL_R) * assist };
@@ -2069,7 +2077,8 @@
                 if (ballGlow && cfg.glowScale) ballGlow.scale.set(BALL_R * cfg.glowScale, BALL_R * cfg.glowScale, 1);
             }
             cam.updateProjectionMatrix();
-            ren.setPixelRatio(Math.min(window.devicePixelRatio, PERF_PRESETS[perfLevel].pixelRatio));
+            const curPR = (typeof PERF_PRESETS !== 'undefined' && PERF_PRESETS[perfLevel]) ? PERF_PRESETS[perfLevel].pixelRatio : 2.0;
+            ren.setPixelRatio(Math.min(window.devicePixelRatio || 2, curPR));
             ren.setSize(window.innerWidth, window.innerHeight);
         });
 

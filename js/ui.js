@@ -177,8 +177,8 @@
             // 同步效能預設
             const perfBtn = document.getElementById('subbar-perf-btn');
             if (perfBtn && typeof perfLevel !== 'undefined') {
-                const map = { low: '🟢 低', medium: '🟡 中', high: '🔴 高', ultra: '🟣 超高' };
-                perfBtn.innerHTML = `⚡ 效能: ${map[perfLevel] || perfLevel}`;
+                const map = { low: '🟢 節能', medium: '🟡 平衡', high: '🔴 原生高畫質', ultra: '🟣 極致' };
+                perfBtn.innerHTML = `⚡ 畫質: ${map[perfLevel] || perfLevel}`;
             }
             // 同步卡片縮放標籤
             const scaleLbl = document.getElementById('quick-scale-lbl');

@@ -2,22 +2,26 @@
    NCHU Pickleball V5 - 體感 AI 與動力鏈追蹤 (Motion AI & BlazePose)
    ═══════════════════════════════════════════════════════════════════ */
         const PERF_PRESETS = {
-            low: { label: '🟢 低', joints: 'CORE6', frameSkip: 3, pixelRatio: 0.8, shadow: 0, complexity: 0, skeleton: 'MINIMAL' },
-            medium: { label: '🟡 中 (極速60fps)', joints: 'UPPER14', frameSkip: 2, pixelRatio: 1.2, shadow: 0, complexity: 0, skeleton: 'BASIC' },
-            high: { label: '🔴 高', joints: 'UPPER14', frameSkip: 2, pixelRatio: 1.6, shadow: 512, complexity: 0, skeleton: 'SMOOTH' },
-            ultra: { label: '🟣 超高', joints: 'FULL33', frameSkip: 1, pixelRatio: 2.0, shadow: 1024, complexity: 1, skeleton: 'GLOW' }
+            low: { label: '🟢 節能 (720p)', joints: 'CORE6', frameSkip: 3, pixelRatio: 1.2, shadow: 0, complexity: 0, skeleton: 'MINIMAL' },
+            medium: { label: '🟡 平衡 (1080p)', joints: 'UPPER14', frameSkip: 2, pixelRatio: 1.6, shadow: 512, complexity: 0, skeleton: 'BASIC' },
+            high: { label: '🔴 原生高畫質 (推薦)', joints: 'UPPER14', frameSkip: 2, pixelRatio: Math.min(window.devicePixelRatio || 2, 2.0), shadow: 1024, complexity: 0, skeleton: 'SMOOTH' },
+            ultra: { label: '🟣 極致超取樣', joints: 'FULL33', frameSkip: 1, pixelRatio: Math.min(window.devicePixelRatio || 2.5, 2.5), shadow: 2048, complexity: 1, skeleton: 'GLOW' }
         };
         const JOINT_SETS = {
             CORE6: [11, 12, 13, 14, 15, 16],
             UPPER14: [11, 12, 13, 14, 15, 16, 19, 20, 21, 22, 23, 24, 0, 7],
             FULL33: Array.from({ length: 33 }, (_, i) => i)
         };
-        let perfLevel = IS_MOBILE ? 'medium' : 'high';
+        let savedPerf = null;
+        try { savedPerf = localStorage.getItem('nchu_pb_perf'); } catch(e) {}
+        let perfLevel = (savedPerf && PERF_PRESETS[savedPerf]) ? savedPerf : 'high';
         let frameSkip = PERF_PRESETS[perfLevel].frameSkip;
         function applyPerfPreset(level) {
             const p = PERF_PRESETS[level]; if (!p) return;
             perfLevel = level; frameSkip = p.frameSkip;
-            ren.setPixelRatio(Math.min(window.devicePixelRatio, p.pixelRatio));
+            try { localStorage.setItem('nchu_pb_perf', level); } catch(e) {}
+            const dpr = Math.min(window.devicePixelRatio || 2, p.pixelRatio);
+            ren.setPixelRatio(dpr);
             ren.setSize(window.innerWidth, window.innerHeight);
             if (sunKey) {
                 const want = p.shadow > 0;
@@ -34,7 +38,7 @@
                 minDetectionConfidence: 0.5, minTrackingConfidence: 0.5
             });
             syncPerfButtons();
-            toast('效能分級:' + p.label, '抽樣 1/' + p.frameSkip + ' 影格 · 陰影 ' + (p.shadow || '關閉') + ' · ' + p.joints);
+            toast('畫質設定:' + p.label, '解析度 DPR ' + dpr.toFixed(1) + ' · 陰影 ' + (p.shadow || '關閉'));
         }
         const POSE_BONES = [[11, 12], [11, 13], [13, 15], [12, 14], [14, 16], [11, 23], [12, 24], [23, 24],
         [23, 25], [25, 27], [24, 26], [26, 28], [15, 19], [15, 21], [16, 20], [16, 22]];
