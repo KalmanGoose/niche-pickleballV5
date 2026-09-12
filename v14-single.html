@@ -5827,6 +5827,8 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
         function endRally(scorer, msg, sub) {
             if (locked || demoOn) return;
             if (state === 'FAULT' || state === 'OVER') return;
+            // ★ 🍄 瘋狂道具戰：電蚊拍追殺模式下，球落地/掛網完全不結算！必須衝過去電到蒼蠅才算贏！
+            if (typeof FunMode !== 'undefined' && FunMode.activeBuff === 'ELECTRIC_SWATTER') return;
             updateLastAuditOutcome(msg, sub);
             if (!scoring()) { fail(msg, sub); return; }   // ★ 練習關轉交 fail(),不扣分
             state = 'FAULT'; freeze();
@@ -5882,6 +5884,8 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
         function fail(msg, sub) {
             if (locked || demoOn) return;
             if (state === 'FAULT' || state === 'OVER') return;
+            // ★ 🍄 瘋狂道具戰：電蚊拍追殺模式下，不判練習關失敗
+            if (typeof FunMode !== 'undefined' && FunMode.activeBuff === 'ELECTRIC_SWATTER') return;
             updateLastAuditOutcome(msg, sub);
             state = 'FAULT'; freeze(); S.fault(); addShake(0.14);
             toast(msg, sub || '練習關不扣分,按空白鍵重來');
@@ -9252,7 +9256,7 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
         // 道具清單定義
         ITEMS: [
             { id: 'MEGA_PADDLE', name: '巨無霸球拍', icon: '🎾', color: '#facc15', dur: 4.5, desc: '球拍膨脹 2.8 倍，閉著眼睛都能接到！' },
-            { id: 'ELECTRIC_SWATTER', name: '霹靂電蚊拍', icon: '⚡', color: '#a855f7', dur: 5.0, desc: '發射雷電球！衝到網前可直接電暈蒼蠅！' },
+            { id: 'ELECTRIC_SWATTER', name: '霹靂電蚊拍', icon: '⚡', color: '#a855f7', dur: 7.5, desc: '不管球了！衝過網直接把蒼蠅電爛才會贏！' },
             { id: 'MEGA_BALL', name: '巨無霸鐵球', icon: '💣', color: '#64748b', dur: 5.0, desc: '球體膨脹為 1 米巨鐵球，落地引發地震波！' },
             { id: 'GIANT_PLAYER', name: '超巨大化球員', icon: '🍄', color: '#ef4444', dur: 5.0, desc: '人偶體積放大 2 倍，無敵重扣覆蓋全場！' }
         ],
@@ -9523,23 +9527,45 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
                 this.buffTimer -= dt;
                 this.updateHud();
 
-                // 電蚊拍電弧特效動態
-                if (this.activeBuff === 'ELECTRIC_SWATTER' && this.swatterSparkGroup) {
-                    for (let i = 0; i < 3; i++) {
-                        const ring = this.swatterSparkGroup.getObjectByName('sparkRing_' + i);
-                        if (ring) {
-                            ring.rotation.z += (i + 1) * 8.0 * dt;
-                            ring.material.opacity = 0.4 + Math.random() * 0.5;
+                // 電蚊拍電弧特效動態與近身電擊檢測
+                if (this.activeBuff === 'ELECTRIC_SWATTER') {
+                    if (this.swatterSparkGroup) {
+                        for (let i = 0; i < 3; i++) {
+                            const ring = this.swatterSparkGroup.getObjectByName('sparkRing_' + i);
+                            if (ring) {
+                                ring.rotation.z += (i + 1) * 8.0 * dt;
+                                ring.material.opacity = 0.4 + Math.random() * 0.5;
+                            }
                         }
                     }
-                    // 當球靠近時，如果帶有電弧，讓球的外光圈呈霓虹紫電光
                     if (typeof ballGlow !== 'undefined' && ballGlow) {
                         ballGlow.material.color.set(0x38bdf8);
                         ballGlow.material.opacity = 0.85;
                     }
+
+                    // ★ 玩家衝到蒼蠅身邊（2.05米以內），直接引爆電擊！
+                    if (typeof pPos !== 'undefined' && typeof gGrp !== 'undefined' && gGrp) {
+                        const distToFly = Math.hypot(pPos.x - gGrp.position.x, pPos.z - gGrp.position.z);
+                        if (distToFly < 2.05 && typeof flyState !== 'undefined' && flyState !== 'ELECTROCUTED') {
+                            this.executeFlyZap();
+                        }
+                    }
                 }
 
                 if (this.buffTimer <= 0) {
+                    if (this.activeBuff === 'ELECTRIC_SWATTER') {
+                        if (typeof toast === 'function') {
+                            toast('💨 蒼蠅逃脫成功！', '電蚊拍電力耗盡，蒼蠅逃過一劫！');
+                        }
+                        if (typeof announceReferee === 'function') {
+                            announceReferee('💨 蒼蠅逃脫！', '電蚊拍電力耗盡，蒼蠅撿回一命！', false);
+                        }
+                        if (typeof freeze === 'function') freeze();
+                        if (typeof state !== 'undefined') state = 'FAULT';
+                        if (typeof later === 'function' && typeof resetServe === 'function') {
+                            later(resetServe, 1800);
+                        }
+                    }
                     this.clearPlayerBuff();
                 }
             }
@@ -9687,11 +9713,31 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
                 }
             }
 
+            // ★ 玩家直接獲勝得分！不管球掉去哪裡，電死蒼蠅就算贏！
+            if (typeof pScore !== 'undefined') {
+                pScore++;
+                if (typeof updateScore === 'function') updateScore();
+                if (typeof updateGoal === 'function') updateGoal();
+            }
+
+            if (typeof S !== 'undefined' && S.point) {
+                later(() => S.point(), 220);
+            }
+
             if (typeof toast === 'function') {
-                toast('⚡ 啪滋！霹靂電蚊拍命中！', '蒼蠅被高壓電弧電到全身抽搐翻肚墜地！');
+                toast('⚡ 啪滋！電爆蒼蠅獲勝！', '衝過網電爛蒼蠅！不管球了，這分直接算你贏！');
             }
             if (typeof announceReferee === 'function') {
-                announceReferee('⚡ 高壓電擊！', '蒼蠅翻肚墜地抽搐，直接終結！', true);
+                announceReferee('⚡ 電蚊拍大獲全勝！', '玩家衝過網電爆蒼蠅！直接獲得 1 分！', true);
+            }
+
+            this.clearPlayerBuff();
+
+            // 結算當前回合
+            if (typeof freeze === 'function') freeze();
+            if (typeof state !== 'undefined') state = 'FAULT';
+            if (typeof later === 'function' && typeof resetServe === 'function') {
+                later(resetServe, 2500);
             }
         },
 
@@ -9727,6 +9773,11 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
                 }
             } else if (this.activeBuff === 'GIANT_PLAYER') {
                 if (typeof pGrp !== 'undefined') pGrp.scale.setScalar(1.0);
+            }
+
+            if (typeof pPos !== 'undefined' && pPos.z < 0.3) {
+                pPos.z = 0.8;
+                if (typeof pGrp !== 'undefined') pGrp.position.z = 0.8;
             }
 
             this.activeBuff = null;
@@ -11174,9 +11225,11 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
             } else {
                 // ★ v5.0.2 人物走位物理加速度與煞車慣性 (起步加速 a=26, 煞車減速 friction=18)
                 let targetVx = 0, targetVz = 0;
-                const maxSpeed = (typeof JOY_SPEED_PRESETS !== 'undefined' && JOY_SPEED_PRESETS[joySpeedLevel])
+                const isHunting = (typeof FunMode !== 'undefined' && FunMode.activeBuff === 'ELECTRIC_SWATTER');
+                const baseSpd = (typeof JOY_SPEED_PRESETS !== 'undefined' && JOY_SPEED_PRESETS[joySpeedLevel])
                     ? JOY_SPEED_PRESETS[joySpeedLevel].speed
                     : 5.5;
+                const maxSpeed = isHunting ? baseSpd * 1.65 : baseSpd; // ★ 電蚊拍衝刺加速 65%！
 
                 if (Math.hypot(joyAnalog.x, joyAnalog.z) > 0.05) {
                     targetVx = joyAnalog.x * maxSpeed;
@@ -11213,8 +11266,11 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
                 pPos.x += playerVel.x * dt;
                 pPos.z += playerVel.z * dt;
             }
+            const minZ = (typeof FunMode !== 'undefined' && FunMode.activeBuff === 'ELECTRIC_SWATTER')
+                ? -(HALF_L + 1.2)  // ★ 電蚊拍直接衝進對手場地底線追殺蒼蠅！
+                : 0.3;
             pPos.x = THREE.MathUtils.clamp(pPos.x, -COURT_W / 2 - 0.7, COURT_W / 2 + 0.7);
-            pPos.z = THREE.MathUtils.clamp(pPos.z, 0.3, HALF_L + 1.6);
+            pPos.z = THREE.MathUtils.clamp(pPos.z, minZ, HALF_L + 1.6);
             pGrp.position.set(pPos.x, 0, pPos.z);
             if (webcamActive) updatePaddleAssist(dt);
             else {
@@ -11328,6 +11384,27 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
                     gGrp.position.y = THREE.MathUtils.lerp(gGrp.position.y, targetY, dt * 10);
                 }
 
+                // ★ 🍄 瘋狂道具戰：電蚊拍追殺模式 - 蒼蠅驚慌逃竄 AI (Panic Fleeing)
+                if (typeof FunMode !== 'undefined' && FunMode.activeBuff === 'ELECTRIC_SWATTER' && flyState !== 'ELECTROCUTED' && flyState !== 'STUNNED') {
+                    const dx = gGrp.position.x - pPos.x;
+                    const dz = gGrp.position.z - pPos.z;
+                    const d = Math.hypot(dx, dz) || 1;
+                    const escapeSpeed = 4.5;
+                    let fleeX = gGrp.position.x + (dx / d) * escapeSpeed * dt;
+                    let fleeZ = gGrp.position.z + (dz / d) * escapeSpeed * dt;
+                    fleeX = THREE.MathUtils.clamp(fleeX, -COURT_W / 2 + 0.35, COURT_W / 2 - 0.35);
+                    fleeZ = THREE.MathUtils.clamp(fleeZ, -HALF_L + 0.4, -0.6);
+                    gGrp.position.x = fleeX;
+                    gGrp.position.z = fleeZ;
+                    gGrp.position.y = 0.95 + Math.sin(flyHoverTime * 24) * 0.25;
+                    if (flyWings && flyWings.length) {
+                        flyWings.forEach(w => {
+                            w.pivot.rotation.y = Math.sin(flyHoverTime * 140) * 0.7 * w.side;
+                        });
+                    }
+                    return; // 略過原本追球邏輯，全速逃命！
+                }
+
                 // 4. 根據生物神經元輸出驅動行為 (Spike / STD Fatigue / Dink Approach)
                 if (active && PH.vel.z < 0) {
                     const bDist = Math.hypot(PH.pos.x - gGrp.position.x, PH.pos.z - gGrp.position.z);
@@ -11369,7 +11446,13 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
                 if (flyMesh) flyMesh.rotation.z = 0;
             }
 
-            if (active && PH.vel.z < 0) {
+            if (typeof FunMode !== 'undefined' && FunMode.activeBuff === 'ELECTRIC_SWATTER' && !isFly) {
+                const pdx = gGrp.position.x - pPos.x;
+                const pdz = gGrp.position.z - pPos.z;
+                const pd = Math.hypot(pdx, pdz) || 1;
+                aiTo.x = THREE.MathUtils.clamp(gGrp.position.x + (pdx / pd) * 4.2, -COURT_W / 2 + 0.4, COURT_W / 2 - 0.4);
+                aiTo.z = THREE.MathUtils.clamp(gGrp.position.z + (pdz / pd) * 4.2, -HALF_L + 0.4, -0.6);
+            } else if (active && PH.vel.z < 0) {
                 const hasLand = predictLanding(_land);
                 const ap = predictApex();
 

@@ -20,6 +20,8 @@
         function endRally(scorer, msg, sub) {
             if (locked || demoOn) return;
             if (state === 'FAULT' || state === 'OVER') return;
+            // ★ 🍄 瘋狂道具戰：電蚊拍追殺模式下，球落地/掛網完全不結算！必須衝過去電到蒼蠅才算贏！
+            if (typeof FunMode !== 'undefined' && FunMode.activeBuff === 'ELECTRIC_SWATTER') return;
             updateLastAuditOutcome(msg, sub);
             if (!scoring()) { fail(msg, sub); return; }   // ★ 練習關轉交 fail(),不扣分
             state = 'FAULT'; freeze();
@@ -75,6 +77,8 @@
         function fail(msg, sub) {
             if (locked || demoOn) return;
             if (state === 'FAULT' || state === 'OVER') return;
+            // ★ 🍄 瘋狂道具戰：電蚊拍追殺模式下，不判練習關失敗
+            if (typeof FunMode !== 'undefined' && FunMode.activeBuff === 'ELECTRIC_SWATTER') return;
             updateLastAuditOutcome(msg, sub);
             state = 'FAULT'; freeze(); S.fault(); addShake(0.14);
             toast(msg, sub || '練習關不扣分,按空白鍵重來');

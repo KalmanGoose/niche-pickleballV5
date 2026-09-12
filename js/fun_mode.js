@@ -27,7 +27,7 @@
         // 道具清單定義
         ITEMS: [
             { id: 'MEGA_PADDLE', name: '巨無霸球拍', icon: '🎾', color: '#facc15', dur: 4.5, desc: '球拍膨脹 2.8 倍，閉著眼睛都能接到！' },
-            { id: 'ELECTRIC_SWATTER', name: '霹靂電蚊拍', icon: '⚡', color: '#a855f7', dur: 5.0, desc: '發射雷電球！衝到網前可直接電暈蒼蠅！' },
+            { id: 'ELECTRIC_SWATTER', name: '霹靂電蚊拍', icon: '⚡', color: '#a855f7', dur: 7.5, desc: '不管球了！衝過網直接把蒼蠅電爛才會贏！' },
             { id: 'MEGA_BALL', name: '巨無霸鐵球', icon: '💣', color: '#64748b', dur: 5.0, desc: '球體膨脹為 1 米巨鐵球，落地引發地震波！' },
             { id: 'GIANT_PLAYER', name: '超巨大化球員', icon: '🍄', color: '#ef4444', dur: 5.0, desc: '人偶體積放大 2 倍，無敵重扣覆蓋全場！' }
         ],
@@ -298,23 +298,45 @@
                 this.buffTimer -= dt;
                 this.updateHud();
 
-                // 電蚊拍電弧特效動態
-                if (this.activeBuff === 'ELECTRIC_SWATTER' && this.swatterSparkGroup) {
-                    for (let i = 0; i < 3; i++) {
-                        const ring = this.swatterSparkGroup.getObjectByName('sparkRing_' + i);
-                        if (ring) {
-                            ring.rotation.z += (i + 1) * 8.0 * dt;
-                            ring.material.opacity = 0.4 + Math.random() * 0.5;
+                // 電蚊拍電弧特效動態與近身電擊檢測
+                if (this.activeBuff === 'ELECTRIC_SWATTER') {
+                    if (this.swatterSparkGroup) {
+                        for (let i = 0; i < 3; i++) {
+                            const ring = this.swatterSparkGroup.getObjectByName('sparkRing_' + i);
+                            if (ring) {
+                                ring.rotation.z += (i + 1) * 8.0 * dt;
+                                ring.material.opacity = 0.4 + Math.random() * 0.5;
+                            }
                         }
                     }
-                    // 當球靠近時，如果帶有電弧，讓球的外光圈呈霓虹紫電光
                     if (typeof ballGlow !== 'undefined' && ballGlow) {
                         ballGlow.material.color.set(0x38bdf8);
                         ballGlow.material.opacity = 0.85;
                     }
+
+                    // ★ 玩家衝到蒼蠅身邊（2.05米以內），直接引爆電擊！
+                    if (typeof pPos !== 'undefined' && typeof gGrp !== 'undefined' && gGrp) {
+                        const distToFly = Math.hypot(pPos.x - gGrp.position.x, pPos.z - gGrp.position.z);
+                        if (distToFly < 2.05 && typeof flyState !== 'undefined' && flyState !== 'ELECTROCUTED') {
+                            this.executeFlyZap();
+                        }
+                    }
                 }
 
                 if (this.buffTimer <= 0) {
+                    if (this.activeBuff === 'ELECTRIC_SWATTER') {
+                        if (typeof toast === 'function') {
+                            toast('💨 蒼蠅逃脫成功！', '電蚊拍電力耗盡，蒼蠅逃過一劫！');
+                        }
+                        if (typeof announceReferee === 'function') {
+                            announceReferee('💨 蒼蠅逃脫！', '電蚊拍電力耗盡，蒼蠅撿回一命！', false);
+                        }
+                        if (typeof freeze === 'function') freeze();
+                        if (typeof state !== 'undefined') state = 'FAULT';
+                        if (typeof later === 'function' && typeof resetServe === 'function') {
+                            later(resetServe, 1800);
+                        }
+                    }
                     this.clearPlayerBuff();
                 }
             }
@@ -462,11 +484,31 @@
                 }
             }
 
+            // ★ 玩家直接獲勝得分！不管球掉去哪裡，電死蒼蠅就算贏！
+            if (typeof pScore !== 'undefined') {
+                pScore++;
+                if (typeof updateScore === 'function') updateScore();
+                if (typeof updateGoal === 'function') updateGoal();
+            }
+
+            if (typeof S !== 'undefined' && S.point) {
+                later(() => S.point(), 220);
+            }
+
             if (typeof toast === 'function') {
-                toast('⚡ 啪滋！霹靂電蚊拍命中！', '蒼蠅被高壓電弧電到全身抽搐翻肚墜地！');
+                toast('⚡ 啪滋！電爆蒼蠅獲勝！', '衝過網電爛蒼蠅！不管球了，這分直接算你贏！');
             }
             if (typeof announceReferee === 'function') {
-                announceReferee('⚡ 高壓電擊！', '蒼蠅翻肚墜地抽搐，直接終結！', true);
+                announceReferee('⚡ 電蚊拍大獲全勝！', '玩家衝過網電爆蒼蠅！直接獲得 1 分！', true);
+            }
+
+            this.clearPlayerBuff();
+
+            // 結算當前回合
+            if (typeof freeze === 'function') freeze();
+            if (typeof state !== 'undefined') state = 'FAULT';
+            if (typeof later === 'function' && typeof resetServe === 'function') {
+                later(resetServe, 2500);
             }
         },
 
@@ -502,6 +544,11 @@
                 }
             } else if (this.activeBuff === 'GIANT_PLAYER') {
                 if (typeof pGrp !== 'undefined') pGrp.scale.setScalar(1.0);
+            }
+
+            if (typeof pPos !== 'undefined' && pPos.z < 0.3) {
+                pPos.z = 0.8;
+                if (typeof pGrp !== 'undefined') pGrp.position.z = 0.8;
             }
 
             this.activeBuff = null;

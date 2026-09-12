@@ -1369,9 +1369,11 @@
             } else {
                 // ★ v5.0.2 人物走位物理加速度與煞車慣性 (起步加速 a=26, 煞車減速 friction=18)
                 let targetVx = 0, targetVz = 0;
-                const maxSpeed = (typeof JOY_SPEED_PRESETS !== 'undefined' && JOY_SPEED_PRESETS[joySpeedLevel])
+                const isHunting = (typeof FunMode !== 'undefined' && FunMode.activeBuff === 'ELECTRIC_SWATTER');
+                const baseSpd = (typeof JOY_SPEED_PRESETS !== 'undefined' && JOY_SPEED_PRESETS[joySpeedLevel])
                     ? JOY_SPEED_PRESETS[joySpeedLevel].speed
                     : 5.5;
+                const maxSpeed = isHunting ? baseSpd * 1.65 : baseSpd; // ★ 電蚊拍衝刺加速 65%！
 
                 if (Math.hypot(joyAnalog.x, joyAnalog.z) > 0.05) {
                     targetVx = joyAnalog.x * maxSpeed;
@@ -1408,8 +1410,11 @@
                 pPos.x += playerVel.x * dt;
                 pPos.z += playerVel.z * dt;
             }
+            const minZ = (typeof FunMode !== 'undefined' && FunMode.activeBuff === 'ELECTRIC_SWATTER')
+                ? -(HALF_L + 1.2)  // ★ 電蚊拍直接衝進對手場地底線追殺蒼蠅！
+                : 0.3;
             pPos.x = THREE.MathUtils.clamp(pPos.x, -COURT_W / 2 - 0.7, COURT_W / 2 + 0.7);
-            pPos.z = THREE.MathUtils.clamp(pPos.z, 0.3, HALF_L + 1.6);
+            pPos.z = THREE.MathUtils.clamp(pPos.z, minZ, HALF_L + 1.6);
             pGrp.position.set(pPos.x, 0, pPos.z);
             if (webcamActive) updatePaddleAssist(dt);
             else {
@@ -1523,6 +1528,27 @@
                     gGrp.position.y = THREE.MathUtils.lerp(gGrp.position.y, targetY, dt * 10);
                 }
 
+                // ★ 🍄 瘋狂道具戰：電蚊拍追殺模式 - 蒼蠅驚慌逃竄 AI (Panic Fleeing)
+                if (typeof FunMode !== 'undefined' && FunMode.activeBuff === 'ELECTRIC_SWATTER' && flyState !== 'ELECTROCUTED' && flyState !== 'STUNNED') {
+                    const dx = gGrp.position.x - pPos.x;
+                    const dz = gGrp.position.z - pPos.z;
+                    const d = Math.hypot(dx, dz) || 1;
+                    const escapeSpeed = 4.5;
+                    let fleeX = gGrp.position.x + (dx / d) * escapeSpeed * dt;
+                    let fleeZ = gGrp.position.z + (dz / d) * escapeSpeed * dt;
+                    fleeX = THREE.MathUtils.clamp(fleeX, -COURT_W / 2 + 0.35, COURT_W / 2 - 0.35);
+                    fleeZ = THREE.MathUtils.clamp(fleeZ, -HALF_L + 0.4, -0.6);
+                    gGrp.position.x = fleeX;
+                    gGrp.position.z = fleeZ;
+                    gGrp.position.y = 0.95 + Math.sin(flyHoverTime * 24) * 0.25;
+                    if (flyWings && flyWings.length) {
+                        flyWings.forEach(w => {
+                            w.pivot.rotation.y = Math.sin(flyHoverTime * 140) * 0.7 * w.side;
+                        });
+                    }
+                    return; // 略過原本追球邏輯，全速逃命！
+                }
+
                 // 4. 根據生物神經元輸出驅動行為 (Spike / STD Fatigue / Dink Approach)
                 if (active && PH.vel.z < 0) {
                     const bDist = Math.hypot(PH.pos.x - gGrp.position.x, PH.pos.z - gGrp.position.z);
@@ -1564,7 +1590,13 @@
                 if (flyMesh) flyMesh.rotation.z = 0;
             }
 
-            if (active && PH.vel.z < 0) {
+            if (typeof FunMode !== 'undefined' && FunMode.activeBuff === 'ELECTRIC_SWATTER' && !isFly) {
+                const pdx = gGrp.position.x - pPos.x;
+                const pdz = gGrp.position.z - pPos.z;
+                const pd = Math.hypot(pdx, pdz) || 1;
+                aiTo.x = THREE.MathUtils.clamp(gGrp.position.x + (pdx / pd) * 4.2, -COURT_W / 2 + 0.4, COURT_W / 2 - 0.4);
+                aiTo.z = THREE.MathUtils.clamp(gGrp.position.z + (pdz / pd) * 4.2, -HALF_L + 0.4, -0.6);
+            } else if (active && PH.vel.z < 0) {
                 const hasLand = predictLanding(_land);
                 const ap = predictApex();
 
