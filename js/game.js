@@ -80,26 +80,26 @@
         }
         let TEX_GLOW, TEX_BLOB;
 
-        /* ★ v5.0.14: 智慧相機自適應解算器 (動態適配手機直向/橫向，全視角清楚呈現主角、球拍與球場全景) */
+        /* ★ v5.0.14: 智慧相機自適應解算器 (使用者最佳化預設視角: 高度 6.1, 距離 11.5, 視角親近沉浸) */
         function getResponsiveCameraConfig() {
             const w = window.innerWidth, h = window.innerHeight;
             const aspect = w / h;
             const isMob = w <= 950 || h <= 550 || (typeof IS_MOBILE !== 'undefined' && IS_MOBILE);
 
             if (!isMob) {
-                // 桌機寬螢幕：舒適全景
-                return { fov: 50, camH: 8.5, camDist: 14.5, lookY: 0.80, lookZ: -0.5, ballScale: 1.0, glowScale: 7, glowOpacity: 0.26 };
+                // 桌機寬螢幕：舒適沉浸視角 (高度 6.1, 距離 11.5)
+                return { fov: 50, camH: 6.1, camDist: 11.5, lookY: 0.85, lookZ: -0.4, ballScale: 1.0, glowScale: 7, glowOpacity: 0.26 };
             }
 
             if (aspect < 0.95) {
-                // ★ 手機直向模式 (Portrait): 視角拉高後移，底線發球站位(x=±1.5, z=7.05)的球員全身、球拍、整個球網與對手完全清晰入鏡！
+                // ★ 手機直向模式 (Portrait): 依使用者喜好設為最佳預設視角 (高度 6.1, 距離 11.5)
                 const targetHFOVRad = 48 * Math.PI / 180;
                 const vFOVRad = 2 * Math.atan(Math.tan(targetHFOVRad / 2) / aspect);
-                const fov = Math.min(84, Math.max(60, vFOVRad * 180 / Math.PI));
-                return { fov: fov, camH: 9.2, camDist: 15.6, lookY: 0.85, lookZ: -0.4, ballScale: 1.25, glowScale: 8, glowOpacity: 0.35 };
+                const fov = Math.min(84, Math.max(55, vFOVRad * 180 / Math.PI));
+                return { fov: fov, camH: 6.1, camDist: 11.5, lookY: 0.85, lookZ: -0.4, ballScale: 1.25, glowScale: 8, glowOpacity: 0.35 };
             } else {
-                // ★ 手機橫向模式 (Landscape): 視角適度拉高並後移，球員全身、球拍與對手居中寬裕入鏡，完美開闊
-                return { fov: 48, camH: 8.8, camDist: 14.8, lookY: 0.85, lookZ: -0.5, ballScale: 1.20, glowScale: 7.5, glowOpacity: 0.32 };
+                // ★ 手機橫向模式 (Landscape): 視角高度 6.1, 距離 11.5
+                return { fov: 48, camH: 6.1, camDist: 11.5, lookY: 0.85, lookZ: -0.5, ballScale: 1.20, glowScale: 7.5, glowOpacity: 0.32 };
             }
         }
 
@@ -1248,7 +1248,9 @@
             } else {
                 // ★ v5.0.2 人物走位物理加速度與煞車慣性 (起步加速 a=26, 煞車減速 friction=18)
                 let targetVx = 0, targetVz = 0;
-                const maxSpeed = 7.2;
+                const maxSpeed = (typeof JOY_SPEED_PRESETS !== 'undefined' && JOY_SPEED_PRESETS[joySpeedLevel])
+                    ? JOY_SPEED_PRESETS[joySpeedLevel].speed
+                    : 5.5;
 
                 if (Math.hypot(joyAnalog.x, joyAnalog.z) > 0.05) {
                     targetVx = joyAnalog.x * maxSpeed;
@@ -2042,7 +2044,7 @@
                 // ★ 智慧超感相機 (相機位置平滑追蹤)
                 const cfg = (typeof getResponsiveCameraConfig === 'function')
                     ? getResponsiveCameraConfig()
-                    : { camH: 8.2, camDist: 13.6, lookY: 0.74, lookZ: -0.4, fov: 50 };
+                    : { camH: 6.1, camDist: 11.5, lookY: 0.85, lookZ: -0.4, fov: 50 };
 
                 cam.position.set(camX * 0.4 + sx, cfg.camH + sy, cfg.camDist);
                 cam.lookAt(camX * 0.25, cfg.lookY, cfg.lookZ);
@@ -2163,5 +2165,6 @@
         applyPerfPreset(perfLevel);
         syncPerfButtons();
         syncAimPips();
+        if (typeof syncJoySpeedUI === 'function') syncJoySpeedUI();
         updateCamEditUI();
         loop();

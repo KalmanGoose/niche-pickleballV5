@@ -592,6 +592,49 @@
             }
         }
 
+        /* ═══════ 搖桿走位速率設定 (Joystick Movement Speed Config) ═══════ */
+        const JOY_SPEED_PRESETS = {
+            slow:   { label: '慢速', fullLabel: '🐢 慢速 (4.5 m/s · 精準微步)', speed: 4.5 },
+            normal: { label: '標準', fullLabel: '🚶 標準 (5.5 m/s · 舒適好控)', speed: 5.5 },
+            fast:   { label: '疾速', fullLabel: '🏃 疾速 (7.2 m/s · 敏捷衝刺)', speed: 7.2 }
+        };
+        let joySpeedLevel = 'normal';
+        try {
+            const savedJoy = localStorage.getItem('nchu_pb_joy_speed');
+            if (savedJoy && JOY_SPEED_PRESETS[savedJoy]) joySpeedLevel = savedJoy;
+        } catch (e) { }
+
+        function setJoySpeed(level) {
+            if (!JOY_SPEED_PRESETS[level]) return;
+            joySpeedLevel = level;
+            try { localStorage.setItem('nchu_pb_joy_speed', level); } catch (e) { }
+            syncJoySpeedUI();
+            if (typeof toast === 'function') {
+                toast('🕹️ 搖桿移動速率', JOY_SPEED_PRESETS[level].fullLabel);
+            }
+        }
+
+        function cycleJoySpeedQuick() {
+            const order = ['slow', 'normal', 'fast'];
+            const idx = order.indexOf(joySpeedLevel);
+            const next = order[(idx + 1) % order.length];
+            setJoySpeed(next);
+        }
+
+        function syncJoySpeedUI() {
+            const lbl = document.getElementById('joy-speed-lbl');
+            if (lbl && JOY_SPEED_PRESETS[joySpeedLevel]) {
+                lbl.innerText = JOY_SPEED_PRESETS[joySpeedLevel].label;
+            }
+            const aiJoyBtn = document.getElementById('subbar-joy-btn');
+            if (aiJoyBtn && JOY_SPEED_PRESETS[joySpeedLevel]) {
+                aiJoyBtn.innerHTML = `🕹️ 搖桿: ${JOY_SPEED_PRESETS[joySpeedLevel].label}`;
+            }
+            document.querySelectorAll('[data-joy-speed]').forEach(b => {
+                b.classList.toggle('on', b.getAttribute('data-joy-speed') === joySpeedLevel);
+            });
+        }
+
 
 
         const D = {

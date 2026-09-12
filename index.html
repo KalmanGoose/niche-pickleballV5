@@ -4171,6 +4171,7 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
                             <button onclick="enterCamEdit()" style="color:var(--accent);">🎨 自訂視角</button>
                             <button onclick="cycleCardScaleQuick()" style="color:var(--cool);">📐 卡片: <span id="quick-scale-lbl">100%</span></button>
                             <button onclick="cycleRefereeModeQuick()" style="color:var(--lime);">📢 轉播: <span id="ref-mode-lbl">電視條</span></button>
+                            <button onclick="cycleJoySpeedQuick()" style="color:var(--ok);">🕹️ 搖桿: <span id="joy-speed-lbl">標準</span></button>
                             <button onclick="togglePhysicsMode()" style="color:#c7d2fe;">🌪️ 物理: <span id="physics-mode-pill">⚡ 極速</span></button>
                         </div>
                         <!-- 難度快速切換列 (初階/中等/困難/仿生蒼蠅) -->
@@ -4224,6 +4225,7 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
                     <button id="subbar-aim-btn" onclick="cycleAimModeQuick()">🎯 瞄準: 自動</button>
                     <button id="subbar-teach-btn" onclick="cycleTeachLevelQuick()">🎚️ 體感判定: 寬鬆</button>
                     <button id="subbar-diff-btn" onclick="cycleDifficultyQuick()">🤖 匹克鵝難度: 初階</button>
+                    <button id="subbar-joy-btn" onclick="cycleJoySpeedQuick()" style="color:var(--ok);">🕹️ 搖桿: 標準</button>
                     <button id="subbar-perf-btn" onclick="cyclePerfQuick()">⚡ 畫質: 原生高畫質</button>
                     <button id="subbar-phys-btn" onclick="togglePhysicsMode()" style="color:#c7d2fe;">🌪️ 物理: ⚡極速</button>
                 </div>
@@ -5015,6 +5017,49 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
             if (typeof updateOpponentMeshVisibility === 'function') {
                 updateOpponentMeshVisibility();
             }
+        }
+
+        /* ═══════ 搖桿走位速率設定 (Joystick Movement Speed Config) ═══════ */
+        const JOY_SPEED_PRESETS = {
+            slow:   { label: '慢速', fullLabel: '🐢 慢速 (4.5 m/s · 精準微步)', speed: 4.5 },
+            normal: { label: '標準', fullLabel: '🚶 標準 (5.5 m/s · 舒適好控)', speed: 5.5 },
+            fast:   { label: '疾速', fullLabel: '🏃 疾速 (7.2 m/s · 敏捷衝刺)', speed: 7.2 }
+        };
+        let joySpeedLevel = 'normal';
+        try {
+            const savedJoy = localStorage.getItem('nchu_pb_joy_speed');
+            if (savedJoy && JOY_SPEED_PRESETS[savedJoy]) joySpeedLevel = savedJoy;
+        } catch (e) { }
+
+        function setJoySpeed(level) {
+            if (!JOY_SPEED_PRESETS[level]) return;
+            joySpeedLevel = level;
+            try { localStorage.setItem('nchu_pb_joy_speed', level); } catch (e) { }
+            syncJoySpeedUI();
+            if (typeof toast === 'function') {
+                toast('🕹️ 搖桿移動速率', JOY_SPEED_PRESETS[level].fullLabel);
+            }
+        }
+
+        function cycleJoySpeedQuick() {
+            const order = ['slow', 'normal', 'fast'];
+            const idx = order.indexOf(joySpeedLevel);
+            const next = order[(idx + 1) % order.length];
+            setJoySpeed(next);
+        }
+
+        function syncJoySpeedUI() {
+            const lbl = document.getElementById('joy-speed-lbl');
+            if (lbl && JOY_SPEED_PRESETS[joySpeedLevel]) {
+                lbl.innerText = JOY_SPEED_PRESETS[joySpeedLevel].label;
+            }
+            const aiJoyBtn = document.getElementById('subbar-joy-btn');
+            if (aiJoyBtn && JOY_SPEED_PRESETS[joySpeedLevel]) {
+                aiJoyBtn.innerHTML = `🕹️ 搖桿: ${JOY_SPEED_PRESETS[joySpeedLevel].label}`;
+            }
+            document.querySelectorAll('[data-joy-speed]').forEach(b => {
+                b.classList.toggle('on', b.getAttribute('data-joy-speed') === joySpeedLevel);
+            });
         }
 
 
@@ -6415,7 +6460,7 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
            ★ 視角系統(含自訂視角)
            ═══════════════════════════════════════════════ */
         const CAM_KEY = 'nchu_pb_camview';
-        const CAM_DEF = { h: 8.2, dist: 14.5, yaw: 0 };
+        const CAM_DEF = { h: 6.1, dist: 11.5, yaw: 0 };
         const CAM_LIM = { hMin: 1.2, hMax: 22, dMin: 4.5, dMax: 26, yawMax: Math.PI * 0.75 };
         let camCustom = { h: CAM_DEF.h, dist: CAM_DEF.dist, yaw: CAM_DEF.yaw };
         let camViewMode = 0;                       // 0~3 內建, 4 = 自訂
@@ -6427,9 +6472,18 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
         function loadCamCustom() {
             try {
                 const o = JSON.parse(localStorage.getItem(CAM_KEY)) || {};
-                camCustom.h = THREE.MathUtils.clamp(Number(o.h) || CAM_DEF.h, CAM_LIM.hMin, CAM_LIM.hMax);
-                camCustom.dist = THREE.MathUtils.clamp(Number(o.dist) || CAM_DEF.dist, CAM_LIM.dMin, CAM_LIM.dMax);
-                camCustom.yaw = THREE.MathUtils.clamp(Number(o.yaw) || 0, -CAM_LIM.yawMax, CAM_LIM.yawMax);
+                // 若為舊版預設參數 (8.2 / 14.5)，自動無縫切換為全新最佳化視角 (6.1 / 11.5)
+                const isOldDef = Math.abs((Number(o.h) || 0) - 8.2) < 0.2 && Math.abs((Number(o.dist) || 0) - 14.5) < 0.2;
+                if (isOldDef) {
+                    camCustom.h = CAM_DEF.h;
+                    camCustom.dist = CAM_DEF.dist;
+                    camCustom.yaw = CAM_DEF.yaw;
+                    saveCamCustom();
+                } else {
+                    camCustom.h = THREE.MathUtils.clamp(Number(o.h) || CAM_DEF.h, CAM_LIM.hMin, CAM_LIM.hMax);
+                    camCustom.dist = THREE.MathUtils.clamp(Number(o.dist) || CAM_DEF.dist, CAM_LIM.dMin, CAM_LIM.dMax);
+                    camCustom.yaw = THREE.MathUtils.clamp(Number(o.yaw) || 0, -CAM_LIM.yawMax, CAM_LIM.yawMax);
+                }
             } catch (e) {
                 camCustom.h = CAM_DEF.h;
                 camCustom.dist = CAM_DEF.dist;
@@ -6453,7 +6507,7 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
             closePanel();
             // ★ 自訂視角無縫繼承當前視角參數 (Seamless Custom View)
             if (camViewMode === 0) {
-                camCustom.h = 8.2; camCustom.dist = 14.5; camCustom.yaw = 0;
+                camCustom.h = 6.1; camCustom.dist = 11.5; camCustom.yaw = 0;
             } else if (camViewMode === 1) {
                 camCustom.h = 14.5; camCustom.dist = 7.5; camCustom.yaw = 0;
             } else if (camViewMode === 2) {
@@ -6601,6 +6655,8 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
             }
             // 同步各處難度切換鈕高亮
             if (typeof syncDifficultyUI === 'function') syncDifficultyUI();
+            // 同步搖桿移動速率標籤
+            if (typeof syncJoySpeedUI === 'function') syncJoySpeedUI();
         }
 
         /* ── 個人設定子分類頁籤切換 ── */
@@ -7992,26 +8048,26 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
         }
         let TEX_GLOW, TEX_BLOB;
 
-        /* ★ v5.0.14: 智慧相機自適應解算器 (動態適配手機直向/橫向，全視角清楚呈現主角、球拍與球場全景) */
+        /* ★ v5.0.14: 智慧相機自適應解算器 (使用者最佳化預設視角: 高度 6.1, 距離 11.5, 視角親近沉浸) */
         function getResponsiveCameraConfig() {
             const w = window.innerWidth, h = window.innerHeight;
             const aspect = w / h;
             const isMob = w <= 950 || h <= 550 || (typeof IS_MOBILE !== 'undefined' && IS_MOBILE);
 
             if (!isMob) {
-                // 桌機寬螢幕：舒適全景
-                return { fov: 50, camH: 8.5, camDist: 14.5, lookY: 0.80, lookZ: -0.5, ballScale: 1.0, glowScale: 7, glowOpacity: 0.26 };
+                // 桌機寬螢幕：舒適沉浸視角 (高度 6.1, 距離 11.5)
+                return { fov: 50, camH: 6.1, camDist: 11.5, lookY: 0.85, lookZ: -0.4, ballScale: 1.0, glowScale: 7, glowOpacity: 0.26 };
             }
 
             if (aspect < 0.95) {
-                // ★ 手機直向模式 (Portrait): 視角拉高後移，底線發球站位(x=±1.5, z=7.05)的球員全身、球拍、整個球網與對手完全清晰入鏡！
+                // ★ 手機直向模式 (Portrait): 依使用者喜好設為最佳預設視角 (高度 6.1, 距離 11.5)
                 const targetHFOVRad = 48 * Math.PI / 180;
                 const vFOVRad = 2 * Math.atan(Math.tan(targetHFOVRad / 2) / aspect);
-                const fov = Math.min(84, Math.max(60, vFOVRad * 180 / Math.PI));
-                return { fov: fov, camH: 9.2, camDist: 15.6, lookY: 0.85, lookZ: -0.4, ballScale: 1.25, glowScale: 8, glowOpacity: 0.35 };
+                const fov = Math.min(84, Math.max(55, vFOVRad * 180 / Math.PI));
+                return { fov: fov, camH: 6.1, camDist: 11.5, lookY: 0.85, lookZ: -0.4, ballScale: 1.25, glowScale: 8, glowOpacity: 0.35 };
             } else {
-                // ★ 手機橫向模式 (Landscape): 視角適度拉高並後移，球員全身、球拍與對手居中寬裕入鏡，完美開闊
-                return { fov: 48, camH: 8.8, camDist: 14.8, lookY: 0.85, lookZ: -0.5, ballScale: 1.20, glowScale: 7.5, glowOpacity: 0.32 };
+                // ★ 手機橫向模式 (Landscape): 視角高度 6.1, 距離 11.5
+                return { fov: 48, camH: 6.1, camDist: 11.5, lookY: 0.85, lookZ: -0.5, ballScale: 1.20, glowScale: 7.5, glowOpacity: 0.32 };
             }
         }
 
@@ -9160,7 +9216,9 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
             } else {
                 // ★ v5.0.2 人物走位物理加速度與煞車慣性 (起步加速 a=26, 煞車減速 friction=18)
                 let targetVx = 0, targetVz = 0;
-                const maxSpeed = 7.2;
+                const maxSpeed = (typeof JOY_SPEED_PRESETS !== 'undefined' && JOY_SPEED_PRESETS[joySpeedLevel])
+                    ? JOY_SPEED_PRESETS[joySpeedLevel].speed
+                    : 5.5;
 
                 if (Math.hypot(joyAnalog.x, joyAnalog.z) > 0.05) {
                     targetVx = joyAnalog.x * maxSpeed;
@@ -9954,7 +10012,7 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
                 // ★ 智慧超感相機 (相機位置平滑追蹤)
                 const cfg = (typeof getResponsiveCameraConfig === 'function')
                     ? getResponsiveCameraConfig()
-                    : { camH: 8.2, camDist: 13.6, lookY: 0.74, lookZ: -0.4, fov: 50 };
+                    : { camH: 6.1, camDist: 11.5, lookY: 0.85, lookZ: -0.4, fov: 50 };
 
                 cam.position.set(camX * 0.4 + sx, cfg.camH + sy, cfg.camDist);
                 cam.lookAt(camX * 0.25, cfg.lookY, cfg.lookZ);
@@ -10075,6 +10133,7 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
         applyPerfPreset(perfLevel);
         syncPerfButtons();
         syncAimPips();
+        if (typeof syncJoySpeedUI === 'function') syncJoySpeedUI();
         updateCamEditUI();
         loop();
 

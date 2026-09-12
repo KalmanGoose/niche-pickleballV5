@@ -6,7 +6,7 @@
            ★ 視角系統(含自訂視角)
            ═══════════════════════════════════════════════ */
         const CAM_KEY = 'nchu_pb_camview';
-        const CAM_DEF = { h: 8.2, dist: 14.5, yaw: 0 };
+        const CAM_DEF = { h: 6.1, dist: 11.5, yaw: 0 };
         const CAM_LIM = { hMin: 1.2, hMax: 22, dMin: 4.5, dMax: 26, yawMax: Math.PI * 0.75 };
         let camCustom = { h: CAM_DEF.h, dist: CAM_DEF.dist, yaw: CAM_DEF.yaw };
         let camViewMode = 0;                       // 0~3 內建, 4 = 自訂
@@ -18,9 +18,18 @@
         function loadCamCustom() {
             try {
                 const o = JSON.parse(localStorage.getItem(CAM_KEY)) || {};
-                camCustom.h = THREE.MathUtils.clamp(Number(o.h) || CAM_DEF.h, CAM_LIM.hMin, CAM_LIM.hMax);
-                camCustom.dist = THREE.MathUtils.clamp(Number(o.dist) || CAM_DEF.dist, CAM_LIM.dMin, CAM_LIM.dMax);
-                camCustom.yaw = THREE.MathUtils.clamp(Number(o.yaw) || 0, -CAM_LIM.yawMax, CAM_LIM.yawMax);
+                // 若為舊版預設參數 (8.2 / 14.5)，自動無縫切換為全新最佳化視角 (6.1 / 11.5)
+                const isOldDef = Math.abs((Number(o.h) || 0) - 8.2) < 0.2 && Math.abs((Number(o.dist) || 0) - 14.5) < 0.2;
+                if (isOldDef) {
+                    camCustom.h = CAM_DEF.h;
+                    camCustom.dist = CAM_DEF.dist;
+                    camCustom.yaw = CAM_DEF.yaw;
+                    saveCamCustom();
+                } else {
+                    camCustom.h = THREE.MathUtils.clamp(Number(o.h) || CAM_DEF.h, CAM_LIM.hMin, CAM_LIM.hMax);
+                    camCustom.dist = THREE.MathUtils.clamp(Number(o.dist) || CAM_DEF.dist, CAM_LIM.dMin, CAM_LIM.dMax);
+                    camCustom.yaw = THREE.MathUtils.clamp(Number(o.yaw) || 0, -CAM_LIM.yawMax, CAM_LIM.yawMax);
+                }
             } catch (e) {
                 camCustom.h = CAM_DEF.h;
                 camCustom.dist = CAM_DEF.dist;
@@ -44,7 +53,7 @@
             closePanel();
             // ★ 自訂視角無縫繼承當前視角參數 (Seamless Custom View)
             if (camViewMode === 0) {
-                camCustom.h = 8.2; camCustom.dist = 14.5; camCustom.yaw = 0;
+                camCustom.h = 6.1; camCustom.dist = 11.5; camCustom.yaw = 0;
             } else if (camViewMode === 1) {
                 camCustom.h = 14.5; camCustom.dist = 7.5; camCustom.yaw = 0;
             } else if (camViewMode === 2) {
@@ -192,6 +201,8 @@
             }
             // 同步各處難度切換鈕高亮
             if (typeof syncDifficultyUI === 'function') syncDifficultyUI();
+            // 同步搖桿移動速率標籤
+            if (typeof syncJoySpeedUI === 'function') syncJoySpeedUI();
         }
 
         /* ── 個人設定子分類頁籤切換 ── */
