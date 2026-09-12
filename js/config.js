@@ -10,11 +10,12 @@
         };
         let currentPhysicsMode = localStorage.getItem('nchu_physics_mode') || PHYSICS_MODES.FAST;
 /* ═══════════════════════════════════════════════
-           ★★★ 部署設定:這兩行要換成你自己的 ★★★
-           ═══════════════════════════════════════════════ */
+   ★★★ 部署設定 (支援 Cloudflare Worker 代理或直連) ★★★
+   ═══════════════════════════════════════════════ */
+        const PROXY_URL = ''; // 若有架設 Cloudflare Worker 代理請填在此處 (例如 'https://pb-proxy.your-name.workers.dev')
         const GAS_URL = 'https://script.google.com/macros/s/AKfycbwbQJTyJFtZjGOHs_EzYnbbQjq1Znj8KHG1l9uVhgqsyUK2KpkwdN6nydNNvyqz394mGQ/exec';
         const SIGN_SECRET = 'nchu-pickleball-2026-secret';
-        const API_READY = () => /^https:\/\/script\.google\.com\/macros\/s\/.+\/exec$/.test(GAS_URL);
+        const API_READY = () => (PROXY_URL && PROXY_URL.startsWith('http')) || /^https:\/\/script\.google\.com\/macros\/s\/.+\/exec$/.test(GAS_URL);
 
         /* ═══════ 純 JS HMAC-SHA256 ═══════ */
         const SHA = (() => {
@@ -81,7 +82,18 @@
 
         /* Content-Type 必須 text/plain,否則觸發 CORS preflight 而 GAS 不處理 OPTIONS */
         function postSigned(payload) {
-            if (!API_READY()) return Promise.resolve({ ok: false, err: 'GAS_URL_NOT_SET' });
+            if (!API_READY()) return Promise.resolve({ ok: false, err: 'API_URL_NOT_SET' });
+
+            // 代理模式 (Proxy Mode)：前端不帶 Secret，由 Cloudflare Worker 代理計算簽名，徹底隱藏 GAS 端點與金鑰
+            if (PROXY_URL && PROXY_URL.startsWith('http')) {
+                return fetch(PROXY_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json;charset=utf-8' },
+                    body: JSON.stringify(payload)
+                }).then(r => r.json()).catch(() => ({ ok: false, err: 'NETWORK_FAIL' }));
+            }
+
+            // 直連保底模式 (Direct Fallback Mode)
             const data = JSON.stringify(payload);
             const ts = Date.now(), nonce = Math.random().toString(36).slice(2, 10);
             const env = { data, ts, nonce, sig: SHA.hmac(SIGN_SECRET, data + '|' + ts + '|' + nonce) };
@@ -91,9 +103,11 @@
                 body: JSON.stringify(env)
             }).then(r => r.json()).catch(() => ({ ok: false, err: 'NETWORK_FAIL' }));
         }
+
         function apiGet(qs) {
-            if (!API_READY()) return Promise.resolve({ ok: false, err: 'GAS_URL_NOT_SET' });
-            return fetch(GAS_URL + '?' + qs).then(r => r.json()).catch(() => ({ ok: false, err: 'NETWORK_FAIL' }));
+            if (!API_READY()) return Promise.resolve({ ok: false, err: 'API_URL_NOT_SET' });
+            const targetUrl = (PROXY_URL && PROXY_URL.startsWith('http')) ? PROXY_URL : GAS_URL;
+            return fetch(targetUrl + '?' + qs).then(r => r.json()).catch(() => ({ ok: false, err: 'NETWORK_FAIL' }));
         }
 
         /* ═══════ 系所代碼表(115 學年度‧學士班) ═══════ */

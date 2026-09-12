@@ -2425,13 +2425,25 @@
         function submitScoreToCloud(score) {
             if (!playerProfile.playerId) { toast('未登入,成績未上傳', ''); return; }
             if (!API_READY()) { toast('本機離線模式', '通關得分: ' + score); return; }
+
+            // 前端物理合理性防禦檢驗
+            const numScore = Math.floor(Number(score));
+            if (isNaN(numScore) || numScore < 0 || numScore > 21) {
+                toast('⚠️ 成績異常', '得分超出賽事有效物理範圍');
+                return;
+            }
+            if (stage < 1 || stage > 6) {
+                toast('⚠️ 關卡異常', '非正式賽程階段');
+                return;
+            }
+
             postSigned({
                 act: 'submit',
                 playerId: playerProfile.playerId, sessionId: playerProfile.sessionId,
                 avatar: playerProfile.avatar, nickname: playerProfile.nickname,
                 department: playerProfile.department, grade: playerProfile.grade,
                 deptCode: playerProfile.deptCode,
-                entryYear: playerProfile.entryYear, score: score, stage: stage,
+                entryYear: playerProfile.entryYear, score: numScore, stage: stage,
                 aimMode: AIM.mode, teachLevel: TEACH.level, perfLevel: perfLevel,
                 webcamUsed: webcamActive, device: IS_MOBILE ? 'mobile' : 'desktop'
             }).then(r => {
