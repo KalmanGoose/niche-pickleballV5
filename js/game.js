@@ -1347,70 +1347,101 @@
                 let targetZ = targetObj.z;
                 let isDraggingToTarget = false;
 
-                if (window.isScreenTouching && cam) {
-                    dragRay.setFromCamera(mouse, cam);
-                    if (dragRay.ray.intersectPlane(groundPlane, groundHit)) {
-                        // 玩家正在手指拖曳！以觸控點作為拉引目標，允許直接拉過廚房線與球網，直闖對手場地！
-                        targetX = THREE.MathUtils.clamp(groundHit.x, -COURT_W / 2 - 0.7, COURT_W / 2 + 0.7);
-                        targetZ = THREE.MathUtils.clamp(groundHit.z, -(HALF_L + 1.8), HALF_L + 1.2);
-                        isDraggingToTarget = true;
+                // 2. 判斷是否已接近蒼蠅進入「近身對峙揮砍」模式 (distToFly <= 2.0m)
+                const distToFly = Math.hypot(pPos.x - targetObj.x, pPos.z - targetObj.z);
+                const isClose = (distToFly <= 2.0);
+                if (typeof FunMode !== 'undefined') {
+                    const wasClose = FunMode.isFaceOff;
+                    FunMode.isFaceOff = isClose;
+                    if (wasClose !== isClose) FunMode.updateGuideBanner();
+                }
+
+                if (isClose) {
+                    // ★ 近身對峙：平滑鎖定在蒼蠅前方約 1.35 米處對峙，維持面對蒼蠅，不穿透衝過頭
+                    const standZ = targetObj.z + 1.35;
+                    pPos.x += (targetObj.x - pPos.x) * Math.min(1, dt * 10);
+                    pPos.z += (standZ - pPos.z) * Math.min(1, dt * 10);
+                    pGrp.position.set(pPos.x, 0, pPos.z);
+                } else {
+                    // ★ 衝刺逼近階段：手指拖曳或全速自動衝鋒
+                    let targetX = targetObj.x;
+                    let targetZ = targetObj.z;
+                    let isDraggingToTarget = false;
+
+                    if (window.isScreenTouching && cam) {
+                        dragRay.setFromCamera(mouse, cam);
+                        if (dragRay.ray.intersectPlane(groundPlane, groundHit)) {
+                            targetX = THREE.MathUtils.clamp(groundHit.x, -COURT_W / 2 - 0.7, COURT_W / 2 + 0.7);
+                            targetZ = THREE.MathUtils.clamp(groundHit.z, -(HALF_L + 1.8), HALF_L + 1.2);
+                            isDraggingToTarget = true;
+                        }
+                    }
+
+                    const dx = targetX - pPos.x;
+                    const dz = targetZ - pPos.z;
+                    const dist = Math.hypot(dx, dz) || 1;
+
+                    const rushSpeed = isDraggingToTarget ? 11.2 : 9.6;
+                    let targetVx = (dx / dist) * Math.min(rushSpeed, Math.max(2.5, dist * 8.0));
+                    let targetVz = (dz / dist) * Math.min(rushSpeed, Math.max(2.5, dist * 8.0));
+
+                    if (Math.hypot(joyAnalog.x, joyAnalog.z) > 0.05) {
+                        targetVx += joyAnalog.x * 4.5;
+                        targetVz += joyAnalog.z * 4.5;
+                    } else {
+                        if (keys.a) targetVx -= 4.5;
+                        if (keys.d) targetVx += 4.5;
+                        if (keys.w) targetVz -= 4.5;
+                        if (keys.s) targetVz += 4.5;
+                    }
+
+                    playerVel.x += (targetVx - playerVel.x) * Math.min(1, dt * 28);
+                    playerVel.z += (targetVz - playerVel.z) * Math.min(1, dt * 28);
+
+                    pPos.x += playerVel.x * dt;
+                    pPos.z += playerVel.z * dt;
+
+                    pPos.x = THREE.MathUtils.clamp(pPos.x, -COURT_W / 2 - 0.7, COURT_W / 2 + 0.7);
+                    pPos.z = THREE.MathUtils.clamp(pPos.z, -(HALF_L + 1.8), HALF_L + 1.6);
+                    pGrp.position.set(pPos.x, 0, pPos.z);
+                }
+
+                // 第一人稱手持電蚊拍姿勢：位於鏡頭右前下方
+                let padX = 0.26 + Math.sin(performance.now() * 0.01) * 0.03;
+                let padY = 1.12 + Math.sin(performance.now() * 0.015) * 0.04;
+                let padZ = -0.38;
+                let rotPitch = -0.35;
+                let rotYaw = 0;
+                let rotRoll = -padX * 0.6;
+
+                // 手勢揮砍動畫 (Slash Swat Animation)
+                if (typeof FunMode !== 'undefined' && FunMode.slashTimer > 0) {
+                    const phase = 1.0 - (FunMode.slashTimer / 0.35); // 0 -> 1
+                    const curve = Math.sin(phase * Math.PI); // 0 -> 1 -> 0
+                    if (FunMode.slashDir === 'RIGHT') {
+                        // 從左向右猛烈橫斬
+                        padX = 0.26 - 0.45 + curve * 0.90;
+                        padY = 1.12 - 0.15 + curve * 0.30;
+                        rotRoll += -0.8 + curve * 1.6;
+                        rotYaw += -0.6 + curve * 1.2;
+                    } else if (FunMode.slashDir === 'LEFT') {
+                        // 從右向左猛烈反斬
+                        padX = 0.26 + 0.45 - curve * 0.90;
+                        padY = 1.12 + 0.15 - curve * 0.30;
+                        rotRoll += 0.8 - curve * 1.6;
+                        rotYaw += 0.6 - curve * 1.2;
+                    } else {
+                        // 向上或向下劈砍
+                        rotPitch += -curve * 1.1;
+                        padZ -= curve * 0.22;
+                        padY -= curve * 0.35;
                     }
                 }
 
-                const dx = targetX - pPos.x;
-                const dz = targetZ - pPos.z;
-                const dist = Math.hypot(dx, dz) || 1;
-
-                // 基礎全速衝刺與拖曳拉動速度：每秒 10.8 公尺 (極速狂衝！)
-                const rushSpeed = isDraggingToTarget ? 11.2 : 9.6;
-                let targetVx = (dx / dist) * Math.min(rushSpeed, Math.max(2.5, dist * 8.0));
-                let targetVz = (dz / dist) * Math.min(rushSpeed, Math.max(2.5, dist * 8.0));
-
-                // 支援玩家手動操縱搖桿或 WASD 靈敏夾擊與左右微調
-                if (Math.hypot(joyAnalog.x, joyAnalog.z) > 0.05) {
-                    targetVx += joyAnalog.x * 4.5;
-                    targetVz += joyAnalog.z * 4.5;
-                } else {
-                    if (keys.a) targetVx -= 4.5;
-                    if (keys.d) targetVx += 4.5;
-                    if (keys.w) targetVz -= 4.5;
-                    if (keys.s) targetVz += 4.5;
-                }
-
-                playerVel.x += (targetVx - playerVel.x) * Math.min(1, dt * 28);
-                playerVel.z += (targetVz - playerVel.z) * Math.min(1, dt * 28);
-
-                pPos.x += playerVel.x * dt;
-                pPos.z += playerVel.z * dt;
-
-                // ★ 徹底解除球網限制 (z < 0)！允許直搗對手底線深處 (-(HALF_L + 1.8))
-                pPos.x = THREE.MathUtils.clamp(pPos.x, -COURT_W / 2 - 0.7, COURT_W / 2 + 0.7);
-                pPos.z = THREE.MathUtils.clamp(pPos.z, -(HALF_L + 1.8), HALF_L + 1.6);
-                pGrp.position.set(pPos.x, 0, pPos.z);
-
-                // 第一人稱手持電蚊拍姿勢：位於鏡頭右前下方，揮動藍紫電弧
-                padX = 0.26 + Math.sin(performance.now() * 0.01) * 0.04;
-                padY = 1.12 + Math.sin(performance.now() * 0.015) * 0.06;
-
-                // 命中受創/電擊時的猛烈下劈揮擊動畫
-                let swingPitch = 0;
-                let swingZ = -0.38;
-                if (typeof FunMode !== 'undefined' && FunMode.zapCooldown > 0) {
-                    const swingPhase = FunMode.zapCooldown / 0.55; // 1 -> 0
-                    swingPitch = Math.sin(swingPhase * Math.PI) * 0.75;
-                    swingZ -= Math.sin(swingPhase * Math.PI) * 0.16;
-                }
-
-                pPad.position.set(padX, padY, swingZ);
-                pPad.rotation.set(-0.35 - swingPitch + Math.sin(performance.now() * 0.03) * 0.25, 0, -padX * 0.6);
+                pPad.position.set(padX, padY, padZ);
+                pPad.rotation.set(rotPitch, rotYaw, rotRoll);
                 pPad.getWorldPosition(padW);
-                limb(pArm, _b.set(0.24, 1.16, 0.02), _a.set(padX, padY - 0.17, swingZ));
-
-                // ★ 靠近至 2.5 米內且冷卻完畢，立即引爆高壓電弧電擊連擊！
-                const distToFly = Math.hypot(pPos.x - targetObj.x, pPos.z - targetObj.z);
-                if (distToFly < 2.5 && typeof FunMode !== 'undefined' && FunMode.zapCooldown <= 0 && FunMode.zapCombo < 3) {
-                    FunMode.executeFlyZap();
-                }
+                limb(pArm, _b.set(0.24, 1.16, 0.02), _a.set(padX, padY - 0.17, padZ));
                 return;
             } else {
                 // 恢復第三人稱身體可見度
@@ -1660,8 +1691,23 @@
                     gGrp.position.y = THREE.MathUtils.lerp(gGrp.position.y, targetY, dt * 10);
                 }
 
-                // ★ 🍄 瘋狂道具戰：電蚊拍追殺模式 - 蒼蠅驚慌逃竄 AI (Panic Fleeing)
+                // ★ 🍄 瘋狂道具戰：電蚊拍追殺模式 - 蒼蠅驚慌逃竄與近身對峙 AI (Panic Fleeing & Face-Off)
                 if (typeof FunMode !== 'undefined' && FunMode.activeBuff === 'ELECTRIC_SWATTER' && flyState !== 'ELECTROCUTED' && flyState !== 'STUNNED') {
+                    if (FunMode.isFaceOff) {
+                        // 近身對峙：蒼蠅被逼停在底線前懸停，劇烈拍翅並緊張發抖，面對玩家電蚊拍
+                        gGrp.position.y = 1.25 + Math.sin(flyHoverTime * 28) * 0.08;
+                        if (flyMesh) {
+                            flyMesh.position.x = (Math.random() - 0.5) * 0.06;
+                            flyMesh.position.y = (Math.random() - 0.5) * 0.05;
+                        }
+                        if (flyWings && flyWings.length) {
+                            flyWings.forEach(w => {
+                                w.pivot.rotation.y = Math.sin(flyHoverTime * 180) * 0.85 * w.side;
+                            });
+                        }
+                        return; // 停在玩家正前方供手勢揮砍！
+                    }
+
                     const dx = gGrp.position.x - pPos.x;
                     const dz = gGrp.position.z - pPos.z;
                     const d = Math.hypot(dx, dz) || 1;
@@ -2380,8 +2426,13 @@
                 // 鏡頭位於玩家眼部高度 (1.40m)，視線筆直穿透球網直視逃竄的蒼蠅，極具臨場感！
                 cam.position.set(pPos.x + sx * 0.15, 1.40 + sy * 0.15, pPos.z - 0.12);
                 const targetObj = (typeof gGrp !== 'undefined' && gGrp) ? gGrp.position : { x: 0, z: -HALF_L * 0.7 };
-                const lookZ = Math.min(pPos.z - 5.0, targetObj.z);
-                cam.lookAt(targetObj.x * 0.35 + pPos.x * 0.65, 1.05, lookZ);
+                if (typeof FunMode !== 'undefined' && FunMode.isFaceOff) {
+                    // 近身對峙時：鏡頭牢牢盯死蒼蠅正中央，平視對決
+                    cam.lookAt(targetObj.x, 1.25, targetObj.z);
+                } else {
+                    const lookZ = Math.min(pPos.z - 5.0, targetObj.z);
+                    cam.lookAt(targetObj.x * 0.35 + pPos.x * 0.65, 1.05, lookZ);
+                }
             } else if (camViewMode === 0) {
                 // ★ 智慧超感相機 (相機位置平滑追蹤)
                 const cfg = (typeof getResponsiveCameraConfig === 'function')

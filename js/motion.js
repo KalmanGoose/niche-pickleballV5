@@ -466,6 +466,7 @@
 
         function swipeStart(x, y) {
             dismissFingerTutorial();
+            if (window.FunMode && FunMode.onSwipeStart) FunMode.onSwipeStart(x, y);
             const now = performance.now();
             SWIPE.active = true;
             SWIPE.startX = SWIPE.prevX = SWIPE.currX = x;
@@ -484,6 +485,7 @@
 
         function swipeMove(x, y) {
             if (!SWIPE.active) return;
+            if (window.FunMode && FunMode.onSwipeMove) FunMode.onSwipeMove(x, y);
             const now = performance.now();
             const dt = Math.max(0.004, Math.min(0.08, (now - SWIPE.lastTime) / 1000));
             SWIPE.lastTime = now;
@@ -558,6 +560,7 @@
         }
 
         function swipeEnd() {
+            if (window.FunMode && FunMode.onSwipeEnd) FunMode.onSwipeEnd();
             SWIPE.active = false;
             // 建立完整手勢快照快取 (供 tryHit 擊球時讀取，杜絕時序早洩截斷)
             SWIPE.lastStroke = {

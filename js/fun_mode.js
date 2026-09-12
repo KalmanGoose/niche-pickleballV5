@@ -22,9 +22,17 @@
         hexaGroup: null,       // 蒼蠅六刀流球拍群組
         swatterSparkGroup: null, // 電蚊拍電弧粒子群組
         zapCombo: 0,           // 0: 未電擊, 1: 觸電抽搐, 2: 過載冒煙, 3: 致命 K.O.
-        zapCooldown: 0,        // 每次電擊的受創無敵/冷卻時間 (0.55s)
+        zapCooldown: 0,        // 每次電擊的受創無敵/冷卻時間 (0.35s)
         electricArcMesh: null, // 3D 雷電折線特效
         electricArcTimer: 0,
+        isFaceOff: false,      // 是否進入近身對峙揮砍距離
+        slashTimer: 0,         // 手勢揮拍動作時間
+        slashDir: 'RIGHT',     // 揮拍方向: 'RIGHT' | 'LEFT' | 'DOWN' | 'UP'
+        strokeStartX: 0,
+        strokeStartY: 0,
+        strokePrevX: 0,
+        strokePrevY: 0,
+        isStroking: false,
         questionBoxTex: null,  // 問號箱材質
         originalPadScale: 2.175,
 
@@ -246,18 +254,23 @@
                 }
             }
 
-            let subText = '👆 手指按住往前拖曳 · 直闖對面電爛蒼蠅！';
-            let titleText = '⚡ 第一人稱狂暴獵殺 · 跨網封印解除！ ⚡';
+            let subText = '👆 手指按住往前拖曳 · 衝過球網逼近蒼蠅！';
+            let titleText = '⚡ 第一人稱狂暴衝鋒 · 跨網封印解除！ ⚡';
 
-            if (combo === 1) {
-                titleText = '⚡ 第 1 擊命中！蒼蠅劇烈抽搐！ ⚡';
-                subText = '💥 連擊 1/3：破甲抽搐！追上去再給牠一擊！';
-            } else if (combo === 2) {
-                titleText = '⚡⚡ 第 2 擊命中！過載狂冒煙！ ⚡⚡';
-                subText = '🔥 連擊 2/3：冒煙過載！最後致命一擊！';
-            } else if (combo >= 3) {
-                titleText = '⚡⚡⚡ 終極 K.O.！蒼蠅徹底電焦！ ⚡⚡⚡';
-                subText = '🏆 3/3 灰飛煙滅！直接奪得分數！';
+            if (this.isFaceOff) {
+                if (combo === 0) {
+                    titleText = '⚡ 貼臉近身對峙！快速滑動螢幕揮拍！ ⚡';
+                    subText = '👆 在螢幕上快速滑動！親手揮拍電死牠！';
+                } else if (combo === 1) {
+                    titleText = '⚡ 第 1 擊命中！蒼蠅劇烈抽搐！ ⚡';
+                    subText = '💥 破甲抽搐！再快速滑動給牠第二擊！';
+                } else if (combo === 2) {
+                    titleText = '⚡⚡ 第 2 擊命中！過載狂冒煙！ ⚡⚡';
+                    subText = '🔥 蒼蠅已過載！最後用力滑動致命一擊！';
+                } else if (combo >= 3) {
+                    titleText = '⚡⚡⚡ 終極 K.O.！蒼蠅徹底電焦！ ⚡⚡⚡';
+                    subText = '🏆 3/3 灰飛煙滅！直接奪得分數！';
+                }
             }
 
             el.innerHTML = `
@@ -268,6 +281,100 @@
                 <div class="sg-pulse">${titleText}</div>
                 <div class="sg-sub">${subText}</div>
             `;
+        },
+
+        createSlashVisual: function(sx, sy, dx, dy) {
+            let container = document.getElementById('slash-container');
+            if (!container) {
+                container = document.createElement('div');
+                container.id = 'slash-container';
+                container.style.position = 'fixed';
+                container.style.inset = '0';
+                container.style.pointerEvents = 'none';
+                container.style.zIndex = '9999';
+                document.body.appendChild(container);
+            }
+
+            const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+            svg.setAttribute('style', 'position:absolute; inset:0; width:100%; height:100%; pointer-events:none;');
+
+            const len = Math.hypot(dx, dy) || 140;
+            const normX = (dx / len) * 120;
+            const normY = (dy / len) * 120;
+
+            const cx = sx || (window.innerWidth / 2);
+            const cy = sy || (window.innerHeight / 2);
+
+            const x1 = cx - normX;
+            const y1 = cy - normY;
+            const x2 = cx + normX;
+            const y2 = cy + normY;
+
+            const midX = (x1 + x2) / 2 + (Math.random() - 0.5) * 55;
+            const midY = (y1 + y2) / 2 + (Math.random() - 0.5) * 55;
+
+            const strokeColor = (this.zapCombo >= 2) ? '#facc15' : '#38bdf8';
+            const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            path.setAttribute('d', `M ${x1} ${y1} Q ${midX} ${midY} ${x2} ${y2}`);
+            path.setAttribute('stroke', strokeColor);
+            path.setAttribute('stroke-width', '7');
+            path.setAttribute('fill', 'none');
+            path.setAttribute('stroke-linecap', 'round');
+            path.setAttribute('style', 'filter: drop-shadow(0 0 16px #38bdf8) drop-shadow(0 0 28px #c084fc); transition: opacity 0.28s ease-out;');
+            svg.appendChild(path);
+
+            container.appendChild(svg);
+            setTimeout(() => {
+                svg.style.opacity = '0';
+                setTimeout(() => svg.remove(), 280);
+            }, 60);
+        },
+
+        handleSwipeSlash: function(dx, dy, sx, sy) {
+            if (this.activeBuff !== 'ELECTRIC_SWATTER') return false;
+            if (!this.isFaceOff) return false;
+            if (this.zapCooldown > 0 || this.zapCombo >= 3) return false;
+
+            // 根據手指滑動方向決定揮拍姿勢
+            if (Math.abs(dx) > Math.abs(dy)) {
+                this.slashDir = dx > 0 ? 'RIGHT' : 'LEFT';
+            } else {
+                this.slashDir = dy > 0 ? 'DOWN' : 'UP';
+            }
+            this.slashTimer = 0.35; // 0.35 秒揮拍動作
+
+            // 觸發螢幕電弧刀光切痕
+            this.createSlashVisual(sx, sy, dx, dy);
+
+            // 執行電擊打擊
+            this.executeFlyZap();
+            return true;
+        },
+
+        onSwipeStart: function(x, y) {
+            this.strokeStartX = this.strokePrevX = x;
+            this.strokeStartY = this.strokePrevY = y;
+            this.isStroking = true;
+        },
+
+        onSwipeMove: function(x, y) {
+            if (!this.isStroking) return;
+            const dx = x - this.strokeStartX;
+            const dy = y - this.strokeStartY;
+            const dist = Math.hypot(dx, dy);
+
+            // 滑動距離超過 28px 且處於近身對峙時觸發揮砍
+            if (dist > 28 && this.activeBuff === 'ELECTRIC_SWATTER' && this.isFaceOff) {
+                this.handleSwipeSlash(dx, dy, x, y);
+                this.strokeStartX = x;
+                this.strokeStartY = y;
+            }
+            this.strokePrevX = x;
+            this.strokePrevY = y;
+        },
+
+        onSwipeEnd: function() {
+            this.isStroking = false;
         },
 
         createElectricArc: function(fromPos, toPos, intensity) {
@@ -488,13 +595,19 @@
                         }
                     }
 
-                    // ★ 玩家衝到蒼蠅身邊（2.5米以內），若冷卻完畢且未滿 3 擊直接引爆電擊連擊！
+                    // 偵測是否進入近身對峙揮砍距離（2.0米以內）
                     const targetObj = (typeof gGrp !== 'undefined' && gGrp) ? gGrp.position : null;
                     if (targetObj && typeof pPos !== 'undefined') {
                         const distToFly = Math.hypot(pPos.x - targetObj.x, pPos.z - targetObj.z);
-                        if (distToFly < 2.5 && this.zapCooldown <= 0 && this.zapCombo < 3) {
-                            this.executeFlyZap();
+                        const wasFaceOff = this.isFaceOff;
+                        this.isFaceOff = (distToFly <= 2.0);
+                        if (wasFaceOff !== this.isFaceOff) {
+                            this.updateGuideBanner();
                         }
+                    }
+
+                    if (this.slashTimer > 0) {
+                        this.slashTimer -= dt;
                     }
                 } else {
                     if (this.guidanceGroup) this.guidanceGroup.visible = false;
@@ -644,20 +757,13 @@
             }
         },
 
-        // 當玩家揮動電蚊拍靠近蒼蠅時觸發電擊
+        // 當玩家揮動電蚊拍靠近蒼蠅時觸發電擊 (按空白鍵或在對峙時點擊)
         tryElectrocuteFly: function() {
             if (this.activeBuff !== 'ELECTRIC_SWATTER') return false;
             if (this.zapCooldown > 0 || this.zapCombo >= 3) return false;
-            const targetObj = (typeof gGrp !== 'undefined' && gGrp) ? gGrp.position : null;
-            if (!targetObj || typeof pPos === 'undefined') return false;
-
-            const dist = Math.hypot(pPos.x - targetObj.x, pPos.z - targetObj.z);
-            // 只要 3.0 米揮拍或靠近，直接電擊
-            if (dist < 3.0) {
-                this.executeFlyZap();
-                return true;
-            }
-            return false;
+            if (!this.isFaceOff) return false;
+            this.handleSwipeSlash(0, -60, window.innerWidth / 2, window.innerHeight / 2);
+            return true;
         },
 
         executeFlyZap: function() {
@@ -665,7 +771,7 @@
             if (this.zapCooldown > 0) return; // 冷卻防抖，保證打擊節奏
 
             this.zapCombo++;
-            this.zapCooldown = 0.55; // 0.55 秒受創間隔
+            this.zapCooldown = 0.35; // 0.35 秒受創間隔，手感流暢敏捷
 
             // 保證 Buff 時間充裕完成 3 連擊
             this.buffTimer = Math.max(this.buffTimer, 5.0);
@@ -849,6 +955,11 @@
             this.buffTimer = 0;
             this.zapCombo = 0;
             this.zapCooldown = 0;
+            this.isFaceOff = false;
+            this.slashTimer = 0;
+            this.isStroking = false;
+            const sc = document.getElementById('slash-container');
+            if (sc) sc.innerHTML = '';
             if (this.electricArcMesh) {
                 if (typeof scene !== 'undefined') scene.remove(this.electricArcMesh);
                 if (this.electricArcMesh.geometry) this.electricArcMesh.geometry.dispose();
@@ -884,6 +995,11 @@
             this.clearFlyBuff();
             this.zapCombo = 0;
             this.zapCooldown = 0;
+            this.isFaceOff = false;
+            this.slashTimer = 0;
+            this.isStroking = false;
+            const sc = document.getElementById('slash-container');
+            if (sc) sc.innerHTML = '';
             if (this.electricArcMesh) {
                 if (typeof scene !== 'undefined') scene.remove(this.electricArcMesh);
                 if (this.electricArcMesh.geometry) this.electricArcMesh.geometry.dispose();
