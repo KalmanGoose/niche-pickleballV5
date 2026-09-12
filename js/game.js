@@ -446,6 +446,7 @@
             const chitinMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.25, metalness: 0.85 });
             const eyeMat = new THREE.MeshStandardMaterial({ color: 0xef4444, emissive: 0xa855f7, emissiveIntensity: 0.55, roughness: 0.1, metalness: 0.9 });
             const wingMat = new THREE.MeshStandardMaterial({ color: 0xc4b5fd, transparent: true, opacity: 0.65, roughness: 0.1, metalness: 0.3, side: THREE.DoubleSide });
+            window.flyMaterials = { chitin: chitinMat, eye: eyeMat, wing: wingMat };
 
             // 蒼蠅腹部 (Abdomen)
             const fAbdomen = new THREE.Mesh(new THREE.SphereGeometry(0.32, 16, 16), chitinMat);
@@ -1342,9 +1343,9 @@
 
                 const targetObj = (typeof gGrp !== 'undefined' && gGrp) ? gGrp.position : { x: 0, z: -HALF_L * 0.7 };
 
-                // 判斷是否已接近蒼蠅進入「近身對峙揮砍」模式 (distToFly <= 2.0m)
+                // 判斷是否已接近蒼蠅進入「近身對峙揮砍」模式 (distToFly <= 2.0m) 或已在處決死亡結算
                 const distToFly = Math.hypot(pPos.x - targetObj.x, pPos.z - targetObj.z);
-                const isClose = (distToFly <= 2.0);
+                const isClose = (distToFly <= 2.0) || (typeof FunMode !== 'undefined' && FunMode.isKODeathSequence);
                 if (typeof FunMode !== 'undefined') {
                     const wasClose = FunMode.isFaceOff;
                     FunMode.isFaceOff = isClose;
@@ -1652,25 +1653,46 @@
                             flyDizzy.rotation.y += dt * 16;
                         }
                     } else {
-                        // ── 第 3 擊 (或正規局電擊)：墜地動畫，高度跌落至地面 (y = 0.08)，翻肚抽搐 ──
-                        gGrp.position.y = THREE.MathUtils.lerp(gGrp.position.y, 0.08, dt * 10);
-                        if (flyMesh) {
-                            const targetTilt = (flyState === 'ELECTROCUTED') ? Math.PI * 0.75 : Math.PI * 0.45;
-                            flyMesh.rotation.z = THREE.MathUtils.lerp(flyMesh.rotation.z, targetTilt, dt * 8);
-                            if (flyState === 'ELECTROCUTED') {
-                                flyMesh.position.x = (Math.random() - 0.5) * 0.08; // 高壓電弧微震抽搐
+                        // ── 第 3 擊：終極致命處決墜地 (K.O. Death Drop & Charred Ground Impact) ──
+                        const wasAirborne = gGrp.position.y > 0.18;
+                        gGrp.position.y = THREE.MathUtils.lerp(gGrp.position.y, 0.08, dt * 12);
+                        const justLanded = wasAirborne && gGrp.position.y <= 0.18;
+                        if (justLanded) {
+                            if (typeof S !== 'undefined' && S.thump) S.thump(3.0);
+                            if (typeof addShake === 'function') addShake(0.40);
+                            if (typeof popRing === 'function') {
+                                popRing(gGrp.position.x, gGrp.position.z, 2.5, 0x38bdf8);
+                                popRing(gGrp.position.x, gGrp.position.z, 3.8, 0xa855f7);
                             }
+                        }
+
+                        if (flyMesh) {
+                            // 肚皮徹底朝天 (180度翻肚仰躺地面)，焦黑微震
+                            flyMesh.rotation.x = THREE.MathUtils.lerp(flyMesh.rotation.x, Math.PI * 0.88, dt * 10);
+                            flyMesh.rotation.z = THREE.MathUtils.lerp(flyMesh.rotation.z, Math.PI * 0.15, dt * 6);
+                            if (gGrp.position.y <= 0.14) {
+                                flyMesh.position.x = (Math.random() - 0.5) * 0.04;
+                                flyMesh.position.y = (Math.random() - 0.5) * 0.03;
+                            }
+                        }
+                        if (flyWings && flyWings.length) {
+                            flyWings.forEach(w => {
+                                // 雙翼無力垂落地面
+                                w.pivot.rotation.y = THREE.MathUtils.lerp(w.pivot.rotation.y, 0, dt * 12);
+                                w.pivot.rotation.z = THREE.MathUtils.lerp(w.pivot.rotation.z, -0.45 * w.side, dt * 10);
+                            });
                         }
                         if (flyDizzy) {
                             flyDizzy.visible = true;
-                            flyDizzy.rotation.y += dt * 12;
+                            flyDizzy.position.y = 0.45; // 星星盤旋在地面死蒼蠅頭頂
+                            flyDizzy.rotation.y += dt * 14;
                         }
                     }
 
-                    if (flyStunTimer <= 0) {
+                    if (flyStunTimer <= 0 && !(typeof FunMode !== 'undefined' && FunMode.isKODeathSequence)) {
                         flyState = 'HOVER';
                         if (flyMesh) {
-                            flyMesh.rotation.z = 0;
+                            flyMesh.rotation.set(0, 0, 0);
                             flyMesh.position.set(0, 0, 0);
                         }
                         if (flyDizzy && (!isSwatterHunting || zapCombo < 2)) flyDizzy.visible = false;
@@ -2430,10 +2452,11 @@
                 const desiredPos = new THREE.Vector3();
                 const desiredLook = new THREE.Vector3();
 
-                if (typeof FunMode !== 'undefined' && FunMode.isFaceOff) {
-                    // ★ 近身對峙階段：精準對決特寫 (舒適視角，鏡頭高度 2.05m、身後 2.7m，蒼蠅在中央優雅呈現，絕不爆炸貼臉)
+                if (typeof FunMode !== 'undefined' && (FunMode.isFaceOff || FunMode.isKODeathSequence)) {
+                    // ★ 近身對峙階段 / 處決死亡特寫：精準對決特寫 (鏡頭高度 2.05m、身後 2.7m，若在處決墜地時視線平順微俯向地面焦黑死蒼蠅)
+                    const lookY = (typeof FunMode !== 'undefined' && FunMode.isKODeathSequence) ? 0.35 : 1.25;
                     desiredPos.set(pPos.x * 0.45 + sx * 0.05, 2.05 + sy * 0.05, pPos.z + 2.7);
-                    desiredLook.set(targetObj.x, 1.25, targetObj.z);
+                    desiredLook.set(targetObj.x, lookY, targetObj.z);
                 } else {
                     // ★ 跨網衝鋒階段：第三人稱動態越肩追擊視角 (高度 3.25m、身後 4.2m，視野開闊清爽，清晰看清球網、地面跑道與前方蒼蠅)
                     desiredPos.set(pPos.x * 0.55 + sx * 0.06, 3.25 + sy * 0.06, pPos.z + 4.2);

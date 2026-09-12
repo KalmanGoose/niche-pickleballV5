@@ -9376,6 +9376,7 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
         electricArcMesh: null, // 3D 雷電折線特效
         electricArcTimer: 0,
         isFaceOff: false,      // 是否進入近身對峙揮砍距離
+        isKODeathSequence: false, // 致命處決 K.O. 死亡動畫播放中
         slashTimer: 0,         // 手勢揮拍動作時間
         slashDir: 'RIGHT',     // 揮拍方向: 'RIGHT' | 'LEFT' | 'DOWN' | 'UP'
         strokeStartX: 0,
@@ -9613,7 +9614,7 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
             let subText = '👆 按住往前衝過球網 · 直搗對手半場抓蒼蠅！';
             let titleText = '⚡ 狂暴追殺衝鋒 · 跨網封印解除！ ⚡';
 
-            if (this.isFaceOff) {
+            if (this.isFaceOff || this.isKODeathSequence) {
                 if (combo === 0) {
                     titleText = '⚡ 貼臉近身對峙！快速滑動螢幕揮拍！ ⚡';
                     subText = '👆 在螢幕上快速滑動！親手揮拍電死牠！';
@@ -9624,8 +9625,8 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
                     titleText = '⚡⚡ 第 2 擊命中！過載狂冒煙！ ⚡⚡';
                     subText = '🔥 蒼蠅已過載！最後用力滑動致命一擊！';
                 } else if (combo >= 3) {
-                    titleText = '⚡⚡⚡ 終極 K.O.！蒼蠅徹底電焦！ ⚡⚡⚡';
-                    subText = '🏆 3/3 灰飛煙滅！直接奪得分數！';
+                    titleText = '⚡⚡⚡ 終極處決 K.O.！蒼蠅徹底電焦！ ⚡⚡⚡';
+                    subText = '🏆 3/3 焦黑翻肚墜地！直接奪得分數！';
                 }
             }
 
@@ -10076,8 +10077,10 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
                 }
             }
 
-            // 4. 更新蒼蠅狂暴/壓扁狀態
-            if (this.flyBuff) {
+            // 4. 更新蒼蠅狂暴/壓扁狀態 (電蚊拍追殺期間嚴禁蒼蠅啟動六刀流)
+            if (this.activeBuff === 'ELECTRIC_SWATTER') {
+                if (this.flyBuff) this.clearFlyBuff();
+            } else if (this.flyBuff) {
                 this.flyBuffTimer -= dt;
                 if (this.flyBuff === 'HEXA_PADDLE' && typeof flyMesh !== 'undefined' && flyMesh) {
                     // 阿修羅高速自旋
@@ -10154,8 +10157,11 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
                 if (typeof addShake === 'function') addShake(0.2);
             }
 
-            // 偶爾觸發蒼蠅狂暴對抗 (35% 機率觸發六刀流或巨獸蒼蠅)
-            if (typeof diffLevel !== 'undefined' && diffLevel === 'fly' && !this.flyBuff && Math.random() < 0.45) {
+            // 電蚊拍追殺期間：蒼蠅是獵物，絕對嚴禁啟動六刀流 (清除所有蒼蠅 Buff)
+            if (item.id === 'ELECTRIC_SWATTER') {
+                this.clearFlyBuff();
+            } else if (typeof diffLevel !== 'undefined' && diffLevel === 'fly' && !this.flyBuff && Math.random() < 0.35) {
+                // 僅在非電蚊拍的其他道具戰時，蒼蠅偶爾發動六刀流或巨獸反擊
                 const flyItem = Math.random() < 0.65 ? 'HEXA_PADDLE' : 'KAIJU_FLY';
                 this.triggerFlyBuff(flyItem);
             }
@@ -10270,25 +10276,40 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
                     toast('⚡⚡ [2/3] 過載冒煙！', '第 2 擊命中！蒼蠅已冒煙暈眩，給牠最後致命一擊！');
                 }
             } else if (this.zapCombo >= 3) {
-                // ── 第 3 擊：終極雷暴 K.O. 翻肚墜地 ──
+                // ── 第 3 擊：終極致命處決雷暴 K.O. (墜地、焦黑碳化、翻肚、死亡動畫完整演出) ──
+                this.isKODeathSequence = true;
                 if (typeof flyState !== 'undefined') flyState = 'ELECTROCUTED';
-                if (typeof flyStunTimer !== 'undefined') flyStunTimer = 4.0;
-                if (typeof flyDizzy !== 'undefined' && flyDizzy) flyDizzy.visible = true;
-                if (typeof flyMesh !== 'undefined' && flyMesh) {
-                    flyMesh.rotation.x = Math.PI * 0.75; // 翻肚朝天
-                    flyMesh.rotation.z = 0;
-                    flyMesh.position.y = -0.55; // 墜地
-                    flyMesh.scale.set(1.2, 0.75, 1.2);
+                if (typeof flyStunTimer !== 'undefined') flyStunTimer = 4.5;
+                if (typeof flyDizzy !== 'undefined' && flyDizzy) {
+                    flyDizzy.visible = true;
+                    flyDizzy.position.y = 0.45;
                 }
+
+                // ★ 蒼蠅外觀全身徹底焦黑碳化 (Chitin & Eyes Charred Dead)
+                if (window.flyMaterials) {
+                    if (window.flyMaterials.chitin) window.flyMaterials.chitin.color.set(0x0a0e17);
+                    if (window.flyMaterials.eye) {
+                        window.flyMaterials.eye.color.set(0x221128);
+                        window.flyMaterials.eye.emissive.set(0x000000);
+                    }
+                    if (window.flyMaterials.wing) {
+                        window.flyMaterials.wing.color.set(0x334155);
+                        window.flyMaterials.wing.opacity = 0.20;
+                    }
+                }
+
                 if (typeof S !== 'undefined') {
-                    if (S.tone) S.tone('sawtooth', 650, 30, 0.65, 0.7);
-                    if (S.thump) S.thump(2.5);
+                    if (S.tone) {
+                        S.tone('sawtooth', 750, 30, 0.70, 0.85);
+                        setTimeout(() => { if (typeof S !== 'undefined' && S.tone) S.tone('square', 140, 30, 0.45, 0.60); }, 150);
+                    }
+                    if (S.thump) S.thump(3.2);
                 }
-                if (typeof addShake === 'function') addShake(0.55);
+                if (typeof addShake === 'function') addShake(0.60);
                 if (typeof popRing === 'function' && flyPos) {
                     popRing(flyPos.x, flyPos.z, 3.5, 0x38bdf8);
                     popRing(flyPos.x, flyPos.z, 4.8, 0xa855f7);
-                    popRing(flyPos.x, flyPos.z, 6.0, 0xfacc15);
+                    popRing(flyPos.x, flyPos.z, 6.2, 0xfacc15);
                 }
                 if (window.FLY_BRAIN) {
                     if (window.FLY_BRAIN.gfVm !== undefined) window.FLY_BRAIN.gfVm = 50.0;
@@ -10307,19 +10328,19 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
                 }
 
                 if (typeof S !== 'undefined' && S.point) {
-                    later(() => S.point(), 280);
+                    later(() => S.point(), 320);
                 }
 
                 if (typeof toast === 'function') {
-                    toast('⚡⚡⚡ 3/3 K.O.！電爆蒼蠅獲勝！', '連續 3 擊徹底電焦蒼蠅！不管球了，這分直接算你贏！');
+                    toast('⚡⚡⚡ 3/3 處決 K.O.！電焦蒼蠅！', '連續 3 擊徹底電焦蒼蠅！不管球了，這分直接算你贏！');
                 }
                 if (typeof announceReferee === 'function') {
-                    announceReferee('⚡ 3連擊 K.O.！', '徹底電焦蒼蠅！直接獲得 1 分！', false);
+                    announceReferee('⚡ 3連擊 處決 K.O.！', '徹底電焦蒼蠅翻肚墜地！直接獲得 1 分！', false);
                 }
 
-                this.clearPlayerBuff();
+                this.updateGuideBanner();
 
-                // 結算當前回合
+                // 結算當前回合 (若達標則通關)
                 const isMatch = (typeof stage !== 'undefined' && (stage === 4 || stage === 5));
                 if (isMatch && typeof serveSide !== 'undefined') {
                     serveSide *= -1;
@@ -10327,14 +10348,28 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
                 }
                 const goal = (typeof STAGES !== 'undefined' && STAGES[stage]) ? STAGES[stage].goal : 11;
                 if (typeof stage !== 'undefined' && (stage === 3 || stage === 4 || stage === 5) && pScore >= goal) {
-                    if (typeof clearStage === 'function') clearStage();
+                    if (typeof later === 'function') {
+                        later(() => {
+                            this.restoreFlyMaterials();
+                            this.clearPlayerBuff();
+                            this.isKODeathSequence = false;
+                            if (typeof clearStage === 'function') clearStage();
+                        }, 2800);
+                    }
                     return;
                 }
 
-                if (typeof freeze === 'function') freeze();
-                if (typeof state !== 'undefined') state = 'FAULT';
-                if (typeof later === 'function' && typeof resetServe === 'function') {
-                    later(resetServe, 2800);
+                // ★ 關鍵修復：絕不立即呼叫 clearPlayerBuff()！
+                // 停留 2.8 秒讓玩家完整欣賞「蒼蠅翻肚焦黑墜地 + 落地微震 + 眩暈金星」的完整處決演出！
+                if (typeof later === 'function') {
+                    later(() => {
+                        this.restoreFlyMaterials();
+                        this.clearPlayerBuff();
+                        this.isKODeathSequence = false;
+                        if (typeof freeze === 'function') freeze();
+                        if (typeof state !== 'undefined') state = 'FAULT';
+                        if (typeof resetServe === 'function') resetServe();
+                    }, 2800);
                 }
             }
         },
@@ -10401,12 +10436,26 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
 
         clearFlyBuff: function() {
             if (this.hexaGroup) this.hexaGroup.visible = false;
-            if (typeof flyMesh !== 'undefined' && flyMesh) {
+            if (typeof flyMesh !== 'undefined' && flyMesh && !this.isKODeathSequence) {
                 flyMesh.scale.set(1, 1, 1);
                 flyMesh.rotation.set(0, 0, 0);
             }
             this.flyBuff = null;
             this.flyBuffTimer = 0;
+        },
+
+        restoreFlyMaterials: function() {
+            if (window.flyMaterials) {
+                if (window.flyMaterials.chitin) window.flyMaterials.chitin.color.set(0x1e293b);
+                if (window.flyMaterials.eye) {
+                    window.flyMaterials.eye.color.set(0xef4444);
+                    window.flyMaterials.eye.emissive.set(0xa855f7);
+                }
+                if (window.flyMaterials.wing) {
+                    window.flyMaterials.wing.color.set(0xc4b5fd);
+                    window.flyMaterials.wing.opacity = 0.65;
+                }
+            }
         },
 
         clearCourtItems: function(force) {
@@ -10430,6 +10479,8 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
         },
 
         clearAll: function() {
+            this.isKODeathSequence = false;
+            this.restoreFlyMaterials();
             this.clearCourtItems(true);
             this.clearPlayerBuff();
             this.clearFlyBuff();
@@ -11001,6 +11052,7 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
             const chitinMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.25, metalness: 0.85 });
             const eyeMat = new THREE.MeshStandardMaterial({ color: 0xef4444, emissive: 0xa855f7, emissiveIntensity: 0.55, roughness: 0.1, metalness: 0.9 });
             const wingMat = new THREE.MeshStandardMaterial({ color: 0xc4b5fd, transparent: true, opacity: 0.65, roughness: 0.1, metalness: 0.3, side: THREE.DoubleSide });
+            window.flyMaterials = { chitin: chitinMat, eye: eyeMat, wing: wingMat };
 
             // 蒼蠅腹部 (Abdomen)
             const fAbdomen = new THREE.Mesh(new THREE.SphereGeometry(0.32, 16, 16), chitinMat);
@@ -11897,9 +11949,9 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
 
                 const targetObj = (typeof gGrp !== 'undefined' && gGrp) ? gGrp.position : { x: 0, z: -HALF_L * 0.7 };
 
-                // 判斷是否已接近蒼蠅進入「近身對峙揮砍」模式 (distToFly <= 2.0m)
+                // 判斷是否已接近蒼蠅進入「近身對峙揮砍」模式 (distToFly <= 2.0m) 或已在處決死亡結算
                 const distToFly = Math.hypot(pPos.x - targetObj.x, pPos.z - targetObj.z);
-                const isClose = (distToFly <= 2.0);
+                const isClose = (distToFly <= 2.0) || (typeof FunMode !== 'undefined' && FunMode.isKODeathSequence);
                 if (typeof FunMode !== 'undefined') {
                     const wasClose = FunMode.isFaceOff;
                     FunMode.isFaceOff = isClose;
@@ -12207,25 +12259,46 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
                             flyDizzy.rotation.y += dt * 16;
                         }
                     } else {
-                        // ── 第 3 擊 (或正規局電擊)：墜地動畫，高度跌落至地面 (y = 0.08)，翻肚抽搐 ──
-                        gGrp.position.y = THREE.MathUtils.lerp(gGrp.position.y, 0.08, dt * 10);
-                        if (flyMesh) {
-                            const targetTilt = (flyState === 'ELECTROCUTED') ? Math.PI * 0.75 : Math.PI * 0.45;
-                            flyMesh.rotation.z = THREE.MathUtils.lerp(flyMesh.rotation.z, targetTilt, dt * 8);
-                            if (flyState === 'ELECTROCUTED') {
-                                flyMesh.position.x = (Math.random() - 0.5) * 0.08; // 高壓電弧微震抽搐
+                        // ── 第 3 擊：終極致命處決墜地 (K.O. Death Drop & Charred Ground Impact) ──
+                        const wasAirborne = gGrp.position.y > 0.18;
+                        gGrp.position.y = THREE.MathUtils.lerp(gGrp.position.y, 0.08, dt * 12);
+                        const justLanded = wasAirborne && gGrp.position.y <= 0.18;
+                        if (justLanded) {
+                            if (typeof S !== 'undefined' && S.thump) S.thump(3.0);
+                            if (typeof addShake === 'function') addShake(0.40);
+                            if (typeof popRing === 'function') {
+                                popRing(gGrp.position.x, gGrp.position.z, 2.5, 0x38bdf8);
+                                popRing(gGrp.position.x, gGrp.position.z, 3.8, 0xa855f7);
                             }
+                        }
+
+                        if (flyMesh) {
+                            // 肚皮徹底朝天 (180度翻肚仰躺地面)，焦黑微震
+                            flyMesh.rotation.x = THREE.MathUtils.lerp(flyMesh.rotation.x, Math.PI * 0.88, dt * 10);
+                            flyMesh.rotation.z = THREE.MathUtils.lerp(flyMesh.rotation.z, Math.PI * 0.15, dt * 6);
+                            if (gGrp.position.y <= 0.14) {
+                                flyMesh.position.x = (Math.random() - 0.5) * 0.04;
+                                flyMesh.position.y = (Math.random() - 0.5) * 0.03;
+                            }
+                        }
+                        if (flyWings && flyWings.length) {
+                            flyWings.forEach(w => {
+                                // 雙翼無力垂落地面
+                                w.pivot.rotation.y = THREE.MathUtils.lerp(w.pivot.rotation.y, 0, dt * 12);
+                                w.pivot.rotation.z = THREE.MathUtils.lerp(w.pivot.rotation.z, -0.45 * w.side, dt * 10);
+                            });
                         }
                         if (flyDizzy) {
                             flyDizzy.visible = true;
-                            flyDizzy.rotation.y += dt * 12;
+                            flyDizzy.position.y = 0.45; // 星星盤旋在地面死蒼蠅頭頂
+                            flyDizzy.rotation.y += dt * 14;
                         }
                     }
 
-                    if (flyStunTimer <= 0) {
+                    if (flyStunTimer <= 0 && !(typeof FunMode !== 'undefined' && FunMode.isKODeathSequence)) {
                         flyState = 'HOVER';
                         if (flyMesh) {
-                            flyMesh.rotation.z = 0;
+                            flyMesh.rotation.set(0, 0, 0);
                             flyMesh.position.set(0, 0, 0);
                         }
                         if (flyDizzy && (!isSwatterHunting || zapCombo < 2)) flyDizzy.visible = false;
@@ -12985,10 +13058,11 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
                 const desiredPos = new THREE.Vector3();
                 const desiredLook = new THREE.Vector3();
 
-                if (typeof FunMode !== 'undefined' && FunMode.isFaceOff) {
-                    // ★ 近身對峙階段：精準對決特寫 (舒適視角，鏡頭高度 2.05m、身後 2.7m，蒼蠅在中央優雅呈現，絕不爆炸貼臉)
+                if (typeof FunMode !== 'undefined' && (FunMode.isFaceOff || FunMode.isKODeathSequence)) {
+                    // ★ 近身對峙階段 / 處決死亡特寫：精準對決特寫 (鏡頭高度 2.05m、身後 2.7m，若在處決墜地時視線平順微俯向地面焦黑死蒼蠅)
+                    const lookY = (typeof FunMode !== 'undefined' && FunMode.isKODeathSequence) ? 0.35 : 1.25;
                     desiredPos.set(pPos.x * 0.45 + sx * 0.05, 2.05 + sy * 0.05, pPos.z + 2.7);
-                    desiredLook.set(targetObj.x, 1.25, targetObj.z);
+                    desiredLook.set(targetObj.x, lookY, targetObj.z);
                 } else {
                     // ★ 跨網衝鋒階段：第三人稱動態越肩追擊視角 (高度 3.25m、身後 4.2m，視野開闊清爽，清晰看清球網、地面跑道與前方蒼蠅)
                     desiredPos.set(pPos.x * 0.55 + sx * 0.06, 3.25 + sy * 0.06, pPos.z + 4.2);
