@@ -860,14 +860,20 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
 
         <!-- ═══════ 普林斯頓 FlyWire 果蠅神經電生理示波器 HUD (#fly-snn-hud) ═══════ -->
         <div id="fly-snn-hud" class="card" style="display:none;">
-            <div class="snn-header">
+            <div class="card-resize-handle" data-target="fly-snn-hud" title="按住拖曳調整大小，雙擊重置 100%">⤡</div>
+            <div class="snn-header" title="按住可拖曳移動示波器，雙擊重設位置">
                 <div class="snn-title">
+                    <span class="snn-drag-handle" title="按住拖曳移動">⠿</span>
                     <span class="snn-dot"></span>
-                    <span class="snn-name">FLY-SNN MONITOR</span>
-                    <span class="snn-tag">FlyWire v24</span>
+                    <span class="snn-name">FLY-SNN</span>
+                    <span class="snn-tag">FlyWire</span>
                 </div>
                 <div class="snn-ctrls">
-                    <button class="snn-min-btn" onclick="toggleSnnHud()" title="關閉示波器">✕</button>
+                    <button class="snn-btn snn-btn-move" onclick="cycleSnnHudPosition(event)" title="點擊切換位置 (右上/右下/左下/左上)，亦可按住標題拖曳">⤭ 移動</button>
+                    <button class="snn-btn" onclick="zoomSnnHud(-0.15, event)" title="縮小示波器">−</button>
+                    <span id="snn-zoom-level" onclick="resetSnnHudScale(event)" title="點擊重設為 100%">100%</span>
+                    <button class="snn-btn" onclick="zoomSnnHud(0.15, event)" title="放大示波器">＋</button>
+                    <button class="snn-btn snn-btn-close" onclick="toggleSnnHud(false)" title="關閉示波器">✕</button>
                 </div>
             </div>
             <div class="snn-body">
@@ -907,6 +913,7 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
         <div id="info" class="card">
             <div class="card-resize-handle" data-target="info" title="按住拖曳調整大小，雙擊重置">⤡</div>
             <div class="info-toggle-btn" onclick="event.stopPropagation(); toggleInfoCollapse();" title="收折/展開資訊面板">▾</div>
+            <div class="info-drag-handle" title="按住拖曳關卡框，雙擊重設位置">⠿</div>
             <div id="chip">◆ <span id="chip-n">STAGE 1</span></div>
             <div id="s-name">發球養成</div>
             <div id="s-sub">Underhand Serve</div>

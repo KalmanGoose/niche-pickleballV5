@@ -1436,6 +1436,7 @@
         :root {
             --info-scale: 1.0;
             --board-scale: 1.0;
+            --fly-snn-hud-scale: 1.0;
         }
 
         #info, body.layout-v4 #info {
@@ -1668,6 +1669,9 @@
     -webkit-user-select: none;
     touch-action: manipulation;
     font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    transform: scale(var(--fly-snn-hud-scale, 1)) !important;
+    transform-origin: top right;
+    transition: transform 0.15s ease-out, box-shadow 0.2s;
 }
 
 .snn-header {
@@ -1676,12 +1680,30 @@
     justify-content: space-between;
     border-bottom: 1px solid rgba(255, 255, 255, 0.08);
     padding-bottom: 4px;
+    cursor: grab;
+    touch-action: none;
+}
+.snn-header:active {
+    cursor: grabbing;
 }
 
 .snn-title {
     display: flex;
     align-items: center;
-    gap: 5px;
+    gap: 4px;
+}
+
+.snn-drag-handle {
+    cursor: grab;
+    color: rgba(255, 255, 255, 0.45);
+    font-size: 11px;
+    font-weight: 900;
+    padding: 0 1px;
+    line-height: 1;
+    user-select: none;
+}
+.snn-drag-handle:hover {
+    color: #c084fc;
 }
 
 .snn-dot {
@@ -1699,15 +1721,15 @@
 }
 
 .snn-name {
-    font-size: 10px;
+    font-size: 9.5px;
     font-weight: 800;
-    letter-spacing: 0.06em;
+    letter-spacing: 0.04em;
     color: #f1f5f9;
 }
 
 .snn-tag {
-    font-size: 8px;
-    padding: 1px 4px;
+    font-size: 7.5px;
+    padding: 1px 3px;
     border-radius: 4px;
     background: rgba(168, 85, 247, 0.2);
     border: 1px solid rgba(168, 85, 247, 0.4);
@@ -1717,23 +1739,111 @@
 .snn-ctrls {
     display: flex;
     align-items: center;
+    gap: 3px;
 }
 
-.snn-min-btn {
-    background: none;
-    border: none;
-    color: rgba(255, 255, 255, 0.5);
+.snn-btn {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    color: #e2e8f0;
     cursor: pointer;
-    font-size: 11px;
-    padding: 2px 4px;
+    font-size: 10px;
+    font-weight: 800;
+    padding: 2px 5px;
     line-height: 1;
     border-radius: 4px;
-    transition: color 0.15s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+    user-select: none;
+    -webkit-user-select: none;
 }
 
-.snn-min-btn:hover {
+.snn-btn:hover {
+    background: rgba(168, 85, 247, 0.3);
+    border-color: rgba(168, 85, 247, 0.6);
     color: #fff;
-    background: rgba(255, 255, 255, 0.1);
+    transform: scale(1.08);
+}
+
+.snn-btn:active {
+    transform: scale(0.92);
+}
+
+.snn-btn-move {
+    color: #38bdf8;
+    background: rgba(56, 189, 248, 0.14);
+    border-color: rgba(56, 189, 248, 0.35);
+    font-size: 9px;
+    padding: 2px 5px;
+    gap: 2px;
+}
+
+.snn-btn-move:hover {
+    background: rgba(56, 189, 248, 0.3);
+    border-color: #38bdf8;
+    color: #fff;
+}
+
+.snn-btn-close:hover {
+    background: rgba(239, 68, 68, 0.3);
+    border-color: #ef4444;
+    color: #fff;
+}
+
+#snn-zoom-level {
+    font-size: 8px;
+    font-weight: 800;
+    color: #c084fc;
+    cursor: pointer;
+    padding: 1px 3px;
+    border-radius: 3px;
+    background: rgba(168, 85, 247, 0.15);
+    user-select: none;
+    border: 1px solid rgba(168, 85, 247, 0.3);
+}
+
+#snn-zoom-level:hover {
+    background: rgba(168, 85, 247, 0.3);
+    color: #fff;
+}
+
+#fly-snn-hud .card-resize-handle {
+    right: 4px !important;
+    bottom: 4px !important;
+    width: 20px !important;
+    height: 20px !important;
+    font-size: 10px !important;
+    border-color: rgba(168, 85, 247, 0.4) !important;
+    color: #c084fc !important;
+    background: rgba(168, 85, 247, 0.15) !important;
+}
+
+#fly-snn-hud .card-resize-handle:hover {
+    background: rgba(168, 85, 247, 0.45) !important;
+    border-color: #c084fc !important;
+    color: #fff !important;
+}
+
+.info-drag-handle {
+    position: absolute;
+    top: 6px;
+    right: 32px;
+    cursor: grab;
+    color: rgba(255, 255, 255, 0.4);
+    font-size: 12px;
+    font-weight: 900;
+    padding: 2px 4px;
+    line-height: 1;
+    z-index: 52;
+    user-select: none;
+}
+.info-drag-handle:hover {
+    color: var(--accent);
+}
+.info-drag-handle:active {
+    cursor: grabbing;
 }
 
 .snn-body {

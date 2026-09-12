@@ -440,10 +440,320 @@
         if (!hud) return;
         const willShow = (force !== undefined) ? force : (hud.style.display === 'none' || hud.style.display === '');
         hud.style.display = willShow ? 'flex' : 'none';
+        if (!willShow) {
+            hud.dataset.userClosed = 'true';
+        } else {
+            delete hud.dataset.userClosed;
+        }
         const btn = document.getElementById('subbar-snn-btn');
         if (btn) {
-            btn.innerText = willShow ? '⚡ 電生理示波器: 開' : '⚡ 電生理示波器: 關';
+            btn.innerText = willShow ? '⚡ 示波器: 開' : '⚡ 示波器: 關';
             btn.style.color = willShow ? '#c084fc' : 'var(--dim)';
         }
     };
+
+    // ─── 7. 示波器視窗自由拖曳與四角切換 (HUD Drag & Position Controls) ───
+    const SNN_POSITIONS = [
+        { name: '右上 (預設)', top: 'calc(96px + env(safe-area-inset-top))', right: '8px', bottom: 'auto', left: 'auto', origin: 'top right' },
+        { name: '右下', top: 'auto', right: '8px', bottom: '85px', left: 'auto', origin: 'bottom right' },
+        { name: '左下', top: 'auto', right: 'auto', bottom: '85px', left: '8px', origin: 'bottom left' },
+        { name: '左上', top: 'calc(230px + env(safe-area-inset-top))', right: 'auto', bottom: 'auto', left: '8px', origin: 'top left' }
+    ];
+    let snnPosIdx = 0;
+
+    window.cycleSnnHudPosition = function (e) {
+        if (e) {
+            e.stopPropagation();
+            e.preventDefault();
+        }
+        snnPosIdx = (snnPosIdx + 1) % SNN_POSITIONS.length;
+        applySnnPosition(snnPosIdx, true);
+    };
+
+    function applySnnPosition(idx, showToast) {
+        const hud = document.getElementById('fly-snn-hud');
+        if (!hud) return;
+        const pos = SNN_POSITIONS[idx];
+        hud.style.top = pos.top;
+        hud.style.right = pos.right;
+        hud.style.bottom = pos.bottom;
+        hud.style.left = pos.left;
+        hud.style.transformOrigin = pos.origin;
+
+        localStorage.setItem('nchu_fly_snn_pos_idx', idx.toString());
+        localStorage.removeItem('nchu_fly_snn_custom_pos');
+
+        if (showToast && typeof toast === 'function') {
+            toast('📍 示波器已移動', `停靠位置：${pos.name}`);
+        }
+    }
+
+    // ─── 8. 示波器視窗獨立放大/縮小按鈕 (Zoom In / Out Controls) ───
+    window.zoomSnnHud = function (delta, e) {
+        if (e) {
+            e.stopPropagation();
+            e.preventDefault();
+        }
+        const curScale = (typeof cardScales !== 'undefined' && cardScales['fly-snn-hud']) 
+            ? cardScales['fly-snn-hud'] 
+            : 1.0;
+        const newScale = Math.min(1.80, Math.max(0.50, curScale + delta));
+        if (typeof setCardScale === 'function') {
+            setCardScale('fly-snn-hud', newScale, true);
+        } else {
+            document.documentElement.style.setProperty('--fly-snn-hud-scale', newScale.toFixed(2));
+            const snnZoom = document.getElementById('snn-zoom-level');
+            if (snnZoom) snnZoom.innerText = Math.round(newScale * 100) + '%';
+            localStorage.setItem('nchu_fly-snn-hud_scale', newScale.toFixed(2));
+        }
+        if (typeof toast === 'function') {
+            const act = delta > 0 ? '放大' : '縮小';
+            toast(`🔍 示波器已${act}`, `目前比例：${Math.round(newScale * 100)}%`);
+        }
+    };
+
+    window.resetSnnHudScale = function (e) {
+        if (e) {
+            e.stopPropagation();
+            e.preventDefault();
+        }
+        if (typeof setCardScale === 'function') {
+            setCardScale('fly-snn-hud', 1.0, true);
+        } else {
+            document.documentElement.style.setProperty('--fly-snn-hud-scale', '1.0');
+            const snnZoom = document.getElementById('snn-zoom-level');
+            if (snnZoom) snnZoom.innerText = '100%';
+            localStorage.setItem('nchu_fly-snn-hud_scale', '1.0');
+        }
+        if (typeof toast === 'function') {
+            toast('📐 示波器尺寸已重置', '恢復 100% 預設大小');
+        }
+    };
+
+    function initSnnHudDrag() {
+        const hud = document.getElementById('fly-snn-hud');
+        if (!hud) return;
+
+        // 讀取上次記憶的位置
+        try {
+            const savedCustom = localStorage.getItem('nchu_fly_snn_custom_pos');
+            if (savedCustom) {
+                const p = JSON.parse(savedCustom);
+                if (typeof p.left === 'number' && typeof p.top === 'number') {
+                    hud.style.left = p.left + 'px';
+                    hud.style.top = p.top + 'px';
+                    hud.style.right = 'auto';
+                    hud.style.bottom = 'auto';
+                    hud.style.transformOrigin = (p.left > window.innerWidth / 2) ? 'top right' : 'top left';
+                }
+            } else {
+                const savedIdx = localStorage.getItem('nchu_fly_snn_pos_idx');
+                if (savedIdx !== null) {
+                    snnPosIdx = parseInt(savedIdx, 10) || 0;
+                    applySnnPosition(snnPosIdx, false);
+                }
+            }
+        } catch (_) {}
+
+        // 綁定標題列拖曳
+        const header = hud.querySelector('.snn-header');
+        if (!header) return;
+
+        let isDragging = false;
+        let startPointerX = 0, startPointerY = 0;
+        let initLeft = 0, initTop = 0;
+        let hasMoved = false;
+
+        header.addEventListener('pointerdown', (e) => {
+            if (e.target.closest('button') || e.target.id === 'snn-zoom-level') return;
+            if (e.button && e.button !== 0) return;
+
+            isDragging = true;
+            hasMoved = false;
+            startPointerX = e.clientX;
+            startPointerY = e.clientY;
+
+            const container = document.getElementById('game-container') || document.body;
+            const cRect = container.getBoundingClientRect();
+            const hRect = hud.getBoundingClientRect();
+
+            initLeft = hRect.left - cRect.left;
+            initTop = hRect.top - cRect.top;
+
+            hud.style.left = initLeft + 'px';
+            hud.style.top = initTop + 'px';
+            hud.style.right = 'auto';
+            hud.style.bottom = 'auto';
+
+            try { header.setPointerCapture(e.pointerId); } catch (_) {}
+            e.stopPropagation();
+        });
+
+        header.addEventListener('pointermove', (e) => {
+            if (!isDragging) return;
+            const dx = e.clientX - startPointerX;
+            const dy = e.clientY - startPointerY;
+            if (Math.hypot(dx, dy) > 3) hasMoved = true;
+
+            const container = document.getElementById('game-container') || document.body;
+            const cRect = container.getBoundingClientRect();
+
+            const curScale = (typeof cardScales !== 'undefined' && cardScales['fly-snn-hud']) ? cardScales['fly-snn-hud'] : 1.0;
+            const w = hud.offsetWidth * curScale;
+            const h = hud.offsetHeight * curScale;
+
+            const maxLeft = Math.max(4, cRect.width - w - 4);
+            const maxTop = Math.max(4, cRect.height - h - 4);
+
+            const nextLeft = Math.max(4, Math.min(maxLeft, initLeft + dx));
+            const nextTop = Math.max(4, Math.min(maxTop, initTop + dy));
+
+            hud.style.left = nextLeft + 'px';
+            hud.style.top = nextTop + 'px';
+            hud.style.right = 'auto';
+            hud.style.bottom = 'auto';
+
+            e.stopPropagation();
+            e.preventDefault();
+        });
+
+        const endDrag = (e) => {
+            if (!isDragging) return;
+            isDragging = false;
+            try { header.releasePointerCapture(e.pointerId); } catch (_) {}
+
+            if (hasMoved) {
+                const curLeft = parseFloat(hud.style.left);
+                const curTop = parseFloat(hud.style.top);
+                localStorage.setItem('nchu_fly_snn_custom_pos', JSON.stringify({ left: curLeft, top: curTop }));
+                if (typeof toast === 'function') {
+                    toast('📍 示波器位置已記憶', '已放置於自訂畫面位置');
+                }
+            }
+        };
+
+        header.addEventListener('pointerup', endDrag);
+        header.addEventListener('pointercancel', endDrag);
+
+        // 雙擊標題列快速重設回預設右上角
+        header.addEventListener('dblclick', (e) => {
+            if (e.target.closest('button')) return;
+            snnPosIdx = 0;
+            applySnnPosition(0, true);
+        });
+    }
+
+    // ─── 9. 關卡框 (#info) 拖曳支援 ───
+    function initInfoDrag() {
+        const info = document.getElementById('info');
+        if (!info) return;
+        const handle = info.querySelector('.info-drag-handle');
+        if (!handle) return;
+
+        let isDragging = false;
+        let startPointerX = 0, startPointerY = 0;
+        let initLeft = 0, initTop = 0;
+        let hasMoved = false;
+
+        // 讀取記憶位置
+        try {
+            const saved = localStorage.getItem('nchu_info_pos');
+            if (saved) {
+                const p = JSON.parse(saved);
+                if (typeof p.left === 'number' && typeof p.top === 'number') {
+                    info.style.left = p.left + 'px';
+                    info.style.top = p.top + 'px';
+                    info.style.right = 'auto';
+                }
+            }
+        } catch (_) {}
+
+        handle.addEventListener('pointerdown', (e) => {
+            if (e.button && e.button !== 0) return;
+            isDragging = true;
+            hasMoved = false;
+            startPointerX = e.clientX;
+            startPointerY = e.clientY;
+
+            const container = document.getElementById('game-container') || document.body;
+            const cRect = container.getBoundingClientRect();
+            const iRect = info.getBoundingClientRect();
+
+            initLeft = iRect.left - cRect.left;
+            initTop = iRect.top - cRect.top;
+
+            info.style.left = initLeft + 'px';
+            info.style.top = initTop + 'px';
+            info.style.right = 'auto';
+
+            try { handle.setPointerCapture(e.pointerId); } catch (_) {}
+            e.stopPropagation();
+            e.preventDefault();
+        });
+
+        handle.addEventListener('pointermove', (e) => {
+            if (!isDragging) return;
+            const dx = e.clientX - startPointerX;
+            const dy = e.clientY - startPointerY;
+            if (Math.hypot(dx, dy) > 3) hasMoved = true;
+
+            const container = document.getElementById('game-container') || document.body;
+            const cRect = container.getBoundingClientRect();
+
+            const curScale = (typeof cardScales !== 'undefined' && cardScales.info) ? cardScales.info : 1.0;
+            const w = info.offsetWidth * curScale;
+            const h = info.offsetHeight * curScale;
+
+            const maxLeft = Math.max(4, cRect.width - w - 4);
+            const maxTop = Math.max(4, cRect.height - h - 4);
+
+            info.style.left = Math.max(4, Math.min(maxLeft, initLeft + dx)) + 'px';
+            info.style.top = Math.max(4, Math.min(maxTop, initTop + dy)) + 'px';
+            info.style.right = 'auto';
+
+            e.stopPropagation();
+            e.preventDefault();
+        });
+
+        const endDrag = (e) => {
+            if (!isDragging) return;
+            isDragging = false;
+            try { handle.releasePointerCapture(e.pointerId); } catch (_) {}
+            if (hasMoved) {
+                const curLeft = parseFloat(info.style.left);
+                const curTop = parseFloat(info.style.top);
+                localStorage.setItem('nchu_info_pos', JSON.stringify({ left: curLeft, top: curTop }));
+                if (typeof toast === 'function') {
+                    toast('📍 關卡框位置已記憶', '已放置於自訂位置');
+                }
+            }
+        };
+
+        handle.addEventListener('pointerup', endDrag);
+        handle.addEventListener('pointercancel', endDrag);
+
+        handle.addEventListener('dblclick', (e) => {
+            e.stopPropagation();
+            localStorage.removeItem('nchu_info_pos');
+            info.style.top = 'calc(14px + env(safe-area-inset-top))';
+            info.style.left = 'calc(14px + env(safe-area-inset-left))';
+            info.style.right = 'auto';
+            if (typeof toast === 'function') {
+                toast('📍 關卡框位置已重置', '恢復預設左上角位置');
+            }
+        });
+    }
+
+    // 初始化拖曳
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => {
+            initSnnHudDrag();
+            initInfoDrag();
+        });
+    } else {
+        setTimeout(() => {
+            initSnnHudDrag();
+            initInfoDrag();
+        }, 50);
+    }
 })();

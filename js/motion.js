@@ -621,16 +621,19 @@
            📐 手機/觸控卡片自主滑動縮放控制器 (Card Scale & Resize Controller)
            支援: 角落拖曳滑動縮放、雙指捏合縮放、設定滑桿與本機存檔記憶
            ═══════════════════════════════════════════════ */
-        let cardScales = { info: 1.0, board: 1.0 };
+        let cardScales = { info: 1.0, board: 1.0, 'fly-snn-hud': 1.0 };
 
         function initCardResize() {
             // 讀取本機偏好
             const savedInfo = localStorage.getItem('nchu_info_scale');
             const savedBoard = localStorage.getItem('nchu_board_scale');
+            const savedSnn = localStorage.getItem('nchu_fly-snn-hud_scale');
             if (savedInfo) setCardScale('info', parseFloat(savedInfo), false);
             else setCardScale('info', 1.0, false);
             if (savedBoard) setCardScale('board', parseFloat(savedBoard), false);
             else setCardScale('board', 1.0, false);
+            if (savedSnn) setCardScale('fly-snn-hud', parseFloat(savedSnn), false);
+            else setCardScale('fly-snn-hud', 1.0, false);
 
             const tooltip = document.getElementById('scale-tooltip');
 
@@ -667,11 +670,10 @@
                     const dx = e.clientX - startX;
                     const dy = e.clientY - startY;
 
-                    // #info 右下拖曳: 向右下放大，向左上縮小
-                    // #board 左下拖曳: 向左下放大，向右上縮小
-                    const delta = (target === 'info')
-                        ? (dx + dy) / 200
-                        : (-dx + dy) / 200;
+                    // #board 左下拖曳: 向左下放大，其餘向右下放大
+                    const delta = (target === 'board')
+                        ? (-dx + dy) / 200
+                        : (dx + dy) / 200;
 
                     const newScale = Math.min(1.80, Math.max(0.50, startScale + delta));
                     setCardScale(target, newScale, false);
@@ -691,7 +693,7 @@
                     setCardScale(target, cardScales[target], true);
                     if (typeof syncSubbarStates === 'function') syncSubbarStates();
                     if (typeof toast === 'function') {
-                        const name = (target === 'info') ? '關卡框' : '比分板';
+                        const name = (target === 'info') ? '關卡框' : ((target === 'fly-snn-hud') ? '神經示波器' : '比分板');
                         toast(`📐 ${name} 尺寸已設定`, `目前縮放比例：${Math.round(cardScales[target] * 100)}%（已記憶）`);
                     }
                 };
@@ -706,14 +708,14 @@
                     setCardScale(target, 1.0, true);
                     if (typeof syncSubbarStates === 'function') syncSubbarStates();
                     if (typeof toast === 'function') {
-                        const name = (target === 'info') ? '關卡框' : '比分板';
+                        const name = (target === 'info') ? '關卡框' : ((target === 'fly-snn-hud') ? '神經示波器' : '比分板');
                         toast(`📐 ${name} 已重置`, '恢復 100% 預設大小');
                     }
                 });
             });
 
             // 雙指捏合縮放 (Pinch-to-zoom: 保留雙指自由縮放，支援 touchcancel 防呆)
-            ['info', 'board'].forEach(id => {
+            ['info', 'board', 'fly-snn-hud'].forEach(id => {
                 const card = document.getElementById(id);
                 if (!card) return;
                 let pinchDist0 = 0, pinchScale0 = 1.0;
@@ -763,7 +765,12 @@
             if (txt) txt.innerText = Math.round(clamped * 100) + '%';
 
             const quickLbl = document.getElementById('quick-scale-lbl');
-            if (quickLbl) quickLbl.innerText = Math.round(clamped * 100) + '%';
+            if (quickLbl && target === 'info') quickLbl.innerText = Math.round(clamped * 100) + '%';
+
+            if (target === 'fly-snn-hud') {
+                const snnZoom = document.getElementById('snn-zoom-level');
+                if (snnZoom) snnZoom.innerText = Math.round(clamped * 100) + '%';
+            }
 
             if (save) {
                 localStorage.setItem(`nchu_${target}_scale`, clamped.toFixed(2));
