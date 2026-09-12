@@ -1414,12 +1414,31 @@
                 </div>
                 <div class="fun-item-time" id="fun-item-time">${item.dur.toFixed(1)}s</div>
             `;
-            el.style.cursor = 'pointer';
-            el.title = '點擊查看道具介紹卡片包';
-            el.onclick = () => {
-                if (typeof window.openItemCardsModal === 'function') window.openItemCardsModal();
-            };
+            el.title = '按住可自由拖曳移動，輕點查看道具卡包介紹';
+
+            // 綁定通用拖曳引擎 (支援移動記憶、輕點開啟卡片包、防爆框)
+            if (!el._hudDragInit && typeof window.makeHudDraggable === 'function') {
+                el._hudDragInit = true;
+                window.makeHudDraggable(el, {
+                    storageKey: 'nchu_fun_item_pos',
+                    name: '道具狀態徽章',
+                    onTap: () => {
+                        if (typeof window.openItemCardsModal === 'function') window.openItemCardsModal();
+                    },
+                    defaultStyles: {
+                        top: '62px',
+                        left: '50%',
+                        transform: 'translateX(-50%)',
+                        right: 'auto',
+                        bottom: 'auto'
+                    }
+                });
+            }
+
             el.style.display = 'flex';
+            if (typeof window.clampHudElement === 'function') {
+                requestAnimationFrame(() => window.clampHudElement(el));
+            }
         },
 
         updateHud: function() {

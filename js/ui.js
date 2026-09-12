@@ -310,11 +310,277 @@
             }
         }
 
+        /* ═══════════════════════════════════════════════════════════════════
+           NCHU Pickleball V5 - 全方位 HUD 自由拖拉與防爆框邊界守護引擎
+           ═══════════════════════════════════════════════════════════════════ */
+
+        /**
+         * 🛡️ 單一 HUD 視窗邊界夾取校正 (基於真實渲染像素 getBoundingClientRect)
+         * 保證任何縮放比率、旋轉角度或定位下，HUD 都不會超出螢幕
+         */
+        window.clampHudElement = function (el, margin = 8) {
+            if (!el) return;
+            if (el.offsetParent === null && el.style.display === 'none') return;
+            const rect = el.getBoundingClientRect();
+            if (rect.width === 0 || rect.height === 0) return;
+
+            const winW = window.innerWidth;
+            const winH = window.innerHeight;
+
+            let shiftX = 0;
+            let shiftY = 0;
+
+            if (rect.right > winW - margin) {
+                shiftX = (winW - margin) - rect.right;
+            }
+            if (rect.left + shiftX < margin) {
+                shiftX = margin - rect.left;
+            }
+
+            if (rect.bottom > winH - margin) {
+                shiftY = (winH - margin) - rect.bottom;
+            }
+            if (rect.top + shiftY < margin) {
+                shiftY = margin - rect.top;
+            }
+
+            if (Math.abs(shiftX) > 0.5 || Math.abs(shiftY) > 0.5) {
+                const curLeft = parseFloat(el.style.left) || rect.left;
+                const curTop = parseFloat(el.style.top) || rect.top;
+                el.style.left = (curLeft + shiftX) + 'px';
+                el.style.top = (curTop + shiftY) + 'px';
+                el.style.right = 'auto';
+                el.style.bottom = 'auto';
+            }
+        };
+
+        /**
+         * 🛡️ 全域巡檢並回彈所有浮動 HUD
+         */
+        window.clampAllHuds = function () {
+            const ids = ['info', 'board', 'fly-snn-hud', 'nav-wrapper', 'fun-item-hud'];
+            ids.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) window.clampHudElement(el);
+            });
+        };
+
+        // 綁定視窗縮放與手機橫直向切換事件，自動拉回所有 HUD
+        window.addEventListener('resize', () => {
+            window.clampAllHuds();
+        });
+        window.addEventListener('orientationchange', () => {
+            setTimeout(() => {
+                window.clampAllHuds();
+            }, 150);
+        });
+
+        /**
+         * 🎯 通用卡片直接拖拉綁定函式 (支援觸控滑動、滑鼠拖動、防爆框與雙擊重置)
+         */
+        window.makeHudDraggable = function (el, options = {}) {
+            if (!el) return null;
+            const {
+                storageKey = '',
+                name = 'HUD',
+                ignoreSelector = 'button, input, select, textarea, canvas, .card-resize-handle, .info-toggle-btn, #snn-zoom-level',
+                dragHandle = null,
+                onTap = null,
+                onReset = null,
+                defaultStyles = {}
+            } = options;
+
+            el.classList.add('hud-draggable');
+
+            // 讀取上次記憶的位置 (支援安全性檢驗與邊界約束)
+            if (storageKey) {
+                try {
+                    const saved = localStorage.getItem(storageKey);
+                    if (saved) {
+                        const p = JSON.parse(saved);
+                        if (typeof p.left === 'number' && typeof p.top === 'number') {
+                            el.style.left = p.left + 'px';
+                            el.style.top = p.top + 'px';
+                            el.style.right = 'auto';
+                            el.style.bottom = 'auto';
+                            if (p.transform) el.style.transform = p.transform;
+                            else el.style.transform = 'none';
+
+                            requestAnimationFrame(() => window.clampHudElement(el));
+                        }
+                    }
+                } catch (_) {}
+            }
+
+            let isDragging = false;
+            let startPointerX = 0, startPointerY = 0;
+            let initLeft = 0, initTop = 0;
+            let hasMoved = false;
+            let lastTapTime = 0;
+
+            const dragTrigger = dragHandle || el;
+
+            dragTrigger.addEventListener('pointerdown', (e) => {
+                if (e.button && e.button !== 0) return;
+                if (ignoreSelector && e.target.closest(ignoreSelector)) return;
+
+                isDragging = true;
+                hasMoved = false;
+                startPointerX = e.clientX;
+                startPointerY = e.clientY;
+
+                const rect = el.getBoundingClientRect();
+                initLeft = rect.left;
+                initTop = rect.top;
+
+                el.style.transform = 'none';
+                el.style.left = initLeft + 'px';
+                el.style.top = initTop + 'px';
+                el.style.right = 'auto';
+                el.style.bottom = 'auto';
+                el.classList.add('hud-dragging');
+
+                try { dragTrigger.setPointerCapture(e.pointerId); } catch (_) {}
+                e.stopPropagation();
+            });
+
+            dragTrigger.addEventListener('pointermove', (e) => {
+                if (!isDragging) return;
+                const dx = e.clientX - startPointerX;
+                const dy = e.clientY - startPointerY;
+                if (Math.hypot(dx, dy) > 4) {
+                    hasMoved = true;
+                }
+                if (!hasMoved) return;
+
+                const rect = el.getBoundingClientRect();
+                const winW = window.innerWidth;
+                const winH = window.innerHeight;
+                const margin = 8;
+
+                const maxLeft = Math.max(margin, winW - rect.width - margin);
+                const maxTop = Math.max(margin, winH - rect.height - margin);
+
+                const newL = Math.max(margin, Math.min(maxLeft, initLeft + dx));
+                const newT = Math.max(margin, Math.min(maxTop, initTop + dy));
+
+                el.style.left = newL + 'px';
+                el.style.top = newT + 'px';
+
+                e.stopPropagation();
+                e.preventDefault();
+            });
+
+            const endDrag = (e) => {
+                if (!isDragging) return;
+                isDragging = false;
+                el.classList.remove('hud-dragging');
+                try { dragTrigger.releasePointerCapture(e.pointerId); } catch (_) {}
+
+                const now = Date.now();
+                if (hasMoved) {
+                    window.clampHudElement(el);
+                    const curLeft = parseFloat(el.style.left);
+                    const curTop = parseFloat(el.style.top);
+                    if (storageKey) {
+                        try {
+                            localStorage.setItem(storageKey, JSON.stringify({ left: curLeft, top: curTop }));
+                        } catch (_) {}
+                    }
+                    if (typeof toast === 'function') {
+                        toast(`📍 ${name}位置已記憶`, '已放置於自訂畫面位置');
+                    }
+                } else {
+                    // 雙擊 / 雙點擊判定 (320ms 內連續輕點重置位置)
+                    if (now - lastTapTime < 320) {
+                        resetToDefault();
+                        lastTapTime = 0;
+                        return;
+                    }
+                    lastTapTime = now;
+                    if (typeof onTap === 'function') {
+                        onTap(e);
+                    }
+                }
+            };
+
+            dragTrigger.addEventListener('pointerup', endDrag);
+            dragTrigger.addEventListener('pointercancel', endDrag);
+
+            function resetToDefault() {
+                if (storageKey) {
+                    try { localStorage.removeItem(storageKey); } catch (_) {}
+                }
+                if (typeof onReset === 'function') {
+                    onReset();
+                } else if (defaultStyles) {
+                    Object.keys(defaultStyles).forEach(k => {
+                        el.style[k] = defaultStyles[k];
+                    });
+                }
+                if (typeof toast === 'function') {
+                    toast(`🔄 ${name}位置已重置`, '恢復預設位置');
+                }
+            }
+
+            dragTrigger.addEventListener('dblclick', (e) => {
+                if (ignoreSelector && e.target.closest(ignoreSelector)) return;
+                e.stopPropagation();
+                resetToDefault();
+            });
+
+            return {
+                reset: resetToDefault,
+                clamp: () => window.clampHudElement(el)
+            };
+        };
+
+        /* ── 關卡資訊框 (#info) 直接拖曳支援 ── */
+        window.initInfoDrag = function () {
+            const info = document.getElementById('info');
+            if (!info || info._hudDragInit) return;
+            info._hudDragInit = true;
+
+            window.makeHudDraggable(info, {
+                storageKey: 'nchu_info_pos',
+                name: '關卡資訊框',
+                ignoreSelector: 'button, .diff-btn, .card-resize-handle, .info-toggle-btn',
+                defaultStyles: {
+                    top: 'calc(8px + env(safe-area-inset-top))',
+                    left: 'calc(8px + env(safe-area-inset-left))',
+                    right: 'auto',
+                    bottom: 'auto',
+                    transform: 'scale(var(--info-scale, 1))'
+                }
+            });
+        };
+
+        /* ── 雙人比分板 (#board) 直接拖曳支援 ── */
+        window.initBoardDrag = function () {
+            const board = document.getElementById('board');
+            if (!board || board._hudDragInit) return;
+            board._hudDragInit = true;
+
+            window.makeHudDraggable(board, {
+                storageKey: 'nchu_board_pos',
+                name: '雙人比分板',
+                ignoreSelector: '.card-resize-handle',
+                defaultStyles: {
+                    top: 'calc(8px + env(safe-area-inset-top))',
+                    right: 'calc(8px + env(safe-area-inset-right))',
+                    left: 'auto',
+                    bottom: 'auto',
+                    transform: 'scale(var(--board-scale, 1))'
+                }
+            });
+        };
+
         /* ── 活動式選單自由拖曳與記憶功能 (支援觸控/滑鼠與雙擊重置) ── */
-        function initNavDrag() {
+        window.initNavDrag = function () {
             const wrapper = document.getElementById('nav-wrapper');
             const handle = document.querySelector('.nav-drag-handle');
             const pill = document.getElementById('nav-minimized-pill');
+            const nav = document.getElementById('nav');
             if (!wrapper) return;
 
             // 讀取上次記憶的位置 (防卡死與邊界守護)
@@ -322,7 +588,6 @@
                 const savedPos = localStorage.getItem('nchu_nav_pos');
                 if (savedPos) {
                     const pos = JSON.parse(savedPos);
-                    // 🛡️ 守護：僅當座標完全脫離螢幕視窗可視範圍才清除還原
                     const isOffscreen = pos.left < -20 || pos.top < -20 || 
                                        pos.left > (window.innerWidth - 30) || 
                                        pos.top > (window.innerHeight - 30);
@@ -330,15 +595,10 @@
                         localStorage.removeItem('nchu_nav_pos');
                         resetNavPosition();
                     } else if (typeof pos.left === 'number' && typeof pos.top === 'number') {
-                        const w = wrapper.offsetWidth || 56;
-                        const h = wrapper.offsetHeight || 26;
-                        const maxLeft = Math.max(8, window.innerWidth - w - 8);
-                        const maxTop = Math.max(6, window.innerHeight - h - 8);
-                        const clampedLeft = Math.max(8, Math.min(maxLeft, pos.left));
-                        const clampedTop = Math.max(6, Math.min(maxTop, pos.top));
-                        wrapper.style.left = clampedLeft + 'px';
-                        wrapper.style.top = clampedTop + 'px';
+                        wrapper.style.left = pos.left + 'px';
+                        wrapper.style.top = pos.top + 'px';
                         wrapper.style.transform = 'none';
+                        requestAnimationFrame(() => window.clampHudElement(wrapper));
                     }
                 }
                 const savedMin = localStorage.getItem('nchu_nav_minimized');
@@ -348,7 +608,8 @@
             } catch (e) {}
 
             function bindDrag(el, isPill) {
-                if (!el) return;
+                if (!el || el._dragBound) return;
+                el._dragBound = true;
                 let dragging = false;
                 let startX = 0, startY = 0;
                 let initLeft = 0, initTop = 0;
@@ -357,6 +618,7 @@
 
                 el.addEventListener('pointerdown', (e) => {
                     if (e.button && e.button !== 0) return;
+                    if (!isPill && e.target.closest('button')) return;
                     dragging = true;
                     hasMoved = false;
                     startX = e.clientX;
@@ -378,7 +640,7 @@
                     if (!dragging) return;
                     const dx = e.clientX - startX;
                     const dy = e.clientY - startY;
-                    if (Math.hypot(dx, dy) > 5) {
+                    if (Math.hypot(dx, dy) > 4) {
                         hasMoved = true;
                     }
                     if (!hasMoved) return;
@@ -403,6 +665,7 @@
 
                     const now = Date.now();
                     if (hasMoved) {
+                        window.clampHudElement(wrapper);
                         const rect = wrapper.getBoundingClientRect();
                         try {
                             localStorage.setItem('nchu_nav_pos', JSON.stringify({ left: rect.left, top: rect.top }));
@@ -426,6 +689,7 @@
                 el.addEventListener('pointercancel', endDrag);
 
                 el.addEventListener('dblclick', (e) => {
+                    if (!isPill && e.target.closest('button')) return;
                     e.stopPropagation();
                     resetNavPosition();
                 });
@@ -433,7 +697,8 @@
 
             bindDrag(handle, false);
             bindDrag(pill, true);
-        }
+            if (nav) bindDrag(nav, false);
+        };
 
         function resetNavPosition() {
             const wrapper = document.getElementById('nav-wrapper');
@@ -443,6 +708,21 @@
             wrapper.style.transform = 'translateX(-50%)';
             try { localStorage.removeItem('nchu_nav_pos'); } catch (e) {}
             if (typeof toast === 'function') toast('🔄 選單位置已重置', '已還原至預設頂部置中位置');
+        }
+
+        // 自動初始化 HUD 拖曳
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => {
+                window.initInfoDrag();
+                window.initBoardDrag();
+                window.initNavDrag();
+            });
+        } else {
+            setTimeout(() => {
+                window.initInfoDrag();
+                window.initBoardDrag();
+                window.initNavDrag();
+            }, 50);
         }
 
         function cycleAimModeQuick() {

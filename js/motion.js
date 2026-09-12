@@ -778,6 +778,11 @@
             if (save) {
                 localStorage.setItem(`nchu_${target}_scale`, clamped.toFixed(2));
             }
+
+            // ★ 縮放後防爆框防護：卡片若因放大而溢出視窗邊界，立即自動推回安全可視區
+            if (typeof window.clampAllHuds === 'function') {
+                requestAnimationFrame(() => window.clampAllHuds());
+            }
         }
 
         function resetCardScales() {
