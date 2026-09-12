@@ -2059,3 +2059,56 @@
     letter-spacing: 0.3px;
     text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
 }
+
+.sg-combo-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 2px;
+}
+
+.sg-combo-label {
+    font-size: 11px;
+    font-weight: 800;
+    color: #e2e8f0;
+    letter-spacing: 0.5px;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7);
+}
+
+.sg-badges {
+    display: flex;
+    gap: 6px;
+}
+
+.sg-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 6px;
+    font-size: 13px;
+    line-height: 1;
+    background: rgba(15, 23, 42, 0.65);
+    border: 1.5px solid rgba(255, 255, 255, 0.25);
+    transition: all 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.sg-badge.hit {
+    background: linear-gradient(135deg, #facc15, #f59e0b);
+    border-color: #fef08a;
+    box-shadow: 0 0 14px rgba(250, 204, 21, 0.95), 0 0 22px rgba(245, 158, 11, 0.7);
+    transform: scale(1.15);
+    animation: badgePop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes badgePop {
+    0% { transform: scale(0.5); }
+    70% { transform: scale(1.35); }
+    100% { transform: scale(1.15); }
+}
+
+.sg-badge.unhit {
+    color: #94a3b8;
+    opacity: 0.45;
+}

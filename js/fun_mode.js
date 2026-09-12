@@ -21,6 +21,10 @@
         flySquashTimer: 0,
         hexaGroup: null,       // 蒼蠅六刀流球拍群組
         swatterSparkGroup: null, // 電蚊拍電弧粒子群組
+        zapCombo: 0,           // 0: 未電擊, 1: 觸電抽搐, 2: 過載冒煙, 3: 致命 K.O.
+        zapCooldown: 0,        // 每次電擊的受創無敵/冷卻時間 (0.55s)
+        electricArcMesh: null, // 3D 雷電折線特效
+        electricArcTimer: 0,
         questionBoxTex: null,  // 問號箱材質
         originalPadScale: 2.175,
 
@@ -225,11 +229,93 @@
                 el.className = 'swatter-guide-banner';
                 document.body.appendChild(el);
             }
-            el.innerHTML = `
-                <div class="sg-pulse">⚡ 第一人稱狂暴獵殺 · 跨網封印解除！ ⚡</div>
-                <div class="sg-sub">👆 手指按住往前拖曳 · 直接拉去對面電爛蒼蠅！</div>
-            `;
+            this.updateGuideBanner();
             el.style.display = 'flex';
+        },
+
+        updateGuideBanner: function() {
+            const el = document.getElementById('swatter-guide-banner');
+            if (!el) return;
+            const combo = this.zapCombo || 0;
+            let badges = '';
+            for (let i = 1; i <= 3; i++) {
+                if (i <= combo) {
+                    badges += `<span class="sg-badge hit">⚡</span>`;
+                } else {
+                    badges += `<span class="sg-badge unhit">▫️</span>`;
+                }
+            }
+
+            let subText = '👆 手指按住往前拖曳 · 直闖對面電爛蒼蠅！';
+            let titleText = '⚡ 第一人稱狂暴獵殺 · 跨網封印解除！ ⚡';
+
+            if (combo === 1) {
+                titleText = '⚡ 第 1 擊命中！蒼蠅劇烈抽搐！ ⚡';
+                subText = '💥 連擊 1/3：破甲抽搐！追上去再給牠一擊！';
+            } else if (combo === 2) {
+                titleText = '⚡⚡ 第 2 擊命中！過載狂冒煙！ ⚡⚡';
+                subText = '🔥 連擊 2/3：冒煙過載！最後致命一擊！';
+            } else if (combo >= 3) {
+                titleText = '⚡⚡⚡ 終極 K.O.！蒼蠅徹底電焦！ ⚡⚡⚡';
+                subText = '🏆 3/3 灰飛煙滅！直接奪得分數！';
+            }
+
+            el.innerHTML = `
+                <div class="sg-combo-row">
+                    <span class="sg-combo-label">電擊連擊:</span>
+                    <div class="sg-badges">${badges}</div>
+                </div>
+                <div class="sg-pulse">${titleText}</div>
+                <div class="sg-sub">${subText}</div>
+            `;
+        },
+
+        createElectricArc: function(fromPos, toPos, intensity) {
+            if (typeof THREE === 'undefined' || typeof scene === 'undefined') return;
+            if (this.electricArcMesh) {
+                scene.remove(this.electricArcMesh);
+                if (this.electricArcMesh.geometry) this.electricArcMesh.geometry.dispose();
+                this.electricArcMesh = null;
+            }
+
+            const points = [];
+            const segments = 9;
+            const start = new THREE.Vector3(fromPos.x, fromPos.y, fromPos.z);
+            const end = new THREE.Vector3(toPos.x, toPos.y, toPos.z);
+            const dir = new THREE.Vector3().subVectors(end, start);
+            const len = dir.length() || 1;
+
+            const up = Math.abs(dir.y / len) < 0.9 ? new THREE.Vector3(0, 1, 0) : new THREE.Vector3(1, 0, 0);
+            const perp1 = new THREE.Vector3().crossVectors(dir, up).normalize();
+            const perp2 = new THREE.Vector3().crossVectors(dir, perp1).normalize();
+
+            points.push(start.clone());
+            const jitterScale = Math.min(0.40, len * 0.15) * (intensity || 1.0);
+
+            for (let i = 1; i < segments; i++) {
+                const alpha = i / segments;
+                const basePt = new THREE.Vector3().lerpVectors(start, end, alpha);
+                const j1 = (Math.random() - 0.5) * 2 * jitterScale;
+                const j2 = (Math.random() - 0.5) * 2 * jitterScale;
+                basePt.addScaledVector(perp1, j1);
+                basePt.addScaledVector(perp2, j2);
+                points.push(basePt);
+            }
+            points.push(end.clone());
+
+            const geo = new THREE.BufferGeometry().setFromPoints(points);
+            const colorHex = (intensity > 1.6) ? 0xfacc15 : (intensity > 1.1 ? 0xa855f7 : 0x38bdf8);
+            const mat = new THREE.LineBasicMaterial({
+                color: colorHex,
+                linewidth: 3,
+                transparent: true,
+                opacity: 1.0,
+                depthWrite: false
+            });
+
+            this.electricArcMesh = new THREE.Line(geo, mat);
+            this.electricArcTimer = 0.28;
+            scene.add(this.electricArcMesh);
         },
 
         hideGuideBanner: function() {
@@ -365,6 +451,10 @@
 
                 // 電蚊拍電弧特效動態與近身電擊檢測
                 if (this.activeBuff === 'ELECTRIC_SWATTER') {
+                    if (this.zapCooldown > 0) {
+                        this.zapCooldown -= dt;
+                    }
+
                     if (this.swatterSparkGroup) {
                         for (let i = 0; i < 3; i++) {
                             const ring = this.swatterSparkGroup.getObjectByName('sparkRing_' + i);
@@ -398,11 +488,11 @@
                         }
                     }
 
-                    // ★ 玩家衝到蒼蠅身邊（2.4米以內），直接引爆電擊！
+                    // ★ 玩家衝到蒼蠅身邊（2.5米以內），若冷卻完畢且未滿 3 擊直接引爆電擊連擊！
                     const targetObj = (typeof gGrp !== 'undefined' && gGrp) ? gGrp.position : null;
                     if (targetObj && typeof pPos !== 'undefined') {
                         const distToFly = Math.hypot(pPos.x - targetObj.x, pPos.z - targetObj.z);
-                        if (distToFly < 2.4 && (typeof flyState === 'undefined' || flyState !== 'ELECTROCUTED')) {
+                        if (distToFly < 2.5 && this.zapCooldown <= 0 && this.zapCombo < 3) {
                             this.executeFlyZap();
                         }
                     }
@@ -430,6 +520,18 @@
                 }
             } else {
                 if (this.guidanceGroup) this.guidanceGroup.visible = false;
+            }
+
+            // 更新 3D 雷電鏈折線壽命與淡出
+            if (this.electricArcMesh) {
+                this.electricArcTimer -= dt;
+                if (this.electricArcTimer <= 0) {
+                    if (typeof scene !== 'undefined') scene.remove(this.electricArcMesh);
+                    if (this.electricArcMesh.geometry) this.electricArcMesh.geometry.dispose();
+                    this.electricArcMesh = null;
+                } else if (this.electricArcMesh.material) {
+                    this.electricArcMesh.material.opacity = Math.max(0, this.electricArcTimer / 0.28);
+                }
             }
 
             // 4. 更新蒼蠅狂暴/壓扁狀態
@@ -477,6 +579,8 @@
                     pPad.scale.setScalar(this.originalPadScale * 2.8);
                 }
             } else if (item.id === 'ELECTRIC_SWATTER') {
+                this.zapCombo = 0;
+                this.zapCooldown = 0;
                 if (this.swatterSparkGroup) this.swatterSparkGroup.visible = true;
                 // ★ 立即解除任何鎖定與中斷，強行保證追殺暢行無阻！
                 if (typeof locked !== 'undefined') locked = false;
@@ -488,10 +592,10 @@
                     S.tone('sawtooth', 220, 580, 0.35, 0.4);
                 }
                 if (typeof toast === 'function') {
-                    toast('⚡ 霹靂電蚊拍發動！全速衝鋒！', '不管球了！衝過網把那隻蒼蠅電爛才會贏！');
+                    toast('⚡ 霹靂電蚊拍發動！全速衝鋒！', '不管球了！連續電擊 3 次電爛蒼蠅才會贏！');
                 }
                 if (typeof announceReferee === 'function') {
-                    announceReferee('⚡ 進入追殺模式！', '衝過網電死蒼蠅才算贏！球落地不結算！', false);
+                    announceReferee('⚡ 進入追殺模式！', '連續電擊 3 次電死蒼蠅才算贏！球落地不結算！', false);
                 }
             } else if (item.id === 'MEGA_BALL') {
                 if (typeof ball !== 'undefined') {
@@ -543,6 +647,7 @@
         // 當玩家揮動電蚊拍靠近蒼蠅時觸發電擊
         tryElectrocuteFly: function() {
             if (this.activeBuff !== 'ELECTRIC_SWATTER') return false;
+            if (this.zapCooldown > 0 || this.zapCombo >= 3) return false;
             const targetObj = (typeof gGrp !== 'undefined' && gGrp) ? gGrp.position : null;
             if (!targetObj || typeof pPos === 'undefined') return false;
 
@@ -556,77 +661,146 @@
         },
 
         executeFlyZap: function() {
-            if (typeof flyState !== 'undefined') {
-                flyState = 'ELECTROCUTED';
-            }
-            if (typeof flyStunTimer !== 'undefined') {
-                flyStunTimer = 3.2; // 抽搐翻肚 3.2 秒
-            }
-            if (typeof flyDizzy !== 'undefined' && flyDizzy) {
-                flyDizzy.visible = true;
-            }
-            if (typeof flyMesh !== 'undefined' && flyMesh) {
-                flyMesh.rotation.x = Math.PI * 0.65; // 翻肚朝天
-                flyMesh.position.y = -0.55; // 墜地
+            if (this.activeBuff !== 'ELECTRIC_SWATTER') return;
+            if (this.zapCooldown > 0) return; // 冷卻防抖，保證打擊節奏
+
+            this.zapCombo++;
+            this.zapCooldown = 0.55; // 0.55 秒受創間隔
+
+            // 保證 Buff 時間充裕完成 3 連擊
+            this.buffTimer = Math.max(this.buffTimer, 5.0);
+
+            const flyPos = (typeof gGrp !== 'undefined' && gGrp) ? gGrp.position : null;
+            const swatterPos = (typeof padW !== 'undefined') ? padW : (typeof pPos !== 'undefined' ? new THREE.Vector3(pPos.x, 1.1, pPos.z - 0.4) : null);
+
+            // 生成 3D 高壓雷電鏈折線 (球拍直貫蒼蠅)
+            if (swatterPos && flyPos) {
+                this.createElectricArc(swatterPos, flyPos, 0.8 + this.zapCombo * 0.45);
             }
 
-            // 電擊音效與震撼
-            if (typeof S !== 'undefined' && S.tone) {
-                S.tone('sawtooth', 180, 50, 0.45, 0.45);
-                S.tone('square', 880, 220, 0.25, 0.35);
-            }
-            if (typeof addShake === 'function') addShake(0.35);
-            if (typeof popRing === 'function' && typeof gGrp !== 'undefined' && gGrp) {
-                popRing(gGrp.position.x, gGrp.position.z, 2.8, 0xa855f7);
-                popRing(gGrp.position.x, gGrp.position.z, 3.8, 0x38bdf8);
-            }
+            this.updateGuideBanner();
 
-            // 示波器彩蛋：過載短路波形
-            if (window.FLY_BRAIN) {
-                if (window.FLY_BRAIN.gfVm !== undefined) window.FLY_BRAIN.gfVm = 48.0; // 狂飆爆表
-                const snnCircuitStatusEl = document.getElementById('fly-snn-status');
-                if (snnCircuitStatusEl) {
-                    snnCircuitStatusEl.innerText = '⚡ OVERVOLTAGE / SHORT CIRCUIT (電蚊拍過載短路!)';
-                    snnCircuitStatusEl.style.color = '#ef4444';
+            if (this.zapCombo === 1) {
+                // ── 第 1 擊：觸電破甲抽搐 ──
+                if (typeof flyState !== 'undefined') flyState = 'ELECTROCUTED';
+                if (typeof flyStunTimer !== 'undefined') flyStunTimer = 0.80;
+                if (typeof flyMesh !== 'undefined' && flyMesh) {
+                    flyMesh.rotation.z = Math.PI * 0.35; // 身體微傾歪斜
                 }
-            }
+                if (typeof S !== 'undefined' && S.tone) {
+                    S.tone('sawtooth', 320, 750, 0.28, 0.45);
+                }
+                if (typeof addShake === 'function') addShake(0.25);
+                if (typeof popRing === 'function' && flyPos) {
+                    popRing(flyPos.x, flyPos.z, 2.6, 0x38bdf8);
+                }
+                if (window.FLY_BRAIN) {
+                    if (window.FLY_BRAIN.gfVm !== undefined) window.FLY_BRAIN.gfVm = 18.0;
+                    const snnCircuitStatusEl = document.getElementById('fly-snn-status');
+                    if (snnCircuitStatusEl) {
+                        snnCircuitStatusEl.innerText = '⚡ VOLTAGE SPIKE (第 1 擊：神經元高壓抽搐)';
+                        snnCircuitStatusEl.style.color = '#38bdf8';
+                    }
+                }
+                if (typeof toast === 'function') {
+                    toast('⚡ [1/3] 觸電抽搐！', '第 1 擊破除護甲！快追上去再補一擊！');
+                }
+            } else if (this.zapCombo === 2) {
+                // ── 第 2 擊：過載狂冒煙、頭冒金星 ──
+                if (typeof flyState !== 'undefined') flyState = 'ELECTROCUTED';
+                if (typeof flyStunTimer !== 'undefined') flyStunTimer = 0.90;
+                if (typeof flyDizzy !== 'undefined' && flyDizzy) flyDizzy.visible = true;
+                if (typeof flyMesh !== 'undefined' && flyMesh) {
+                    flyMesh.rotation.z = Math.PI * 0.55; // 重度側翻
+                    flyMesh.scale.set(1.15, 0.85, 1.15); // 壓抑受創變形
+                }
+                if (typeof S !== 'undefined' && S.tone) {
+                    S.tone('sawtooth', 220, 950, 0.38, 0.55);
+                    S.tone('square', 720, 180, 0.22, 0.35);
+                }
+                if (typeof addShake === 'function') addShake(0.38);
+                if (typeof popRing === 'function' && flyPos) {
+                    popRing(flyPos.x, flyPos.z, 3.2, 0xa855f7);
+                    popRing(flyPos.x, flyPos.z, 2.2, 0xfacc15);
+                }
+                if (window.FLY_BRAIN) {
+                    if (window.FLY_BRAIN.gfVm !== undefined) window.FLY_BRAIN.gfVm = 34.0;
+                    const snnCircuitStatusEl = document.getElementById('fly-snn-status');
+                    if (snnCircuitStatusEl) {
+                        snnCircuitStatusEl.innerText = '🔥 CIRCUIT SMOKING (第 2 擊：迴路過載冒煙)';
+                        snnCircuitStatusEl.style.color = '#f59e0b';
+                    }
+                }
+                if (typeof toast === 'function') {
+                    toast('⚡⚡ [2/3] 過載冒煙！', '第 2 擊命中！蒼蠅已冒煙暈眩，給牠最後致命一擊！');
+                }
+            } else if (this.zapCombo >= 3) {
+                // ── 第 3 擊：終極雷暴 K.O. 翻肚墜地 ──
+                if (typeof flyState !== 'undefined') flyState = 'ELECTROCUTED';
+                if (typeof flyStunTimer !== 'undefined') flyStunTimer = 4.0;
+                if (typeof flyDizzy !== 'undefined' && flyDizzy) flyDizzy.visible = true;
+                if (typeof flyMesh !== 'undefined' && flyMesh) {
+                    flyMesh.rotation.x = Math.PI * 0.75; // 翻肚朝天
+                    flyMesh.rotation.z = 0;
+                    flyMesh.position.y = -0.55; // 墜地
+                    flyMesh.scale.set(1.2, 0.75, 1.2);
+                }
+                if (typeof S !== 'undefined') {
+                    if (S.tone) S.tone('sawtooth', 650, 30, 0.65, 0.7);
+                    if (S.thump) S.thump(2.5);
+                }
+                if (typeof addShake === 'function') addShake(0.55);
+                if (typeof popRing === 'function' && flyPos) {
+                    popRing(flyPos.x, flyPos.z, 3.5, 0x38bdf8);
+                    popRing(flyPos.x, flyPos.z, 4.8, 0xa855f7);
+                    popRing(flyPos.x, flyPos.z, 6.0, 0xfacc15);
+                }
+                if (window.FLY_BRAIN) {
+                    if (window.FLY_BRAIN.gfVm !== undefined) window.FLY_BRAIN.gfVm = 50.0;
+                    const snnCircuitStatusEl = document.getElementById('fly-snn-status');
+                    if (snnCircuitStatusEl) {
+                        snnCircuitStatusEl.innerText = '💀 FATAL OVERLOAD / SHORT CIRCUIT (終極致命短路)';
+                        snnCircuitStatusEl.style.color = '#ef4444';
+                    }
+                }
 
-            // ★ 玩家直接獲勝得分！不管球掉去哪裡，電死蒼蠅就算贏！
-            if (typeof pScore !== 'undefined') {
-                pScore++;
-                if (typeof updateScore === 'function') updateScore();
-                if (typeof updateGoal === 'function') updateGoal();
-            }
+                // ★ 玩家直接獲勝得分！不管球掉去哪裡，電死蒼蠅就算贏！
+                if (typeof pScore !== 'undefined') {
+                    pScore++;
+                    if (typeof updateScore === 'function') updateScore();
+                    if (typeof updateGoal === 'function') updateGoal();
+                }
 
-            if (typeof S !== 'undefined' && S.point) {
-                later(() => S.point(), 220);
-            }
+                if (typeof S !== 'undefined' && S.point) {
+                    later(() => S.point(), 280);
+                }
 
-            if (typeof toast === 'function') {
-                toast('⚡ 啪滋！電爆蒼蠅獲勝！', '衝過網電爛蒼蠅！不管球了，這分直接算你贏！');
-            }
-            if (typeof announceReferee === 'function') {
-                announceReferee('⚡ 電蚊拍大獲全勝！', '衝過網電死蒼蠅！直接獲得 1 分！', false);
-            }
+                if (typeof toast === 'function') {
+                    toast('⚡⚡⚡ 3/3 K.O.！電爆蒼蠅獲勝！', '連續 3 擊徹底電焦蒼蠅！不管球了，這分直接算你贏！');
+                }
+                if (typeof announceReferee === 'function') {
+                    announceReferee('⚡ 3連擊 K.O.！', '徹底電焦蒼蠅！直接獲得 1 分！', false);
+                }
 
-            this.clearPlayerBuff();
+                this.clearPlayerBuff();
 
-            // 結算當前回合
-            const isMatch = (typeof stage !== 'undefined' && (stage === 4 || stage === 5));
-            if (isMatch && typeof serveSide !== 'undefined') {
-                serveSide *= -1;
-                if (typeof secondServe !== 'undefined') secondServe = false;
-            }
-            const goal = (typeof STAGES !== 'undefined' && STAGES[stage]) ? STAGES[stage].goal : 11;
-            if (typeof stage !== 'undefined' && (stage === 3 || stage === 4 || stage === 5) && pScore >= goal) {
-                if (typeof clearStage === 'function') clearStage();
-                return;
-            }
+                // 結算當前回合
+                const isMatch = (typeof stage !== 'undefined' && (stage === 4 || stage === 5));
+                if (isMatch && typeof serveSide !== 'undefined') {
+                    serveSide *= -1;
+                    if (typeof secondServe !== 'undefined') secondServe = false;
+                }
+                const goal = (typeof STAGES !== 'undefined' && STAGES[stage]) ? STAGES[stage].goal : 11;
+                if (typeof stage !== 'undefined' && (stage === 3 || stage === 4 || stage === 5) && pScore >= goal) {
+                    if (typeof clearStage === 'function') clearStage();
+                    return;
+                }
 
-            if (typeof freeze === 'function') freeze();
-            if (typeof state !== 'undefined') state = 'FAULT';
-            if (typeof later === 'function' && typeof resetServe === 'function') {
-                later(resetServe, 2500);
+                if (typeof freeze === 'function') freeze();
+                if (typeof state !== 'undefined') state = 'FAULT';
+                if (typeof later === 'function' && typeof resetServe === 'function') {
+                    later(resetServe, 2800);
+                }
             }
         },
 
@@ -673,6 +847,13 @@
 
             this.activeBuff = null;
             this.buffTimer = 0;
+            this.zapCombo = 0;
+            this.zapCooldown = 0;
+            if (this.electricArcMesh) {
+                if (typeof scene !== 'undefined') scene.remove(this.electricArcMesh);
+                if (this.electricArcMesh.geometry) this.electricArcMesh.geometry.dispose();
+                this.electricArcMesh = null;
+            }
             this.hideHudBadge();
             this.hideGuideBanner();
             if (this.guidanceGroup) this.guidanceGroup.visible = false;
@@ -701,6 +882,13 @@
             this.clearCourtItems();
             this.clearPlayerBuff();
             this.clearFlyBuff();
+            this.zapCombo = 0;
+            this.zapCooldown = 0;
+            if (this.electricArcMesh) {
+                if (typeof scene !== 'undefined') scene.remove(this.electricArcMesh);
+                if (this.electricArcMesh.geometry) this.electricArcMesh.geometry.dispose();
+                this.electricArcMesh = null;
+            }
             if (this.guidanceGroup) this.guidanceGroup.visible = false;
             this.hideGuideBanner();
         },

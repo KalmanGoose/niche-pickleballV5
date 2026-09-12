@@ -1391,14 +1391,24 @@
                 // 第一人稱手持電蚊拍姿勢：位於鏡頭右前下方，揮動藍紫電弧
                 padX = 0.26 + Math.sin(performance.now() * 0.01) * 0.04;
                 padY = 1.12 + Math.sin(performance.now() * 0.015) * 0.06;
-                pPad.position.set(padX, padY, -0.38);
-                pPad.rotation.set(-0.35 + Math.sin(performance.now() * 0.03) * 0.25, 0, -padX * 0.6);
-                pPad.getWorldPosition(padW);
-                limb(pArm, _b.set(0.24, 1.16, 0.02), _a.set(padX, padY - 0.17, -0.38));
 
-                // ★ 靠近至 2.5 米內，立即引爆高壓電弧電爛蒼蠅！
+                // 命中受創/電擊時的猛烈下劈揮擊動畫
+                let swingPitch = 0;
+                let swingZ = -0.38;
+                if (typeof FunMode !== 'undefined' && FunMode.zapCooldown > 0) {
+                    const swingPhase = FunMode.zapCooldown / 0.55; // 1 -> 0
+                    swingPitch = Math.sin(swingPhase * Math.PI) * 0.75;
+                    swingZ -= Math.sin(swingPhase * Math.PI) * 0.16;
+                }
+
+                pPad.position.set(padX, padY, swingZ);
+                pPad.rotation.set(-0.35 - swingPitch + Math.sin(performance.now() * 0.03) * 0.25, 0, -padX * 0.6);
+                pPad.getWorldPosition(padW);
+                limb(pArm, _b.set(0.24, 1.16, 0.02), _a.set(padX, padY - 0.17, swingZ));
+
+                // ★ 靠近至 2.5 米內且冷卻完畢，立即引爆高壓電弧電擊連擊！
                 const distToFly = Math.hypot(pPos.x - targetObj.x, pPos.z - targetObj.z);
-                if (distToFly < 2.5) {
+                if (distToFly < 2.5 && typeof FunMode !== 'undefined' && FunMode.zapCooldown <= 0 && FunMode.zapCombo < 3) {
                     FunMode.executeFlyZap();
                 }
                 return;
@@ -1583,26 +1593,57 @@
                 // 3. 暈眩/電擊狀態倒數 (Stunned / Electrocuted / Grounded State)
                 if (flyState === 'STUNNED' || flyState === 'ELECTROCUTED') {
                     flyStunTimer -= dt;
-                    // 墜地動畫：高度迅速跌落至地面 (y = 0.08)，機身側翻或翻肚抽搐
-                    gGrp.position.y = THREE.MathUtils.lerp(gGrp.position.y, 0.08, dt * 10);
-                    if (flyMesh) {
-                        const targetTilt = (flyState === 'ELECTROCUTED') ? Math.PI * 0.75 : Math.PI * 0.45;
-                        flyMesh.rotation.z = THREE.MathUtils.lerp(flyMesh.rotation.z, targetTilt, dt * 8);
-                        if (flyState === 'ELECTROCUTED') {
-                            flyMesh.position.x = (Math.random() - 0.5) * 0.08; // 高壓電弧微震抽搐
+                    const isSwatterHunting = (typeof FunMode !== 'undefined' && FunMode.activeBuff === 'ELECTRIC_SWATTER');
+                    const zapCombo = isSwatterHunting ? FunMode.zapCombo : (flyState === 'ELECTROCUTED' ? 3 : 0);
+
+                    if (zapCombo === 1) {
+                        // ── 第 1 擊：空中高頻抽搐抖動，踉蹌低速後退 ──
+                        gGrp.position.y = THREE.MathUtils.lerp(gGrp.position.y, 0.65, dt * 8);
+                        if (flyMesh) {
+                            flyMesh.rotation.z = Math.PI * 0.35 + (Math.random() - 0.5) * 0.25;
+                            flyMesh.position.x = (Math.random() - 0.5) * 0.12;
+                            flyMesh.position.y = (Math.random() - 0.5) * 0.08;
+                        }
+                        if (flyWings && flyWings.length) {
+                            flyWings.forEach(w => {
+                                w.pivot.rotation.y = (Math.random() - 0.5) * 0.9 * w.side;
+                            });
+                        }
+                    } else if (zapCombo === 2) {
+                        // ── 第 2 擊：過載冒煙，機身重度側翻，高度跌落至 0.38m ──
+                        gGrp.position.y = THREE.MathUtils.lerp(gGrp.position.y, 0.38, dt * 10);
+                        if (flyMesh) {
+                            flyMesh.rotation.z = Math.PI * 0.55 + (Math.random() - 0.5) * 0.30;
+                            flyMesh.position.x = (Math.random() - 0.5) * 0.16;
+                            flyMesh.position.y = (Math.random() - 0.5) * 0.10;
+                        }
+                        if (flyDizzy) {
+                            flyDizzy.visible = true;
+                            flyDizzy.rotation.y += dt * 16;
+                        }
+                    } else {
+                        // ── 第 3 擊 (或正規局電擊)：墜地動畫，高度跌落至地面 (y = 0.08)，翻肚抽搐 ──
+                        gGrp.position.y = THREE.MathUtils.lerp(gGrp.position.y, 0.08, dt * 10);
+                        if (flyMesh) {
+                            const targetTilt = (flyState === 'ELECTROCUTED') ? Math.PI * 0.75 : Math.PI * 0.45;
+                            flyMesh.rotation.z = THREE.MathUtils.lerp(flyMesh.rotation.z, targetTilt, dt * 8);
+                            if (flyState === 'ELECTROCUTED') {
+                                flyMesh.position.x = (Math.random() - 0.5) * 0.08; // 高壓電弧微震抽搐
+                            }
+                        }
+                        if (flyDizzy) {
+                            flyDizzy.visible = true;
+                            flyDizzy.rotation.y += dt * 12;
                         }
                     }
-                    if (flyDizzy) {
-                        flyDizzy.visible = true;
-                        flyDizzy.rotation.y += dt * 12;
-                    }
+
                     if (flyStunTimer <= 0) {
                         flyState = 'HOVER';
                         if (flyMesh) {
                             flyMesh.rotation.z = 0;
                             flyMesh.position.set(0, 0, 0);
                         }
-                        if (flyDizzy) flyDizzy.visible = false;
+                        if (flyDizzy && (!isSwatterHunting || zapCombo < 2)) flyDizzy.visible = false;
                         if (window.FLY_BRAIN) FLY_BRAIN.reset();
                     }
                 } else if (flyState === 'RECOVERY') {
@@ -1612,7 +1653,7 @@
                     const targetY = 0.65;
                     gGrp.position.y = THREE.MathUtils.lerp(gGrp.position.y, targetY, dt * 6);
                 } else {
-                    if (flyDizzy) flyDizzy.visible = false;
+                    if (flyDizzy && !(typeof FunMode !== 'undefined' && FunMode.activeBuff === 'ELECTRIC_SWATTER' && FunMode.zapCombo >= 2)) flyDizzy.visible = false;
                     if (flyMesh) flyMesh.rotation.z = 0;
                     // 浮空盤旋與神經質抖動 (Hover Jitter)
                     const targetY = 0.88 + Math.sin(flyHoverTime * 14) * 0.10;
@@ -1624,7 +1665,11 @@
                     const dx = gGrp.position.x - pPos.x;
                     const dz = gGrp.position.z - pPos.z;
                     const d = Math.hypot(dx, dz) || 1;
-                    const escapeSpeed = 4.5;
+                    // 根據目前遭受的電擊次數減緩逃竄速度
+                    let escapeSpeed = 4.2;
+                    if (FunMode.zapCombo === 1) escapeSpeed = 2.0;
+                    else if (FunMode.zapCombo === 2) escapeSpeed = 0.7;
+
                     let fleeX = gGrp.position.x + (dx / d) * escapeSpeed * dt;
                     let fleeZ = gGrp.position.z + (dz / d) * escapeSpeed * dt;
                     fleeX = THREE.MathUtils.clamp(fleeX, -COURT_W / 2 + 0.35, COURT_W / 2 - 0.35);
