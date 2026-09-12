@@ -2119,6 +2119,11 @@
     animation: fun-hud-pop 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
+.fun-item-hud.debuff {
+    border: 1.5px solid rgba(244, 63, 94, 0.85);
+    box-shadow: 0 8px 28px -4px rgba(244, 63, 94, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
 @keyframes fun-hud-pop {
     from { transform: translateX(-50%) scale(0.6); opacity: 0; }
     to { transform: translateX(-50%) scale(1.0); opacity: 1; }
@@ -4626,6 +4631,7 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
                         <button class="stage-btn" data-stage="3" onclick="switchStage(3)">3 廚房區</button>
                         <button class="stage-btn" data-stage="4" onclick="switchStage(4)">4 對決</button>
                         <button class="stage-btn" data-stage="5" onclick="switchStage(5)">5 冠軍賽</button>
+                        <button class="stage-btn" data-stage="6" onclick="switchStage(6)" style="color:#fbbf24;font-weight:700;">6 娛樂戰</button>
                     </div>
                     <div style="display:flex;align-items:center;gap:4px;border-top:1px solid rgba(255,255,255,0.1);padding-top:4px;width:100%;justify-content:center;">
                         <span style="font-size:10px;font-weight:800;color:var(--dim);white-space:nowrap;">🤖 AI 難度:</span>
@@ -4742,9 +4748,10 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
                 <button data-stage="3" onclick="switchStage(3)">3 廚房區</button>
                 <button data-stage="4" onclick="switchStage(4)">4 對決</button>
                 <button data-stage="5" onclick="switchStage(5)">5 魔王戰</button>
+                <button data-stage="6" onclick="switchStage(6)" style="color:#fbbf24;font-weight:700;">6 娛樂戰</button>
                 <button onclick="replayDemo()">▶ 示範</button>
                 <div class="sheet-div"></div>
-                <div style="font-size:10px;font-weight:700;color:var(--dim);margin:4px 0 2px;">🤖 匹克鵝 / 仿生蒼蠅難度 (第4~5關生效)</div>
+                <div style="font-size:10px;font-weight:700;color:var(--dim);margin:4px 0 2px;">🤖 匹克鵝 / 仿生蒼蠅難度 (第4~6關生效)</div>
                 <div style="display:flex;gap:4px;width:100%;margin-bottom:4px;">
                     <button data-diff="easy" class="on" onclick="setDifficulty('easy')" style="flex:1;padding:6px 2px;font-size:11px;">🟢 初階</button>
                     <button data-diff="medium" onclick="setDifficulty('medium')" style="flex:1;padding:6px 2px;font-size:11px;">🟡 中等</button>
@@ -5382,11 +5389,12 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
             2: { name: '雙彈跳規則', sub: 'Two-Bounce Rule', desc: '發球與接發球各必須先落地一次。等球彈起再回擊。', goal: 1 },
             3: { name: '廚房區攻防', sub: 'Kitchen Zone', desc: '球落進廚房時,等它彈起後再輕推回去 1 次即過關;球未落地就在廚房揮拍會被判違規。', goal: 1 },
             4: { name: '對決匹克鵝', sub: 'Full Match', desc: '綜合對決匹克鵝,先得 3 分過關。', goal: 3 },
-            5: { name: '魔王匹克鵝', sub: 'Boss Fight', desc: '終極對決!打敗中興湖魔王匹克鵝登錄英雄榜。', goal: 5 }
+            5: { name: '魔王匹克鵝', sub: 'Boss Fight', desc: '終極對決!打敗中興湖魔王匹克鵝登錄英雄榜。', goal: 5 },
+            6: { name: '瘋狂道具戰', sub: 'Item Chaos Battle', desc: '中興湖極限娛樂! 拾取地面盲盒道具, 善用神力同時提防踩雷陷阱!', goal: 5 }
         };
-        const AI_SPEED = { 2: 5.2, 3: 5.9, 4: 5.2, 5: 5.6 };
-        const AI_MISS = { 1: 0.0, 2: 0.005, 3: 0.005, 4: 0.20, 5: 0.14 }; // ★ v5.0.14: 前三關教學關卡匹克鵝失誤率極低 (0.5%)，偶爾失誤
-        const AI_PLAN = { 2: 'DEEP', 3: 'KITCHEN', 4: 'MIX', 5: 'BOSS' };
+        const AI_SPEED = { 2: 5.2, 3: 5.9, 4: 5.2, 5: 5.6, 6: 5.8 };
+        const AI_MISS = { 1: 0.0, 2: 0.005, 3: 0.005, 4: 0.20, 5: 0.14, 6: 0.12 }; // ★ v5.0.14: 前三關教學關卡匹克鵝失誤率極低 (0.5%)，偶爾失誤
+        const AI_PLAN = { 2: 'DEEP', 3: 'KITCHEN', 4: 'MIX', 5: 'BOSS', 6: 'BOSS' };
 
         /* ★ v5.0.4: AI 難度平衡調優 (初階失誤率大幅調低，強化連續來回抽球的互動與參與感) */
         const DIFF_PRESETS = {
@@ -5943,9 +5951,10 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
             if (!scoring()) { fail(msg, sub); return; }   // ★ 練習關轉交 fail(),不扣分
             state = 'FAULT'; freeze();
 
-            const isMatch = (stage === 4 || stage === 5);
+            const isMatch = (stage === 4 || stage === 5 || stage === 6);
             if (isMatch) {
                 // ★ 規格 8: 正式匹克球發球得分制 (Side-out Scoring)
+                const oppName = (typeof diffLevel !== 'undefined' && diffLevel === 'fly') ? '🪰 仿生蒼蠅' : '🪿 匹克鵝';
                 if (scorer === server) {
                     // 發球方贏得回合 ➔ 得 1 分 + 換至另一側繼續發球
                     if (server === 'PLAYER') {
@@ -5953,7 +5962,7 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
                         toast('🏆 玩家得分！換邊發球', '比分 ' + pScore + ' - ' + aScore);
                     } else {
                         aScore++; S.fault(); addShake(0.22);
-                        toast('🪿 匹克鵝得分！換邊發球', '比分 ' + pScore + ' - ' + aScore);
+                        toast(oppName + '得分！換邊發球', '比分 ' + pScore + ' - ' + aScore);
                     }
                     serveSide *= -1;
                     secondServe = false; // 得分繼續保有第 1 次發球權
@@ -5964,13 +5973,13 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
                         // 第一次失誤 ➔ 換邊進行 Second Serve
                         secondServe = true;
                         serveSide *= -1;
-                        toast('⚠️ ' + msg + ' (Second Serve)', (server === 'PLAYER' ? '玩家' : '匹克鵝') + ' 第 2 次發球機會 · 換邊');
+                        toast('⚠️ ' + msg + ' (Second Serve)', (server === 'PLAYER' ? '玩家' : oppName) + ' 第 2 次發球機會 · 換邊');
                     } else {
                         // 第二次失誤 ➔ 觸發 Side-out 換球權!
                         secondServe = false;
                         server = (server === 'PLAYER' ? 'GOOSE' : 'PLAYER');
                         serveSide = 1; // 換球權由右側開始發球
-                        toast('🔄 Side-out 換球權！', '輪到 ' + (server === 'PLAYER' ? '玩家' : '匹克鵝') + ' 右側發球');
+                        toast('🔄 Side-out 換球權！', '輪到 ' + (server === 'PLAYER' ? '玩家' : oppName) + ' 右側發球');
                     }
                 }
             } else {
@@ -5981,11 +5990,13 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
 
             updateScore(); updateGoal();
             const goal = STAGES[stage].goal;
-            if (stage === 3 || stage === 4 || stage === 5) {
+            if (stage === 3 || stage === 4 || stage === 5 || stage === 6) {
                 if (pScore >= goal) { clearStage(); return; }
                 if (aScore >= goal) {
                     state = 'OVER'; clearTimers();
-                    toast(stage === 5 ? '魔王匹克鵝獲勝!' : ('匹克鵝先得 ' + goal + ' 分'), '3 秒後重新挑戰');
+                    const opp = (typeof diffLevel !== 'undefined' && diffLevel === 'fly') ? '🪰 仿生蒼蠅' : '🪿 匹克鵝';
+                    const loseMsg = stage === 5 ? '魔王匹克鵝獲勝!' : (stage === 6 ? '🍄 道具戰 ' + opp + ' 獲勝!' : (opp + '先得 ' + goal + ' 分'));
+                    toast(loseMsg, '3 秒後重新挑戰');
                     later(() => switchStage(stage), 3000); return;
                 }
             }
@@ -6009,9 +6020,19 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
             updateLastAuditOutcome('關卡順利通過');
             state = 'FAULT'; freeze(); clearTimers(); locked = true; S.point();
             popRing(0, 2, 8, 0xffc857);
-            toast('STAGE ' + stage + ' CLEARED', stage < 5 ? '自動進入下一關' : '🏆 恭喜擊敗中興湖魔王!登錄英雄榜');
-            if (stage < 5) later(() => switchStage(stage + 1), 2100);
-            else later(() => { locked = false; resetServe(); submitScoreToCloud(pScore); }, 2100);
+            if (stage < 5) {
+                toast('STAGE ' + stage + ' CLEARED', '自動進入下一關');
+                later(() => switchStage(stage + 1), 2100);
+            } else if (stage === 5) {
+                toast('STAGE 5 CLEARED', '🏆 擊敗中興湖魔王！解鎖隱藏娛樂關！');
+                later(() => {
+                    submitScoreToCloud(pScore);
+                    switchStage(6);
+                }, 2600);
+            } else {
+                toast('🎉 STAGE 6 完美通關！', '🏆 稱霸瘋狂道具戰！登錄英雄榜！');
+                later(() => { locked = false; resetServe(); submitScoreToCloud(pScore); }, 2100);
+            }
         }
         function forfeitMatch() {
             closePanel();
@@ -6020,7 +6041,7 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
                 state = 'OVER'; clearTimers();
                 toast('🏳️ 玩家選擇棄賽', '最終比分:' + pScore + ' - ' + aScore);
                 later(() => {
-                    if (stage === 5 && pScore > 0) submitScoreToCloud(pScore);
+                    if ((stage === 5 || stage === 6) && pScore > 0) submitScoreToCloud(pScore);
                     resetServe();
                 }, 1800);
             }
@@ -9387,14 +9408,22 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
         questionBoxTex: null,  // 問號箱材質
         originalPadScale: 2.175,
         pityNonSwatterCount: 0, // 保底計數器：連續未出現電蚊拍次數
+        consecutiveDebuffCount: 0, // 連續抽中負面道具次數 (防連續中雷)
+        slipTimer: 0,          // 香蕉皮打滑失控計時器
         hasSpawnedFirstFlyBox: false, // 蒼蠅模式首箱旗標
 
-        // 道具清單定義
+        // 道具清單定義 (4 神裝 Buff + 4 搞怪踩雷 Debuff)
         ITEMS: [
-            { id: 'MEGA_PADDLE', name: '巨無霸球拍', icon: '🎾', color: '#facc15', dur: 5.0, desc: '球拍膨脹 2.8 倍，閉著眼睛都能接到！' },
-            { id: 'ELECTRIC_SWATTER', name: '霹靂電蚊拍', icon: '⚡', color: '#a855f7', dur: 9.0, desc: '不管球了！衝過網直接把蒼蠅電爛才會贏！' },
-            { id: 'MEGA_BALL', name: '巨無霸鐵球', icon: '💣', color: '#64748b', dur: 5.0, desc: '球體膨脹為 1 米巨鐵球，落地引發地震波！' },
-            { id: 'GIANT_PLAYER', name: '超巨大化球員', icon: '🍄', color: '#ef4444', dur: 5.0, desc: '人偶體積放大 2 倍，無敵重扣覆蓋全場！' }
+            // ── 正面神裝 (Buffs) ──
+            { id: 'MEGA_PADDLE', name: '巨無霸球拍', icon: '🎾', color: '#facc15', dur: 5.0, type: 'buff', desc: '球拍膨脹 2.8 倍，閉著眼睛都能接到！' },
+            { id: 'ELECTRIC_SWATTER', name: '霹靂電蚊拍', icon: '⚡', color: '#a855f7', dur: 9.0, type: 'buff', desc: '不管球了！衝過網直接把蒼蠅電爛才會贏！' },
+            { id: 'MEGA_BALL', name: '巨無霸鐵球', icon: '💣', color: '#64748b', dur: 5.0, type: 'buff', desc: '球體膨脹為 1 米巨鐵球，落地引發地震波！' },
+            { id: 'GIANT_PLAYER', name: '超巨大化球員', icon: '🍄', color: '#ef4444', dur: 5.0, type: 'buff', desc: '人偶體積放大 2 倍，無敵重扣覆蓋全場！' },
+            // ── 負面踩雷 (Debuffs) ──
+            { id: 'MINI_PADDLE', name: '迷你牙籤拍', icon: '🏓', color: '#f43f5e', dur: 5.0, type: 'debuff', desc: '球拍縮水成牙籤！判定範圍極度縮水極易揮空！' },
+            { id: 'BANANA_SLIP', name: '香蕉皮打滑', icon: '🍌', color: '#eab308', dur: 1.4, type: 'debuff', desc: '踩到香蕉皮！原地打轉摔倒停不下來！' },
+            { id: 'REVERSE_CONTROLS', name: '混亂顛倒', icon: '🌀', color: '#8b5cf6', dur: 4.5, type: 'debuff', desc: '吃了混亂毒菇！操作上下左右方向完全相反！' },
+            { id: 'HEAVY_FEET', name: '千斤鉛塊步', icon: '🪨', color: '#475569', dur: 4.5, type: 'debuff', desc: '腳踩千斤重鉛！移動速度暴降 60%！' }
         ],
 
         init: function() {
@@ -9403,8 +9432,12 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
             } catch (e) {
                 this.enabled = false;
             }
+            if (typeof stage !== 'undefined' && stage <= 4) {
+                this.enabled = false;
+            }
             this.hasSpawnedFirstFlyBox = false;
             this.pityNonSwatterCount = 0;
+            this.consecutiveDebuffCount = 0;
             this.spawnCooldown = 1.0;
             this.buildQuestionBoxTexture();
             this.buildFlyHexaPaddles();
@@ -9788,6 +9821,24 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
         },
 
         toggle: function(forceState) {
+            const currentStage = (typeof stage !== 'undefined') ? stage : 1;
+            if (currentStage <= 4) {
+                if (typeof toast === 'function') {
+                    toast('🔒 道具戰為特殊模式', '前 4 關為正規教學賽制，請切換至 STAGE 5 (魔王) 或 STAGE 6 (娛樂關) 暢玩！');
+                }
+                this.enabled = false;
+                this.syncUI();
+                return;
+            }
+            if (currentStage === 6) {
+                if (typeof toast === 'function') {
+                    toast('🍄 STAGE 6 瘋狂道具戰', '此關卡專屬娛樂模式，道具系統常駐開啟！');
+                }
+                this.enabled = true;
+                this.syncUI();
+                return;
+            }
+
             this.enabled = (typeof forceState === 'boolean') ? forceState : !this.enabled;
             try {
                 localStorage.setItem(FUN_STORAGE_KEY, String(this.enabled));
@@ -9797,16 +9848,17 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
 
             if (!this.enabled) {
                 this.clearAll();
-                if (typeof toast === 'function') toast('🍄 道具戰已關閉', '已切換為正規匹克球模式');
+                if (typeof toast === 'function') toast('🍄 道具戰已關閉', '已切換為正規對抗模式');
             } else {
                 this.hasSpawnedFirstFlyBox = false;
                 this.pityNonSwatterCount = 0;
+                this.consecutiveDebuffCount = 0;
                 this.spawnCooldown = 0.8; // 開啟後 0.8 秒立刻掉出第一顆箱子！
                 const isFly = (typeof diffLevel !== 'undefined' && diffLevel === 'fly');
                 if (typeof toast === 'function') {
                     toast(
                         '🍄 瘋狂道具戰已啟動！',
-                        isFly ? '⚡ 蒼蠅模式鎖定電蚊拍高機率必出！踩中即可衝過網！' : '球場隨機掉落問號箱，踩到自動啟動超能力！'
+                        isFly ? '⚡ 蒼蠅模式鎖定電蚊拍高機率必出！踩中盲盒小心踩雷！' : '球場隨機掉落問號箱，既有神裝也有搞怪陷阱！'
                     );
                 }
                 if (typeof S !== 'undefined' && S.tone) {
@@ -9816,21 +9868,26 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
         },
 
         syncUI: function() {
+            const currentStage = (typeof stage !== 'undefined') ? stage : 1;
+            const isStage6 = (currentStage === 6);
+            const isLocked = (currentStage <= 4);
+            const isEffectivelyOn = isStage6 || (currentStage === 5 && this.enabled);
+
             const lbl = document.getElementById('nav-fun-lbl');
-            if (lbl) lbl.innerText = this.enabled ? '開' : '關';
+            if (lbl) lbl.innerText = isLocked ? '鎖' : (isEffectivelyOn ? '開' : '關');
 
             const subLbl = document.getElementById('subbar-fun-lbl');
-            if (subLbl) subLbl.innerText = this.enabled ? '開' : '關';
+            if (subLbl) subLbl.innerText = isLocked ? '鎖' : (isEffectivelyOn ? '開' : '關');
 
             const btn = document.getElementById('nav-fun-btn');
             if (btn) {
-                btn.style.color = this.enabled ? '#fbbf24' : 'var(--dim)';
-                btn.classList.toggle('on', this.enabled);
+                btn.style.color = isLocked ? 'rgba(255,255,255,0.25)' : (isEffectivelyOn ? '#fbbf24' : 'var(--dim)');
+                btn.classList.toggle('on', isEffectivelyOn);
             }
             const subBtn = document.getElementById('subbar-fun-btn');
             if (subBtn) {
-                subBtn.style.color = this.enabled ? '#fbbf24' : 'var(--dim)';
-                subBtn.classList.toggle('on', this.enabled);
+                subBtn.style.color = isLocked ? 'rgba(255,255,255,0.25)' : (isEffectivelyOn ? '#fbbf24' : 'var(--dim)');
+                subBtn.classList.toggle('on', isEffectivelyOn);
             }
         },
 
@@ -9838,6 +9895,7 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
             if (level === 'fly') {
                 this.hasSpawnedFirstFlyBox = false;
                 this.pityNonSwatterCount = 0;
+                this.consecutiveDebuffCount = 0;
                 if (this.items.length === 0) {
                     this.spawnCooldown = 0.8;
                 }
@@ -9847,42 +9905,69 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
         pickWeightedItem: function() {
             const isFly = (typeof diffLevel !== 'undefined' && diffLevel === 'fly');
             const swatterItem = this.ITEMS.find(i => i.id === 'ELECTRIC_SWATTER') || this.ITEMS[1];
-            const otherItems = this.ITEMS.filter(i => i.id !== 'ELECTRIC_SWATTER');
+            const buffItems = this.ITEMS.filter(i => i.type === 'buff' && i.id !== 'ELECTRIC_SWATTER');
+            const debuffItems = this.ITEMS.filter(i => i.type === 'debuff');
 
-            // 1. 果蠅模式 (diffLevel === 'fly')：首箱 100% 必出，後續超高機率 70% + 連續 1 顆未出必保底！
+            // 1. 果蠅模式 (diffLevel === 'fly')：首箱 100% 必出電蚊拍，後續兼具電蚊拍保底與盲盒反差
             if (isFly) {
-                // 首顆箱子 100% 必出霹靂電蚊拍
                 if (!this.hasSpawnedFirstFlyBox) {
                     this.hasSpawnedFirstFlyBox = true;
                     this.pityNonSwatterCount = 0;
+                    this.consecutiveDebuffCount = 0;
                     return swatterItem;
                 }
-                // 保底機制：連續 1 顆未出電蚊拍，下一顆 100% 必出電蚊拍
+                // 保底機制：連續 1 顆未出電蚊拍，下一顆必出電蚊拍
                 if (this.pityNonSwatterCount >= 1) {
                     this.pityNonSwatterCount = 0;
+                    this.consecutiveDebuffCount = 0;
                     return swatterItem;
                 }
-                // 70% 出電蚊拍，30% 出其他道具
-                if (Math.random() < 0.70) {
+                // 55% 出電蚊拍
+                if (Math.random() < 0.55) {
                     this.pityNonSwatterCount = 0;
+                    this.consecutiveDebuffCount = 0;
                     return swatterItem;
                 } else {
                     this.pityNonSwatterCount++;
-                    return otherItems[Math.floor(Math.random() * otherItems.length)];
+                    // 防連續中雷：連續中過 1 次負面，下次必給正面 Buff
+                    if (this.consecutiveDebuffCount >= 1 || Math.random() < 0.50) {
+                        this.consecutiveDebuffCount = 0;
+                        return buffItems[Math.floor(Math.random() * buffItems.length)];
+                    } else {
+                        this.consecutiveDebuffCount++;
+                        return debuffItems[Math.floor(Math.random() * debuffItems.length)];
+                    }
                 }
             }
 
-            // 2. 一般對手模式：保底與權重 (連續 2 顆未出電蚊拍則保底必出)
-            if (this.pityNonSwatterCount >= 2) {
+            // 2. 一般對手模式：
+            // 電蚊拍保底 (連續 3 次未出必出)
+            if (this.pityNonSwatterCount >= 3) {
                 this.pityNonSwatterCount = 0;
+                this.consecutiveDebuffCount = 0;
                 return swatterItem;
             }
-            if (Math.random() < 0.40) {
-                this.pityNonSwatterCount = 0;
-                return swatterItem;
+
+            // 防連續中雷
+            if (this.consecutiveDebuffCount >= 1) {
+                this.consecutiveDebuffCount = 0;
+                const allBuffs = this.ITEMS.filter(i => i.type === 'buff');
+                const picked = allBuffs[Math.floor(Math.random() * allBuffs.length)];
+                if (picked.id === 'ELECTRIC_SWATTER') this.pityNonSwatterCount = 0; else this.pityNonSwatterCount++;
+                return picked;
+            }
+
+            // 60% 機率出正面神裝，40% 機率踩中搞怪負面陷阱！
+            if (Math.random() < 0.60) {
+                this.consecutiveDebuffCount = 0;
+                const allBuffs = this.ITEMS.filter(i => i.type === 'buff');
+                const picked = allBuffs[Math.floor(Math.random() * allBuffs.length)];
+                if (picked.id === 'ELECTRIC_SWATTER') this.pityNonSwatterCount = 0; else this.pityNonSwatterCount++;
+                return picked;
             } else {
+                this.consecutiveDebuffCount++;
                 this.pityNonSwatterCount++;
-                return otherItems[Math.floor(Math.random() * otherItems.length)];
+                return debuffItems[Math.floor(Math.random() * debuffItems.length)];
             }
         },
 
@@ -9949,7 +10034,34 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
         },
 
         update: function(dt) {
-            if (!this.enabled) return;
+            const currentStage = (typeof stage !== 'undefined') ? stage : 1;
+            // ★ 嚴格限制：Stage 1~4 教學與正規賽絕不允許任何道具箱或 Buff 存在
+            if (currentStage <= 4) {
+                if (this.items.length > 0) this.clearCourtItems();
+                if (this.activeBuff) this.clearPlayerBuff();
+                return;
+            }
+            // Stage 5 魔王關需玩家開啟 enabled，Stage 6 娛樂關常駐有效
+            if (currentStage === 5 && !this.enabled) {
+                if (this.items.length > 0) this.clearCourtItems();
+                if (this.activeBuff) this.clearPlayerBuff();
+                return;
+            }
+            if (currentStage === 6 && !this.enabled) {
+                this.enabled = true;
+                this.syncUI();
+            }
+
+            // 更新香蕉皮打滑倒數
+            if (this.slipTimer > 0) {
+                this.slipTimer -= dt;
+                if (this.slipTimer <= 0) {
+                    this.slipTimer = 0;
+                    if (typeof pGrp !== 'undefined' && this.activeBuff !== 'ELECTRIC_SWATTER') {
+                        pGrp.rotation.set(0, 0, 0);
+                    }
+                }
+            }
 
             const now = performance.now() / 1000;
 
@@ -10123,6 +10235,32 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
                 if (typeof pPad !== 'undefined') {
                     pPad.scale.setScalar(this.originalPadScale * 2.8);
                 }
+            } else if (item.id === 'MINI_PADDLE') {
+                if (typeof pPad !== 'undefined') {
+                    pPad.scale.setScalar(this.originalPadScale * 0.35);
+                }
+                if (typeof S !== 'undefined' && S.tone) {
+                    S.tone('triangle', 660, 220, 0.25, 0.3);
+                }
+                if (typeof popRing === 'function') popRing(pos.x, pos.z, 1.2, 0xf43f5e);
+            } else if (item.id === 'BANANA_SLIP') {
+                this.slipTimer = item.dur;
+                if (typeof S !== 'undefined' && S.tone) {
+                    S.tone('sawtooth', 360, 120, 0.35, 0.4);
+                }
+                if (typeof popRing === 'function') popRing(pos.x, pos.z, 2.0, 0xeab308);
+                if (typeof addShake === 'function') addShake(0.2);
+            } else if (item.id === 'REVERSE_CONTROLS') {
+                if (typeof S !== 'undefined' && S.tone) {
+                    S.tone('sine', 300, 600, 0.3, 0.35);
+                }
+                if (typeof popRing === 'function') popRing(pos.x, pos.z, 2.0, 0x8b5cf6);
+            } else if (item.id === 'HEAVY_FEET') {
+                if (typeof S !== 'undefined' && S.thump) {
+                    S.thump(1.8);
+                }
+                if (typeof popRing === 'function') popRing(pos.x, pos.z, 1.8, 0x475569);
+                if (typeof addShake === 'function') addShake(0.15);
             } else if (item.id === 'ELECTRIC_SWATTER') {
                 this.zapCombo = 0;
                 this.zapCooldown = 0;
@@ -10341,13 +10479,13 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
                 this.updateGuideBanner();
 
                 // 結算當前回合 (若達標則通關)
-                const isMatch = (typeof stage !== 'undefined' && (stage === 4 || stage === 5));
+                const isMatch = (typeof stage !== 'undefined' && (stage === 4 || stage === 5 || stage === 6));
                 if (isMatch && typeof serveSide !== 'undefined') {
                     serveSide *= -1;
                     if (typeof secondServe !== 'undefined') secondServe = false;
                 }
                 const goal = (typeof STAGES !== 'undefined' && STAGES[stage]) ? STAGES[stage].goal : 11;
-                if (typeof stage !== 'undefined' && (stage === 3 || stage === 4 || stage === 5) && pScore >= goal) {
+                if (typeof stage !== 'undefined' && (stage === 3 || stage === 4 || stage === 5 || stage === 6) && pScore >= goal) {
                     if (typeof later === 'function') {
                         later(() => {
                             this.restoreFlyMaterials();
@@ -10391,7 +10529,7 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
         },
 
         clearPlayerBuff: function() {
-            if (this.activeBuff === 'MEGA_PADDLE') {
+            if (this.activeBuff === 'MEGA_PADDLE' || this.activeBuff === 'MINI_PADDLE') {
                 if (typeof pPad !== 'undefined') pPad.scale.setScalar(this.originalPadScale);
             } else if (this.activeBuff === 'ELECTRIC_SWATTER') {
                 if (this.swatterSparkGroup) this.swatterSparkGroup.visible = false;
@@ -10408,6 +10546,11 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
                 }
             } else if (this.activeBuff === 'GIANT_PLAYER') {
                 if (typeof pGrp !== 'undefined') pGrp.scale.setScalar(1.0);
+            }
+
+            this.slipTimer = 0;
+            if (typeof pGrp !== 'undefined' && this.activeBuff !== 'ELECTRIC_SWATTER') {
+                pGrp.rotation.set(0, 0, 0);
             }
 
             if (typeof pPos !== 'undefined' && pPos.z < 0.3) {
@@ -10560,10 +10703,15 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
                 el.className = 'fun-item-hud';
                 document.body.appendChild(el);
             }
+            if (item.type === 'debuff') {
+                el.classList.add('debuff');
+            } else {
+                el.classList.remove('debuff');
+            }
             el.innerHTML = `
                 <div class="fun-item-icon">${item.icon}</div>
                 <div class="fun-item-info">
-                    <div class="fun-item-name">${item.name}</div>
+                    <div class="fun-item-name" style="color:${item.type === 'debuff' ? '#f43f5e' : '#fff'};">${item.name}</div>
                     <div class="fun-item-bar-wrap"><div id="fun-item-bar" class="fun-item-bar" style="background:${item.color};"></div></div>
                 </div>
                 <div class="fun-item-time" id="fun-item-time">${item.dur.toFixed(1)}s</div>
@@ -11432,9 +11580,31 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
             pScore = 0; aScore = 0; legalServes = 0; twoBounceDone = 0; serveSide = 1; server = 'PLAYER'; secondServe = false; locked = false;
             updateScore(); updateGoal();
             gGrp.visible = (n >= 2); gGrp.position.set(0, 0, -HALF_L - 0.5);
+
+            // ★ 🍄 道具戰關卡管理 (前4關鎖定停用，第5關魔王自由開關，第6關常駐開啟)
+            if (typeof FunMode !== 'undefined') {
+                if (n === 6) {
+                    FunMode.enabled = true;
+                    FunMode.hasSpawnedFirstFlyBox = false;
+                    FunMode.pityNonSwatterCount = 0;
+                    FunMode.consecutiveDebuffCount = 0;
+                    FunMode.spawnCooldown = 0.8;
+                    FunMode.syncUI();
+                    if (diffLevel !== 'fly' && typeof setDifficulty === 'function') {
+                        setDifficulty('fly');
+                    }
+                } else if (n <= 4) {
+                    FunMode.enabled = false;
+                    FunMode.clearAll();
+                    FunMode.syncUI();
+                } else if (n === 5) {
+                    FunMode.syncUI();
+                }
+            }
+
             updateOpponentMeshVisibility();
             warnKitchen.material.opacity = 0;
-            if (!dSeen[n]) { dSeen[n] = true; startDemo(n); } else resetServe();
+            if (!dSeen[n] && n !== 6) { dSeen[n] = true; startDemo(n); } else resetServe();
         }
         let gooseServeTimer = null;
         function resetServe() {
@@ -11468,7 +11638,8 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
                     2: '左手舉高預備 → ' + whoOpp + '回深球 → 讓球落地一次再回擊',
                     3: '左手舉高預備 → ' + whoOpp + '吊球進廚房 → 等球落地再輕推 1 次',
                     4: '對決 ' + whoOpp + ' (發球得分制, 先得 3 分勝)',
-                    5: '🔥 中興湖魔王戰! (發球得分制, 搶 5 分登錄英雄榜)'
+                    5: '🔥 中興湖魔王戰! (發球得分制, 搶 5 分登錄英雄榜)',
+                    6: '🍄 瘋狂道具大亂鬥! (踩盲盒搶神裝/防踩雷, 先得 5 分勝)'
                 };
                 toast('READY · 玩家發球', hints[stage] + (stage >= 4 ? (' · ' + (secondServe ? '2nd' : '1st') + ' Serve') : ''));
             } else {
@@ -11712,7 +11883,8 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
             if (PH.vel.z <= 0 || PH.pos.z < 0.05) return;
             const b = PH.pos, p = padW;
             const isMegaPad = (typeof FunMode !== 'undefined' && FunMode.activeBuff === 'MEGA_PADDLE');
-            const padScale = isMegaPad ? 3.8 : 1.5; // ★ 巨無霸球拍 3.8 倍超寬判定，一般 1.5 倍
+            const isMiniPad = (typeof FunMode !== 'undefined' && FunMode.activeBuff === 'MINI_PADDLE');
+            const padScale = isMegaPad ? 3.8 : (isMiniPad ? 0.45 : 1.5); // ★ 巨無霸球拍 3.8 倍超寬判定，迷你拍 0.45 倍極限縮水，一般 1.5 倍
             const assist = (webcamActive ? 1.45 : 1.0) * padScale;
             const r = swingT > 0
                 ? { z: (0.62 + BALL_R) * assist, x: (0.82 + BALL_R) * assist, y: (0.78 + BALL_R) * assist }
@@ -12113,7 +12285,12 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
                 const baseSpd = (typeof JOY_SPEED_PRESETS !== 'undefined' && JOY_SPEED_PRESETS[joySpeedLevel])
                     ? JOY_SPEED_PRESETS[joySpeedLevel].speed
                     : 5.5;
-                const maxSpeed = baseSpd;
+                let maxSpeed = baseSpd;
+
+                // 🍄 道具負面效果：千斤鉛塊步 (HEAVY_FEET) 減速 60%
+                if (typeof FunMode !== 'undefined' && FunMode.activeBuff === 'HEAVY_FEET') {
+                    maxSpeed *= 0.40;
+                }
 
                 if (Math.hypot(joyAnalog.x, joyAnalog.z) > 0.05) {
                     targetVx = joyAnalog.x * maxSpeed;
@@ -12143,6 +12320,18 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
                     }
                 }
 
+                // 🍄 道具負面效果：混亂顛倒 (REVERSE_CONTROLS) 搖桿/按鍵方向顛倒
+                if (typeof FunMode !== 'undefined' && FunMode.activeBuff === 'REVERSE_CONTROLS') {
+                    targetVx = -targetVx;
+                    targetVz = -targetVz;
+                }
+
+                // 🍄 道具負面效果：香蕉皮打滑 (BANANA_SLIP) 失去抓地力失控滑行
+                if (typeof FunMode !== 'undefined' && (FunMode.activeBuff === 'BANANA_SLIP' || FunMode.slipTimer > 0)) {
+                    targetVx = playerVel.x * 0.97;
+                    targetVz = playerVel.z * 0.97;
+                }
+
                 const accel = (targetVx !== 0 || targetVz !== 0) ? 26 : 18;
                 playerVel.x += (targetVx - playerVel.x) * Math.min(1, dt * accel);
                 playerVel.z += (targetVz - playerVel.z) * Math.min(1, dt * accel);
@@ -12154,6 +12343,13 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
             pPos.x = THREE.MathUtils.clamp(pPos.x, -COURT_W / 2 - 0.7, COURT_W / 2 + 0.7);
             pPos.z = THREE.MathUtils.clamp(pPos.z, minZ, HALF_L + 1.6);
             pGrp.position.set(pPos.x, 0, pPos.z);
+            // 🍄 香蕉皮打滑 360° 旋轉踉蹌動畫
+            if (typeof FunMode !== 'undefined' && (FunMode.activeBuff === 'BANANA_SLIP' || FunMode.slipTimer > 0)) {
+                pGrp.rotation.y += dt * 14.0;
+                pGrp.rotation.z = Math.sin((FunMode.slipTimer || 0) * 16) * 0.32;
+            } else if (!isHunting) {
+                pGrp.rotation.set(0, 0, 0);
+            }
             if (webcamActive) updatePaddleAssist(dt);
             else {
                 ray.setFromCamera(mouse, cam);

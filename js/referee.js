@@ -26,9 +26,10 @@
             if (!scoring()) { fail(msg, sub); return; }   // ★ 練習關轉交 fail(),不扣分
             state = 'FAULT'; freeze();
 
-            const isMatch = (stage === 4 || stage === 5);
+            const isMatch = (stage === 4 || stage === 5 || stage === 6);
             if (isMatch) {
                 // ★ 規格 8: 正式匹克球發球得分制 (Side-out Scoring)
+                const oppName = (typeof diffLevel !== 'undefined' && diffLevel === 'fly') ? '🪰 仿生蒼蠅' : '🪿 匹克鵝';
                 if (scorer === server) {
                     // 發球方贏得回合 ➔ 得 1 分 + 換至另一側繼續發球
                     if (server === 'PLAYER') {
@@ -36,7 +37,7 @@
                         toast('🏆 玩家得分！換邊發球', '比分 ' + pScore + ' - ' + aScore);
                     } else {
                         aScore++; S.fault(); addShake(0.22);
-                        toast('🪿 匹克鵝得分！換邊發球', '比分 ' + pScore + ' - ' + aScore);
+                        toast(oppName + '得分！換邊發球', '比分 ' + pScore + ' - ' + aScore);
                     }
                     serveSide *= -1;
                     secondServe = false; // 得分繼續保有第 1 次發球權
@@ -47,13 +48,13 @@
                         // 第一次失誤 ➔ 換邊進行 Second Serve
                         secondServe = true;
                         serveSide *= -1;
-                        toast('⚠️ ' + msg + ' (Second Serve)', (server === 'PLAYER' ? '玩家' : '匹克鵝') + ' 第 2 次發球機會 · 換邊');
+                        toast('⚠️ ' + msg + ' (Second Serve)', (server === 'PLAYER' ? '玩家' : oppName) + ' 第 2 次發球機會 · 換邊');
                     } else {
                         // 第二次失誤 ➔ 觸發 Side-out 換球權!
                         secondServe = false;
                         server = (server === 'PLAYER' ? 'GOOSE' : 'PLAYER');
                         serveSide = 1; // 換球權由右側開始發球
-                        toast('🔄 Side-out 換球權！', '輪到 ' + (server === 'PLAYER' ? '玩家' : '匹克鵝') + ' 右側發球');
+                        toast('🔄 Side-out 換球權！', '輪到 ' + (server === 'PLAYER' ? '玩家' : oppName) + ' 右側發球');
                     }
                 }
             } else {
@@ -64,11 +65,13 @@
 
             updateScore(); updateGoal();
             const goal = STAGES[stage].goal;
-            if (stage === 3 || stage === 4 || stage === 5) {
+            if (stage === 3 || stage === 4 || stage === 5 || stage === 6) {
                 if (pScore >= goal) { clearStage(); return; }
                 if (aScore >= goal) {
                     state = 'OVER'; clearTimers();
-                    toast(stage === 5 ? '魔王匹克鵝獲勝!' : ('匹克鵝先得 ' + goal + ' 分'), '3 秒後重新挑戰');
+                    const opp = (typeof diffLevel !== 'undefined' && diffLevel === 'fly') ? '🪰 仿生蒼蠅' : '🪿 匹克鵝';
+                    const loseMsg = stage === 5 ? '魔王匹克鵝獲勝!' : (stage === 6 ? '🍄 道具戰 ' + opp + ' 獲勝!' : (opp + '先得 ' + goal + ' 分'));
+                    toast(loseMsg, '3 秒後重新挑戰');
                     later(() => switchStage(stage), 3000); return;
                 }
             }
@@ -92,9 +95,19 @@
             updateLastAuditOutcome('關卡順利通過');
             state = 'FAULT'; freeze(); clearTimers(); locked = true; S.point();
             popRing(0, 2, 8, 0xffc857);
-            toast('STAGE ' + stage + ' CLEARED', stage < 5 ? '自動進入下一關' : '🏆 恭喜擊敗中興湖魔王!登錄英雄榜');
-            if (stage < 5) later(() => switchStage(stage + 1), 2100);
-            else later(() => { locked = false; resetServe(); submitScoreToCloud(pScore); }, 2100);
+            if (stage < 5) {
+                toast('STAGE ' + stage + ' CLEARED', '自動進入下一關');
+                later(() => switchStage(stage + 1), 2100);
+            } else if (stage === 5) {
+                toast('STAGE 5 CLEARED', '🏆 擊敗中興湖魔王！解鎖隱藏娛樂關！');
+                later(() => {
+                    submitScoreToCloud(pScore);
+                    switchStage(6);
+                }, 2600);
+            } else {
+                toast('🎉 STAGE 6 完美通關！', '🏆 稱霸瘋狂道具戰！登錄英雄榜！');
+                later(() => { locked = false; resetServe(); submitScoreToCloud(pScore); }, 2100);
+            }
         }
         function forfeitMatch() {
             closePanel();
@@ -103,7 +116,7 @@
                 state = 'OVER'; clearTimers();
                 toast('🏳️ 玩家選擇棄賽', '最終比分:' + pScore + ' - ' + aScore);
                 later(() => {
-                    if (stage === 5 && pScore > 0) submitScoreToCloud(pScore);
+                    if ((stage === 5 || stage === 6) && pScore > 0) submitScoreToCloud(pScore);
                     resetServe();
                 }, 1800);
             }

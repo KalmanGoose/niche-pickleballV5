@@ -826,9 +826,31 @@
             pScore = 0; aScore = 0; legalServes = 0; twoBounceDone = 0; serveSide = 1; server = 'PLAYER'; secondServe = false; locked = false;
             updateScore(); updateGoal();
             gGrp.visible = (n >= 2); gGrp.position.set(0, 0, -HALF_L - 0.5);
+
+            // ★ 🍄 道具戰關卡管理 (前4關鎖定停用，第5關魔王自由開關，第6關常駐開啟)
+            if (typeof FunMode !== 'undefined') {
+                if (n === 6) {
+                    FunMode.enabled = true;
+                    FunMode.hasSpawnedFirstFlyBox = false;
+                    FunMode.pityNonSwatterCount = 0;
+                    FunMode.consecutiveDebuffCount = 0;
+                    FunMode.spawnCooldown = 0.8;
+                    FunMode.syncUI();
+                    if (diffLevel !== 'fly' && typeof setDifficulty === 'function') {
+                        setDifficulty('fly');
+                    }
+                } else if (n <= 4) {
+                    FunMode.enabled = false;
+                    FunMode.clearAll();
+                    FunMode.syncUI();
+                } else if (n === 5) {
+                    FunMode.syncUI();
+                }
+            }
+
             updateOpponentMeshVisibility();
             warnKitchen.material.opacity = 0;
-            if (!dSeen[n]) { dSeen[n] = true; startDemo(n); } else resetServe();
+            if (!dSeen[n] && n !== 6) { dSeen[n] = true; startDemo(n); } else resetServe();
         }
         let gooseServeTimer = null;
         function resetServe() {
@@ -862,7 +884,8 @@
                     2: '左手舉高預備 → ' + whoOpp + '回深球 → 讓球落地一次再回擊',
                     3: '左手舉高預備 → ' + whoOpp + '吊球進廚房 → 等球落地再輕推 1 次',
                     4: '對決 ' + whoOpp + ' (發球得分制, 先得 3 分勝)',
-                    5: '🔥 中興湖魔王戰! (發球得分制, 搶 5 分登錄英雄榜)'
+                    5: '🔥 中興湖魔王戰! (發球得分制, 搶 5 分登錄英雄榜)',
+                    6: '🍄 瘋狂道具大亂鬥! (踩盲盒搶神裝/防踩雷, 先得 5 分勝)'
                 };
                 toast('READY · 玩家發球', hints[stage] + (stage >= 4 ? (' · ' + (secondServe ? '2nd' : '1st') + ' Serve') : ''));
             } else {
@@ -1106,7 +1129,8 @@
             if (PH.vel.z <= 0 || PH.pos.z < 0.05) return;
             const b = PH.pos, p = padW;
             const isMegaPad = (typeof FunMode !== 'undefined' && FunMode.activeBuff === 'MEGA_PADDLE');
-            const padScale = isMegaPad ? 3.8 : 1.5; // ★ 巨無霸球拍 3.8 倍超寬判定，一般 1.5 倍
+            const isMiniPad = (typeof FunMode !== 'undefined' && FunMode.activeBuff === 'MINI_PADDLE');
+            const padScale = isMegaPad ? 3.8 : (isMiniPad ? 0.45 : 1.5); // ★ 巨無霸球拍 3.8 倍超寬判定，迷你拍 0.45 倍極限縮水，一般 1.5 倍
             const assist = (webcamActive ? 1.45 : 1.0) * padScale;
             const r = swingT > 0
                 ? { z: (0.62 + BALL_R) * assist, x: (0.82 + BALL_R) * assist, y: (0.78 + BALL_R) * assist }
@@ -1507,7 +1531,12 @@
                 const baseSpd = (typeof JOY_SPEED_PRESETS !== 'undefined' && JOY_SPEED_PRESETS[joySpeedLevel])
                     ? JOY_SPEED_PRESETS[joySpeedLevel].speed
                     : 5.5;
-                const maxSpeed = baseSpd;
+                let maxSpeed = baseSpd;
+
+                // 🍄 道具負面效果：千斤鉛塊步 (HEAVY_FEET) 減速 60%
+                if (typeof FunMode !== 'undefined' && FunMode.activeBuff === 'HEAVY_FEET') {
+                    maxSpeed *= 0.40;
+                }
 
                 if (Math.hypot(joyAnalog.x, joyAnalog.z) > 0.05) {
                     targetVx = joyAnalog.x * maxSpeed;
@@ -1537,6 +1566,18 @@
                     }
                 }
 
+                // 🍄 道具負面效果：混亂顛倒 (REVERSE_CONTROLS) 搖桿/按鍵方向顛倒
+                if (typeof FunMode !== 'undefined' && FunMode.activeBuff === 'REVERSE_CONTROLS') {
+                    targetVx = -targetVx;
+                    targetVz = -targetVz;
+                }
+
+                // 🍄 道具負面效果：香蕉皮打滑 (BANANA_SLIP) 失去抓地力失控滑行
+                if (typeof FunMode !== 'undefined' && (FunMode.activeBuff === 'BANANA_SLIP' || FunMode.slipTimer > 0)) {
+                    targetVx = playerVel.x * 0.97;
+                    targetVz = playerVel.z * 0.97;
+                }
+
                 const accel = (targetVx !== 0 || targetVz !== 0) ? 26 : 18;
                 playerVel.x += (targetVx - playerVel.x) * Math.min(1, dt * accel);
                 playerVel.z += (targetVz - playerVel.z) * Math.min(1, dt * accel);
@@ -1548,6 +1589,13 @@
             pPos.x = THREE.MathUtils.clamp(pPos.x, -COURT_W / 2 - 0.7, COURT_W / 2 + 0.7);
             pPos.z = THREE.MathUtils.clamp(pPos.z, minZ, HALF_L + 1.6);
             pGrp.position.set(pPos.x, 0, pPos.z);
+            // 🍄 香蕉皮打滑 360° 旋轉踉蹌動畫
+            if (typeof FunMode !== 'undefined' && (FunMode.activeBuff === 'BANANA_SLIP' || FunMode.slipTimer > 0)) {
+                pGrp.rotation.y += dt * 14.0;
+                pGrp.rotation.z = Math.sin((FunMode.slipTimer || 0) * 16) * 0.32;
+            } else if (!isHunting) {
+                pGrp.rotation.set(0, 0, 0);
+            }
             if (webcamActive) updatePaddleAssist(dt);
             else {
                 ray.setFromCamera(mouse, cam);

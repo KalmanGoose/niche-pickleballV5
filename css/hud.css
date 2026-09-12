@@ -1962,6 +1962,11 @@
     animation: fun-hud-pop 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
+.fun-item-hud.debuff {
+    border: 1.5px solid rgba(244, 63, 94, 0.85);
+    box-shadow: 0 8px 28px -4px rgba(244, 63, 94, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
 @keyframes fun-hud-pop {
     from { transform: translateX(-50%) scale(0.6); opacity: 0; }
     to { transform: translateX(-50%) scale(1.0); opacity: 1; }

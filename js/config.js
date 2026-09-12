@@ -534,11 +534,12 @@
             2: { name: '雙彈跳規則', sub: 'Two-Bounce Rule', desc: '發球與接發球各必須先落地一次。等球彈起再回擊。', goal: 1 },
             3: { name: '廚房區攻防', sub: 'Kitchen Zone', desc: '球落進廚房時,等它彈起後再輕推回去 1 次即過關;球未落地就在廚房揮拍會被判違規。', goal: 1 },
             4: { name: '對決匹克鵝', sub: 'Full Match', desc: '綜合對決匹克鵝,先得 3 分過關。', goal: 3 },
-            5: { name: '魔王匹克鵝', sub: 'Boss Fight', desc: '終極對決!打敗中興湖魔王匹克鵝登錄英雄榜。', goal: 5 }
+            5: { name: '魔王匹克鵝', sub: 'Boss Fight', desc: '終極對決!打敗中興湖魔王匹克鵝登錄英雄榜。', goal: 5 },
+            6: { name: '瘋狂道具戰', sub: 'Item Chaos Battle', desc: '中興湖極限娛樂! 拾取地面盲盒道具, 善用神力同時提防踩雷陷阱!', goal: 5 }
         };
-        const AI_SPEED = { 2: 5.2, 3: 5.9, 4: 5.2, 5: 5.6 };
-        const AI_MISS = { 1: 0.0, 2: 0.005, 3: 0.005, 4: 0.20, 5: 0.14 }; // ★ v5.0.14: 前三關教學關卡匹克鵝失誤率極低 (0.5%)，偶爾失誤
-        const AI_PLAN = { 2: 'DEEP', 3: 'KITCHEN', 4: 'MIX', 5: 'BOSS' };
+        const AI_SPEED = { 2: 5.2, 3: 5.9, 4: 5.2, 5: 5.6, 6: 5.8 };
+        const AI_MISS = { 1: 0.0, 2: 0.005, 3: 0.005, 4: 0.20, 5: 0.14, 6: 0.12 }; // ★ v5.0.14: 前三關教學關卡匹克鵝失誤率極低 (0.5%)，偶爾失誤
+        const AI_PLAN = { 2: 'DEEP', 3: 'KITCHEN', 4: 'MIX', 5: 'BOSS', 6: 'BOSS' };
 
         /* ★ v5.0.4: AI 難度平衡調優 (初階失誤率大幅調低，強化連續來回抽球的互動與參與感) */
         const DIFF_PRESETS = {

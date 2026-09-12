@@ -37,14 +37,22 @@
         questionBoxTex: null,  // 問號箱材質
         originalPadScale: 2.175,
         pityNonSwatterCount: 0, // 保底計數器：連續未出現電蚊拍次數
+        consecutiveDebuffCount: 0, // 連續抽中負面道具次數 (防連續中雷)
+        slipTimer: 0,          // 香蕉皮打滑失控計時器
         hasSpawnedFirstFlyBox: false, // 蒼蠅模式首箱旗標
 
-        // 道具清單定義
+        // 道具清單定義 (4 神裝 Buff + 4 搞怪踩雷 Debuff)
         ITEMS: [
-            { id: 'MEGA_PADDLE', name: '巨無霸球拍', icon: '🎾', color: '#facc15', dur: 5.0, desc: '球拍膨脹 2.8 倍，閉著眼睛都能接到！' },
-            { id: 'ELECTRIC_SWATTER', name: '霹靂電蚊拍', icon: '⚡', color: '#a855f7', dur: 9.0, desc: '不管球了！衝過網直接把蒼蠅電爛才會贏！' },
-            { id: 'MEGA_BALL', name: '巨無霸鐵球', icon: '💣', color: '#64748b', dur: 5.0, desc: '球體膨脹為 1 米巨鐵球，落地引發地震波！' },
-            { id: 'GIANT_PLAYER', name: '超巨大化球員', icon: '🍄', color: '#ef4444', dur: 5.0, desc: '人偶體積放大 2 倍，無敵重扣覆蓋全場！' }
+            // ── 正面神裝 (Buffs) ──
+            { id: 'MEGA_PADDLE', name: '巨無霸球拍', icon: '🎾', color: '#facc15', dur: 5.0, type: 'buff', desc: '球拍膨脹 2.8 倍，閉著眼睛都能接到！' },
+            { id: 'ELECTRIC_SWATTER', name: '霹靂電蚊拍', icon: '⚡', color: '#a855f7', dur: 9.0, type: 'buff', desc: '不管球了！衝過網直接把蒼蠅電爛才會贏！' },
+            { id: 'MEGA_BALL', name: '巨無霸鐵球', icon: '💣', color: '#64748b', dur: 5.0, type: 'buff', desc: '球體膨脹為 1 米巨鐵球，落地引發地震波！' },
+            { id: 'GIANT_PLAYER', name: '超巨大化球員', icon: '🍄', color: '#ef4444', dur: 5.0, type: 'buff', desc: '人偶體積放大 2 倍，無敵重扣覆蓋全場！' },
+            // ── 負面踩雷 (Debuffs) ──
+            { id: 'MINI_PADDLE', name: '迷你牙籤拍', icon: '🏓', color: '#f43f5e', dur: 5.0, type: 'debuff', desc: '球拍縮水成牙籤！判定範圍極度縮水極易揮空！' },
+            { id: 'BANANA_SLIP', name: '香蕉皮打滑', icon: '🍌', color: '#eab308', dur: 1.4, type: 'debuff', desc: '踩到香蕉皮！原地打轉摔倒停不下來！' },
+            { id: 'REVERSE_CONTROLS', name: '混亂顛倒', icon: '🌀', color: '#8b5cf6', dur: 4.5, type: 'debuff', desc: '吃了混亂毒菇！操作上下左右方向完全相反！' },
+            { id: 'HEAVY_FEET', name: '千斤鉛塊步', icon: '🪨', color: '#475569', dur: 4.5, type: 'debuff', desc: '腳踩千斤重鉛！移動速度暴降 60%！' }
         ],
 
         init: function() {
@@ -53,8 +61,12 @@
             } catch (e) {
                 this.enabled = false;
             }
+            if (typeof stage !== 'undefined' && stage <= 4) {
+                this.enabled = false;
+            }
             this.hasSpawnedFirstFlyBox = false;
             this.pityNonSwatterCount = 0;
+            this.consecutiveDebuffCount = 0;
             this.spawnCooldown = 1.0;
             this.buildQuestionBoxTexture();
             this.buildFlyHexaPaddles();
@@ -438,6 +450,24 @@
         },
 
         toggle: function(forceState) {
+            const currentStage = (typeof stage !== 'undefined') ? stage : 1;
+            if (currentStage <= 4) {
+                if (typeof toast === 'function') {
+                    toast('🔒 道具戰為特殊模式', '前 4 關為正規教學賽制，請切換至 STAGE 5 (魔王) 或 STAGE 6 (娛樂關) 暢玩！');
+                }
+                this.enabled = false;
+                this.syncUI();
+                return;
+            }
+            if (currentStage === 6) {
+                if (typeof toast === 'function') {
+                    toast('🍄 STAGE 6 瘋狂道具戰', '此關卡專屬娛樂模式，道具系統常駐開啟！');
+                }
+                this.enabled = true;
+                this.syncUI();
+                return;
+            }
+
             this.enabled = (typeof forceState === 'boolean') ? forceState : !this.enabled;
             try {
                 localStorage.setItem(FUN_STORAGE_KEY, String(this.enabled));
@@ -447,16 +477,17 @@
 
             if (!this.enabled) {
                 this.clearAll();
-                if (typeof toast === 'function') toast('🍄 道具戰已關閉', '已切換為正規匹克球模式');
+                if (typeof toast === 'function') toast('🍄 道具戰已關閉', '已切換為正規對抗模式');
             } else {
                 this.hasSpawnedFirstFlyBox = false;
                 this.pityNonSwatterCount = 0;
+                this.consecutiveDebuffCount = 0;
                 this.spawnCooldown = 0.8; // 開啟後 0.8 秒立刻掉出第一顆箱子！
                 const isFly = (typeof diffLevel !== 'undefined' && diffLevel === 'fly');
                 if (typeof toast === 'function') {
                     toast(
                         '🍄 瘋狂道具戰已啟動！',
-                        isFly ? '⚡ 蒼蠅模式鎖定電蚊拍高機率必出！踩中即可衝過網！' : '球場隨機掉落問號箱，踩到自動啟動超能力！'
+                        isFly ? '⚡ 蒼蠅模式鎖定電蚊拍高機率必出！踩中盲盒小心踩雷！' : '球場隨機掉落問號箱，既有神裝也有搞怪陷阱！'
                     );
                 }
                 if (typeof S !== 'undefined' && S.tone) {
@@ -466,21 +497,26 @@
         },
 
         syncUI: function() {
+            const currentStage = (typeof stage !== 'undefined') ? stage : 1;
+            const isStage6 = (currentStage === 6);
+            const isLocked = (currentStage <= 4);
+            const isEffectivelyOn = isStage6 || (currentStage === 5 && this.enabled);
+
             const lbl = document.getElementById('nav-fun-lbl');
-            if (lbl) lbl.innerText = this.enabled ? '開' : '關';
+            if (lbl) lbl.innerText = isLocked ? '鎖' : (isEffectivelyOn ? '開' : '關');
 
             const subLbl = document.getElementById('subbar-fun-lbl');
-            if (subLbl) subLbl.innerText = this.enabled ? '開' : '關';
+            if (subLbl) subLbl.innerText = isLocked ? '鎖' : (isEffectivelyOn ? '開' : '關');
 
             const btn = document.getElementById('nav-fun-btn');
             if (btn) {
-                btn.style.color = this.enabled ? '#fbbf24' : 'var(--dim)';
-                btn.classList.toggle('on', this.enabled);
+                btn.style.color = isLocked ? 'rgba(255,255,255,0.25)' : (isEffectivelyOn ? '#fbbf24' : 'var(--dim)');
+                btn.classList.toggle('on', isEffectivelyOn);
             }
             const subBtn = document.getElementById('subbar-fun-btn');
             if (subBtn) {
-                subBtn.style.color = this.enabled ? '#fbbf24' : 'var(--dim)';
-                subBtn.classList.toggle('on', this.enabled);
+                subBtn.style.color = isLocked ? 'rgba(255,255,255,0.25)' : (isEffectivelyOn ? '#fbbf24' : 'var(--dim)');
+                subBtn.classList.toggle('on', isEffectivelyOn);
             }
         },
 
@@ -488,6 +524,7 @@
             if (level === 'fly') {
                 this.hasSpawnedFirstFlyBox = false;
                 this.pityNonSwatterCount = 0;
+                this.consecutiveDebuffCount = 0;
                 if (this.items.length === 0) {
                     this.spawnCooldown = 0.8;
                 }
@@ -497,42 +534,69 @@
         pickWeightedItem: function() {
             const isFly = (typeof diffLevel !== 'undefined' && diffLevel === 'fly');
             const swatterItem = this.ITEMS.find(i => i.id === 'ELECTRIC_SWATTER') || this.ITEMS[1];
-            const otherItems = this.ITEMS.filter(i => i.id !== 'ELECTRIC_SWATTER');
+            const buffItems = this.ITEMS.filter(i => i.type === 'buff' && i.id !== 'ELECTRIC_SWATTER');
+            const debuffItems = this.ITEMS.filter(i => i.type === 'debuff');
 
-            // 1. 果蠅模式 (diffLevel === 'fly')：首箱 100% 必出，後續超高機率 70% + 連續 1 顆未出必保底！
+            // 1. 果蠅模式 (diffLevel === 'fly')：首箱 100% 必出電蚊拍，後續兼具電蚊拍保底與盲盒反差
             if (isFly) {
-                // 首顆箱子 100% 必出霹靂電蚊拍
                 if (!this.hasSpawnedFirstFlyBox) {
                     this.hasSpawnedFirstFlyBox = true;
                     this.pityNonSwatterCount = 0;
+                    this.consecutiveDebuffCount = 0;
                     return swatterItem;
                 }
-                // 保底機制：連續 1 顆未出電蚊拍，下一顆 100% 必出電蚊拍
+                // 保底機制：連續 1 顆未出電蚊拍，下一顆必出電蚊拍
                 if (this.pityNonSwatterCount >= 1) {
                     this.pityNonSwatterCount = 0;
+                    this.consecutiveDebuffCount = 0;
                     return swatterItem;
                 }
-                // 70% 出電蚊拍，30% 出其他道具
-                if (Math.random() < 0.70) {
+                // 55% 出電蚊拍
+                if (Math.random() < 0.55) {
                     this.pityNonSwatterCount = 0;
+                    this.consecutiveDebuffCount = 0;
                     return swatterItem;
                 } else {
                     this.pityNonSwatterCount++;
-                    return otherItems[Math.floor(Math.random() * otherItems.length)];
+                    // 防連續中雷：連續中過 1 次負面，下次必給正面 Buff
+                    if (this.consecutiveDebuffCount >= 1 || Math.random() < 0.50) {
+                        this.consecutiveDebuffCount = 0;
+                        return buffItems[Math.floor(Math.random() * buffItems.length)];
+                    } else {
+                        this.consecutiveDebuffCount++;
+                        return debuffItems[Math.floor(Math.random() * debuffItems.length)];
+                    }
                 }
             }
 
-            // 2. 一般對手模式：保底與權重 (連續 2 顆未出電蚊拍則保底必出)
-            if (this.pityNonSwatterCount >= 2) {
+            // 2. 一般對手模式：
+            // 電蚊拍保底 (連續 3 次未出必出)
+            if (this.pityNonSwatterCount >= 3) {
                 this.pityNonSwatterCount = 0;
+                this.consecutiveDebuffCount = 0;
                 return swatterItem;
             }
-            if (Math.random() < 0.40) {
-                this.pityNonSwatterCount = 0;
-                return swatterItem;
+
+            // 防連續中雷
+            if (this.consecutiveDebuffCount >= 1) {
+                this.consecutiveDebuffCount = 0;
+                const allBuffs = this.ITEMS.filter(i => i.type === 'buff');
+                const picked = allBuffs[Math.floor(Math.random() * allBuffs.length)];
+                if (picked.id === 'ELECTRIC_SWATTER') this.pityNonSwatterCount = 0; else this.pityNonSwatterCount++;
+                return picked;
+            }
+
+            // 60% 機率出正面神裝，40% 機率踩中搞怪負面陷阱！
+            if (Math.random() < 0.60) {
+                this.consecutiveDebuffCount = 0;
+                const allBuffs = this.ITEMS.filter(i => i.type === 'buff');
+                const picked = allBuffs[Math.floor(Math.random() * allBuffs.length)];
+                if (picked.id === 'ELECTRIC_SWATTER') this.pityNonSwatterCount = 0; else this.pityNonSwatterCount++;
+                return picked;
             } else {
+                this.consecutiveDebuffCount++;
                 this.pityNonSwatterCount++;
-                return otherItems[Math.floor(Math.random() * otherItems.length)];
+                return debuffItems[Math.floor(Math.random() * debuffItems.length)];
             }
         },
 
@@ -599,7 +663,34 @@
         },
 
         update: function(dt) {
-            if (!this.enabled) return;
+            const currentStage = (typeof stage !== 'undefined') ? stage : 1;
+            // ★ 嚴格限制：Stage 1~4 教學與正規賽絕不允許任何道具箱或 Buff 存在
+            if (currentStage <= 4) {
+                if (this.items.length > 0) this.clearCourtItems();
+                if (this.activeBuff) this.clearPlayerBuff();
+                return;
+            }
+            // Stage 5 魔王關需玩家開啟 enabled，Stage 6 娛樂關常駐有效
+            if (currentStage === 5 && !this.enabled) {
+                if (this.items.length > 0) this.clearCourtItems();
+                if (this.activeBuff) this.clearPlayerBuff();
+                return;
+            }
+            if (currentStage === 6 && !this.enabled) {
+                this.enabled = true;
+                this.syncUI();
+            }
+
+            // 更新香蕉皮打滑倒數
+            if (this.slipTimer > 0) {
+                this.slipTimer -= dt;
+                if (this.slipTimer <= 0) {
+                    this.slipTimer = 0;
+                    if (typeof pGrp !== 'undefined' && this.activeBuff !== 'ELECTRIC_SWATTER') {
+                        pGrp.rotation.set(0, 0, 0);
+                    }
+                }
+            }
 
             const now = performance.now() / 1000;
 
@@ -773,6 +864,32 @@
                 if (typeof pPad !== 'undefined') {
                     pPad.scale.setScalar(this.originalPadScale * 2.8);
                 }
+            } else if (item.id === 'MINI_PADDLE') {
+                if (typeof pPad !== 'undefined') {
+                    pPad.scale.setScalar(this.originalPadScale * 0.35);
+                }
+                if (typeof S !== 'undefined' && S.tone) {
+                    S.tone('triangle', 660, 220, 0.25, 0.3);
+                }
+                if (typeof popRing === 'function') popRing(pos.x, pos.z, 1.2, 0xf43f5e);
+            } else if (item.id === 'BANANA_SLIP') {
+                this.slipTimer = item.dur;
+                if (typeof S !== 'undefined' && S.tone) {
+                    S.tone('sawtooth', 360, 120, 0.35, 0.4);
+                }
+                if (typeof popRing === 'function') popRing(pos.x, pos.z, 2.0, 0xeab308);
+                if (typeof addShake === 'function') addShake(0.2);
+            } else if (item.id === 'REVERSE_CONTROLS') {
+                if (typeof S !== 'undefined' && S.tone) {
+                    S.tone('sine', 300, 600, 0.3, 0.35);
+                }
+                if (typeof popRing === 'function') popRing(pos.x, pos.z, 2.0, 0x8b5cf6);
+            } else if (item.id === 'HEAVY_FEET') {
+                if (typeof S !== 'undefined' && S.thump) {
+                    S.thump(1.8);
+                }
+                if (typeof popRing === 'function') popRing(pos.x, pos.z, 1.8, 0x475569);
+                if (typeof addShake === 'function') addShake(0.15);
             } else if (item.id === 'ELECTRIC_SWATTER') {
                 this.zapCombo = 0;
                 this.zapCooldown = 0;
@@ -991,13 +1108,13 @@
                 this.updateGuideBanner();
 
                 // 結算當前回合 (若達標則通關)
-                const isMatch = (typeof stage !== 'undefined' && (stage === 4 || stage === 5));
+                const isMatch = (typeof stage !== 'undefined' && (stage === 4 || stage === 5 || stage === 6));
                 if (isMatch && typeof serveSide !== 'undefined') {
                     serveSide *= -1;
                     if (typeof secondServe !== 'undefined') secondServe = false;
                 }
                 const goal = (typeof STAGES !== 'undefined' && STAGES[stage]) ? STAGES[stage].goal : 11;
-                if (typeof stage !== 'undefined' && (stage === 3 || stage === 4 || stage === 5) && pScore >= goal) {
+                if (typeof stage !== 'undefined' && (stage === 3 || stage === 4 || stage === 5 || stage === 6) && pScore >= goal) {
                     if (typeof later === 'function') {
                         later(() => {
                             this.restoreFlyMaterials();
@@ -1041,7 +1158,7 @@
         },
 
         clearPlayerBuff: function() {
-            if (this.activeBuff === 'MEGA_PADDLE') {
+            if (this.activeBuff === 'MEGA_PADDLE' || this.activeBuff === 'MINI_PADDLE') {
                 if (typeof pPad !== 'undefined') pPad.scale.setScalar(this.originalPadScale);
             } else if (this.activeBuff === 'ELECTRIC_SWATTER') {
                 if (this.swatterSparkGroup) this.swatterSparkGroup.visible = false;
@@ -1058,6 +1175,11 @@
                 }
             } else if (this.activeBuff === 'GIANT_PLAYER') {
                 if (typeof pGrp !== 'undefined') pGrp.scale.setScalar(1.0);
+            }
+
+            this.slipTimer = 0;
+            if (typeof pGrp !== 'undefined' && this.activeBuff !== 'ELECTRIC_SWATTER') {
+                pGrp.rotation.set(0, 0, 0);
             }
 
             if (typeof pPos !== 'undefined' && pPos.z < 0.3) {
@@ -1210,10 +1332,15 @@
                 el.className = 'fun-item-hud';
                 document.body.appendChild(el);
             }
+            if (item.type === 'debuff') {
+                el.classList.add('debuff');
+            } else {
+                el.classList.remove('debuff');
+            }
             el.innerHTML = `
                 <div class="fun-item-icon">${item.icon}</div>
                 <div class="fun-item-info">
-                    <div class="fun-item-name">${item.name}</div>
+                    <div class="fun-item-name" style="color:${item.type === 'debuff' ? '#f43f5e' : '#fff'};">${item.name}</div>
                     <div class="fun-item-bar-wrap"><div id="fun-item-bar" class="fun-item-bar" style="background:${item.color};"></div></div>
                 </div>
                 <div class="fun-item-time" id="fun-item-time">${item.dur.toFixed(1)}s</div>
