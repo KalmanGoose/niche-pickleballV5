@@ -62,8 +62,14 @@ export default {
     async fetch(request, env) {
         const origin = request.headers.get('Origin') || '';
         const allowed = originAllowed(origin);
+        if (!allowed) {
+            return new Response(JSON.stringify({ ok: false, err: 'FORBIDDEN_ORIGIN' }), {
+                status: 403,
+                headers: { 'Content-Type': 'application/json;charset=utf-8' }
+            });
+        }
         const cors = {
-            'Access-Control-Allow-Origin': allowed ? origin : 'null',
+            'Access-Control-Allow-Origin': origin,
             'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
             'Access-Control-Allow-Headers': 'Content-Type',
             'Access-Control-Max-Age': '86400',
@@ -71,9 +77,8 @@ export default {
         };
 
         if (request.method === 'OPTIONS') {
-            return new Response(null, { status: allowed ? 204 : 403, headers: cors });
+            return new Response(null, { status: 204, headers: cors });
         }
-        if (!allowed) return json({ ok: false, err: 'FORBIDDEN_ORIGIN' }, 403, cors);
 
         if (!env.GAS_URL || !env.SIGN_SECRET) {
             return json({ ok: false, err: 'PROXY_NOT_CONFIGURED' }, 500, cors);

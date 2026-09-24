@@ -54,8 +54,8 @@ function jsonResponse(data) {
 function sanitize(val, maxLen) {
     if (val === null || val === undefined) return '';
     var s = String(val).trim();
-    if (/^[=\+\-@]/.test(s)) s = "'" + s;
-    return s.slice(0, maxLen || 100);
+    if (/^[=+\-@\t\r]/.test(s)) s = "'" + s;
+    return Array.from(s).slice(0, maxLen || 100).join('');
 }
 
 function sanitizeIg(val) {

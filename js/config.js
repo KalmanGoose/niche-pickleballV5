@@ -32,20 +32,25 @@ const API_TIMEOUT_MS = 10000;
 function fetchJson(url, options = {}, timeoutMs = API_TIMEOUT_MS) {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
-    const fetchOpts = Object.assign({}, options, { signal: controller.signal });
+    return fetch(url, Object.assign({ cache: 'no-store' }, options, { signal: controller.signal }))
+        .then(res => res.json()
+            .then(j => (j && typeof j === 'object') ? j : { ok: false, err: 'BAD_RESPONSE' })
+            .catch(e => (e && e.name === 'AbortError')
+                ? { ok: false, err: 'TIMEOUT' }
+                : { ok: false, err: 'BAD_RESPONSE' }))
+        .catch(err => ({ ok: false, err: (err && err.name === 'AbortError') ? 'TIMEOUT' : 'NETWORK_FAIL' }))
+        .finally(() => clearTimeout(timer));
+}
 
-    return fetch(url, fetchOpts)
-        .then(res => {
-            clearTimeout(timer);
-            return res.json().catch(() => ({ ok: false, err: 'BAD_RESPONSE' }));
-        })
-        .catch(err => {
-            clearTimeout(timer);
-            if (err && err.name === 'AbortError') {
-                return { ok: false, err: 'TIMEOUT' };
-            }
-            return { ok: false, err: 'NETWORK_FAIL' };
-        });
+function errMsg(err) {
+    return ({
+        TIMEOUT: '連線逾時，請稍後再試',
+        NETWORK_FAIL: '網路連線失敗',
+        BAD_RESPONSE: '伺服器回應異常',
+        UNAUTHORIZED: '身分驗證失敗',
+        API_URL_NOT_SET: '離線模式',
+        ALREADY_LIKED_TODAY: '今天已經讚過了（每人每日限 1 次）'
+    })[err] || ('請稍後再試（' + (err || '未知錯誤') + '）');
 }
 
 function postSigned(payload) {
@@ -514,9 +519,9 @@ function apiGet(qs) {
                 }).then(r => {
                     if (r) {
                         if (r.err === 'UNAUTHORIZED') {
-                            toast('⚠️ 雲端身分驗證失敗', '此玩家編號已綁定其他裝置');
+                            toast('⚠️ 雲端身分驗證失敗', '編號 ' + (playerProfile.playerId || '') + ' 已綁定其他裝置');
                         } else if (!r.ok && r.err !== 'API_URL_NOT_SET') {
-                            toast('⚠️ 雲端同步失敗', '已儲存於本機 (' + (r.err || '未知錯誤') + ')');
+                            toast('⚠️ 雲端同步失敗', '已儲存於本機 · ' + errMsg(r.err));
                         }
                     }
                 });

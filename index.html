@@ -5022,20 +5022,25 @@ const API_TIMEOUT_MS = 10000;
 function fetchJson(url, options = {}, timeoutMs = API_TIMEOUT_MS) {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
-    const fetchOpts = Object.assign({}, options, { signal: controller.signal });
+    return fetch(url, Object.assign({ cache: 'no-store' }, options, { signal: controller.signal }))
+        .then(res => res.json()
+            .then(j => (j && typeof j === 'object') ? j : { ok: false, err: 'BAD_RESPONSE' })
+            .catch(e => (e && e.name === 'AbortError')
+                ? { ok: false, err: 'TIMEOUT' }
+                : { ok: false, err: 'BAD_RESPONSE' }))
+        .catch(err => ({ ok: false, err: (err && err.name === 'AbortError') ? 'TIMEOUT' : 'NETWORK_FAIL' }))
+        .finally(() => clearTimeout(timer));
+}
 
-    return fetch(url, fetchOpts)
-        .then(res => {
-            clearTimeout(timer);
-            return res.json().catch(() => ({ ok: false, err: 'BAD_RESPONSE' }));
-        })
-        .catch(err => {
-            clearTimeout(timer);
-            if (err && err.name === 'AbortError') {
-                return { ok: false, err: 'TIMEOUT' };
-            }
-            return { ok: false, err: 'NETWORK_FAIL' };
-        });
+function errMsg(err) {
+    return ({
+        TIMEOUT: '連線逾時，請稍後再試',
+        NETWORK_FAIL: '網路連線失敗',
+        BAD_RESPONSE: '伺服器回應異常',
+        UNAUTHORIZED: '身分驗證失敗',
+        API_URL_NOT_SET: '離線模式',
+        ALREADY_LIKED_TODAY: '今天已經讚過了（每人每日限 1 次）'
+    })[err] || ('請稍後再試（' + (err || '未知錯誤') + '）');
 }
 
 function postSigned(payload) {
@@ -5504,9 +5509,9 @@ function apiGet(qs) {
                 }).then(r => {
                     if (r) {
                         if (r.err === 'UNAUTHORIZED') {
-                            toast('⚠️ 雲端身分驗證失敗', '此玩家編號已綁定其他裝置');
+                            toast('⚠️ 雲端身分驗證失敗', '編號 ' + (playerProfile.playerId || '') + ' 已綁定其他裝置');
                         } else if (!r.ok && r.err !== 'API_URL_NOT_SET') {
-                            toast('⚠️ 雲端同步失敗', '已儲存於本機 (' + (r.err || '未知錯誤') + ')');
+                            toast('⚠️ 雲端同步失敗', '已儲存於本機 · ' + errMsg(r.err));
                         }
                     }
                 });
@@ -8636,8 +8641,8 @@ function cycleTeachLevelQuick() {
                 nickname: '中興匹克球俠',
                 department: '資訊工程學系 四年級',
                 avatar: '🪿',
-                ig: 'nchu_pickleball_hero',
-                score: 18,
+                ig: '',
+                score: 5,
                 stats: { serve: 85, dink: 78, spin: 92, chain: 88, speed: 82 }
             };
             document.getElementById('sc-avatar').innerText = currentFriendData.avatar || '🪿';
@@ -13761,8 +13766,8 @@ function updateGuides(dt) {
             postSigned({ act: 'like', playerId: playerProfile.playerId, toId: targetPid }).then(r => {
                 if (r && r.ok) { if (span) span.innerText = r.likes; return; }
                 if (span) span.innerText = before;
-                if (r && r.err === 'ALREADY_LIKED_TODAY') toast('今天已經讚過了', '每人每日對同一位限 1 次');
-                else { btn.disabled = false; btn.classList.remove('liked'); toast('按讚失敗', (r && r.err) || ''); }
+                btn.disabled = false; btn.classList.remove('liked');
+                toast('按讚失敗', (r && r.err) ? errMsg(r.err) : '請稍後再試');
             });
         }
         function sendFriendReq(targetPid, btn) {
@@ -13776,7 +13781,7 @@ function updateGuides(dt) {
                     } else { btn.innerText = '已邀請'; toast('好友邀請已送出', '等待對方確認'); }
                 } else {
                     btn.disabled = false; btn.className = 'mini'; btn.innerText = '+好友';
-                    toast('邀請失敗', (r && r.err) || '');
+                    toast('邀請失敗', (r && r.err) ? errMsg(r.err) : '請稍後再試');
                 }
             });
         }
@@ -13786,7 +13791,7 @@ function updateGuides(dt) {
             btn.disabled = true; btn.innerText = '處理中';
             postSigned({ act: 'friendAccept', playerId: playerProfile.playerId, toId: targetPid }).then(r => {
                 if (r && r.ok) { toast('🎉 已成為球友!', ''); loadFriends(); }
-                else { btn.disabled = false; btn.innerText = '接受'; toast('確認失敗', (r && r.err) || ''); }
+                else { btn.disabled = false; btn.innerText = '接受'; toast('確認失敗', (r && r.err) ? errMsg(r.err) : '請稍後再試'); }
             });
         }
         function submitScoreToCloud(score) {
@@ -13817,7 +13822,7 @@ function updateGuides(dt) {
                 webcamUsed: webcamActive, device: IS_MOBILE ? 'mobile' : 'desktop'
             }).then(r => {
                 if (r && r.ok) toast('✨ 戰績已登錄中興英雄榜!', '最佳成績 ' + r.bestScore + ' · 點社交查看排名');
-                else toast('登錄失敗', (r && r.err) || '請稍後再試');
+                else toast('登錄失敗', (r && r.err) ? errMsg(r.err) : '請稍後再試');
             });
         }
 
@@ -13989,18 +13994,8 @@ function handleStageResize() {
            🛡️ DOM 崩潰防禦與安全更新函式
            ═══════════════════════════════════════════════ */
         function updatePlayerWhoLabel() {
-            if (typeof playerProfile !== 'undefined' && playerProfile) {
-                if (typeof updateWhoLabel === 'function') {
-                    updateWhoLabel(playerProfile.nickname, playerProfile.avatar);
-                } else {
-                    const el = document.getElementById('p-who-label');
-                    if (el) {
-                        const av = playerProfile.avatar || '🪿';
-                        const nick = Array.from(playerProfile.nickname || '').slice(0, 6).join('');
-                        el.innerText = av + ' ' + nick;
-                    }
-                }
-            }
+            if (typeof playerProfile !== 'undefined' && playerProfile)
+                updateWhoLabel(playerProfile.nickname, playerProfile.avatar);
         }
 
 

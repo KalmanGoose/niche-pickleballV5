@@ -13,8 +13,8 @@
                 nickname: '中興匹克球俠',
                 department: '資訊工程學系 四年級',
                 avatar: '🪿',
-                ig: 'nchu_pickleball_hero',
-                score: 18,
+                ig: '',
+                score: 5,
                 stats: { serve: 85, dink: 78, spin: 92, chain: 88, speed: 82 }
             };
             document.getElementById('sc-avatar').innerText = currentFriendData.avatar || '🪿';

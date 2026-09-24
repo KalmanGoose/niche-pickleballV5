@@ -2415,8 +2415,8 @@ function updateGuides(dt) {
             postSigned({ act: 'like', playerId: playerProfile.playerId, toId: targetPid }).then(r => {
                 if (r && r.ok) { if (span) span.innerText = r.likes; return; }
                 if (span) span.innerText = before;
-                if (r && r.err === 'ALREADY_LIKED_TODAY') toast('今天已經讚過了', '每人每日對同一位限 1 次');
-                else { btn.disabled = false; btn.classList.remove('liked'); toast('按讚失敗', (r && r.err) || ''); }
+                btn.disabled = false; btn.classList.remove('liked');
+                toast('按讚失敗', (r && r.err) ? errMsg(r.err) : '請稍後再試');
             });
         }
         function sendFriendReq(targetPid, btn) {
@@ -2430,7 +2430,7 @@ function updateGuides(dt) {
                     } else { btn.innerText = '已邀請'; toast('好友邀請已送出', '等待對方確認'); }
                 } else {
                     btn.disabled = false; btn.className = 'mini'; btn.innerText = '+好友';
-                    toast('邀請失敗', (r && r.err) || '');
+                    toast('邀請失敗', (r && r.err) ? errMsg(r.err) : '請稍後再試');
                 }
             });
         }
@@ -2440,7 +2440,7 @@ function updateGuides(dt) {
             btn.disabled = true; btn.innerText = '處理中';
             postSigned({ act: 'friendAccept', playerId: playerProfile.playerId, toId: targetPid }).then(r => {
                 if (r && r.ok) { toast('🎉 已成為球友!', ''); loadFriends(); }
-                else { btn.disabled = false; btn.innerText = '接受'; toast('確認失敗', (r && r.err) || ''); }
+                else { btn.disabled = false; btn.innerText = '接受'; toast('確認失敗', (r && r.err) ? errMsg(r.err) : '請稍後再試'); }
             });
         }
         function submitScoreToCloud(score) {
@@ -2471,7 +2471,7 @@ function updateGuides(dt) {
                 webcamUsed: webcamActive, device: IS_MOBILE ? 'mobile' : 'desktop'
             }).then(r => {
                 if (r && r.ok) toast('✨ 戰績已登錄中興英雄榜!', '最佳成績 ' + r.bestScore + ' · 點社交查看排名');
-                else toast('登錄失敗', (r && r.err) || '請稍後再試');
+                else toast('登錄失敗', (r && r.err) ? errMsg(r.err) : '請稍後再試');
             });
         }
 
@@ -2643,18 +2643,8 @@ function handleStageResize() {
            🛡️ DOM 崩潰防禦與安全更新函式
            ═══════════════════════════════════════════════ */
         function updatePlayerWhoLabel() {
-            if (typeof playerProfile !== 'undefined' && playerProfile) {
-                if (typeof updateWhoLabel === 'function') {
-                    updateWhoLabel(playerProfile.nickname, playerProfile.avatar);
-                } else {
-                    const el = document.getElementById('p-who-label');
-                    if (el) {
-                        const av = playerProfile.avatar || '🪿';
-                        const nick = Array.from(playerProfile.nickname || '').slice(0, 6).join('');
-                        el.innerText = av + ' ' + nick;
-                    }
-                }
-            }
+            if (typeof playerProfile !== 'undefined' && playerProfile)
+                updateWhoLabel(playerProfile.nickname, playerProfile.avatar);
         }
 
 
