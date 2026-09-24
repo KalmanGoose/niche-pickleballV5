@@ -2643,11 +2643,17 @@ function handleStageResize() {
            🛡️ DOM 崩潰防禦與安全更新函式
            ═══════════════════════════════════════════════ */
         function updatePlayerWhoLabel() {
-            const whoLabel = document.getElementById('p-who-label');
-            if (whoLabel && typeof playerProfile !== 'undefined' && playerProfile) {
-                const av = playerProfile.avatar || '🪿';
-                const nick = (playerProfile.nickname || '').slice(0, 6);
-                whoLabel.innerText = av + ' ' + nick;
+            if (typeof playerProfile !== 'undefined' && playerProfile) {
+                if (typeof updateWhoLabel === 'function') {
+                    updateWhoLabel(playerProfile.nickname, playerProfile.avatar);
+                } else {
+                    const el = document.getElementById('p-who-label');
+                    if (el) {
+                        const av = playerProfile.avatar || '🪿';
+                        const nick = Array.from(playerProfile.nickname || '').slice(0, 6).join('');
+                        el.innerText = av + ' ' + nick;
+                    }
+                }
             }
         }
 

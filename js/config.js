@@ -13,8 +13,10 @@
 const PROXY_URL = 'https://YOUR-WORKER.workers.dev';
 const API_READY = () => /^https:\/\//.test(PROXY_URL) && PROXY_URL.indexOf('YOUR-WORKER') < 0;
 
+let _tokenCache = null;
 const TOKEN_KEY = 'nchu_pb_token';
 function getOrCreateToken() {
+    if (_tokenCache) return _tokenCache;
     let t = null;
     try { t = localStorage.getItem(TOKEN_KEY); } catch (e) { }
     if (!t || !/^[a-f0-9]{32}$/.test(t)) {
@@ -22,20 +24,41 @@ function getOrCreateToken() {
             b => b.toString(16).padStart(2, '0')).join('');
         try { localStorage.setItem(TOKEN_KEY, t); } catch (e) { }
     }
+    _tokenCache = t;
     return t;
+}
+
+const API_TIMEOUT_MS = 10000;
+function fetchJson(url, options = {}, timeoutMs = API_TIMEOUT_MS) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    const fetchOpts = Object.assign({}, options, { signal: controller.signal });
+
+    return fetch(url, fetchOpts)
+        .then(res => {
+            clearTimeout(timer);
+            return res.json().catch(() => ({ ok: false, err: 'BAD_RESPONSE' }));
+        })
+        .catch(err => {
+            clearTimeout(timer);
+            if (err && err.name === 'AbortError') {
+                return { ok: false, err: 'TIMEOUT' };
+            }
+            return { ok: false, err: 'NETWORK_FAIL' };
+        });
 }
 
 function postSigned(payload) {
     if (!API_READY()) return Promise.resolve({ ok: false, err: 'API_URL_NOT_SET' });
-    return fetch(PROXY_URL, {
+    return fetchJson(PROXY_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json;charset=utf-8' },
         body: JSON.stringify(Object.assign({}, payload, { token: getOrCreateToken() }))
-    }).then(r => r.json()).catch(() => ({ ok: false, err: 'NETWORK_FAIL' }));
+    });
 }
 function apiGet(qs) {
     if (!API_READY()) return Promise.resolve({ ok: false, err: 'API_URL_NOT_SET' });
-    return fetch(PROXY_URL + '?' + qs).then(r => r.json()).catch(() => ({ ok: false, err: 'NETWORK_FAIL' }));
+    return fetchJson(PROXY_URL + '?' + qs);
 }
 
         /* ═══════ 系所代碼表(115 學年度‧學士班) ═══════ */
@@ -179,6 +202,7 @@ function apiGet(qs) {
 
         /* ═══════ 身分編號 (方案 B: 裝置綁定唯一 ID) ═══════ */
         const ID_KEY = 'nchu_pb_identity';
+        let _playerIdCache = null;
         function genPlayerId() {
             let rnd;
             if (window.crypto && crypto.getRandomValues) {
@@ -188,14 +212,19 @@ function apiGet(qs) {
             return 'P-' + Date.now().toString(36).toUpperCase() + '-' + rnd.toUpperCase();
         }
         function loadIdentity() { try { return JSON.parse(localStorage.getItem(ID_KEY)); } catch (e) { return null; } }
-        function saveIdentity(o) { try { localStorage.setItem(ID_KEY, JSON.stringify(o)); } catch (e) { } }
+        function saveIdentity(o) {
+            if (o && o.playerId) _playerIdCache = o.playerId;
+            try { localStorage.setItem(ID_KEY, JSON.stringify(o)); } catch (e) { }
+        }
         function getOrCreatePlayerId() {
+            if (_playerIdCache) return _playerIdCache;
             const saved = loadIdentity() || {};
             if (!saved.playerId) {
                 saved.playerId = genPlayerId();
                 saveIdentity(saved);
             }
-            return saved.playerId;
+            _playerIdCache = saved.playerId;
+            return _playerIdCache;
         }
 
         let playerProfile = {
@@ -357,6 +386,20 @@ function apiGet(qs) {
             document.getElementById('login-full-form').style.display = 'block';
         }
 
+        function updateWhoLabel(nick, avatar) {
+            const el = document.getElementById('p-who-label');
+            if (!el) return;
+            const n = Array.from(String(nick || '')).slice(0, 6).join('');
+            el.innerText = (avatar || '🪿') + ' ' + n;
+        }
+
+        function isValidIG(ig) {
+            if (!ig) return true;
+            const clean = String(ig).trim().replace(/^@/, '');
+            if (!clean) return true;
+            return /^[A-Za-z0-9._]{1,30}$/.test(clean);
+        }
+
         function handleQuickStart() {
             const saved = loadIdentity();
             if (saved && saved.department) {
@@ -372,8 +415,7 @@ function apiGet(qs) {
                 playerProfile.sessionId = 'S-' + Date.now().toString(36);
                 checkAdminAccess(playerProfile.nickname);
 
-                document.getElementById('p-who-label').innerText =
-                    playerProfile.avatar + ' ' + playerProfile.nickname.slice(0, 6);
+                updateWhoLabel(playerProfile.nickname, playerProfile.avatar);
                 document.getElementById('login-overlay').style.display = 'none';
                 document.body.classList.remove('login-open');
                 clearKeys();
@@ -419,8 +461,7 @@ function apiGet(qs) {
                 ig: playerProfile.ig || ''
             });
 
-            document.getElementById('p-who-label').innerText =
-                playerProfile.avatar + ' ' + playerProfile.nickname.slice(0, 6);
+            updateWhoLabel(playerProfile.nickname, playerProfile.avatar);
             document.getElementById('login-overlay').style.display = 'none';
             document.body.classList.remove('login-open');
             clearKeys();
@@ -429,8 +470,8 @@ function apiGet(qs) {
             switchStage(1);
         }
         function openProfileModal() {
-            document.getElementById('edit-dept').value = playerProfile.department;
-            document.getElementById('edit-nick').value = playerProfile.nickname;
+            document.getElementById('edit-dept').value = playerProfile.department || '';
+            document.getElementById('edit-nick').value = playerProfile.nickname || '';
             document.getElementById('edit-ig').value = playerProfile.ig || '';
             document.getElementById('edit-id-badge').innerText =
                 '玩家編號 ' + (playerProfile.playerId || '未登入') +
@@ -441,15 +482,21 @@ function apiGet(qs) {
         }
         function closeProfileModal() { document.getElementById('profile-modal').style.display = 'none'; clearKeys(); }
         function saveProfile() {
+            const rawIg = document.getElementById('edit-ig').value.trim();
+            const cleanIg = rawIg.replace(/^@/, '');
+            if (cleanIg && !isValidIG(cleanIg)) {
+                toast('⚠️ IG 帳號格式不正確', '僅限英數、底線、小數點，且長度 1～30 字元');
+                return;
+            }
+
             playerProfile.department = document.getElementById('edit-dept').value.trim() || playerProfile.department;
             const n = document.getElementById('edit-nick').value.trim();
             if (n) {
                 playerProfile.nickname = n;
                 checkAdminAccess(n);
             }
-            playerProfile.ig = document.getElementById('edit-ig').value.trim().replace(/^@/, '');
-            document.getElementById('p-who-label').innerText =
-                playerProfile.avatar + ' ' + playerProfile.nickname.slice(0, 6);
+            playerProfile.ig = cleanIg;
+            updateWhoLabel(playerProfile.nickname, playerProfile.avatar);
             const sv = loadIdentity() || {};
             sv.playerId = playerProfile.playerId || getOrCreatePlayerId();
             sv.sidPrefix = playerProfile.sidPrefix || sv.sidPrefix;
@@ -465,10 +512,16 @@ function apiGet(qs) {
                     nickname: playerProfile.nickname, department: playerProfile.department,
                     ig: playerProfile.ig || ''
                 }).then(r => {
-                    if (r && r.err === 'UNAUTHORIZED') toast('⚠️ 雲端身分驗證失敗', '此玩家編號已綁定其他裝置');
+                    if (r) {
+                        if (r.err === 'UNAUTHORIZED') {
+                            toast('⚠️ 雲端身分驗證失敗', '此玩家編號已綁定其他裝置');
+                        } else if (!r.ok && r.err !== 'API_URL_NOT_SET') {
+                            toast('⚠️ 雲端同步失敗', '已儲存於本機 (' + (r.err || '未知錯誤') + ')');
+                        }
+                    }
                 });
             }
-            toast('⚙️ 個人設定已儲存', '繼續中興湖特訓!');
+            toast('⚙️ 個人設定已儲存', '繼續中興湖特訓！');
         }
 
         /* ═══════ 音效偏好 ═══════ */

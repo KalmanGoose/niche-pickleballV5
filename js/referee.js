@@ -226,7 +226,7 @@
             el.classList.remove('mode-1', 'mode-2', 'mode-3', 'mode-4');
             el.classList.add('mode-' + refereeMode);
 
-            tEl.innerHTML = title;
+            tEl.innerText = title;
             if (dEl) dEl.innerText = detail || '';
             if (isFault) el.classList.add('fault'); else el.classList.remove('fault');
             el.classList.add('show');

@@ -26,16 +26,16 @@
 | B3 motion.js | 🔧 已實作 | applyPerfPreset 加入 ren.setPixelRatio(dpr) |
 | B4 social.js | 🔧 已實作 | S1~S6 完成，IG 格式驗證與按鈕切換、recentShots slice(-10) |
 | B5 fun_mode.js | 🔧 已實作 | F1~F4 完成，本機開發限定、MEGA_BALL 顏色復原、示波器連動 |
-| B6 config.js | 🔧 已實作 | C1~C7 完成，Worker 代理與 token 機制、APP_VERSION v5.1.0 |
+| B6 config.js | 🔧 已實作（已修正 Review #1～#4） | C1～C7 完成，Worker 代理、token/playerId 快取、fetchJson 逾時與錯誤分類、IG 驗證、Unicode 標籤 |
 | B7 CSS | 🔧 已實作 | hud.css body.login-open、style.css user-select、modals.css 只刪 bottom/left 保留 position:absolute |
 | B8 v14.html | 🔧 已實作 | 黃框更新為簡練版「理論方程式 vs. 實際程式實作」與模型限制 |
 | B9 文件 | 🔧 已實作 | DEPLOY_GUIDE.md 與 整合報告.md 詞彙修訂 |
-| 打包 | ✅ 語法檢查通過（見第 6 節） | 通過 Node.js vm.Script 語法檢查，v14-single.html 與 index.html 已同步 |
+| 打包 | ✅ 語法檢查通過（見第 6 節） | 通過 Node.js vm.Script 語法檢查，v14-single.html（14084 行）與 index.html 已同步 |
 | Part C 人工部署 | ⏳ 待人工執行 | 產生金鑰、GAS 指令碼屬性設定、Worker Secret 設定與填入 PROXY_URL |
 | Part D 手機實測 | ⏳ 待實測 | 待部署後進行手機端遊玩手感與排行榜聯網測試 |
 
 ## 4. 待辦（依優先順序）
-1. 給 Claude review `config.js`（只需 C1、C3～C6 相關函式：`PROXY_URL`、`API_READY`、`getOrCreateToken`、`postSigned`、`apiGet`、`handleQuickStart`、`handleLogin`、`openProfileModal`、`saveProfile`）
+1. 回報 Claude 的 Q1～Q3 回答與 Snippets，確認無阻塞後完成 `config.js` 之 review 狀態更新
 2. 在 v6 分支完成 Part C 部署（**先不要封存舊 GAS 部署**）
 3. 在 v6 預覽環境執行 Part D 測試
 4. 測試通過後合併 v6 → main
@@ -56,7 +56,7 @@
 - **打包輸出**：
   ```
   📦 開始打包…
-  ✅ v14-single.html（14025 行）
+  ✅ v14-single.html（14084 行）
   ✅ index.html 已同步
   ```
 - **逐檔語法檢查**（`node --check`）：
