@@ -26,19 +26,19 @@
 | B3 motion.js | 🔧 已實作 | applyPerfPreset 加入 ren.setPixelRatio(dpr) |
 | B4 social.js | 🔧 已實作 | S1~S6 完成，IG 格式驗證與按鈕切換、recentShots slice(-10) |
 | B5 fun_mode.js | 🔧 已實作 | F1~F4 完成，本機開發限定、MEGA_BALL 顏色復原、示波器連動 |
-| B6 config.js | 🔧 已實作（已修正 Review #1～#4, R1～R3） | C1～C7 完成，Worker 代理、token/playerId 快取、fetchJson 強化、errMsg 錯誤轉譯、IG 驗證、Unicode 標籤 |
+| B6 config.js | ✅ 已 review（待全文最終確認） | C1～C7 完成，Worker 代理、token/playerId 快取、fetchJson 強化、errMsg 錯誤轉譯、IG 驗證、Unicode 標籤 |
 | B7 CSS | 🔧 已實作 | hud.css body.login-open、style.css user-select、modals.css 只刪 bottom/left 保留 position:absolute |
 | B8 v14.html | 🔧 已實作 | 黃框更新為簡練版「理論方程式 vs. 實際程式實作」與模型限制 |
 | B9 文件 | 🔧 已實作 | DEPLOY_GUIDE.md 與 整合報告.md 詞彙修訂 |
-| 打包 | ✅ 語法檢查通過（見第 6 節） | 通過 Node.js vm.Script 語法檢查，v14-single.html（14079 行）與 index.html 已同步 |
+| 打包 | ✅ 語法檢查通過（見第 6 節） | 通過 Node.js vm.Script 語法檢查，v14-single.html（14080 行）與 index.html 已同步 |
 | Part C 人工部署 | ⏳ 待人工執行 | 產生金鑰、GAS 指令碼屬性設定、Worker Secret 設定與填入 PROXY_URL；手機測試採方案 A（同帳號預覽 repo） |
-| Part D 手機實測 | ⏳ 待實測 | 待部署後進行手機端遊玩手感與排行榜聯網測試 |
+| Part D 手機實測 | ⏳ 待實測 | 待部署後進行測試。規則：(a) 測試帳號暱稱一律加前綴 TEST-；(b) 合併 main 前刪除 Sheet 中所有 TEST- 帳號與對應資料；(c) 確認新 GAS 接的是新試算表還是舊試算表並記錄 |
 
 ## 4. 待辦（依優先順序）
-1. 回報 Claude 第三輪審查回饋（N1/N2/R1～R4、grep 結果、鎖範圍與 mc-ig-btn 說明）
-2. 在 v6 分支完成 Part C 部署（**先不要封存舊 GAS 部署**）
-3. 採用方案 A（建立預覽 repo 或自 `kalmangoose.github.io` 預覽）執行 Part D 手機實測（包含測試暱稱 `123abc` 不帶單引號）
-4. 測試通過後合併 v6 → main
+1. 在 v6 分支完成 Part C 部署（**先不要封存舊 GAS 部署**）
+2. 採用方案 A（建立預覽 repo 或自 `kalmangoose.github.io` 預覽）執行 Part D 手機實測（包含測試暱稱 `123abc` 不帶單引號）
+3. 測試通過後合併 v6 → main
+4. 關閉預覽 repo 的 GitHub Pages，或封存該 repo
 5. 合併後才封存舊 GAS 部署，並用 curl 確認舊網址失效
 
 ## 5. 已確定的決策（不要推翻）
@@ -51,13 +51,14 @@
 - 部署順序：v6 部署與測試 → 合併 main → 最後才封存舊 GAS 部署（避免線上社交功能中斷）
 - GitHub Pages 從 main 部署，v6 的修改在合併前不會上線
 - 手機測試環境（N1）：採用方案 A，使用同帳號預覽 repo（`kalmangoose.github.io/...`），共用正式站 Origin，免改 Worker 白名單且避免開放萬用字元安全性漏洞
+- 舊帳號搶先綁定 SOP：管理員至 Google 試算表 `players` 表清空該列 `TOKEN` 欄，玩家下次操作會自動重新綁定。註：管理員無法驗證誰是原主人，SOP 只處理本人主動回報的情況。
 
 ## 6. 最近一次打包 / 測試紀錄
 - **打包指令**：`node scripts/build-single.js`
 - **打包輸出**：
   ```
   📦 開始打包…
-  ✅ v14-single.html（14079 行）
+  ✅ v14-single.html（14080 行）
   ✅ index.html 已同步
   ```
 - **逐檔語法檢查**（`node --check`）：
@@ -80,4 +81,3 @@
 ## 7. 未解問題
 - 文獻 [3]～[5] 待人工查證
 - 單打第二發球權、英雄榜同分無鑑別度：規則設計問題，尚未決定
-- 舊玩家帳號搶先綁定處置流程：採方案 A，由管理員於 Google 試算表 `players` 表手動清空該列 `TOKEN` 欄位以解除綁定，下次連線自動重新綁定新 token。

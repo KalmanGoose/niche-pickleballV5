@@ -2471,6 +2471,7 @@ function updateGuides(dt) {
                 webcamUsed: webcamActive, device: IS_MOBILE ? 'mobile' : 'desktop'
             }).then(r => {
                 if (r && r.ok) toast('✨ 戰績已登錄中興英雄榜!', '最佳成績 ' + r.bestScore + ' · 點社交查看排名');
+                else if (r && r.err === 'TIMEOUT') toast('⏳ 連線逾時', '成績可能已送出，請先重新整理英雄榜確認');
                 else toast('登錄失敗', (r && r.err) ? errMsg(r.err) : '請稍後再試');
             });
         }

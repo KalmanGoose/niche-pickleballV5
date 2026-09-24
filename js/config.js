@@ -49,6 +49,7 @@ function errMsg(err) {
         BAD_RESPONSE: '伺服器回應異常',
         UNAUTHORIZED: '身分驗證失敗',
         API_URL_NOT_SET: '離線模式',
+        SERVER_BUSY_PLEASE_RETRY: '伺服器忙碌，請稍後再試',
         ALREADY_LIKED_TODAY: '今天已經讚過了（每人每日限 1 次）'
     })[err] || ('請稍後再試（' + (err || '未知錯誤') + '）');
 }
@@ -59,7 +60,7 @@ function postSigned(payload) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json;charset=utf-8' },
         body: JSON.stringify(Object.assign({}, payload, { token: getOrCreateToken() }))
-    });
+    }, 20000);
 }
 function apiGet(qs) {
     if (!API_READY()) return Promise.resolve({ ok: false, err: 'API_URL_NOT_SET' });
