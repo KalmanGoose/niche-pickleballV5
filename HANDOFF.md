@@ -18,30 +18,28 @@
 ## 3. 進度（依 FIX_PLAN 章節）
 | 章節 | 狀態 | 備註 |
 |---|---|---|
-| A1 physics.js | ✅ 已完成 | 雙模式（FAST/ACADEMIC）、空氣動力常數、Symplectic Euler |
-| A2 build-single.js | ✅ 已完成 | 支援 vm.Script 語法檢查、重複函式警示、自動同步 index.html |
-| A3 Worker / A4 Code.gs | ✅ 已完成 | 代碼已替換為 v3.0 HMAC 簽章代理、防重放、排他鎖；部署另見 Part C |
-| B1 game.js | ✅ 已完成 | 含 solveArc 分流、RWD 尺寸綁定、示範修復、gooseErrorHit、離線 apiWarn 與分數關卡邊界檢查 |
-| B2 ui.js | ✅ 已完成 | U1~U4 均完成，TOUR_STEPS 站台描述與 IG 欄位已依建議修正 |
-| B3 motion.js | ✅ 已完成 | applyPerfPreset 加入 ren.setPixelRatio(dpr) |
-| B4 social.js | ✅ 已完成 | S1~S6 完成，IG 格式驗證與按鈕切換、recentShots slice(-10) |
-| B5 fun_mode.js | ✅ 已完成 | F1~F4 完成，本機開發限定、MEGA_BALL 顏色復原、示波器連動 |
-| B6 config.js | ✅ 已完成 | C1~C7 完成，Worker 代理與 token 機制、APP_VERSION v5.1.0 |
-| B7 CSS | ✅ 已完成 | hud.css body.login-open、style.css user-select、modals.css 只刪 bottom/left 保留 position:absolute |
-| B8 v14.html | ✅ 已完成 | 黃框更新為簡練版「理論方程式 vs. 實際程式實作」與模型限制 |
-| B9 文件 | ✅ 已完成 | DEPLOY_GUIDE.md 與 整合報告.md 詞彙修訂 |
-| 打包 | ✅ 已完成 | 通過 Node.js vm.Script 語法檢查，v14-single.html 與 index.html 已同步 |
+| A1 physics.js | 🔧 已實作 | 雙模式（FAST/ACADEMIC）、空氣動力常數、Symplectic Euler |
+| A2 build-single.js | 🔧 已實作 | 支援 vm.Script 語法檢查、重複函式警示、自動同步 index.html |
+| A3 Worker / A4 Code.gs | 🔧 已實作 | 代碼已替換為 v3.0 HMAC 簽章代理、防重放、排他鎖；部署另見 Part C |
+| B1 game.js | ✅ 已 review | 含 solveArc 分流、RWD 尺寸綁定、示範修復、gooseErrorHit、離線 apiWarn 與分數關卡檢查 |
+| B2 ui.js | ✅ 已 review | U1~U4 均完成，TOUR_STEPS 站台描述與 IG 欄位已修正 |
+| B3 motion.js | 🔧 已實作 | applyPerfPreset 加入 ren.setPixelRatio(dpr) |
+| B4 social.js | 🔧 已實作 | S1~S6 完成，IG 格式驗證與按鈕切換、recentShots slice(-10) |
+| B5 fun_mode.js | 🔧 已實作 | F1~F4 完成，本機開發限定、MEGA_BALL 顏色復原、示波器連動 |
+| B6 config.js | 🔧 已實作 | C1~C7 完成，Worker 代理與 token 機制、APP_VERSION v5.1.0 |
+| B7 CSS | 🔧 已實作 | hud.css body.login-open、style.css user-select、modals.css 只刪 bottom/left 保留 position:absolute |
+| B8 v14.html | 🔧 已實作 | 黃框更新為簡練版「理論方程式 vs. 實際程式實作」與模型限制 |
+| B9 文件 | 🔧 已實作 | DEPLOY_GUIDE.md 與 整合報告.md 詞彙修訂 |
+| 打包 | ✅ 語法檢查通過（見第 6 節） | 通過 Node.js vm.Script 語法檢查，v14-single.html 與 index.html 已同步 |
 | Part C 人工部署 | ⏳ 待人工執行 | 產生金鑰、GAS 指令碼屬性設定、Worker Secret 設定與填入 PROXY_URL |
 | Part D 手機實測 | ⏳ 待實測 | 待部署後進行手機端遊玩手感與排行榜聯網測試 |
 
 ## 4. 待辦（依優先順序）
-1. 人工執行 Part C 部署作業：
-   - 產生新金鑰：`node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"`
-   - 部署 GAS（貼上 `Code.gs`，設定 `SIGN_SECRET`，新增部署作業並封存舊部署）
-   - 部署 Worker（貼上 `cloudflare-worker.js`，設定 `GAS_URL` 與 `SIGN_SECRET` Secrets）
-   - 前端填入 Worker 網址至 `config.js` 的 `PROXY_URL`，執行 `node scripts/build-single.js`
-2. 依 Part D 測試清單驗證手機版手感與雲端身分安全
-3. 下次給 Claude review：確認 Worker 與 GAS 連線安全、或手機版實測回饋
+1. 給 Claude review `config.js`（只需 C1、C3～C6 相關函式：`PROXY_URL`、`API_READY`、`getOrCreateToken`、`postSigned`、`apiGet`、`handleQuickStart`、`handleLogin`、`openProfileModal`、`saveProfile`）
+2. 在 v6 分支完成 Part C 部署（**先不要封存舊 GAS 部署**）
+3. 在 v6 預覽環境執行 Part D 測試
+4. 測試通過後合併 v6 → main
+5. 合併後才封存舊 GAS 部署，並用 curl 確認舊網址失效
 
 ## 5. 已確定的決策（不要推翻）
 - FAST 物理模式行為維持原版；ACADEMIC 為展示用
@@ -50,6 +48,8 @@
 - `v14.html` 是模板，不能刪
 - `modals.css` 的 `#speed-hud-mini` 只刪 `bottom`、`left`，保留 `position`
 - 前端防禦性檢查：score ≤ 5 且 stage ∈ {5, 6}（與後端規則一致）
+- 部署順序：v6 部署與測試 → 合併 main → 最後才封存舊 GAS 部署（避免線上社交功能中斷）
+- GitHub Pages 從 main 部署，v6 的修改在合併前不會上線
 
 ## 6. 最近一次打包 / 測試紀錄
 - **打包指令**：`node scripts/build-single.js`
@@ -59,9 +59,22 @@
   ✅ v14-single.html（14025 行）
   ✅ index.html 已同步
   ```
-- **語法驗證**：
-  - Node.js `vm.Script` 合併代碼編譯無錯誤
-  - 全模組 `node -c js/*.js backend/*.js` 驗證無語法錯誤
+- **逐檔語法檢查**（`node --check`）：
+  ```
+  OK  js/audio.js
+  OK  js/config.js
+  OK  js/fly_connectome.js
+  OK  js/fun_mode.js
+  OK  js/game.js
+  OK  js/motion.js
+  OK  js/physics.js
+  OK  js/referee.js
+  OK  js/social.js
+  OK  js/ui.js
+  OK  backend/cloudflare-worker.js
+  OK  backend/Code.gs
+  ```
+- **備註**：Node.js `vm.Script` 與 `node --check` 僅檢查語法，無法抓到執行期錯誤（例如變數未定義），需靠 Part D 實測。
 
 ## 7. 未解問題
 - 文獻 [3]～[5] 待人工查證
