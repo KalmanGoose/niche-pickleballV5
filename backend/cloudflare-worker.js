@@ -9,9 +9,10 @@
 
 const POST_ACTS = new Set(['submit', 'like', 'friendReq', 'friendAccept', 'updateProfile', 'sync_twin']);
 const GET_ACTS = new Set(['ping', 'leaderboard', 'me', 'friends']);
-const MAX_BODY_CHARS = 16 * 1024;
+const MAX_BODY_CHARS = 40 * 1024;
 const WINDOW_MS = 60 * 1000;
-const LIMITS = { GET: 40, POST: 15 };
+const LIMITS = { GET: 240, POST: 120 };
+const PID_POST_LIMIT = 15;
 
 const PROD_ORIGINS = new Set(['https://kalmangoose.github.io']);
 function originAllowed(origin) {
@@ -117,6 +118,9 @@ export default {
             }
             if (!payload || typeof payload !== 'object' || !POST_ACTS.has(payload.act)) {
                 return json({ ok: false, err: 'UNKNOWN_POST_ACTION' }, 400, cors);
+            }
+            if (payload.playerId && !rateLimit('pid:' + String(payload.playerId).slice(0, 64), PID_POST_LIMIT)) {
+                return json({ ok: false, err: 'RATE_LIMIT_EXCEEDED' }, 429, cors);
             }
             const dataStr = JSON.stringify(payload);
             const ts = Date.now();

@@ -41,10 +41,22 @@ function getOrCreateSheet(ss, name, headers) {
         sheet.setFrozenRows(1);
         return sheet;
     }
-    if (sheet.getLastColumn() < headers.length) {
-        sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+    var n = sheet.getLastColumn();
+    var cur = n > 0 ? sheet.getRange(1, 1, 1, n).getValues()[0] : [];
+    for (var i = 0; i < cur.length && i < headers.length; i++) {
+        if (String(cur[i]) !== headers[i]) throw new Error('SCHEMA_MISMATCH ' + name + ' col ' + (i + 1));
+    }
+    if (n < headers.length) {
+        sheet.getRange(1, n + 1, 1, headers.length - n).setValues([headers.slice(n)]);
     }
     return sheet;
+}
+
+function setupTextFormats() {
+    var db = getDb();
+    [db.players, db.scores, db.friends, db.likes].forEach(function (sh) {
+        sh.getRange(1, 1, sh.getMaxRows(), sh.getMaxColumns()).setNumberFormat('@');
+    });
 }
 
 function jsonResponse(data) {
@@ -89,7 +101,16 @@ function verifySignature(dataStr, ts, nonce, sig) {
 
 function hashToken(token) {
     var d = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, token, Utilities.Charset.UTF_8);
-    return Utilities.base64Encode(d);
+    return 'h' + Utilities.base64Encode(d);
+}
+
+var _sheetTz = null;
+function dayStr(v) {
+    if (v instanceof Date) {
+        _sheetTz = _sheetTz || SpreadsheetApp.getActiveSpreadsheet().getSpreadsheetTimeZone();
+        return Utilities.formatDate(v, _sheetTz, 'yyyy-MM-dd');
+    }
+    return String(v || '');
 }
 
 function authorize(db, pData, pid, token, isoTime) {
@@ -134,9 +155,9 @@ function doGet(e) {
                 var sc = Number(row[COL.BEST]) || 0;
                 if (!row[COL.PID] || sc <= 0) continue;
                 list.push({
-                    playerId: row[COL.PID], avatar: row[COL.AVATAR] || '🪿',
-                    nickname: row[COL.NICK] || '匿名球員', department: row[COL.DEPT] || '',
-                    deptCode: row[COL.DEPTCODE] || '', ig: row[COL.IG] || '',
+                    playerId: row[COL.PID], avatar: String(row[COL.AVATAR] || '🪿'),
+                    nickname: String(row[COL.NICK] || '匿名球員'), department: String(row[COL.DEPT] || ''),
+                    deptCode: String(row[COL.DEPTCODE] || ''), ig: String(row[COL.IG] || ''),
                     score: sc, likes: Number(row[COL.LIKES]) || 0
                 });
             }
@@ -151,7 +172,7 @@ function doGet(e) {
                 var liked = false, friendStatus = 'none';
                 if (pid && !isMe) {
                     for (var j = 1; j < likesData.length; j++) {
-                        if (likesData[j][1] === pid && likesData[j][2] === item.playerId && likesData[j][3] === today) {
+                        if (likesData[j][1] === pid && likesData[j][2] === item.playerId && dayStr(likesData[j][3]) === today) {
                             liked = true; break;
                         }
                     }
@@ -199,9 +220,9 @@ function doGet(e) {
                 if (!r[COL.PID]) continue;
                 var twin = safeParse(r[COL.TWIN]);
                 playerMap[r[COL.PID]] = {
-                    playerId: r[COL.PID], avatar: r[COL.AVATAR] || '🪿',
-                    nickname: r[COL.NICK] || '匿名球員', department: r[COL.DEPT] || '',
-                    ig: r[COL.IG] || '', score: Number(r[COL.BEST]) || 0,
+                    playerId: r[COL.PID], avatar: String(r[COL.AVATAR] || '🪿'),
+                    nickname: String(r[COL.NICK] || '匿名球員'), department: String(r[COL.DEPT] || ''),
+                    ig: String(r[COL.IG] || ''), score: Number(r[COL.BEST]) || 0,
                     stats: twin && twin.stats ? twin.stats : null
                 };
             }
@@ -221,7 +242,8 @@ function doGet(e) {
 
         return jsonResponse({ ok: false, err: 'UNKNOWN_GET_ACTION' });
     } catch (err) {
-        return jsonResponse({ ok: false, err: 'GET_ERROR: ' + err });
+        console.error(err);
+        return jsonResponse({ ok: false, err: 'SERVER_ERROR' });
     }
 }
 
@@ -244,7 +266,7 @@ function doPost(e) {
         }
         var cache = CacheService.getScriptCache(), nonceKey = 'pb_nonce_' + nonce;
         if (cache.get(nonceKey)) return jsonResponse({ ok: false, err: 'REPLAY_ATTACK_DETECTED' });
-        cache.put(nonceKey, '1', 600);
+        cache.put(nonceKey, '1', 1200);
 
         var payload = safeParse(dataStr);
         if (!payload) return jsonResponse({ ok: false, err: 'INVALID_INNER_JSON' });
@@ -290,7 +312,7 @@ function doPost(e) {
             var today = Utilities.formatDate(new Date(), 'Asia/Taipei', 'yyyy-MM-dd');
             var likesData = db.likes.getDataRange().getValues();
             for (var i = 1; i < likesData.length; i++) {
-                if (likesData[i][1] === pid && likesData[i][2] === toId && likesData[i][3] === today) {
+                if (likesData[i][1] === pid && likesData[i][2] === toId && dayStr(likesData[i][3]) === today) {
                     return jsonResponse({ ok: false, err: 'ALREADY_LIKED_TODAY' });
                 }
             }
@@ -349,7 +371,8 @@ function doPost(e) {
 
         return jsonResponse({ ok: false, err: 'UNKNOWN_POST_ACTION' });
     } catch (err) {
-        return jsonResponse({ ok: false, err: 'SERVER_ERROR: ' + err });
+        console.error(err);
+        return jsonResponse({ ok: false, err: 'SERVER_ERROR' });
     } finally {
         lock.releaseLock();
     }

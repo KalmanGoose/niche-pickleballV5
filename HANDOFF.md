@@ -20,22 +20,26 @@
 |---|---|---|
 | A1 physics.js | 🔧 已實作 | 雙模式（FAST/ACADEMIC）、空氣動力常數、Symplectic Euler |
 | A2 build-single.js | 🔧 已實作 | 支援 vm.Script 語法檢查、重複函式警示、自動同步 index.html |
-| A3 Worker / A4 Code.gs | 🔧 已實作 | 代碼已替換為 v3.0 HMAC 簽章代理、防重放、排他鎖；部署另見 Part C |
+| A3 Worker / A4 Code.gs | 🔧 已實作 | 代碼已替換為 v3.0 HMAC 簽章代理、防重放、排他鎖；Round 5 完成：'h' 前綴、dayStr 時區正規化、setupTextFormats、String 包裹、SCHEMA_MISMATCH 檢查、SERVER_ERROR 遮蔽、nonce 1200s、Worker IP/PID 限流、40KB 上限 |
 | B1 game.js | ✅ 已 review | 含 solveArc 分流、RWD 尺寸綁定、示範修復、gooseErrorHit、離線 apiWarn 與分數關卡檢查 |
 | B2 ui.js | ✅ 已 review | U1~U4 均完成，TOUR_STEPS 站台描述與 IG 欄位已修正 |
 | B3 motion.js | 🔧 已實作 | applyPerfPreset 加入 ren.setPixelRatio(dpr) |
-| B4 social.js | 🔧 已實作 | S1~S6 完成，IG 格式驗證與按鈕切換、recentShots slice(-10) |
+| B4 social.js | 🔧 已實作 | S1~S6 完成，IG 格式驗證與按鈕切換、recentShots slice(-10)、openFriendIG String 防護 |
 | B5 fun_mode.js | 🔧 已實作 | F1~F4 完成，本機開發限定、MEGA_BALL 顏色復原、示波器連動 |
-| B6 config.js | ✅ 已 review（待全文最終確認） | C1～C7 完成，Worker 代理、token/playerId 快取、fetchJson 強化、errMsg 錯誤轉譯、IG 驗證、Unicode 標籤 |
+| B6 config.js | 🔧 已實作（待 Claude review） | C1～C7 完成，Worker 代理、token/playerId 快取、fetchJson 強化、errMsg 擴充完整錯誤碼轉譯、IG 驗證、Unicode 標籤 |
 | B7 CSS | 🔧 已實作 | hud.css body.login-open、style.css user-select、modals.css 只刪 bottom/left 保留 position:absolute |
 | B8 v14.html | 🔧 已實作 | 黃框更新為簡練版「理論方程式 vs. 實際程式實作」與模型限制 |
-| B9 文件 | 🔧 已實作 | DEPLOY_GUIDE.md 與 整合報告.md 詞彙修訂 |
-| 打包 | ✅ 語法檢查通過（見第 6 節） | 通過 Node.js vm.Script 語法檢查，v14-single.html（14080 行）與 index.html 已同步 |
-| Part C 人工部署 | ⏳ 待人工執行 | 產生金鑰、GAS 指令碼屬性設定、Worker Secret 設定與填入 PROXY_URL；手機測試採方案 A（同帳號預覽 repo） |
-| Part D 手機實測 | ⏳ 待實測 | 待部署後進行測試。規則：(a) 測試帳號暱稱一律加前綴 TEST-；(b) 合併 main 前刪除 Sheet 中所有 TEST- 帳號與對應資料；(c) 確認新 GAS 接的是新試算表還是舊試算表並記錄 |
+| B9 文件 | 🔧 已實作 | DEPLOY_GUIDE.md 與 整合報告.md 詞彙修訂，更新部署安全步驟 |
+| 打包 | ✅ 語法檢查通過（見第 6 節） | 通過 Node.js vm.Script 語法檢查，v14-single.html 與 index.html 已同步 |
+| Part C 人工部署 | ⏳ 待人工執行 | 建立全新試算表並執行 setupTextFormats()、GAS 指令碼屬性設定、Worker Secret 設定與填入 PROXY_URL；手機測試採方案 A（同帳號預覽 repo） |
+| Part D 手機實測 | ⏳ 待實測 | 待部署後進行測試。規則：(a) 測試帳號暱稱一律加前綴 TEST-；(b) 合併 main 前刪除 Sheet 中所有 TEST- 帳號與對應資料；(c) 測試暱稱設為 `007`、`1/2`、`TRUE` 確認試算表不強制轉型；(d) 同日同對象重複按讚阻擋測試（回傳 ALREADY_LIKED_TODAY）；(e) Sheet 檢查 tokenHash 皆為 'h' 開頭字串；(f) 3 支以上手機在校園 Wi-Fi 下同時遊玩無 RATE_LIMIT_EXCEEDED 阻擋。 |
 
 ## 4. 待辦（依優先順序）
-1. 在 v6 分支完成 Part C 部署（**先不要封存舊 GAS 部署**）
+1. 在 v6 分支完成 Part C 人工部署（**注意：先不要封存舊 GAS 部署**）
+   - 建立全新 Google 試算表（New Spreadsheet），貼上 `backend/Code.gs`，執行一次 `setupTextFormats()`
+   - 設定 GAS 指令碼屬性 `SIGN_SECRET`，發布 Web App 取得 `GAS_URL`
+   - 建立 Cloudflare Worker，貼上 `backend/cloudflare-worker.js`，設定 Secrets (`GAS_URL`, `SIGN_SECRET`)
+   - 將 Worker 網址填入 `js/config.js` 的 `PROXY_URL`，執行 `node scripts/build-single.js`
 2. 採用方案 A（建立預覽 repo 或自 `kalmangoose.github.io` 預覽）執行 Part D 手機實測（包含測試暱稱 `123abc` 不帶單引號）
 3. 測試通過後合併 v6 → main
 4. 關閉預覽 repo 的 GitHub Pages，或封存該 repo
@@ -44,7 +48,8 @@
 ## 5. 已確定的決策（不要推翻）
 - FAST 物理模式行為維持原版；ACADEMIC 為展示用
 - 金鑰只放 GAS 指令碼屬性與 Worker Secret，前端不可出現
-- 玩家身分：公開 playerId + 私密 token（後端只存 SHA-256）
+- 玩家身分：公開 playerId + 私密 token（後端只存 SHA-256，'h' 前綴防型態混淆）
+- 後端資料庫：綁定**全新 Google 試算表**（New Spreadsheet），全工作表預設純文字格式（`@`），確保舊版線上環境與新版 schema 隔離
 - `v14.html` 是模板，不能刪
 - `modals.css` 的 `#speed-hud-mini` 只刪 `bottom`、`left`，保留 `position`
 - 前端防禦性檢查：score ≤ 5 且 stage ∈ {5, 6}（與後端規則一致）
@@ -58,7 +63,7 @@
 - **打包輸出**：
   ```
   📦 開始打包…
-  ✅ v14-single.html（14080 行）
+  ✅ v14-single.html（14090 行）
   ✅ index.html 已同步
   ```
 - **逐檔語法檢查**（`node --check`）：
@@ -81,3 +86,4 @@
 ## 7. 未解問題
 - 文獻 [3]～[5] 待人工查證
 - 單打第二發球權、英雄榜同分無鑑別度：規則設計問題，尚未決定
+- GET friends 不需驗證，任何人可查看他人好友清單與 IG（暫時接受此風險；若未來需加固需改為帶 token 的 POST 請求）

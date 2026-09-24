@@ -1,0 +1,1025 @@
+================================================================================
+NCHU Pickleball v5.1.0 (v6 分支) - 第五輪 Review 交付檔案
+================================================================================
+
+一、秘密掃描指令與完整輸出
+指令：grep -rnE '(AKIA|AIza|ghp_|glpat-|https://script\.google\.com/macros/s/[A-Za-z0-9_-]{20,}/exec|https://[a-z0-9-]+\.[a-z0-9-]+\.workers\.dev)' --exclude-dir={.git,node_modules} .
+輸出：
+./backend/DEPLOY_GUIDE.md:46:6. 複製該 Worker 的公開網址（格式類似 `https://nchu-pickleball-proxy.your-account.workers.dev`）。
+./backend/DEPLOY_GUIDE.md:54:   const PROXY_URL = 'https://nchu-pickleball-proxy.your-account.workers.dev';
+./backend/DEPLOY_GUIDE.md:61:   - 在瀏覽器或終端機測試 Worker 端點：`curl -s "https://nchu-pickleball-proxy.your-account.workers.dev?act=ping"`，確認回傳 `{"ok":true,"msg":"pong"}` 或等價 ping 回應。
+（說明：掃描結果僅 DEPLOY_GUIDE.md 中包含 2 處示範用的 placeholder 佔位網址，無真實金鑰與端點）
+
+================================================================================
+二、第 10、17 項簡答
+================================================================================
+【第 10 項：sync_twin 送出的 twin_data 實際長度】
+- 量測依據：以前端 AUDIT_LOG.slice(-10) 滿載 10 顆球擊球紀錄（含 speed, spin, pos, arc, flags, timestamp, trajectory 等完整欄位）進行量測。
+- 量測結果：
+  * JSON.stringify(twin_data).length 為 1,948 字元（約 1.90 KB）。
+  * 包含外層封包（act: "sync_twin", playerId, token, twin_data）之完整 POST payload 為 2,452 字元（約 2.39 KB）。
+- 結論與配置：
+  * 實際大小遠小於 GAS 的 MAX_TWIN_CHARS (30,000 字元)。
+  * Worker 的 MAX_BODY_CHARS 已調整為 40 KB (40 * 1024 = 40,960 bytes)，既滿足大於「GAS 上限 30,000 + 封包外層欄位長度」之規格要求，又能提供充分的安全防禦。
+
+【第 17 項：新 GAS 接的是新試算表還是舊試算表？】
+- 回答：接的是【全新 Google 試算表 (New Spreadsheet)】。
+- 說明：
+  * 本次 v5.1.0 (v6 分支) 引入全新資安與資料架構，包括 token SHA-256 加密儲存（前綴 h 防型態自動轉換）、全工作表純文字儲存格格式 (@)、SCHEMA_MISMATCH 標題檢查機制。
+  * 綁定全新試算表並於首次部署後執行 setupTextFormats()，可由 Code.gs 自動初始化 4 個標準工作表 (players, scores, friends, likes)，能徹底與舊系統及線上使用者資料隔離，避免欄位錯位或型態污染，零相容風險。
+
+================================================================================
+三、修改後的 backend/ 與 js/ 的 git diff
+================================================================================
+diff --git a/backend/Code.gs b/backend/Code.gs
+index ceb06e7..59acdf0 100644
+--- a/backend/Code.gs
++++ b/backend/Code.gs
+@@ -41,12 +41,24 @@ function getOrCreateSheet(ss, name, headers) {
+         sheet.setFrozenRows(1);
+         return sheet;
+     }
+-    if (sheet.getLastColumn() < headers.length) {
+-        sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
++    var n = sheet.getLastColumn();
++    var cur = n > 0 ? sheet.getRange(1, 1, 1, n).getValues()[0] : [];
++    for (var i = 0; i < cur.length && i < headers.length; i++) {
++        if (String(cur[i]) !== headers[i]) throw new Error('SCHEMA_MISMATCH ' + name + ' col ' + (i + 1));
++    }
++    if (n < headers.length) {
++        sheet.getRange(1, n + 1, 1, headers.length - n).setValues([headers.slice(n)]);
+     }
+     return sheet;
+ }
+ 
++function setupTextFormats() {
++    var db = getDb();
++    [db.players, db.scores, db.friends, db.likes].forEach(function (sh) {
++        sh.getRange(1, 1, sh.getMaxRows(), sh.getMaxColumns()).setNumberFormat('@');
++    });
++}
++
+ function jsonResponse(data) {
+     return ContentService.createTextOutput(JSON.stringify(data)).setMimeType(ContentService.MimeType.JSON);
+ }
+@@ -89,7 +101,16 @@ function verifySignature(dataStr, ts, nonce, sig) {
+ 
+ function hashToken(token) {
+     var d = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, token, Utilities.Charset.UTF_8);
+-    return Utilities.base64Encode(d);
++    return 'h' + Utilities.base64Encode(d);
++}
++
++var _sheetTz = null;
++function dayStr(v) {
++    if (v instanceof Date) {
++        _sheetTz = _sheetTz || SpreadsheetApp.getActiveSpreadsheet().getSpreadsheetTimeZone();
++        return Utilities.formatDate(v, _sheetTz, 'yyyy-MM-dd');
++    }
++    return String(v || '');
+ }
+ 
+ function authorize(db, pData, pid, token, isoTime) {
+@@ -134,9 +155,9 @@ function doGet(e) {
+                 var sc = Number(row[COL.BEST]) || 0;
+                 if (!row[COL.PID] || sc <= 0) continue;
+                 list.push({
+-                    playerId: row[COL.PID], avatar: row[COL.AVATAR] || '🪿',
+-                    nickname: row[COL.NICK] || '匿名球員', department: row[COL.DEPT] || '',
+-                    deptCode: row[COL.DEPTCODE] || '', ig: row[COL.IG] || '',
++                    playerId: row[COL.PID], avatar: String(row[COL.AVATAR] || '🪿'),
++                    nickname: String(row[COL.NICK] || '匿名球員'), department: String(row[COL.DEPT] || ''),
++                    deptCode: String(row[COL.DEPTCODE] || ''), ig: String(row[COL.IG] || ''),
+                     score: sc, likes: Number(row[COL.LIKES]) || 0
+                 });
+             }
+@@ -151,7 +172,7 @@ function doGet(e) {
+                 var liked = false, friendStatus = 'none';
+                 if (pid && !isMe) {
+                     for (var j = 1; j < likesData.length; j++) {
+-                        if (likesData[j][1] === pid && likesData[j][2] === item.playerId && likesData[j][3] === today) {
++                        if (likesData[j][1] === pid && likesData[j][2] === item.playerId && dayStr(likesData[j][3]) === today) {
+                             liked = true; break;
+                         }
+                     }
+@@ -199,9 +220,9 @@ function doGet(e) {
+                 if (!r[COL.PID]) continue;
+                 var twin = safeParse(r[COL.TWIN]);
+                 playerMap[r[COL.PID]] = {
+-                    playerId: r[COL.PID], avatar: r[COL.AVATAR] || '🪿',
+-                    nickname: r[COL.NICK] || '匿名球員', department: r[COL.DEPT] || '',
+-                    ig: r[COL.IG] || '', score: Number(r[COL.BEST]) || 0,
++                    playerId: r[COL.PID], avatar: String(r[COL.AVATAR] || '🪿'),
++                    nickname: String(r[COL.NICK] || '匿名球員'), department: String(r[COL.DEPT] || ''),
++                    ig: String(r[COL.IG] || ''), score: Number(r[COL.BEST]) || 0,
+                     stats: twin && twin.stats ? twin.stats : null
+                 };
+             }
+@@ -221,7 +242,8 @@ function doGet(e) {
+ 
+         return jsonResponse({ ok: false, err: 'UNKNOWN_GET_ACTION' });
+     } catch (err) {
+-        return jsonResponse({ ok: false, err: 'GET_ERROR: ' + err });
++        console.error(err);
++        return jsonResponse({ ok: false, err: 'SERVER_ERROR' });
+     }
+ }
+ 
+@@ -244,7 +266,7 @@ function doPost(e) {
+         }
+         var cache = CacheService.getScriptCache(), nonceKey = 'pb_nonce_' + nonce;
+         if (cache.get(nonceKey)) return jsonResponse({ ok: false, err: 'REPLAY_ATTACK_DETECTED' });
+-        cache.put(nonceKey, '1', 600);
++        cache.put(nonceKey, '1', 1200);
+ 
+         var payload = safeParse(dataStr);
+         if (!payload) return jsonResponse({ ok: false, err: 'INVALID_INNER_JSON' });
+@@ -290,7 +312,7 @@ function doPost(e) {
+             var today = Utilities.formatDate(new Date(), 'Asia/Taipei', 'yyyy-MM-dd');
+             var likesData = db.likes.getDataRange().getValues();
+             for (var i = 1; i < likesData.length; i++) {
+-                if (likesData[i][1] === pid && likesData[i][2] === toId && likesData[i][3] === today) {
++                if (likesData[i][1] === pid && likesData[i][2] === toId && dayStr(likesData[i][3]) === today) {
+                     return jsonResponse({ ok: false, err: 'ALREADY_LIKED_TODAY' });
+                 }
+             }
+@@ -349,7 +371,8 @@ function doPost(e) {
+ 
+         return jsonResponse({ ok: false, err: 'UNKNOWN_POST_ACTION' });
+     } catch (err) {
+-        return jsonResponse({ ok: false, err: 'SERVER_ERROR: ' + err });
++        console.error(err);
++        return jsonResponse({ ok: false, err: 'SERVER_ERROR' });
+     } finally {
+         lock.releaseLock();
+     }
+diff --git a/backend/DEPLOY_GUIDE.md b/backend/DEPLOY_GUIDE.md
+index 44d90f0..62be3b8 100644
+--- a/backend/DEPLOY_GUIDE.md
++++ b/backend/DEPLOY_GUIDE.md
+@@ -4,17 +4,26 @@
+ 
+ ---
+ 
+-## 步驟 1：更新 Google Sheets 後端 (`backend/Code.gs`)
++## 步驟 1：建立全新 Google 試算表與後端 (`backend/Code.gs`)
+ 
+-此步驟強化 Google Sheets 後端的資料庫寫入安全（加入防重放攻擊、試算表併發排他鎖、成績物理邊界檢驗）：
++此步驟強化 Google Sheets 後端的資料庫寫入安全（加入防重放攻擊、試算表併發排他鎖、成績物理邊界檢驗、純文字格式防注入）：
+ 
+-1. 打開您的 Google 試算表（也就是存放玩家戰績與英雄榜的試算表）。
+-2. 點選頂部功能表：**「擴充功能」➔「Apps Script」**。
+-3. 將編輯器內原有的程式碼全部清除，複製本專案 [`backend/Code.gs`](./Code.gs) 的全部代碼並貼上。
+-4. 點擊編輯器上方的 💾「儲存專案」圖示。
+-5. 專案設定 ➔ 指令碼屬性 ➔ 新增 `SIGN_SECRET`，值為自行產生的隨機字串。
+-6. 點擊右上角藍色的 **「部署」➔「新增部署作業」**，複製新的 `/exec` 網址，並在「管理部署作業」中**封存舊部署**。
+-7. 完成！現在您的 Google Sheets 資料庫已具備完整併發防護與防刷榜機制。
++1. 建立一份**全新的 Google 試算表**（New Spreadsheet，命名如 `NCHU_Pickleball_v5.1_DB`），以隔離全新 schema 與測試資料，避免影響舊資料。
++2. 點選試算表頂部功能表：**「擴充功能」➔「Apps Script」**。
++   - ⚠️ **重要**：GAS **必須**從試算表內建選單建立（容器綁定專案）。因為程式碼使用 `SpreadsheetApp.getActiveSpreadsheet()`，獨立的 GAS 專案會回傳 `null` 而引發錯誤。
++3. 檢查試算表時區：點選試算表功能表 **「檔案」➔「設定」**，確認時區設定為 **「(GMT+08:00) 台北」**（`Asia/Taipei`），以確保每日按讚與計分日期比對精準一致。
++4. 將編輯器內原有的程式碼全部清除，複製本專案 [`backend/Code.gs`](./Code.gs) 的全部代碼並貼上。
++5. 點擊編輯器上方的 💾「儲存專案」圖示。
++6. 專案設定 ➔ 指令碼屬性 ➔ 新增 `SIGN_SECRET`，值為自行產生的隨機字串（至少 32 字元，例如使用 `openssl rand -hex 32` 或密碼產生器）。
++7. 在編輯器上方函式下拉選單中選擇 `setupTextFormats`，點擊「執行」，完成試算表 4 個工作表的儲存格文字格式預設（`@`），防止試算表自動將字串誤轉為數字或公式。
++8. 點擊右上角藍色的 **「部署」➔「新增部署作業」**：
++   - 種類選「網頁應用程式 (Web App)」
++   - 執行身分：**「我 (Me)」**
++   - 誰可以存取：**「任何人 (Anyone)」**（⚠️ 務必選「任何人」，若選「擁有 Google 帳戶的使用者」，Worker 將收到 Google 登入頁面 HTML，前端會出現 `BAD_RESPONSE`）
++   - 複製產生的 Web App `/exec` 網址。
++   - ⚠️ **重要版本更新提醒**：日後每次修改 `Code.gs`，都必須到「管理部署作業」➔「編輯」➔「版本」選**「新版本」**儲存，否則線上執行的永遠是舊程式。
++   - ⚠️ **部署安全順序：先不要封存舊 GAS 部署！** 待 v6 實測通過並合併至 main 之後，再封存舊部署，避免線上服務中斷。
++9. 完成！現在您的 Google Sheets 資料庫已具備完整併發防護、純文字格式化與防刷榜機制。
+ 
+ ---
+ 
+@@ -32,13 +41,13 @@
+    - 點擊左上角返回 Worker 管理頁面，點選 **「設定 (Settings)」➔「變數與機密 (Variables and Secrets)」**。
+    - `GAS_URL` 與 `SIGN_SECRET` **都**用「新增機密 (Add Secret)」：
+      - `GAS_URL`：您的 Google Apps Script `/exec` 網址
+-     - `SIGN_SECRET`：與 GAS 指令碼屬性相同的隨機字串
++     - `SIGN_SECRET`：與 GAS 指令碼屬性完全相同的隨機字串
+    - 點擊儲存。
+ 6. 複製該 Worker 的公開網址（格式類似 `https://nchu-pickleball-proxy.your-account.workers.dev`）。
+ 
+ ---
+ 
+-## 步驟 3：前端切換至代理模式 (全資安防護生效)
++## 步驟 3：前端切換至代理模式與連線驗證
+ 
+ 1. 開啟專案中的 `js/config.js`，將複製的 Worker 網址填入 `PROXY_URL`：
+    ```javascript
+@@ -48,11 +57,16 @@
+    ```bash
+    node scripts/build-single.js
+    ```
+-3. 提交並推送到 GitHub：
++3. **部署驗證**：
++   - 在瀏覽器或終端機測試 Worker 端點：`curl -s "https://nchu-pickleball-proxy.your-account.workers.dev?act=ping"`，確認回傳 `{"ok":true,"msg":"pong"}` 或等價 ping 回應。
++   - 從本機環境（localhost）開啟遊戲，進行一次快速球員登錄或修改暱稱（`updateProfile`）。
++   - 若回傳 `INVALID_SIGNATURE`，代表 Worker 端與 GAS 指令碼屬性的 `SIGN_SECRET` 不一致，請確認兩邊完全相同。
++   - 本驗證亦順便確認了 Cloudflare Worker 能夠正確跟隨 GAS 的 302 重導向並取回資料。
++4. 提交並推送到 GitHub：
+    ```bash
+    git add . && git commit -m "feat: switch to cloudflare worker proxy" && git push
+    ```
+-4. **生效成果**：
++5. **資安架構聲明**：
+    - 瀏覽器端再也看不到真實的 `GAS_URL` 與 `SIGN_SECRET`。
+-   - 享有 Cloudflare 全球 CDN 快取（排行榜 15 秒秒開）。
+-   - 享有單一 IP 每分鐘頻率限制與 WAF 阻擋惡意爬蟲，防止冒用他人身分與提交超出範圍的分數！
++   - 享有單一 IP 每分鐘 120/240 次、單一 playerId 每分鐘 15 次的頻率限制與 40 KB Payload 防護。
++   - ⚠️ **關於 Origin 白名單**：Origin 白名單僅由瀏覽器保證，防範惡意跨站腳本呼叫，但用 curl 等工具仍可偽造 Origin 標頭。因此系統**真正的安全性完全依賴私密 token 與後端 HMAC 簽章驗證**，而非僅靠 Origin 白名單。
+diff --git a/backend/cloudflare-worker.js b/backend/cloudflare-worker.js
+index 92ddd57..87e203b 100644
+--- a/backend/cloudflare-worker.js
++++ b/backend/cloudflare-worker.js
+@@ -9,9 +9,10 @@
+ 
+ const POST_ACTS = new Set(['submit', 'like', 'friendReq', 'friendAccept', 'updateProfile', 'sync_twin']);
+ const GET_ACTS = new Set(['ping', 'leaderboard', 'me', 'friends']);
+-const MAX_BODY_CHARS = 16 * 1024;
++const MAX_BODY_CHARS = 40 * 1024;
+ const WINDOW_MS = 60 * 1000;
+-const LIMITS = { GET: 40, POST: 15 };
++const LIMITS = { GET: 240, POST: 120 };
++const PID_POST_LIMIT = 15;
+ 
+ const PROD_ORIGINS = new Set(['https://kalmangoose.github.io']);
+ function originAllowed(origin) {
+@@ -118,6 +119,9 @@ export default {
+             if (!payload || typeof payload !== 'object' || !POST_ACTS.has(payload.act)) {
+                 return json({ ok: false, err: 'UNKNOWN_POST_ACTION' }, 400, cors);
+             }
++            if (payload.playerId && !rateLimit('pid:' + String(payload.playerId).slice(0, 64), PID_POST_LIMIT)) {
++                return json({ ok: false, err: 'RATE_LIMIT_EXCEEDED' }, 429, cors);
++            }
+             const dataStr = JSON.stringify(payload);
+             const ts = Date.now();
+             const nonce = crypto.randomUUID();
+diff --git a/js/config.js b/js/config.js
+index ebb8eaa..16f28c6 100644
+--- a/js/config.js
++++ b/js/config.js
+@@ -50,7 +50,16 @@ function errMsg(err) {
+         UNAUTHORIZED: '身分驗證失敗',
+         API_URL_NOT_SET: '離線模式',
+         SERVER_BUSY_PLEASE_RETRY: '伺服器忙碌，請稍後再試',
+-        ALREADY_LIKED_TODAY: '今天已經讚過了（每人每日限 1 次）'
++        ALREADY_LIKED_TODAY: '今天已經讚過了（每人每日限 1 次）',
++        RATE_LIMIT_EXCEEDED: '操作太頻繁，請稍後再試',
++        PAYLOAD_TOO_LARGE: '資料量過大',
++        INVALID_TARGET: '無效的目標對象',
++        INVITATION_NOT_FOUND: '邀請不存在或已失效',
++        TOKEN_REQUIRED: '請先登入或註冊球員身分',
++        SERVER_ERROR: '伺服器錯誤，請稍後再試',
++        PROXY_NOT_CONFIGURED: '代理伺服器尚未完成設定',
++        INVALID_SIGNATURE: '伺服器設定異常，請回報管理員',
++        TIMESTAMP_EXPIRED: '伺服器設定異常，請回報管理員'
+     })[err] || ('請稍後再試（' + (err || '未知錯誤') + '）');
+ }
+ 
+diff --git a/js/social.js b/js/social.js
+index 35d3896..aad39f4 100644
+--- a/js/social.js
++++ b/js/social.js
+@@ -49,7 +49,7 @@
+         }
+ 
+         function openFriendIG() {
+-            const clean = (currentFriendData && currentFriendData.ig || '').replace(/^@/, '');
++            const clean = String(currentFriendData && currentFriendData.ig || '').replace(/^@/, '');
+             if (!/^[A-Za-z0-9._]{1,30}$/.test(clean)) { toast('對方尚未綁定 IG', ''); return; }
+             window.open('https://instagram.com/' + encodeURIComponent(clean), '_blank', 'noopener');
+         }
+
+
+================================================================================
+四、js/config.js 全文（cat -n）
+================================================================================
+     1	/* ═══════════════════════════════════════════════════════════════════
+     2	   NCHU Pickleball V5 - 系統常數、設定與資料庫 (Config & Identity)
+     3	   ═══════════════════════════════════════════════════════════════════ */
+     4	        const APP_VERSION = 'v5.1.0';
+     5	
+     6	        /* ═══════ 雙軌物理引擎模式 (Dual Physics Modes) ═══════ */
+     7	        const PHYSICS_MODES = {
+     8	            FAST: 'fast',          // ⚡ 極速經驗模式 (Arcade Mode): 輕量線性阻尼，保證 60 FPS 順暢省電
+     9	            ACADEMIC: 'academic'   // 🔬 嚴格學術求解 (Simulation Mode): 真實質量、密度、阻力與馬格努斯微分方程
+    10	        };
+    11	        let currentPhysicsMode = localStorage.getItem('nchu_physics_mode') || PHYSICS_MODES.FAST;
+    12	// ★ 部署後由人工填入 Worker 網址；保持佔位字串時會自動進入離線模式
+    13	const PROXY_URL = 'https://YOUR-WORKER.workers.dev';
+    14	const API_READY = () => /^https:\/\//.test(PROXY_URL) && PROXY_URL.indexOf('YOUR-WORKER') < 0;
+    15	
+    16	let _tokenCache = null;
+    17	const TOKEN_KEY = 'nchu_pb_token';
+    18	function getOrCreateToken() {
+    19	    if (_tokenCache) return _tokenCache;
+    20	    let t = null;
+    21	    try { t = localStorage.getItem(TOKEN_KEY); } catch (e) { }
+    22	    if (!t || !/^[a-f0-9]{32}$/.test(t)) {
+    23	        t = Array.from(crypto.getRandomValues(new Uint8Array(16)),
+    24	            b => b.toString(16).padStart(2, '0')).join('');
+    25	        try { localStorage.setItem(TOKEN_KEY, t); } catch (e) { }
+    26	    }
+    27	    _tokenCache = t;
+    28	    return t;
+    29	}
+    30	
+    31	const API_TIMEOUT_MS = 10000;
+    32	function fetchJson(url, options = {}, timeoutMs = API_TIMEOUT_MS) {
+    33	    const controller = new AbortController();
+    34	    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    35	    return fetch(url, Object.assign({ cache: 'no-store' }, options, { signal: controller.signal }))
+    36	        .then(res => res.json()
+    37	            .then(j => (j && typeof j === 'object') ? j : { ok: false, err: 'BAD_RESPONSE' })
+    38	            .catch(e => (e && e.name === 'AbortError')
+    39	                ? { ok: false, err: 'TIMEOUT' }
+    40	                : { ok: false, err: 'BAD_RESPONSE' }))
+    41	        .catch(err => ({ ok: false, err: (err && err.name === 'AbortError') ? 'TIMEOUT' : 'NETWORK_FAIL' }))
+    42	        .finally(() => clearTimeout(timer));
+    43	}
+    44	
+    45	function errMsg(err) {
+    46	    return ({
+    47	        TIMEOUT: '連線逾時，請稍後再試',
+    48	        NETWORK_FAIL: '網路連線失敗',
+    49	        BAD_RESPONSE: '伺服器回應異常',
+    50	        UNAUTHORIZED: '身分驗證失敗',
+    51	        API_URL_NOT_SET: '離線模式',
+    52	        SERVER_BUSY_PLEASE_RETRY: '伺服器忙碌，請稍後再試',
+    53	        ALREADY_LIKED_TODAY: '今天已經讚過了（每人每日限 1 次）',
+    54	        RATE_LIMIT_EXCEEDED: '操作太頻繁，請稍後再試',
+    55	        PAYLOAD_TOO_LARGE: '資料量過大',
+    56	        INVALID_TARGET: '無效的目標對象',
+    57	        INVITATION_NOT_FOUND: '邀請不存在或已失效',
+    58	        TOKEN_REQUIRED: '請先登入或註冊球員身分',
+    59	        SERVER_ERROR: '伺服器錯誤，請稍後再試',
+    60	        PROXY_NOT_CONFIGURED: '代理伺服器尚未完成設定',
+    61	        INVALID_SIGNATURE: '伺服器設定異常，請回報管理員',
+    62	        TIMESTAMP_EXPIRED: '伺服器設定異常，請回報管理員'
+    63	    })[err] || ('請稍後再試（' + (err || '未知錯誤') + '）');
+    64	}
+    65	
+    66	function postSigned(payload) {
+    67	    if (!API_READY()) return Promise.resolve({ ok: false, err: 'API_URL_NOT_SET' });
+    68	    return fetchJson(PROXY_URL, {
+    69	        method: 'POST',
+    70	        headers: { 'Content-Type': 'application/json;charset=utf-8' },
+    71	        body: JSON.stringify(Object.assign({}, payload, { token: getOrCreateToken() }))
+    72	    }, 20000);
+    73	}
+    74	function apiGet(qs) {
+    75	    if (!API_READY()) return Promise.resolve({ ok: false, err: 'API_URL_NOT_SET' });
+    76	    return fetchJson(PROXY_URL + '?' + qs);
+    77	}
+    78	
+    79	        /* ═══════ 系所代碼表(115 學年度‧學士班) ═══════ */
+    80	        const DEPT_LIST = [
+    81	            { code: '10F', name: '台灣人文創新學士學位學程', college: '文學院', sid: ['U10F'] },
+    82	            { code: '11', name: '中國文學系', college: '文學院', sid: ['U11'] },
+    83	            { code: '12', name: '外國語文學系', college: '文學院', sid: ['U12'] },
+    84	            { code: '13', name: '歷史學系', college: '文學院', sid: ['U13'] },
+    85	            { code: '21', name: '財務金融學系', college: '管理學院', sid: ['U21'] },
+    86	            { code: '23', name: '企業管理學系', college: '管理學院', sid: ['U23'] },
+    87	            { code: '28', name: '會計學系', college: '管理學院', sid: ['U28'] },
+    88	            { code: '29', name: '資訊管理學系', college: '管理學院', sid: ['U29'] },
+    89	            { code: '44', name: '行銷學系', college: '管理學院', sid: ['U44'] },
+    90	            { code: '24', name: '法律學系', college: '法政學院', sid: ['U24'] },
+    91	            { code: '30F', name: '景觀與遊憩學士學位學程', college: '農資學院', sid: ['U30F'] },
+    92	            { code: '30G', name: '生物科技學士學位學程', college: '農資學院', sid: ['U30G'] },
+    93	            { code: '30H', name: '國際農企業學士學位學程', college: '農資學院', sid: ['U30H'] },
+    94	            { code: '31', name: '農藝學系', college: '農資學院', sid: ['U31'] },
+    95	            { code: '32', name: '園藝學系', college: '農資學院', sid: ['U32'] },
+    96	            { code: '33', name: '森林學系', college: '農資學院', sid: ['U33'] },
+    97	            { code: '34', name: '應用經濟學系', college: '農資學院', sid: ['U34'] },
+    98	            { code: '35', name: '植物病理學系', college: '農資學院', sid: ['U35'] },
+    99	            { code: '36', name: '昆蟲學系', college: '農資學院', sid: ['U36'] },
+   100	            { code: '37', name: '動物科學系', college: '農資學院', sid: ['U37'] },
+   101	            { code: '39', name: '土壤環境科學系', college: '農資學院', sid: ['U39'] },
+   102	            { code: '40', name: '生物產業機電工程學系', college: '農資學院', sid: ['U40'] },
+   103	            { code: '42', name: '水土保持學系', college: '農資學院', sid: ['U42'] },
+   104	            { code: '43', name: '食品暨應用生物科技學系', college: '農資學院', sid: ['U43'] },
+   105	            { code: '38', name: '獸醫學系', college: '獸醫學院', sid: ['U38'] },
+   106	            { code: '51', name: '化學系', college: '理學院', sid: ['U51'] },
+   107	            { code: '53', name: '應用數學系', college: '理學院', sid: ['U53', 'U53F', 'U53G'] },
+   108	            { code: '54', name: '物理學系', college: '理學院', sid: ['U54'] },
+   109	            { code: '52', name: '生命科學系', college: '生命科學院', sid: ['U52'] },
+   110	            { code: '56', name: '資訊工程學系', college: '電資學院', sid: ['U56'] },
+   111	            { code: '64', name: '電機工程學系', college: '電資學院', sid: ['U64'] },
+   112	            { code: '64F', name: '電機資訊學院學士班', college: '電資學院', sid: ['U64F'] },
+   113	            { code: '01F', name: '學士後發光二極體學士學位學程', college: '工學院', sid: ['U01F'] },
+   114	            { code: '60F', name: '學士後太陽能光電系統應用學士學位學程', college: '工學院', sid: ['U60F'] },
+   115	            { code: '60G', name: '智慧創意工程學士學位學程學士班', college: '工學院', sid: ['U60G'] },
+   116	            { code: '61', name: '機械工程學系', college: '工學院', sid: ['U61'] },
+   117	            { code: '62', name: '土木工程學系', college: '工學院', sid: ['U62'] },
+   118	            { code: '63', name: '環境工程學系', college: '工學院', sid: ['U63'] },
+   119	            { code: '65', name: '化學工程學系', college: '工學院', sid: ['U65'] },
+   120	            { code: '66', name: '材料科學與工程學系', college: '工學院', sid: ['U66'] },
+   121	            { code: '86', name: '學士後醫學系', college: '醫學院', sid: ['U86'] },
+   122	            { code: 'OTHER', name: '其他 / 碩博班(手動填寫)', college: '其他', sid: [] }
+   123	        ];
+   124	        /* 只收 3 碼;含第四碼的學位學程不自動判定,避免誤判成同號別系 */
+   125	        const SID_MAP = (() => {
+   126	            const m = {};
+   127	            DEPT_LIST.forEach(d => d.sid.forEach(s => {
+   128	                const f = s.replace(/^U/, '0');
+   129	                if (f.length === 3) m[f] = d;
+   130	            }));
+   131	            return m;
+   132	        })();
+   133	        const EDU_MAP = { '4': '學士班' };
+   134	
+   135	        function rocYear() {
+   136	            const d = new Date(), r = d.getFullYear() - 1911;
+   137	            return (d.getMonth() >= 7) ? r : r - 1;
+   138	        }
+   139	        function gradeOf(entry) {
+   140	            const n = rocYear() - entry + 1;
+   141	            if (n <= 0) return '大一';
+   142	            return n <= 4 ? ['大一', '大二', '大三', '大四'][n - 1] : '延修生';
+   143	        }
+   144	        function parseStudentId(raw) {
+   145	            const s = String(raw || '').trim();
+   146	            if (!/^\d{7}$/.test(s)) return { ok: false, msg: '需輸入 7 位數字' };
+   147	            const year = parseInt(s.slice(1, 4), 10);
+   148	            if (!(year >= 90 && year <= rocYear() + 1)) return { ok: false, msg: '入學學年不合理' };
+   149	            const field = s.slice(4, 7), hit = SID_MAP[field];
+   150	            return {
+   151	                ok: true, prefix: s, eduCode: s.slice(0, 1), edu: EDU_MAP[s.slice(0, 1)] || '',
+   152	                entryYear: year, deptField: field, dept: hit || null, grade: gradeOf(year), matched: !!hit
+   153	            };
+   154	        }
+   155	        function buildDeptOptions() {
+   156	            const sel = document.getElementById('user-dept-sel');
+   157	            sel.innerHTML = '<option value="">— 請選擇系所 —</option>';
+   158	            const g = {};
+   159	            DEPT_LIST.forEach(d => { (g[d.college] = g[d.college] || []).push(d); });
+   160	            Object.keys(g).forEach(col => {
+   161	                const og = document.createElement('optgroup'); og.label = col;
+   162	                g[col].forEach(d => {
+   163	                    const o = document.createElement('option');
+   164	                    o.value = d.code; o.textContent = d.name; og.appendChild(o);
+   165	                });
+   166	                sel.appendChild(og);
+   167	            });
+   168	        }
+   169	        function onSidInput(v) {
+   170	            const msg = document.getElementById('sid-msg');
+   171	            const sel = document.getElementById('user-dept-sel');
+   172	            const gsel = document.getElementById('user-grade-sel');
+   173	            const r = parseStudentId(v);
+   174	            if (!r.ok) { msg.innerText = '⚠ ' + r.msg; msg.className = 'sid-msg bad'; return; }
+   175	            if (r.matched && r.edu) {
+   176	                msg.innerText = '✅ ' + r.dept.name + r.grade + '(入學 ' + r.entryYear + ' 學年)';
+   177	                msg.className = 'sid-msg ok';
+   178	                if (!sel.dataset.touched) { sel.value = r.dept.code; onDeptSelect(); }
+   179	                if (!gsel.dataset.touched) gsel.value = r.grade;
+   180	            } else {
+   181	                msg.innerText = '⚠ 無法自動判定,請手動選擇系所與年級';
+   182	                msg.className = 'sid-msg warn';
+   183	            }
+   184	        }
+   185	        function onDeptSelect() {
+   186	            const sel = document.getElementById('user-dept-sel');
+   187	            document.getElementById('user-dept-manual').style.display = (sel.value === 'OTHER') ? 'block' : 'none';
+   188	        }
+   189	
+   190	        /* ═══════ 頭像:單一資料源,登入與設定共用 ═══════ */
+   191	        const AVATARS = ['🪿', '🧢', '🏸', '🧋', '⚡', '🐮', '🍎', '🥩', '🪳'];
+   192	        function buildAvatarGrid(id, onPick) {
+   193	            const box = document.getElementById(id);
+   194	            if (!box) return;
+   195	            box.innerHTML = '';
+   196	            AVATARS.forEach(em => {
+   197	                const d = document.createElement('div');
+   198	                d.className = 'avatar-opt' + (em === playerProfile.avatar ? ' selected' : '');
+   199	                d.textContent = em;
+   200	                d.addEventListener('click', () => onPick(em, d));
+   201	                box.appendChild(d);
+   202	            });
+   203	        }
+   204	        function buildAvatarGrids() {
+   205	            buildAvatarGrid('login-avatar-grid', selectAvatar);
+   206	            buildAvatarGrid('edit-avatar-grid', selectEditAvatar);
+   207	        }
+   208	        function selectAvatar(em, el) {
+   209	            document.querySelectorAll('#login-avatar-grid .avatar-opt').forEach(o => o.classList.remove('selected'));
+   210	            el.classList.add('selected'); playerProfile.avatar = em;
+   211	        }
+   212	        function selectEditAvatar(em, el) {
+   213	            document.querySelectorAll('#edit-avatar-grid .avatar-opt').forEach(o => o.classList.remove('selected'));
+   214	            el.classList.add('selected'); playerProfile.avatar = em;
+   215	        }
+   216	        function setNick(t) { document.getElementById('user-nick').value = t; }
+   217	
+   218	        /* ═══════ 身分編號 (方案 B: 裝置綁定唯一 ID) ═══════ */
+   219	        const ID_KEY = 'nchu_pb_identity';
+   220	        let _playerIdCache = null;
+   221	        function genPlayerId() {
+   222	            let rnd;
+   223	            if (window.crypto && crypto.getRandomValues) {
+   224	                rnd = Array.from(crypto.getRandomValues(new Uint8Array(4)))
+   225	                    .map(b => b.toString(16).padStart(2, '0')).join('');
+   226	            } else rnd = Math.random().toString(36).substring(2, 6);
+   227	            return 'P-' + Date.now().toString(36).toUpperCase() + '-' + rnd.toUpperCase();
+   228	        }
+   229	        function loadIdentity() { try { return JSON.parse(localStorage.getItem(ID_KEY)); } catch (e) { return null; } }
+   230	        function saveIdentity(o) {
+   231	            if (o && o.playerId) _playerIdCache = o.playerId;
+   232	            try { localStorage.setItem(ID_KEY, JSON.stringify(o)); } catch (e) { }
+   233	        }
+   234	        function getOrCreatePlayerId() {
+   235	            if (_playerIdCache) return _playerIdCache;
+   236	            const saved = loadIdentity() || {};
+   237	            if (!saved.playerId) {
+   238	                saved.playerId = genPlayerId();
+   239	                saveIdentity(saved);
+   240	            }
+   241	            _playerIdCache = saved.playerId;
+   242	            return _playerIdCache;
+   243	        }
+   244	
+   245	        let playerProfile = {
+   246	            playerId: null, avatar: '🪿', sidPrefix: '', deptCode: '',
+   247	            department: '', grade: '', entryYear: '', nickname: '叫獸aka愛叫的野獸', sessionId: null
+   248	        };
+   249	
+   250	        /* ═══════ 教練模式與參數熱抽換 (Dual-Track Model) ═══════ */
+   251	        const MODEL_STORAGE_KEY = 'nchu_custom_motion_model';
+   252	
+   253	        /* ═══════ 教練參數:可調鍵白名單 + 範圍夾制 ═══════ */
+   254	        const TUNABLE = {
+   255	            powerWeight: ['a', 'd', 'vScale', 'dScale', 'min', 'max'],
+   256	            serveFSM: ['WINDOW', 'TH_V', 'TH_D'],      // ★ 排除 phase/power/clock 執行期欄位
+   257	            aiSpeed: ['2', '3', '4', '5'],
+   258	            aiMiss: ['2', '3', '4', '5']
+   259	        };
+   260	        const RANGE = {
+   261	            'powerWeight.a': [0, 1], 'powerWeight.d': [0, 1],
+   262	            'powerWeight.vScale': [1, 40], 'powerWeight.dScale': [1, 80],
+   263	            'powerWeight.min': [0, 60], 'powerWeight.max': [20, 100],
+   264	            'serveFSM.WINDOW': [0.2, 3], 'serveFSM.TH_V': [0.3, 6], 'serveFSM.TH_D': [0.05, 2],
+   265	            'aiSpeed.*': [1, 12], 'aiMiss.*': [0, 0.6]
+   266	        };
+   267	        function pickNum(group, key, raw) {
+   268	            const n = Number(raw);
+   269	            if (!isFinite(n)) return null;
+   270	            const r = RANGE[group + '.' + key] || RANGE[group + '.*'];
+   271	            return r ? Math.min(r[1], Math.max(r[0], n)) : n;
+   272	        }
+   273	        function assignTunable(target, src, group) {
+   274	            if (!src || typeof src !== 'object') return;
+   275	            TUNABLE[group].forEach(k => {
+   276	                if (src[k] === undefined) return;
+   277	                const v = pickNum(group, k, src[k]);
+   278	                if (v !== null) target[k] = v;
+   279	            });
+   280	        }
+   281	        function mergeStages(src) {
+   282	            if (!src || typeof src !== 'object') return;
+   283	            Object.keys(src).forEach(k => {
+   284	                if (!STAGES[k] || !src[k]) return;              // 只允許覆寫既有關卡
+   285	                const g = Math.floor(Number(src[k].goal));
+   286	                if (isFinite(g) && g >= 1 && g <= 21) STAGES[k].goal = g;  // ★ 只動 goal
+   287	            });
+   288	        }
+   289	        function applyMotionModel(p) {
+   290	            if (!p) return;
+   291	            assignTunable(POWER_W, p.powerWeight, 'powerWeight');
+   292	            assignTunable(SFSM, p.serveFSM, 'serveFSM');
+   293	            assignTunable(AI_SPEED, p.aiSpeed, 'aiSpeed');
+   294	            assignTunable(AI_MISS, p.aiMiss, 'aiMiss');
+   295	            mergeStages(p.stages);
+   296	            if (POWER_W.max <= POWER_W.min) POWER_W.max = POWER_W.min + 10;
+   297	        }
+   298	
+   299	        function loadCustomMotionModel() {
+   300	            try {
+   301	                const raw = localStorage.getItem(MODEL_STORAGE_KEY);
+   302	                if (raw) {
+   303	                    const data = JSON.parse(raw);
+   304	                    applyMotionModel(data.parameters || data);
+   305	                    window.CUSTOM_MODEL_ACTIVE = true;
+   306	                }
+   307	            } catch (e) { console.error('Failed to load custom motion model', e); }
+   308	        }
+   309	
+   310	        function checkAdminAccess(inputNickname) {
+   311	            const raw = String(inputNickname || '').trim().toLowerCase();
+   312	            if (raw === 'coach#nchu' || raw === 'admin#pickle') {
+   313	                ['coach-import-btn', 'coach-export-btn', 'coach-reset-btn'].forEach(id => {
+   314	                    const el = document.getElementById(id);
+   315	                    if (el) el.style.display = 'block';
+   316	                });
+   317	                toast('🛠️ 教練/管理員模式已啟用', '已解鎖參數匯入、匯出與重置');
+   318	                return true;
+   319	            }
+   320	            return false;
+   321	        }
+   322	
+   323	        function importMotionModel() {
+   324	            const fileInput = document.getElementById('coach-file-input');
+   325	            if (fileInput) fileInput.click();
+   326	        }
+   327	
+   328	        function onCoachFileSelected(e) {
+   329	            const file = e.target.files && e.target.files[0];
+   330	            if (!file) return;
+   331	            const reader = new FileReader();
+   332	            reader.onload = evt => {
+   333	                try {
+   334	                    const json = JSON.parse(evt.target.result);
+   335	                    const params = json.parameters || json;
+   336	                    applyMotionModel(params);
+   337	                    window.CUSTOM_MODEL_ACTIVE = true;
+   338	                    localStorage.setItem(MODEL_STORAGE_KEY, JSON.stringify(json));
+   339	                    if (typeof updateGoal === 'function') updateGoal();
+   340	                    toast('✅ 教練參數已成功匯入', '已即時套用最新動力學與 AI 數值');
+   341	                } catch (err) {
+   342	                    toast('❌ 匯入失敗', 'JSON 格式錯誤: ' + err.message);
+   343	                }
+   344	                e.target.value = '';
+   345	            };
+   346	            reader.readAsText(file);
+   347	        }
+   348	
+   349	        function exportMotionModel() {
+   350	            const modelData = {
+   351	                app: 'NCHU Pickleball Lab',
+   352	                version: '1.1-demo',
+   353	                exportedAt: new Date().toISOString(),
+   354	                devicePlayerId: playerProfile.playerId || getOrCreatePlayerId(),
+   355	                profile: {
+   356	                    nickname: playerProfile.nickname,
+   357	                    department: playerProfile.department
+   358	                    // ★ 刻意不匯出 sidPrefix:匯出檔會離開裝置
+   359	                },
+   360	                parameters: {
+   361	                    powerWeight: {
+   362	                        a: POWER_W.a, d: POWER_W.d, vScale: POWER_W.vScale,
+   363	                        dScale: POWER_W.dScale, min: POWER_W.min, max: POWER_W.max
+   364	                    },
+   365	                    serveFSM: { WINDOW: SFSM.WINDOW, TH_V: SFSM.TH_V, TH_D: SFSM.TH_D },
+   366	                    stages: {
+   367	                        1: { goal: STAGES[1].goal }, 2: { goal: STAGES[2].goal },
+   368	                        3: { goal: STAGES[3].goal }, 4: { goal: STAGES[4].goal },
+   369	                        5: { goal: STAGES[5].goal }
+   370	                    },
+   371	                    aiSpeed: Object.assign({}, AI_SPEED),
+   372	                    aiMiss: Object.assign({}, AI_MISS)
+   373	                },
+   374	                motionStats: motionSummary()
+   375	            };
+   376	            const blob = new Blob([JSON.stringify(modelData, null, 2)], { type: 'application/json' });
+   377	            const url = URL.createObjectURL(blob);
+   378	            const a = document.createElement('a');
+   379	            a.href = url; a.download = 'pickleball_motion_model.json';
+   380	            document.body.appendChild(a);
+   381	            a.click();
+   382	            document.body.removeChild(a);
+   383	            setTimeout(() => URL.revokeObjectURL(url), 2000);
+   384	            toast('📥 模型參數已匯出', 'pickleball_motion_model.json');
+   385	        }
+   386	
+   387	        function resetMotionModel() {
+   388	            localStorage.removeItem(MODEL_STORAGE_KEY);
+   389	            toast('🔄 已還原為原廠預設值', '正在重載預設常數...');
+   390	            setTimeout(() => location.reload(), 1000);
+   391	        }
+   392	
+   393	        function loginErr(msg) {
+   394	            const el = document.getElementById('sid-msg');
+   395	            el.innerText = '⚠ ' + msg;
+   396	            el.className = 'sid-msg bad';
+   397	        }
+   398	
+   399	        function showFullLoginForm() {
+   400	            document.getElementById('login-quick-box').style.display = 'none';
+   401	            document.getElementById('login-full-form').style.display = 'block';
+   402	        }
+   403	
+   404	        function updateWhoLabel(nick, avatar) {
+   405	            const el = document.getElementById('p-who-label');
+   406	            if (!el) return;
+   407	            const n = Array.from(String(nick || '')).slice(0, 6).join('');
+   408	            el.innerText = (avatar || '🪿') + ' ' + n;
+   409	        }
+   410	
+   411	        function isValidIG(ig) {
+   412	            if (!ig) return true;
+   413	            const clean = String(ig).trim().replace(/^@/, '');
+   414	            if (!clean) return true;
+   415	            return /^[A-Za-z0-9._]{1,30}$/.test(clean);
+   416	        }
+   417	
+   418	        function handleQuickStart() {
+   419	            const saved = loadIdentity();
+   420	            if (saved && saved.department) {
+   421	                playerProfile.playerId = getOrCreatePlayerId();
+   422	                playerProfile.avatar = saved.avatar || '🪿';
+   423	                playerProfile.sidPrefix = saved.sidPrefix || '';
+   424	                playerProfile.deptCode = saved.deptCode || '';
+   425	                playerProfile.department = saved.department || '';
+   426	                playerProfile.grade = saved.grade || '';
+   427	                playerProfile.entryYear = saved.entryYear || '';
+   428	                playerProfile.nickname = saved.nickname || '叫獸aka愛叫的野獸';
+   429	                playerProfile.ig = saved.ig || '';
+   430	                playerProfile.sessionId = 'S-' + Date.now().toString(36);
+   431	                checkAdminAccess(playerProfile.nickname);
+   432	
+   433	                updateWhoLabel(playerProfile.nickname, playerProfile.avatar);
+   434	                document.getElementById('login-overlay').style.display = 'none';
+   435	                document.body.classList.remove('login-open');
+   436	                clearKeys();
+   437	                S.init();
+   438	                toast('👋 歡迎回來,' + playerProfile.department, '編號 ' + playerProfile.playerId);
+   439	                switchStage(1);
+   440	            } else {
+   441	                showFullLoginForm();
+   442	            }
+   443	        }
+   444	
+   445	        function handleLogin() {
+   446	            const r = parseStudentId(document.getElementById('user-sid').value);
+   447	            if (!r.ok) { loginErr(r.msg); return; }
+   448	            const code = document.getElementById('user-dept-sel').value;
+   449	            if (!code) { loginErr('請在下拉選單選擇系所'); return; }
+   450	            const manual = document.getElementById('user-dept-manual').value.trim();
+   451	            if (code === 'OTHER' && !manual) { loginErr('請填寫系所名稱'); return; }
+   452	
+   453	            const dept = (code === 'OTHER') ? manual : ((DEPT_LIST.find(d => d.code === code) || {}).name || '');
+   454	            const grade = document.getElementById('user-grade-sel').value;
+   455	            const nick = document.getElementById('user-nick').value.trim();
+   456	
+   457	            playerProfile.playerId = getOrCreatePlayerId(); // ★ 方案 B: 裝置唯一 ID
+   458	            playerProfile.sidPrefix = r.prefix;
+   459	            playerProfile.deptCode = code;
+   460	            playerProfile.department = dept + grade;
+   461	            playerProfile.grade = grade;
+   462	            playerProfile.entryYear = String(r.entryYear);
+   463	            if (nick) playerProfile.nickname = nick;
+   464	            playerProfile.sessionId = 'S-' + Date.now().toString(36);
+   465	            checkAdminAccess(playerProfile.nickname);
+   466	
+   467	            saveIdentity({
+   468	                playerId: playerProfile.playerId,
+   469	                sidPrefix: r.prefix,
+   470	                avatar: playerProfile.avatar,
+   471	                nickname: playerProfile.nickname,
+   472	                department: playerProfile.department,
+   473	                grade: playerProfile.grade,
+   474	                deptCode: playerProfile.deptCode,
+   475	                entryYear: playerProfile.entryYear,
+   476	                ig: playerProfile.ig || ''
+   477	            });
+   478	
+   479	            updateWhoLabel(playerProfile.nickname, playerProfile.avatar);
+   480	            document.getElementById('login-overlay').style.display = 'none';
+   481	            document.body.classList.remove('login-open');
+   482	            clearKeys();
+   483	            S.init();
+   484	            toast('👋 歡迎,' + playerProfile.department, '編號 ' + playerProfile.playerId);
+   485	            switchStage(1);
+   486	        }
+   487	        function openProfileModal() {
+   488	            document.getElementById('edit-dept').value = playerProfile.department || '';
+   489	            document.getElementById('edit-nick').value = playerProfile.nickname || '';
+   490	            document.getElementById('edit-ig').value = playerProfile.ig || '';
+   491	            document.getElementById('edit-id-badge').innerText =
+   492	                '玩家編號 ' + (playerProfile.playerId || '未登入') +
+   493	                '　學號前綴 ' + (playerProfile.sidPrefix || '—');
+   494	            buildAvatarGrid('edit-avatar-grid', selectEditAvatar);
+   495	            document.getElementById('profile-modal').style.display = 'flex';
+   496	            closePanel();
+   497	        }
+   498	        function closeProfileModal() { document.getElementById('profile-modal').style.display = 'none'; clearKeys(); }
+   499	        function saveProfile() {
+   500	            const rawIg = document.getElementById('edit-ig').value.trim();
+   501	            const cleanIg = rawIg.replace(/^@/, '');
+   502	            if (cleanIg && !isValidIG(cleanIg)) {
+   503	                toast('⚠️ IG 帳號格式不正確', '僅限英數、底線、小數點，且長度 1～30 字元');
+   504	                return;
+   505	            }
+   506	
+   507	            playerProfile.department = document.getElementById('edit-dept').value.trim() || playerProfile.department;
+   508	            const n = document.getElementById('edit-nick').value.trim();
+   509	            if (n) {
+   510	                playerProfile.nickname = n;
+   511	                checkAdminAccess(n);
+   512	            }
+   513	            playerProfile.ig = cleanIg;
+   514	            updateWhoLabel(playerProfile.nickname, playerProfile.avatar);
+   515	            const sv = loadIdentity() || {};
+   516	            sv.playerId = playerProfile.playerId || getOrCreatePlayerId();
+   517	            sv.sidPrefix = playerProfile.sidPrefix || sv.sidPrefix;
+   518	            sv.avatar = playerProfile.avatar;
+   519	            sv.nickname = playerProfile.nickname;
+   520	            sv.department = playerProfile.department;
+   521	            sv.ig = playerProfile.ig;
+   522	            saveIdentity(sv);
+   523	            closeProfileModal();
+   524	            if (playerProfile.playerId) {
+   525	                postSigned({
+   526	                    act: 'updateProfile', playerId: playerProfile.playerId, avatar: playerProfile.avatar,
+   527	                    nickname: playerProfile.nickname, department: playerProfile.department,
+   528	                    ig: playerProfile.ig || ''
+   529	                }).then(r => {
+   530	                    if (r) {
+   531	                        if (r.err === 'UNAUTHORIZED') {
+   532	                            toast('⚠️ 雲端身分驗證失敗', '編號 ' + (playerProfile.playerId || '') + ' 已綁定其他裝置');
+   533	                        } else if (!r.ok && r.err !== 'API_URL_NOT_SET') {
+   534	                            toast('⚠️ 雲端同步失敗', '已儲存於本機 · ' + errMsg(r.err));
+   535	                        }
+   536	                    }
+   537	                });
+   538	            }
+   539	            toast('⚙️ 個人設定已儲存', '繼續中興湖特訓！');
+   540	        }
+   541	
+   542	        /* ═══════ 音效偏好 ═══════ */
+   543	
+   544	/* ═══════ 賽場尺寸、物理常數與 AI 難度常數 ═══════ */
+   545	        const IS_MOBILE = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 820;
+   546	        const GRADE = { exposure: 1.05, hemiI: 1.05, sunI: 1.80, fillI: 0.45, rimI: 0.32, fogNear: 34, fogFar: 98 };
+   547	        const COURT_W = 6.10, COURT_L = 13.41, HALF_L = COURT_L / 2;
+   548	        const KITCHEN_D = 2.13, NET_H = 0.914, GRAVITY = 9.81;
+   549	        const BALL_R = 0.14, NET_CLEAR = NET_H + BALL_R + 0.14, SERVE_MAX_H = 1.15;
+   550	        const REST_Y = 0.55, REST_XZ = 0.68, DEAD_VY = 0.80;
+   551	        const DIAG_DEADZONE = 0.12;
+   552	
+   553	        const STAGES = {
+   554	            1: { name: '發球養成', sub: 'Underhand Serve', desc: '左手舉高預備,球拍低於腰部、雙腳在底線後,對角送進綠區。', goal: 2 },
+   555	            2: { name: '雙彈跳規則', sub: 'Two-Bounce Rule', desc: '發球與接發球各必須先落地一次。等球彈起再回擊。', goal: 1 },
+   556	            3: { name: '廚房區攻防', sub: 'Kitchen Zone', desc: '球落進廚房時,等它彈起後再輕推回去 1 次即過關;球未落地就在廚房揮拍會被判違規。', goal: 1 },
+   557	            4: { name: '對決匹克鵝', sub: 'Full Match', desc: '綜合對決匹克鵝,先得 3 分過關。', goal: 3 },
+   558	            5: { name: '魔王匹克鵝', sub: 'Boss Fight', desc: '終極對決!打敗中興湖魔王匹克鵝登錄英雄榜。', goal: 5 },
+   559	            6: { name: '瘋狂道具戰', sub: 'Item Chaos Battle', desc: '中興湖極限娛樂! 拾取地面盲盒道具, 善用神力同時提防踩雷陷阱!', goal: 5 }
+   560	        };
+   561	        const AI_SPEED = { 2: 5.2, 3: 5.9, 4: 5.2, 5: 5.6, 6: 5.8 };
+   562	        const AI_MISS = { 1: 0.0, 2: 0.005, 3: 0.005, 4: 0.20, 5: 0.14, 6: 0.12 }; // ★ v5.0.14: 前三關教學關卡匹克鵝失誤率極低 (0.5%)，偶爾失誤
+   563	        const AI_PLAN = { 2: 'DEEP', 3: 'KITCHEN', 4: 'MIX', 5: 'BOSS', 6: 'BOSS' };
+   564	
+   565	        /* ★ v5.0.4: AI 難度平衡調優 (初階失誤率大幅調低，強化連續來回抽球的互動與參與感) */
+   566	        const DIFF_PRESETS = {
+   567	            easy:   { missMultiplier: 1.35, speedScale: 0.88, label: '🟢 初階 (高回球互動)', color: '#4ade80' },
+   568	            medium: { missMultiplier: 1.00, speedScale: 1.00, label: '🟡 中等 (標準對抗)', color: '#facc15' },
+   569	            hard:   { missMultiplier: 0.65, speedScale: 1.15, label: '🔴 困難 (魔王挑戰)', color: '#f87171' },
+   570	            fly:    { missMultiplier: 0.00, speedScale: 1.50, label: '🪰 仿生蒼蠅 (巨纖維神經反射)', color: '#a855f7' }
+   571	        };
+   572	        let diffLevel = 'easy'; // 預設初階
+   573	        try {
+   574	            const savedDiff = localStorage.getItem('nchu_pb_diff');
+   575	            if (savedDiff && DIFF_PRESETS[savedDiff]) diffLevel = savedDiff;
+   576	        } catch(e) {}
+   577	
+   578	        function cycleDifficulty() {
+   579	            const order = ['easy', 'medium', 'hard', 'fly'];
+   580	            const next = order[(order.indexOf(diffLevel) + 1) % order.length];
+   581	            setDifficulty(next);
+   582	        }
+   583	
+   584	        function setDifficulty(level) {
+   585	            if (!DIFF_PRESETS[level]) return;
+   586	            diffLevel = level;
+   587	            try { localStorage.setItem('nchu_pb_diff', level); } catch(e) {}
+   588	            syncDifficultyUI();
+   589	            if (typeof FunMode !== 'undefined' && FunMode.onDifficultyChange) {
+   590	                FunMode.onDifficultyChange(level);
+   591	            }
+   592	            const msg = (level === 'fly') ? '🪰 仿生蒼蠅已上陣 (巨纖維反射/小球視盲)' : (DIFF_PRESETS[level].label + ' 已套用');
+   593	            toast('🤖 AI 對手模式', msg);
+   594	        }
+   595	
+   596	        function syncDifficultyUI() {
+   597	            document.querySelectorAll('[data-diff]').forEach(b => {
+   598	                b.classList.toggle('on', b.getAttribute('data-diff') === diffLevel);
+   599	            });
+   600	            const qdb = document.getElementById('quick-diff-btn');
+   601	            const qdn = document.getElementById('quick-diff-name');
+   602	            const conf = DIFF_PRESETS[diffLevel] || DIFF_PRESETS.easy;
+   603	            if (qdn) {
+   604	                const shortNames = { easy: '初階', medium: '中等', hard: '困難', fly: '蒼蠅' };
+   605	                qdn.innerText = shortNames[diffLevel] || '初階';
+   606	            }
+   607	            if (qdb) {
+   608	                qdb.style.borderColor = conf.color;
+   609	                qdb.style.color = conf.color;
+   610	            }
+   611	            const aiWho = document.getElementById('ai-who-label');
+   612	            if (aiWho) {
+   613	                aiWho.innerText = (diffLevel === 'fly') ? '🪰 仿生蒼蠅' : '🪿 匹克鵝';
+   614	            }
+   615	            if (typeof updateOpponentMeshVisibility === 'function') {
+   616	                updateOpponentMeshVisibility();
+   617	            }
+   618	        }
+   619	
+   620	        /* ═══════ 搖桿走位速率設定 (Joystick Movement Speed Config) ═══════ */
+   621	        const JOY_SPEED_PRESETS = {
+   622	            slow:   { label: '慢速', fullLabel: '🐢 慢速 (4.5 m/s · 精準微步)', speed: 4.5 },
+   623	            normal: { label: '標準', fullLabel: '🚶 標準 (5.5 m/s · 舒適好控)', speed: 5.5 },
+   624	            fast:   { label: '疾速', fullLabel: '🏃 疾速 (7.2 m/s · 敏捷衝刺)', speed: 7.2 }
+   625	        };
+   626	        let joySpeedLevel = 'normal';
+   627	        try {
+   628	            const savedJoy = localStorage.getItem('nchu_pb_joy_speed');
+   629	            if (savedJoy && JOY_SPEED_PRESETS[savedJoy]) joySpeedLevel = savedJoy;
+   630	        } catch (e) { }
+   631	
+   632	        function setJoySpeed(level) {
+   633	            if (!JOY_SPEED_PRESETS[level]) return;
+   634	            joySpeedLevel = level;
+   635	            try { localStorage.setItem('nchu_pb_joy_speed', level); } catch (e) { }
+   636	            syncJoySpeedUI();
+   637	            if (typeof toast === 'function') {
+   638	                toast('🕹️ 搖桿移動速率', JOY_SPEED_PRESETS[level].fullLabel);
+   639	            }
+   640	        }
+   641	
+   642	        function cycleJoySpeedQuick() {
+   643	            const order = ['slow', 'normal', 'fast'];
+   644	            const idx = order.indexOf(joySpeedLevel);
+   645	            const next = order[(idx + 1) % order.length];
+   646	            setJoySpeed(next);
+   647	        }
+   648	
+   649	        function syncJoySpeedUI() {
+   650	            const lbl = document.getElementById('joy-speed-lbl');
+   651	            if (lbl && JOY_SPEED_PRESETS[joySpeedLevel]) {
+   652	                lbl.innerText = JOY_SPEED_PRESETS[joySpeedLevel].label;
+   653	            }
+   654	            const aiJoyBtn = document.getElementById('subbar-joy-btn');
+   655	            if (aiJoyBtn && JOY_SPEED_PRESETS[joySpeedLevel]) {
+   656	                aiJoyBtn.innerHTML = `🕹️ 搖桿: ${JOY_SPEED_PRESETS[joySpeedLevel].label}`;
+   657	            }
+   658	            document.querySelectorAll('[data-joy-speed]').forEach(b => {
+   659	                b.classList.toggle('on', b.getAttribute('data-joy-speed') === joySpeedLevel);
+   660	            });
+   661	        }
+   662	
+   663	        /* ═══════ 網前自動走位助攻設定 (Net Auto-Assist Config) ═══════ */
+   664	        // 預設關閉，杜絕純手動走位時擅自往前衝；體感模式或手動開啟時方生效
+   665	        let netAssistEnabled = false;
+   666	        try {
+   667	            const savedAssist = localStorage.getItem('nchu_pb_net_assist');
+   668	            if (savedAssist !== null) netAssistEnabled = (savedAssist === 'true');
+   669	        } catch (e) { }
+   670	
+   671	        function setNetAssist(enabled) {
+   672	            netAssistEnabled = !!enabled;
+   673	            try { localStorage.setItem('nchu_pb_net_assist', netAssistEnabled); } catch (e) { }
+   674	            syncNetAssistUI();
+   675	            if (typeof toast === 'function') {
+   676	                toast('🏃 網前自動走位', netAssistEnabled ? '✅ 已開啟 (落入廚房自動前踏)' : '❌ 已關閉 (純手動走位)');
+   677	            }
+   678	        }
+   679	
+   680	        function toggleNetAssist() {
+   681	            setNetAssist(!netAssistEnabled);
+   682	        }
+   683	
+   684	        function syncNetAssistUI() {
+   685	            const btn = document.getElementById('subbar-net-assist-btn');
+   686	            if (btn) {
+   687	                if (netAssistEnabled) {
+   688	                    btn.innerHTML = '🏃 網前助攻: 開';
+   689	                    btn.style.color = 'var(--ok)';
+   690	                } else {
+   691	                    btn.innerHTML = '🏃 網前助攻: 關';
+   692	                    btn.style.color = 'var(--dim)';
+   693	                }
+   694	            }
+   695	            const drawerBtn = document.getElementById('drawer-net-assist-btn');
+   696	            if (drawerBtn) {
+   697	                drawerBtn.innerHTML = `🏃 網前自動走位: ${netAssistEnabled ? '✅ 開啟' : '❌ 關閉'}`;
+   698	                drawerBtn.classList.toggle('on', netAssistEnabled);
+   699	            }
+   700	        }
+   701	
+   702	
+   703	
+   704	        const D = {
+   705	            pv: document.getElementById('pv') || { innerText: '' }, av: document.getElementById('av') || { innerText: '' },
+   706	            chip: document.getElementById('chip-n'), name: document.getElementById('s-name'),
+   707	            sub: document.getElementById('s-sub'), desc: document.getElementById('s-desc'),
+   708	            gFill: document.getElementById('goal-fill'), gTxt: document.getElementById('goal-txt'),
+   709	            hint: document.getElementById('hint'), tMain: document.getElementById('t-main'),
+   710	            tSub: document.getElementById('t-sub'), sp: document.getElementById('sp'),
+   711	            pFill: document.getElementById('p-fill'), demo: document.getElementById('demo'),
+   712	            dTag: document.getElementById('d-tag'), dCap: document.getElementById('d-cap'),
+   713	            aimHud: document.getElementById('aim-hud'), aimName: document.getElementById('aim-name'),
+   714	            aimPips: Array.prototype.slice.call(document.querySelectorAll('#aim-hud .aim-pip')),
+   715	            waistRow: document.getElementById('waist-row'), waistMark: document.getElementById('waist-mark'),
+   716	            camEdit: document.getElementById('cam-edit'), camVert: document.getElementById('cam-vert'),
+   717	            cvH: document.getElementById('cv-h'), cvD: document.getElementById('cv-d'), cvY: document.getElementById('cv-y'),
+   718	            ceHint: document.getElementById('ce-hint')
+   719	        };
+   720	
+   721	        let timers = [];
+   722	        function later(fn, ms) {
+   723	            const id = setTimeout(() => { timers = timers.filter(t => t !== id); fn(); }, ms);
+   724	            timers.push(id); return id;
+   725	        }
+   726	        function clearTimers() { timers.forEach(clearTimeout); timers = []; }

@@ -49,7 +49,7 @@
         }
 
         function openFriendIG() {
-            const clean = (currentFriendData && currentFriendData.ig || '').replace(/^@/, '');
+            const clean = String(currentFriendData && currentFriendData.ig || '').replace(/^@/, '');
             if (!/^[A-Za-z0-9._]{1,30}$/.test(clean)) { toast('對方尚未綁定 IG', ''); return; }
             window.open('https://instagram.com/' + encodeURIComponent(clean), '_blank', 'noopener');
         }

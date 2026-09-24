@@ -50,7 +50,16 @@ function errMsg(err) {
         UNAUTHORIZED: '身分驗證失敗',
         API_URL_NOT_SET: '離線模式',
         SERVER_BUSY_PLEASE_RETRY: '伺服器忙碌，請稍後再試',
-        ALREADY_LIKED_TODAY: '今天已經讚過了（每人每日限 1 次）'
+        ALREADY_LIKED_TODAY: '今天已經讚過了（每人每日限 1 次）',
+        RATE_LIMIT_EXCEEDED: '操作太頻繁，請稍後再試',
+        PAYLOAD_TOO_LARGE: '資料量過大',
+        INVALID_TARGET: '無效的目標對象',
+        INVITATION_NOT_FOUND: '邀請不存在或已失效',
+        TOKEN_REQUIRED: '請先登入或註冊球員身分',
+        SERVER_ERROR: '伺服器錯誤，請稍後再試',
+        PROXY_NOT_CONFIGURED: '代理伺服器尚未完成設定',
+        INVALID_SIGNATURE: '伺服器設定異常，請回報管理員',
+        TIMESTAMP_EXPIRED: '伺服器設定異常，請回報管理員'
     })[err] || ('請稍後再試（' + (err || '未知錯誤') + '）');
 }
 
