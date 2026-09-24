@@ -198,59 +198,43 @@
             closePanel();
         });
 
-        function syncSubbarStates() {
-            // 同步 AI 體感開關狀態
-            const aiBtn = document.getElementById('subbar-ai-btn');
-            if (aiBtn) {
-                aiBtn.innerHTML = (typeof aiActive !== 'undefined' && aiActive) ? '📷 體感: 開啟' : '📷 體感: 關閉';
-                aiBtn.style.color = (typeof aiActive !== 'undefined' && aiActive) ? 'var(--lime)' : 'var(--ok)';
-            }
-            // 同步關卡按鈕高亮
-            if (typeof curStage !== 'undefined') {
-                document.querySelectorAll('#subbar-stage .stage-btn').forEach(btn => {
-                    btn.classList.toggle('on', parseInt(btn.dataset.stage) === curStage);
-                });
-            }
-            // 同步瞄準模式狀態
-            const aimBtn = document.getElementById('subbar-aim-btn');
-            if (aimBtn && typeof aimAssistMode !== 'undefined') {
-                const map = { LOCKED: '🔒 自動對角', LEFT_ZONE: '🧭 左手瞄準', TORSO: '🔄 轉身瞄準', RIGHT_FREE: '✋ 右手自由' };
-                aimBtn.innerHTML = `🎯 瞄準: ${map[aimAssistMode] || aimAssistMode}`;
-            }
-            // 同步體感判定等級
-            const teachBtn = document.getElementById('subbar-teach-btn');
-            if (teachBtn && typeof teachLevel !== 'undefined') {
-                const map = { easy: '🟢 寬鬆', normal: '🟡 標準', strict: '🔴 嚴格' };
-                teachBtn.innerHTML = `🎚️ 判定: ${map[teachLevel] || teachLevel}`;
-            }
-            // 同步 AI 對手難度
-            const diffBtn = document.getElementById('subbar-diff-btn');
-            const curDiff = (typeof diffLevel !== 'undefined') ? diffLevel : ((typeof gameDifficulty !== 'undefined') ? gameDifficulty : 'easy');
-            if (diffBtn) {
-                const map = { easy: '🟢 初階', medium: '🟡 中等', hard: '🔴 困難', fly: '🪰 蒼蠅' };
-                diffBtn.innerHTML = `🤖 對手: ${map[curDiff] || curDiff}`;
-            }
-            // 同步效能預設
-            const perfBtn = document.getElementById('subbar-perf-btn');
-            if (perfBtn && typeof perfLevel !== 'undefined') {
-                const map = { low: '🟢 節能', medium: '🟡 平衡', high: '🔴 原生高畫質', ultra: '🟣 極致' };
-                perfBtn.innerHTML = `⚡ 畫質: ${map[perfLevel] || perfLevel}`;
-            }
-            // 同步卡片縮放標籤
-            const scaleLbl = document.getElementById('quick-scale-lbl');
-            if (scaleLbl && typeof cardScales !== 'undefined') {
-                scaleLbl.innerText = `${Math.round((cardScales.info || 1.0) * 100)}%`;
-            }
-            // 同步轉播樣式標籤
-            const refLbl = document.getElementById('ref-mode-lbl');
-            if (refLbl && typeof REFEREE_MODES !== 'undefined' && REFEREE_MODES[refereeMode]) {
-                refLbl.innerText = REFEREE_MODES[refereeMode];
-            }
-            // 同步各處難度切換鈕高亮
-            if (typeof syncDifficultyUI === 'function') syncDifficultyUI();
-            // 同步搖桿移動速率標籤
-            if (typeof syncJoySpeedUI === 'function') syncJoySpeedUI();
-        }
+function syncSubbarStates() {
+    const aiBtn = document.getElementById('subbar-ai-btn');
+    if (aiBtn) {
+        aiBtn.innerHTML = webcamActive ? '📷 體感: 開啟' : '📷 體感: 關閉';
+        aiBtn.style.color = webcamActive ? 'var(--lime)' : 'var(--ok)';
+    }
+    document.querySelectorAll('#subbar-stage .stage-btn[data-stage]').forEach(btn => {
+        btn.classList.toggle('on', +btn.dataset.stage === stage);
+    });
+    const aimBtn = document.getElementById('subbar-aim-btn');
+    if (aimBtn) {
+        const map = { LOCKED: '🔒 自動對角', LEFT_ZONE: '🧭 左手瞄準', TORSO: '🔄 轉身瞄準', RIGHT_FREE: '✋ 右手自由' };
+        aimBtn.innerHTML = `🎯 瞄準: ${map[AIM.mode] || AIM.mode}`;
+    }
+    const teachBtn = document.getElementById('subbar-teach-btn');
+    if (teachBtn) {
+        const map = { easy: '🟢 寬鬆', normal: '🟡 標準', strict: '🔴 嚴格' };
+        teachBtn.innerHTML = `🎚️ 判定: ${map[TEACH.level] || TEACH.level}`;
+    }
+    const diffBtn = document.getElementById('subbar-diff-btn');
+    if (diffBtn) {
+        const map = { easy: '🟢 初階', medium: '🟡 中等', hard: '🔴 困難', fly: '🪰 蒼蠅' };
+        diffBtn.innerHTML = `🤖 對手: ${map[diffLevel] || diffLevel}`;
+    }
+    const perfBtn = document.getElementById('subbar-perf-btn');
+    if (perfBtn) {
+        const map = { low: '🟢 節能', medium: '🟡 平衡', high: '🔴 原生高畫質', ultra: '🟣 極致' };
+        perfBtn.innerHTML = `⚡ 畫質: ${map[perfLevel] || perfLevel}`;
+    }
+    const scaleLbl = document.getElementById('quick-scale-lbl');
+    if (scaleLbl) scaleLbl.innerText = `${Math.round((cardScales.info || 1.0) * 100)}%`;
+    const refLbl = document.getElementById('ref-mode-lbl');
+    if (refLbl && REFEREE_MODES[refereeMode]) refLbl.innerText = REFEREE_MODES[refereeMode];
+    syncDifficultyUI();
+    syncJoySpeedUI();
+    syncPhysicsModeUI();
+}
 
         /* ── 個人設定子分類頁籤切換 (3 大清晰分類) ── */
         function switchSettingsTab(tab) {
@@ -926,21 +910,16 @@
             }, 50);
         }
 
-        function cycleAimModeQuick() {
-            const modes = ['LOCKED', 'LEFT_ZONE', 'TORSO', 'RIGHT_FREE'];
-            const idx = modes.indexOf(aimAssistMode);
-            const next = modes[(idx + 1) % modes.length];
-            setAimMode(next);
-            syncSubbarStates();
-        }
-
-        function cycleTeachLevelQuick() {
-            const levels = ['easy', 'normal', 'strict'];
-            const idx = levels.indexOf(teachLevel);
-            const next = levels[(idx + 1) % levels.length];
-            setTeachLevel(next);
-            syncSubbarStates();
-        }
+function cycleAimModeQuick() {
+    const modes = ['LOCKED', 'LEFT_ZONE', 'TORSO', 'RIGHT_FREE'];
+    setAimMode(modes[(modes.indexOf(AIM.mode) + 1) % modes.length]);
+    syncSubbarStates();
+}
+function cycleTeachLevelQuick() {
+    const levels = ['easy', 'normal', 'strict'];
+    setTeachLevel(levels[(levels.indexOf(TEACH.level) + 1) % levels.length]);
+    syncSubbarStates();
+}
 
         function cycleDifficultyQuick() {
             const diffs = ['easy', 'medium', 'hard', 'fly'];
@@ -984,7 +963,8 @@
         /* ═══════ 效能分級 ═══════ */
 
 /* ═══════ 彈窗控制器、HUD 面板自由拖曳與卡片縮放手柄 ═══════ */
-        const MODAL_IDS = ['login-overlay', 'profile-modal', 'audio-modal', 'tech-modal', 'social-modal', 'audit-modal', 'social-card-modal', 'mock-chat-modal', 'rules-modal'];
+        const MODAL_IDS = ['login-overlay', 'profile-modal', 'audio-modal', 'tech-modal', 'social-modal',
+            'audit-modal', 'social-card-modal', 'mock-chat-modal', 'rules-modal', 'item-cards-modal'];
         function isTypingTarget(e) {
             const t = e.target;
             if (!t) return false;
@@ -1196,21 +1176,15 @@
 
         const TOUR_STEPS = [
             {
-                targetSelector: '#nav button[data-panel="settings"]',
+                targetSelector: '#nav button[data-menu="settings"]',
                 title: '⚙️ 第一站：雙層分類設定選單',
                 badge: '第 1 / 3 站 · 功能收納',
                 desc: '點擊【設定】可滑出雙層抽屜：切換 3D 視角、調節體感靈敏度、綁定個人 IG 與同步數位孿生！',
-                onEnter: () => {
-                    togglePanel('settings');
-                    setTimeout(() => openSettingsSub('game'), 350);
-                },
-                onExit: () => {
-                    closePanel();
-                    openSettingsSub('main');
-                }
+                onEnter: () => { if (activeNavMenu !== 'settings') toggleNavMenu('settings'); switchSettingsTab('view'); },
+                onExit: () => { closePanel(); }
             },
             {
-                targetSelector: '#nav button[data-panel="board"]',
+                targetSelector: '#nav button[data-menu="social"]',
                 title: '🪿 第二站：社交名片與數位孿生對戰',
                 badge: '第 2 / 3 站 · 零延遲 Mock 示範',
                 desc: '點擊【社交】即可展開球員個人名片與 5 維特徵雷達圖，還能直接點擊【⚔️ 挑戰數位孿生】與好友 AI 對決！',

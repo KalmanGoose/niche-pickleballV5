@@ -6,10 +6,12 @@
 (function(window) {
     'use strict';
 
+    const DEV_MODE = ['localhost', '127.0.0.1'].includes(location.hostname);
     const FUN_STORAGE_KEY = 'nchu_pb_fun_mode';
 
     const FunMode = {
         enabled: false,
+        usedForcedItem: false,
         items: [],             // 場上的 3D 道具箱
         spawnCooldown: 0,
         activeBuff: null,      // 'MEGA_PADDLE' | 'ELECTRIC_SWATTER' | 'MEGA_BALL' | 'GIANT_PLAYER'
@@ -145,7 +147,7 @@
             this.buildFlyHexaPaddles();
             this.buildSwatterSparks();
             this.syncUI();
-            this.bindDevShortcuts();
+            if (DEV_MODE) this.bindDevShortcuts();
         },
 
         buildQuestionBoxTexture: function() {
@@ -984,13 +986,8 @@
                     announceReferee('⚡ 進入追殺模式！', '連續電擊 3 次電死蒼蠅才算贏！球落地不結算！', false);
                 }
             } else if (item.id === 'MEGA_BALL') {
-                if (typeof ball !== 'undefined') {
-                    ball.scale.setScalar(2.8);
-                    ball.material.color.set(0x334155); // 沉重鐵灰色
-                }
-                if (typeof ballGlow !== 'undefined') {
-                    ballGlow.scale.setScalar(2.8);
-                }
+                BALL_VIS.item = 2.8;
+                if (typeof ball !== 'undefined' && ball) ball.material.color.set(0x334155);
             } else if (item.id === 'GIANT_PLAYER') {
                 if (typeof pGrp !== 'undefined') {
                     pGrp.scale.setScalar(2.0);
@@ -1076,14 +1073,7 @@
                 if (typeof popRing === 'function' && flyPos) {
                     popRing(flyPos.x, flyPos.z, 2.6, 0x38bdf8);
                 }
-                if (window.FLY_BRAIN) {
-                    if (window.FLY_BRAIN.gfVm !== undefined) window.FLY_BRAIN.gfVm = 18.0;
-                    const snnCircuitStatusEl = document.getElementById('fly-snn-status');
-                    if (snnCircuitStatusEl) {
-                        snnCircuitStatusEl.innerText = '⚡ VOLTAGE SPIKE (第 1 擊：神經元高壓抽搐)';
-                        snnCircuitStatusEl.style.color = '#38bdf8';
-                    }
-                }
+                if (window.FLY_BRAIN) window.FLY_BRAIN.Vm = window.FLY_BRAIN.vPeak;   // 示波器會畫出一根 spike
                 if (typeof toast === 'function') {
                     toast('⚡ [1/3] 觸電抽搐！', '第 1 擊破除護甲！快追上去再補一擊！');
                 }
@@ -1105,14 +1095,7 @@
                     popRing(flyPos.x, flyPos.z, 3.2, 0xa855f7);
                     popRing(flyPos.x, flyPos.z, 2.2, 0xfacc15);
                 }
-                if (window.FLY_BRAIN) {
-                    if (window.FLY_BRAIN.gfVm !== undefined) window.FLY_BRAIN.gfVm = 34.0;
-                    const snnCircuitStatusEl = document.getElementById('fly-snn-status');
-                    if (snnCircuitStatusEl) {
-                        snnCircuitStatusEl.innerText = '🔥 CIRCUIT SMOKING (第 2 擊：迴路過載冒煙)';
-                        snnCircuitStatusEl.style.color = '#f59e0b';
-                    }
-                }
+                if (window.FLY_BRAIN) window.FLY_BRAIN.Vm = window.FLY_BRAIN.vPeak;   // 示波器會畫出一根 spike
                 if (typeof toast === 'function') {
                     toast('⚡⚡ [2/3] 過載冒煙！', '第 2 擊命中！蒼蠅已冒煙暈眩，給牠最後致命一擊！');
                 }
@@ -1152,14 +1135,7 @@
                     popRing(flyPos.x, flyPos.z, 4.8, 0xa855f7);
                     popRing(flyPos.x, flyPos.z, 6.2, 0xfacc15);
                 }
-                if (window.FLY_BRAIN) {
-                    if (window.FLY_BRAIN.gfVm !== undefined) window.FLY_BRAIN.gfVm = 50.0;
-                    const snnCircuitStatusEl = document.getElementById('fly-snn-status');
-                    if (snnCircuitStatusEl) {
-                        snnCircuitStatusEl.innerText = '💀 FATAL OVERLOAD / SHORT CIRCUIT (終極致命短路)';
-                        snnCircuitStatusEl.style.color = '#ef4444';
-                    }
-                }
+                if (window.FLY_BRAIN) window.FLY_BRAIN.Vm = window.FLY_BRAIN.vPeak;   // 示波器會畫出一根 spike
 
                 // ★ 玩家直接獲勝得分！不管球掉去哪裡，電死蒼蠅就算贏！
                 if (typeof pScore !== 'undefined') {
@@ -1242,14 +1218,8 @@
                 if (this.guidanceGroup) this.guidanceGroup.visible = false;
                 this.hideGuideBanner();
             } else if (this.activeBuff === 'MEGA_BALL') {
-                if (typeof ball !== 'undefined') {
-                    ball.scale.setScalar(1.0);
-                    ball.material.color.set(0xdcff6a); // 恢復經典亮螢光黃
-                }
-                if (typeof ballGlow !== 'undefined') {
-                    ballGlow.scale.setScalar(1.0);
-                    ballGlow.material.color.set(0xdcff6a);
-                }
+                BALL_VIS.item = 1;
+                if (typeof ball !== 'undefined' && ball) ball.material.color.set(0xffffff);   // 原材質是白色
             } else if (this.activeBuff === 'GIANT_PLAYER') {
                 if (typeof pGrp !== 'undefined') pGrp.scale.setScalar(1.0);
             }
@@ -1352,6 +1322,7 @@
         },
 
         forceItem: function(itemId) {
+            this.usedForcedItem = true;
             const item = this.ITEMS.find(i => i.id === itemId) || this.ITEMS.find(i => i.id === 'ELECTRIC_SWATTER');
             if (item) {
                 const spawnPos = (typeof pPos !== 'undefined') ? pPos : { x: 0, y: 0.5, z: 4.0 };
@@ -1514,14 +1485,16 @@
 
     window.FunMode = FunMode;
     window.toggleFunMode = function(force) { FunMode.toggle(force); };
-    window.giveSwatter = function() {
-        if (!FunMode.enabled) FunMode.toggle(true);
-        FunMode.forceItem('ELECTRIC_SWATTER');
-    };
-    window.giveItem = function(id) {
-        if (!FunMode.enabled) FunMode.toggle(true);
-        FunMode.forceItem(id || 'ELECTRIC_SWATTER');
-    };
+    if (DEV_MODE) {
+        window.giveSwatter = function() {
+            if (!FunMode.enabled) FunMode.toggle(true);
+            FunMode.forceItem('ELECTRIC_SWATTER');
+        };
+        window.giveItem = function(id) {
+            if (!FunMode.enabled) FunMode.toggle(true);
+            FunMode.forceItem(id || 'ELECTRIC_SWATTER');
+        };
+    }
     window.openItemCardsModal = function() { FunMode.openItemCardsModal(); };
     window.closeItemCardsModal = function() { FunMode.closeItemCardsModal(); };
     window.filterItemCards = function(type) { FunMode.filterItemCards(type); };

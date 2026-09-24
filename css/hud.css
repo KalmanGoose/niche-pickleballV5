@@ -1309,12 +1309,12 @@
         #login-overlay {
             z-index: 100000 !important;
         }
-        body:has(#login-overlay:not([style*="display: none"])) #demo,
-        body:has(#login-overlay:not([style*="display: none"])) #demo-watermark,
-        body:has(#login-overlay:not([style*="display: none"])) #finger-tutorial,
-        body:has(#login-overlay:not([style*="display: none"])) #nav,
-        body:has(#login-overlay:not([style*="display: none"])) #nav-sheet,
-        body:has(#login-overlay:not([style*="display: none"])) #rotate-prompt {
+        body.login-open #demo,
+        body.login-open #demo-watermark,
+        body.login-open #finger-tutorial,
+        body.login-open #nav,
+        body.login-open #nav-sheet,
+        body.login-open #rotate-prompt {
             display: none !important;
             opacity: 0 !important;
             pointer-events: none !important;

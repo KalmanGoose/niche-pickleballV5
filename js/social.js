@@ -153,14 +153,20 @@
             });
         }
 
+        let twinBackup = null;
+        function restoreTwinParams() {
+            if (!twinBackup) return;
+            AI_SPEED[4] = twinBackup.speed; AI_MISS[4] = twinBackup.miss;
+            twinBackup = null;
+        }
         function battleDigitalTwin() {
             closeSocialCard();
             if (!currentFriendData) return;
             toast('⚔️ 載入數位孿生行為模型', '對手匹克鵝已套用「' + currentFriendData.nickname + '」之球風與側旋特徵！');
-            // 將好友特徵參數注入 AI 行為
+            if (!twinBackup) twinBackup = { speed: AI_SPEED[4], miss: AI_MISS[4] };
             AI_SPEED[4] = 6.2;
             AI_MISS[4] = 0.08;
-            switchStage(4);
+            switchStage(4, { keepTwin: true });
         }
 
         function syncDigitalTwin() {
@@ -185,8 +191,9 @@
         }
 
 
+        let auditSeq = 0;
         function auditLogAdd(entry) {
-            entry.id = AUDIT_LOG.length + 1;
+            entry.id = ++auditSeq;
             entry.time = new Date().toLocaleTimeString('zh-TW', { hour12: false });
             entry.mode = webcamActive ? 'Motion' : 'Manual'; // ★ 區分手動 / 體感
             AUDIT_LOG.push(entry);
@@ -208,6 +215,7 @@
                     if (Array.isArray(arr)) {
                         AUDIT_LOG.length = 0;
                         AUDIT_LOG.push(...arr.slice(-20));
+                        auditSeq = AUDIT_LOG.reduce((m, r) => Math.max(m, r.id || 0), 0);
                     }
                 }
             } catch (e) {}
@@ -240,7 +248,7 @@
             const tbody = document.getElementById('audit-tbody');
             if (!tbody) return;
             if (AUDIT_LOG.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="11" style="text-align:center;color:var(--dim);padding:24px;">尚無擊球紀錄，請揮拍或發球…</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="12" style="text-align:center;color:var(--dim);padding:24px;">尚無擊球紀錄，請揮拍或發球…</td></tr>';
                 document.getElementById('aud-total').innerText = '0';
                 document.getElementById('aud-order-rate').innerText = '-';
                 document.getElementById('aud-elbow-mean').innerText = '-';
@@ -566,6 +574,7 @@
             cameraUtils.start().then(() => {
                 webcamActive = true; btn.innerText = '📷 體感: 開'; syncAimPips();
                 toast('體感 AI 已啟動', '預設 🔒 自動對角,先專心練揮拍時機');
+                syncSubbarStates();
             }).catch(err => {
                 console.error(err);
                 const name = (err && err.name) || String(err);
@@ -582,6 +591,7 @@
                 setStanceRowVisible(false);
                 document.getElementById('calibration-box').style.display = 'none';
                 toast('體感啟動失敗', msg);
+                syncSubbarStates();
             });
         }
         function stopWebcamAI() {
@@ -604,6 +614,7 @@
             resetServeFSM(); kcReset();
             stanceOK = false;
             toast('體感 AI 已關閉', '已切換回滑鼠/鍵盤控制');
+            syncSubbarStates();
         }
 
         /* ═══════════════════════════════════════════════

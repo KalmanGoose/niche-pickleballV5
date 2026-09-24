@@ -1,7 +1,7 @@
 /* ═══════════════════════════════════════════════════════════════════
    NCHU Pickleball V5 - 系統常數、設定與資料庫 (Config & Identity)
    ═══════════════════════════════════════════════════════════════════ */
-        const APP_VERSION = 'v5.0.14';
+        const APP_VERSION = 'v5.1.0';
 
         /* ═══════ 雙軌物理引擎模式 (Dual Physics Modes) ═══════ */
         const PHYSICS_MODES = {
@@ -330,6 +330,7 @@
                 if (raw) {
                     const data = JSON.parse(raw);
                     applyMotionModel(data.parameters || data);
+                    window.CUSTOM_MODEL_ACTIVE = true;
                 }
             } catch (e) { console.error('Failed to load custom motion model', e); }
         }
@@ -361,6 +362,7 @@
                     const json = JSON.parse(evt.target.result);
                     const params = json.parameters || json;
                     applyMotionModel(params);
+                    window.CUSTOM_MODEL_ACTIVE = true;
                     localStorage.setItem(MODEL_STORAGE_KEY, JSON.stringify(json));
                     if (typeof updateGoal === 'function') updateGoal();
                     toast('✅ 教練參數已成功匯入', '已即時套用最新動力學與 AI 數值');
@@ -438,12 +440,14 @@
                 playerProfile.grade = saved.grade || '';
                 playerProfile.entryYear = saved.entryYear || '';
                 playerProfile.nickname = saved.nickname || '叫獸aka愛叫的野獸';
+                playerProfile.ig = saved.ig || '';
                 playerProfile.sessionId = 'S-' + Date.now().toString(36);
                 checkAdminAccess(playerProfile.nickname);
 
                 document.getElementById('p-who-label').innerText =
                     playerProfile.avatar + ' ' + playerProfile.nickname.slice(0, 6);
                 document.getElementById('login-overlay').style.display = 'none';
+                document.body.classList.remove('login-open');
                 clearKeys();
                 S.init();
                 toast('👋 歡迎回來,' + playerProfile.department, '編號 ' + playerProfile.playerId);
@@ -472,7 +476,6 @@
             playerProfile.grade = grade;
             playerProfile.entryYear = String(r.entryYear);
             if (nick) playerProfile.nickname = nick;
-            playerProfile.ig = (document.getElementById('edit-ig').value || '').trim();
             playerProfile.sessionId = 'S-' + Date.now().toString(36);
             checkAdminAccess(playerProfile.nickname);
 
@@ -484,12 +487,14 @@
                 department: playerProfile.department,
                 grade: playerProfile.grade,
                 deptCode: playerProfile.deptCode,
-                entryYear: playerProfile.entryYear
+                entryYear: playerProfile.entryYear,
+                ig: playerProfile.ig || ''
             });
 
             document.getElementById('p-who-label').innerText =
                 playerProfile.avatar + ' ' + playerProfile.nickname.slice(0, 6);
             document.getElementById('login-overlay').style.display = 'none';
+            document.body.classList.remove('login-open');
             clearKeys();
             S.init();
             toast('👋 歡迎,' + playerProfile.department, '編號 ' + playerProfile.playerId);
@@ -498,6 +503,7 @@
         function openProfileModal() {
             document.getElementById('edit-dept').value = playerProfile.department;
             document.getElementById('edit-nick').value = playerProfile.nickname;
+            document.getElementById('edit-ig').value = playerProfile.ig || '';
             document.getElementById('edit-id-badge').innerText =
                 '玩家編號 ' + (playerProfile.playerId || '未登入') +
                 '　學號前綴 ' + (playerProfile.sidPrefix || '—');
@@ -515,12 +521,14 @@
             }
             document.getElementById('p-who-label').innerText =
                 playerProfile.avatar + ' ' + playerProfile.nickname.slice(0, 6);
+            playerProfile.ig = document.getElementById('edit-ig').value.trim().replace(/^@/, '');
             const sv = loadIdentity() || {};
             sv.playerId = playerProfile.playerId || getOrCreatePlayerId();
             sv.sidPrefix = playerProfile.sidPrefix || sv.sidPrefix;
             sv.avatar = playerProfile.avatar;
             sv.nickname = playerProfile.nickname;
             sv.department = playerProfile.department;
+            sv.ig = playerProfile.ig;
             saveIdentity(sv);
             closeProfileModal();
             if (playerProfile.playerId) {

@@ -24,6 +24,7 @@
             const stageEl = document.getElementById('stage3d');
             const sw = (stageEl && stageEl.clientWidth) ? stageEl.clientWidth : window.innerWidth;
             const sh = (stageEl && stageEl.clientHeight) ? stageEl.clientHeight : window.innerHeight;
+            ren.setPixelRatio(dpr);
             ren.setSize(sw, sh);
             if (sunKey) {
                 const want = p.shadow > 0;

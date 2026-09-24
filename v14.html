@@ -1,4 +1,4 @@
-<!-- Version: v5.0.13 | NCHU Pickleball Lab -->
+<!-- Version: v5.1.0 | NCHU Pickleball Lab -->
 <!DOCTYPE html>
 <html lang="zh-TW">
 
@@ -9,7 +9,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&display=swap" rel="stylesheet">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>NCHU Pickleball Lab · 中興大學匹克鵝打秋 (v5.0.14)</title>
+    <title>NCHU Pickleball Lab · 中興大學匹克鵝打秋 (v5.1.0)</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.3.1675466862/camera_utils.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/pose.js" crossorigin="anonymous"></script>
@@ -21,7 +21,7 @@
     <link rel="stylesheet" href="./css/nav.css">
     <link rel="stylesheet" href="./css/modals.css">
 </head>
-<body class="layout-v4">
+<body class="layout-v4 login-open">
 
     <!-- ══════ 登入 ══════ -->
     <div id="login-overlay" class="modal-overlay">
@@ -200,8 +200,7 @@
                 <div class="tech-h">🌪️ 匹克球空氣動力學與旋球物理 (馬格努斯效應)</div>
                 <p class="tech-p">
                     球體飛行軌跡由<b>重力</b>、<b>平方空氣阻力</b>與<b>馬格努斯力 (Magnus Force)</b> $\vec{F}_M \propto (\vec{\omega} \times \vec{v})$ 共同主導。
-                    匹克球特有的 26~40 個穿孔結構在球後方引發早期紊流分離（Turbulent Wake Separation），產生高壓差阻力與角動量自然耗散特性，
-                    維持真實賽場微弧線（橫向偏折極限 0.15m~0.22m），兼顧體感可控性與物理真實度。
+                    匹克球特有的 26~40 個穿孔結構在球後方引發早期紊流分離（Turbulent Wake Separation），產生高壓差阻力與角動量自然耗散特性，兼顧體感可控性與物理真實度。
                     <button type="button" class="btn" onclick="closeTechModal(); openRulesModal('physics');" style="display:inline-flex;align-items:center;gap:4px;padding:3px 8px;font-size:11px;margin-top:6px;background:rgba(56,189,248,0.2);color:var(--accent);border:1px solid var(--accent);border-radius:6px;cursor:pointer;">
                         📖 閱讀流體力學生活科普與 5 大學術文獻 ↗
                     </button>
@@ -339,7 +338,7 @@
                         </tr>
                     </thead>
                     <tbody id="audit-tbody">
-                        <tr><td colspan="11" style="text-align:center;color:var(--dim);padding:24px;">尚無擊球紀錄，請揮拍或發球…</td></tr>
+                        <tr><td colspan="12" style="text-align:center;color:var(--dim);padding:24px;">尚無擊球紀錄，請揮拍或發球…</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -533,7 +532,7 @@
                             <h4 class="rule-title">📐 物理引擎數值微分方程：全細項逐項拆解 (給教授與答辯的物理原理)</h4>
                         </div>
                         <p class="rule-desc">
-                            本遊戲 3D 物理引擎即時以四階數值積分求解球體在連續流體中的三維合力微分方程式：
+                            本遊戲 3D 物理引擎以半隱式 Euler（固定步長 h = 1/120 s）數值積分求解下列方程式，可用下方按鈕切換兩種模式：
                         </p>
                         <div class="physics-formula">【主運動微分方程式】
 m · (dv/dt) = F_total = F_gravity + F_drag + F_Magnus
@@ -607,66 +606,53 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
                                 <div style="font-size:12px;line-height:1.65;color:#cbd5e1;">
                                     • <b>β_perforated（多孔空氣剪切阻尼係數）</b>：取值 <b>0.35 s⁻¹</b>。<br>
                                     • <b>物理意義</b>：空氣高速穿梭貫穿球體的 26~40 個孔洞時，球內腔與外側氣流產生強烈剪切摩擦，使自旋角速度以指數形式衰減 ω(t) = ω₀ · e^(-β·t)。<br>
-                                    • <b>運動學效果</b>：保證匹克球的弧線是「平穩收斂的微側弧線（0.15m~0.22m）」，絕不會像乒乓球那樣飄移暴衝，手腕極度受控安全。
+                                    • <b>運動學效果</b>：使側旋造成的偏折隨時間收斂，不會持續加速偏移。
                                 </div>
                             </div>
 
                             <!-- 核心答辯對照：理論模型 vs 遊戲引擎真實工程實作 -->
                             <div style="background:linear-gradient(135deg, rgba(234,179,8,0.12), rgba(15,23,42,0.85));border:1.5px solid rgba(234,179,8,0.4);border-radius:10px;padding:14px 16px;margin-top:6px;">
                                 <div style="font-weight:900;color:#facc15;font-size:14px;display:flex;align-items:center;gap:8px;margin-bottom:8px;">
-                                    <span>⚙️【工程答辯精髓】理論連續微分方程 vs. 程式碼真實工程實作：為什麼不能直接照搬原始公式？</span>
+                                    <span>⚙️【工程答辯精髓】雙模式物理引擎架構：快速競技 vs. 學術研究模式</span>
                                 </div>
                                 <p style="font-size:12px;color:#e2e8f0;line-height:1.7;margin-bottom:10px;">
                                     很多評審教授會提問：<i>「既然列了 Navier-Stokes 與馬格努斯微分方程，為何遊戲引擎原始碼不直接每幀做未受約束的連續積分？」</i><br>
-                                    這正是<b>頂尖即時圖形學與物理引擎工程（如 Havok / PhysX）的核心權衡：數值穩定性（Numerical Stability）與誤差放大防護（Error Accumulation Prevention）</b>。
+                                    本系統實作<b>雙模式可切換架構（可在畫面下方「物理」按鈕隨時切換）</b>，兼顧競技手感與嚴格物理仿真：
                                 </p>
-                                
+
                                 <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(280px, 1fr));gap:10px;">
-                                    <!-- 對照 1 -->
-                                    <div style="background:rgba(0,0,0,0.4);border:1px solid rgba(255,255,255,0.08);border-radius:6px;padding:10px;">
+                                    <div style="background:rgba(0,0,0,0.4);border:1px solid rgba(56,189,248,0.3);border-radius:6px;padding:10px;">
                                         <div style="font-weight:800;color:#38bdf8;font-size:12px;margin-bottom:4px;">
-                                            ❌ 連續方程直接求解的致命缺陷 (數值發散)
+                                            ⚡ 快速競技模式（FAST，預設）
                                         </div>
-                                        <div style="font-size:11.5px;color:#94a3b8;line-height:1.6;">
-                                            • <b>浮點截斷誤差逐幀放大</b>：空氣阻力與速度呈二次方關係（|v|·v）。在手機端浮點數運算中，微小誤差經過二次方迭代，數值損失會呈指數級放大，極易造成能量暴增或發散。<br>
-                                            • <b>角動量離散步長奇異點</b>：當球體碰撞球拍或地面瞬態，角速度導數 dω/dt 趨近無窮大，連續積分器會因時間步長無法適配而瞬間崩潰或產生「地面溜冰」。
+                                        <div style="font-size:11.5px;color:#cbd5e1;line-height:1.6;">
+                                            • <b>積分器</b>：Symplectic Euler，子步長 <code>h = 1/120 s</code>（每幀最多 30 步迭代），保證 60+ fps 流暢度。<br>
+                                            • <b>阻力模型</b>：線性阻尼 <code>(1 - k·h)</code>，極低運算開銷，消除浮點溢位風險。<br>
+                                            • <b>適用場景</b>：正式比賽、休閒對打、低階行動裝置。
                                         </div>
                                     </div>
 
-                                    <!-- 對照 2 -->
                                     <div style="background:rgba(0,0,0,0.4);border:1px solid rgba(34,197,94,0.3);border-radius:6px;padding:10px;">
                                         <div style="font-weight:800;color:#4ade80;font-size:12px;margin-bottom:4px;">
-                                            ✅ 本專案 step(h) 真實工程防護實作 (寫死約束保證穩定)
+                                            🔬 學術研究模式（ACADEMIC）
                                         </div>
                                         <div style="font-size:11.5px;color:#cbd5e1;line-height:1.6;">
-                                            • <b>固定微子步長 (Sub-stepping)</b>：底層採用 <code>H = 1/240 s</code> 微積分步長（每幀最多拆分 30 步子步迭代），保證 60fps 運動軌跡絕對確定性 (Deterministic)。<br>
-                                            • <b>阻力線性化離散阻尼</b>：原始碼採用 <code>vel.x *= (1 - 0.12 * h)</code>，取代易發散的 |v|² 非線性項，保證高速破空且能量平穩收斂。
+                                            • <b>積分器</b>：Symplectic Euler，精細子步長 <code>h = 1/240 s</code>。<br>
+                                            • <b>阻力模型</b>：嚴格二次方阻力 <code>F_drag = -½·ρ·Cd·A·|v|·v</code>，使用實測雷諾數多項式。<br>
+                                            • <b>馬格努斯力</b>：完整三維向量叉積 <code>F_mag = ½·ρ·Cm·A·r·(ω × v)</code>。<br>
+                                            • <b>適用場景</b>：軌跡研究、物理教學、論文驗證。
                                         </div>
                                     </div>
                                 </div>
 
-                                <!-- 原始碼具體對照卡 -->
                                 <div style="margin-top:10px;background:rgba(15,23,42,0.8);border:1px solid rgba(234,179,8,0.25);border-radius:6px;padding:10px 12px;">
                                     <div style="font-weight:800;color:#fcd34d;font-size:12px;margin-bottom:6px;">
-                                        💻 原始碼三大寫死物理防護機制（摘自本程式 <code>step(h)</code> 5400-5440 行）：
+                                        ⚠️ 模型限制（評審提問必備防守）：
                                     </div>
-                                    <div style="display:flex;flex-direction:column;gap:6px;font-size:11.5px;color:#cbd5e1;line-height:1.6;">
-                                        <div>
-                                            <b>1. 旋球死區截斷 (Deadzone Clamping)</b>：<br>
-                                            <code>if (Math.abs(this.spin) > 0.08) { ... } else { this.spinInc = 0; }</code><br>
-                                            <span style="color:#94a3b8;">▸ 解決浮點計算常態偏漂問題。若自旋值在 0.08 閾值內判定為平推直球，硬性歸零偏折，保證直球 100% 筆直。</span>
-                                        </div>
-                                        <div>
-                                            <b>2. 馬格努斯加速度經驗公式與邊界夾制 (Bounding)</b>：<br>
-                                            <code>magnusAcc = (spin * 2.8 + sign(spin) * spin² * 1.2) * (0.8 + 0.5 * factor);</code><br>
-                                            <code>this.spinInc = THREE.MathUtils.clamp(this.spinInc + magnusAcc * h * softGuard, -2.2, 2.2);</code><br>
-                                            <span style="color:#94a3b8;">▸ 結合自旋平方非線性增益與中線飛行權重因子，並以 [-2.2, 2.2] 剛性夾制，確保最大側偏位移永遠收斂在真實賽場極限（0.15m~0.22m），絕不無端暴衝出場。</span>
-                                        </div>
-                                        <div>
-                                            <b>3. 落地瞬時自旋耗散與滑動重置 (Bounce State Reset)</b>：<br>
-                                            <code>this.spin *= 0.35;  this.spinInc = 0;</code><br>
-                                            <span style="color:#94a3b8;">▸ 匹克球為實心多孔塑料，撞地瞬間自旋驟降。若繼續求解微分方程，地面摩擦數值會累積橫向假位移；因此落地瞬間將側向滑動速度硬性歸零，徹底杜絕「地面溜冰」怪異現象。</span>
-                                        </div>
+                                    <div style="font-size:11.5px;color:#94a3b8;line-height:1.7;">
+                                        1. <b>自旋耗散為經驗衰減</b>（落地衰減率 0.45，每秒自然衰減 12%），未包含地面切向摩擦微觀滑動模型。<br>
+                                        2. <b>未包含動態浮力</b>（匹克球極輕 ~26g，若球體內外溫差極大時浮力微幅影響軌跡，本系統忽略）。<br>
+                                        3. <b>球體設為均質剛體球</b>，未考慮 26~40 個通風孔洞引起的非對稱微湍流（需 CFD 網格級別運算，即時渲染無法負擔）。
                                     </div>
                                 </div>
                             </div>
