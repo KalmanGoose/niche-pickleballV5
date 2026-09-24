@@ -3318,8 +3318,6 @@
         /* 3D 看台調色與柔和光照 */
         #speed-hud-mini {
             position: absolute;
-            bottom: 14px;
-            left: 14px;
             z-index: 25;
             background: rgba(15, 23, 42, 0.85);
             border: 1px solid var(--line);
@@ -3351,8 +3349,6 @@
 
         #speed-hud-mini {
             position: absolute;
-            bottom: 14px;
-            left: 14px;
             z-index: 30;
             background: rgba(15, 23, 42, 0.88);
             border: 1px solid rgba(56, 189, 248, 0.35);
@@ -4336,48 +4332,32 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
 
                             <!-- 核心答辯對照：理論模型 vs 遊戲引擎真實工程實作 -->
                             <div style="background:linear-gradient(135deg, rgba(234,179,8,0.12), rgba(15,23,42,0.85));border:1.5px solid rgba(234,179,8,0.4);border-radius:10px;padding:14px 16px;margin-top:6px;">
-                                <div style="font-weight:900;color:#facc15;font-size:14px;display:flex;align-items:center;gap:8px;margin-bottom:8px;">
-                                    <span>⚙️【工程答辯精髓】雙模式物理引擎架構：快速競技 vs. 學術研究模式</span>
-                                </div>
-                                <p style="font-size:12px;color:#e2e8f0;line-height:1.7;margin-bottom:10px;">
-                                    很多評審教授會提問：<i>「既然列了 Navier-Stokes 與馬格努斯微分方程，為何遊戲引擎原始碼不直接每幀做未受約束的連續積分？」</i><br>
-                                    本系統實作<b>雙模式可切換架構（可在畫面下方「物理」按鈕隨時切換）</b>，兼顧競技手感與嚴格物理仿真：
-                                </p>
-
+                                <div style="font-weight:900;color:#facc15;font-size:14px;margin-bottom:8px;">⚙️ 理論方程式 vs. 實際程式實作</div>
                                 <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(280px, 1fr));gap:10px;">
                                     <div style="background:rgba(0,0,0,0.4);border:1px solid rgba(56,189,248,0.3);border-radius:6px;padding:10px;">
-                                        <div style="font-weight:800;color:#38bdf8;font-size:12px;margin-bottom:4px;">
-                                            ⚡ 快速競技模式（FAST，預設）
-                                        </div>
+                                        <div style="font-weight:800;color:#38bdf8;font-size:12px;margin-bottom:4px;">⚡ 極速模式 (FAST)</div>
                                         <div style="font-size:11.5px;color:#cbd5e1;line-height:1.6;">
-                                            • <b>積分器</b>：Symplectic Euler，子步長 <code>h = 1/120 s</code>（每幀最多 30 步迭代），保證 60+ fps 流暢度。<br>
-                                            • <b>阻力模型</b>：線性阻尼 <code>(1 - k·h)</code>，極低運算開銷，消除浮點溢位風險。<br>
-                                            • <b>適用場景</b>：正式比賽、休閒對打、低階行動裝置。
+                                            • 線性阻尼：<code>v<sub>x,z</sub> ← v<sub>x,z</sub>·(1 − 0.09h)</code><br>
+                                            • 經驗側向加速度：<code>a<sub>x</sub> = 3.6·spin·(0.8 + 0.2·|v<sub>z</sub>|/8)</code><br>
+                                            • 自旋衰減 0.14 s⁻¹<br>
+                                            • 目的：手感穩定、落點容易預測
                                         </div>
                                     </div>
-
-                                    <div style="background:rgba(0,0,0,0.4);border:1px solid rgba(34,197,94,0.3);border-radius:6px;padding:10px;">
-                                        <div style="font-weight:800;color:#4ade80;font-size:12px;margin-bottom:4px;">
-                                            🔬 學術研究模式（ACADEMIC）
-                                        </div>
+                                    <div style="background:rgba(0,0,0,0.4);border:1px solid rgba(129,140,248,0.35);border-radius:6px;padding:10px;">
+                                        <div style="font-weight:800;color:#c7d2fe;font-size:12px;margin-bottom:4px;">🔬 學術模式 (ACADEMIC)</div>
                                         <div style="font-size:11.5px;color:#cbd5e1;line-height:1.6;">
-                                            • <b>積分器</b>：Symplectic Euler，精細子步長 <code>h = 1/240 s</code>。<br>
-                                            • <b>阻力模型</b>：嚴格二次方阻力 <code>F_drag = -½·ρ·Cd·A·|v|·v</code>，使用實測雷諾數多項式。<br>
-                                            • <b>馬格努斯力</b>：完整三維向量叉積 <code>F_mag = ½·ρ·Cm·A·r·(ω × v)</code>。<br>
-                                            • <b>適用場景</b>：軌跡研究、物理教學、論文驗證。
+                                            • 二次方阻力 <code>a = −k|v|v</code>，k = ½C<sub>d</sub>ρA/m ≈ 0.0588 m⁻¹；以隱式形式 <code>v ← v/(1+k|v|h)</code> 更新<br>
+                                            • 馬格努斯力 <code>a = ½C<sub>L</sub>ρA|v|²/m</code>，方向為 ω×v；C<sub>L</sub> ≈ 0.8·S（S = Rω/|v|），上限 0.25<br>
+                                            • 自旋指數衰減 β = 0.35 s⁻¹<br>
+                                            • 擊球初速以打靶法反覆修正，落點誤差 &lt; 10 cm
                                         </div>
                                     </div>
                                 </div>
-
-                                <div style="margin-top:10px;background:rgba(15,23,42,0.8);border:1px solid rgba(234,179,8,0.25);border-radius:6px;padding:10px 12px;">
-                                    <div style="font-weight:800;color:#fcd34d;font-size:12px;margin-bottom:6px;">
-                                        ⚠️ 模型限制（評審提問必備防守）：
-                                    </div>
-                                    <div style="font-size:11.5px;color:#94a3b8;line-height:1.7;">
-                                        1. <b>自旋耗散為經驗衰減</b>（落地衰減率 0.45，每秒自然衰減 12%），未包含地面切向摩擦微觀滑動模型。<br>
-                                        2. <b>未包含動態浮力</b>（匹克球極輕 ~26g，若球體內外溫差極大時浮力微幅影響軌跡，本系統忽略）。<br>
-                                        3. <b>球體設為均質剛體球</b>，未考慮 26~40 個通風孔洞引起的非對稱微湍流（需 CFD 網格級別運算，即時渲染無法負擔）。
-                                    </div>
+                                <div style="margin-top:10px;background:rgba(15,23,42,0.8);border:1px solid rgba(234,179,8,0.25);border-radius:6px;padding:10px 12px;font-size:11.5px;color:#cbd5e1;line-height:1.6;">
+                                    <b style="color:#fcd34d;">⚠️ 模型限制</b><br>
+                                    • 多孔球的 C<sub>L</sub> 與自旋衰減缺乏公開風洞資料；spin = 1 對應 80 rad/s 與 C<sub>L</sub> 斜率皆為假設值，以遊戲手感校正<br>
+                                    • 碰撞與視覺使用放大半徑 0.14 m（手機可見度），空氣動力學使用真實半徑 0.037 m<br>
+                                    • 落地反彈採經驗恢復係數（垂直 0.55、水平 0.68），未建模球與地面的摩擦及自旋耦合
                                 </div>
                             </div>
                         </div>
@@ -5019,106 +4999,34 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
             ACADEMIC: 'academic'   // 🔬 嚴格學術求解 (Simulation Mode): 真實質量、密度、阻力與馬格努斯微分方程
         };
         let currentPhysicsMode = localStorage.getItem('nchu_physics_mode') || PHYSICS_MODES.FAST;
-/* ═══════════════════════════════════════════════
-   ★★★ 部署設定 (支援 Cloudflare Worker 代理或直連) ★★★
-   ═══════════════════════════════════════════════ */
-        const PROXY_URL = ''; // 若有架設 Cloudflare Worker 代理請填在此處 (例如 'https://pb-proxy.your-name.workers.dev')
-        const GAS_URL = 'https://script.google.com/macros/s/AKfycbwbQJTyJFtZjGOHs_EzYnbbQjq1Znj8KHG1l9uVhgqsyUK2KpkwdN6nydNNvyqz394mGQ/exec';
-        const SIGN_SECRET = 'nchu-pickleball-2026-secret';
-        const API_READY = () => (PROXY_URL && PROXY_URL.startsWith('http')) || /^https:\/\/script\.google\.com\/macros\/s\/.+\/exec$/.test(GAS_URL);
+// ★ 部署後由人工填入 Worker 網址；保持佔位字串時會自動進入離線模式
+const PROXY_URL = 'https://YOUR-WORKER.workers.dev';
+const API_READY = () => /^https:\/\//.test(PROXY_URL) && PROXY_URL.indexOf('YOUR-WORKER') < 0;
 
-        /* ═══════ 純 JS HMAC-SHA256 ═══════ */
-        const SHA = (() => {
-            const K = new Uint32Array([
-                0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
-                0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3, 0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174,
-                0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc, 0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da,
-                0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7, 0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967,
-                0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13, 0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85,
-                0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070,
-                0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3,
-                0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2]);
-            const rr = (x, n) => (x >>> n) | (x << (32 - n));
-            function digest(bytes) {
-                const l = bytes.length;
-                const buf = new Uint8Array(((l + 9 + 63) >> 6) << 6);
-                buf.set(bytes); buf[l] = 0x80;
-                const bits = l * 8;
-                buf[buf.length - 4] = (bits >>> 24) & 255; buf[buf.length - 3] = (bits >>> 16) & 255;
-                buf[buf.length - 2] = (bits >>> 8) & 255; buf[buf.length - 1] = bits & 255;
-                const H = new Uint32Array([0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a,
-                    0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19]);
-                const w = new Uint32Array(64);
-                for (let i = 0; i < buf.length; i += 64) {
-                    for (let t = 0; t < 16; t++) w[t] = (buf[i + 4 * t] << 24) | (buf[i + 4 * t + 1] << 16) | (buf[i + 4 * t + 2] << 8) | buf[i + 4 * t + 3];
-                    for (let t = 16; t < 64; t++) {
-                        const s0 = rr(w[t - 15], 7) ^ rr(w[t - 15], 18) ^ (w[t - 15] >>> 3);
-                        const s1 = rr(w[t - 2], 17) ^ rr(w[t - 2], 19) ^ (w[t - 2] >>> 10);
-                        w[t] = (w[t - 16] + s0 + w[t - 7] + s1) >>> 0;
-                    }
-                    let a = H[0], b = H[1], c = H[2], d = H[3], e = H[4], f = H[5], g = H[6], h = H[7];
-                    for (let t = 0; t < 64; t++) {
-                        const S1 = rr(e, 6) ^ rr(e, 11) ^ rr(e, 25), ch = (e & f) ^ (~e & g);
-                        const t1 = (h + S1 + ch + K[t] + w[t]) >>> 0;
-                        const S0 = rr(a, 2) ^ rr(a, 13) ^ rr(a, 22), mj = (a & b) ^ (a & c) ^ (b & c);
-                        const t2 = (S0 + mj) >>> 0;
-                        h = g; g = f; f = e; e = (d + t1) >>> 0; d = c; c = b; b = a; a = (t1 + t2) >>> 0;
-                    }
-                    H[0] = (H[0] + a) >>> 0; H[1] = (H[1] + b) >>> 0; H[2] = (H[2] + c) >>> 0; H[3] = (H[3] + d) >>> 0;
-                    H[4] = (H[4] + e) >>> 0; H[5] = (H[5] + f) >>> 0; H[6] = (H[6] + g) >>> 0; H[7] = (H[7] + h) >>> 0;
-                }
-                const out = new Uint8Array(32);
-                for (let i = 0; i < 8; i++) {
-                    out[4 * i] = (H[i] >>> 24) & 255; out[4 * i + 1] = (H[i] >>> 16) & 255;
-                    out[4 * i + 2] = (H[i] >>> 8) & 255; out[4 * i + 3] = H[i] & 255;
-                }
-                return out;
-            }
-            const enc = s => new TextEncoder().encode(s);
-            const b64 = b => { let s = ''; for (let i = 0; i < b.length; i++) s += String.fromCharCode(b[i]); return btoa(s); };
-            function hmac(keyStr, msgStr) {
-                let key = enc(keyStr);
-                if (key.length > 64) key = digest(key);
-                const ip = new Uint8Array(64), op = new Uint8Array(64);
-                for (let i = 0; i < 64; i++) { const k = i < key.length ? key[i] : 0; ip[i] = k ^ 0x36; op[i] = k ^ 0x5c; }
-                const m = enc(msgStr);
-                const inner = new Uint8Array(64 + m.length); inner.set(ip); inner.set(m, 64);
-                const ih = digest(inner);
-                const outer = new Uint8Array(96); outer.set(op); outer.set(ih, 64);
-                return b64(digest(outer));
-            }
-            return { hmac };
-        })();
+const TOKEN_KEY = 'nchu_pb_token';
+function getOrCreateToken() {
+    let t = null;
+    try { t = localStorage.getItem(TOKEN_KEY); } catch (e) { }
+    if (!t || !/^[a-f0-9]{32}$/.test(t)) {
+        t = Array.from(crypto.getRandomValues(new Uint8Array(16)),
+            b => b.toString(16).padStart(2, '0')).join('');
+        try { localStorage.setItem(TOKEN_KEY, t); } catch (e) { }
+    }
+    return t;
+}
 
-        /* Content-Type 必須 text/plain,否則觸發 CORS preflight 而 GAS 不處理 OPTIONS */
-        function postSigned(payload) {
-            if (!API_READY()) return Promise.resolve({ ok: false, err: 'API_URL_NOT_SET' });
-
-            // 代理模式 (Proxy Mode)：前端不帶 Secret，由 Cloudflare Worker 代理計算簽名，徹底隱藏 GAS 端點與金鑰
-            if (PROXY_URL && PROXY_URL.startsWith('http')) {
-                return fetch(PROXY_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json;charset=utf-8' },
-                    body: JSON.stringify(payload)
-                }).then(r => r.json()).catch(() => ({ ok: false, err: 'NETWORK_FAIL' }));
-            }
-
-            // 直連保底模式 (Direct Fallback Mode)
-            const data = JSON.stringify(payload);
-            const ts = Date.now(), nonce = Math.random().toString(36).slice(2, 10);
-            const env = { data, ts, nonce, sig: SHA.hmac(SIGN_SECRET, data + '|' + ts + '|' + nonce) };
-            return fetch(GAS_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                body: JSON.stringify(env)
-            }).then(r => r.json()).catch(() => ({ ok: false, err: 'NETWORK_FAIL' }));
-        }
-
-        function apiGet(qs) {
-            if (!API_READY()) return Promise.resolve({ ok: false, err: 'API_URL_NOT_SET' });
-            const targetUrl = (PROXY_URL && PROXY_URL.startsWith('http')) ? PROXY_URL : GAS_URL;
-            return fetch(targetUrl + '?' + qs).then(r => r.json()).catch(() => ({ ok: false, err: 'NETWORK_FAIL' }));
-        }
+function postSigned(payload) {
+    if (!API_READY()) return Promise.resolve({ ok: false, err: 'API_URL_NOT_SET' });
+    return fetch(PROXY_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json;charset=utf-8' },
+        body: JSON.stringify(Object.assign({}, payload, { token: getOrCreateToken() }))
+    }).then(r => r.json()).catch(() => ({ ok: false, err: 'NETWORK_FAIL' }));
+}
+function apiGet(qs) {
+    if (!API_READY()) return Promise.resolve({ ok: false, err: 'API_URL_NOT_SET' });
+    return fetch(PROXY_URL + '?' + qs).then(r => r.json()).catch(() => ({ ok: false, err: 'NETWORK_FAIL' }));
+}
 
         /* ═══════ 系所代碼表(115 學年度‧學士班) ═══════ */
         const DEPT_LIST = [
@@ -5529,9 +5437,9 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
                 playerProfile.nickname = n;
                 checkAdminAccess(n);
             }
+            playerProfile.ig = document.getElementById('edit-ig').value.trim().replace(/^@/, '');
             document.getElementById('p-who-label').innerText =
                 playerProfile.avatar + ' ' + playerProfile.nickname.slice(0, 6);
-            playerProfile.ig = document.getElementById('edit-ig').value.trim().replace(/^@/, '');
             const sv = loadIdentity() || {};
             sv.playerId = playerProfile.playerId || getOrCreatePlayerId();
             sv.sidPrefix = playerProfile.sidPrefix || sv.sidPrefix;
@@ -5544,7 +5452,10 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
             if (playerProfile.playerId) {
                 postSigned({
                     act: 'updateProfile', playerId: playerProfile.playerId, avatar: playerProfile.avatar,
-                    nickname: playerProfile.nickname, department: playerProfile.department
+                    nickname: playerProfile.nickname, department: playerProfile.department,
+                    ig: playerProfile.ig || ''
+                }).then(r => {
+                    if (r && r.err === 'UNAUTHORIZED') toast('⚠️ 雲端身分驗證失敗', '此玩家編號已綁定其他裝置');
                 });
             }
             toast('⚙️ 個人設定已儲存', '繼續中興湖特訓!');
@@ -5827,39 +5738,35 @@ const DRAG_CD     = 0.58;
 const DRAG_K      = 0.5 * DRAG_CD * AIR_DENSITY * BALL_AREA / BALL_MASS; // ≈ 0.0588 1/m
 const MAGNUS_K    = 0.5 * AIR_DENSITY * BALL_AREA / BALL_MASS;           // ≈ 0.101 1/m
 
-/* 假設值：多孔球缺乏公開風洞資料，以遊戲手感校正（報告時請如實說明） */
+/* 假設值：多孔球缺乏公開風洞資料，以遊戲手感校正 */
 const OMEGA_MAX = 80;      // spin = ±1 對應 80 rad/s（約 760 rpm）
 const CL_SLOPE  = 0.8;     // C_L ≈ 0.8 · S，S = R·|ω| / |v|
 const CL_MAX    = 0.25;
 
 const SPIN_DECAY_FAST  = 0.14;   // 1/s
-const SPIN_DECAY_ACAD  = 0.35;   // 1/s，ω(t) = ω₀·e^(−βt)
+const SPIN_DECAY_ACAD  = 0.35;   // 1/s
 const LINEAR_DAMP_FAST = 0.09;   // 1/s
-const PHYS_H = 1 / 120;          // 遊戲本體與預測共用步長
+const PHYS_H = 1 / 120;
 
 /* 球的視覺縮放：由 game.js（螢幕）與 fun_mode.js（道具）設定，sync() 統一套用 */
 const BALL_VIS = { base: 1, item: 1, glow: 8 };
 
-/**
- * 共用速度積分（不含碰撞、不改位置）。
- * 遊戲本體、落點預測、彈道解算都呼叫這支，確保物理一致。
- * @returns {number} 衰減後的 spin
- */
+/** 共用速度積分（不含碰撞、不改位置）。回傳衰減後的 spin */
 function integrateVel(vel, spin, h, mode) {
     vel.y -= GRAVITY * h;
 
     if (mode === PHYSICS_MODES.ACADEMIC) {
-        // ① 二次方阻力 a = −k|v|v，隱式形式：大步長下也不會讓速度反向
+        // ① 二次方阻力 a = −k|v|v，隱式形式：不會讓速度反向
         const v0 = vel.length();
         if (v0 > 1e-4) vel.multiplyScalar(1 / (1 + DRAG_K * v0 * h));
 
         // ② 馬格努斯力 a = K_M·C_L·|v|²·(ω×v)/|ω×v|，ω = (0, ωy, 0)
-        //    ωy 的正負依前進方向決定，確保 spin > 0 永遠往 +x 偏（與 FAST 語意一致）
+        //    ωy 正負依前進方向決定，確保 spin > 0 永遠往 +x 偏
         const v = vel.length();
         if (Math.abs(spin) > 0.04 && v > 0.5) {
             const wy = -spin * OMEGA_MAX * (vel.z < 0 ? 1 : -1);
-            const cx = wy * vel.z;      // (ω×v).x
-            const cz = -wy * vel.x;     // (ω×v).z
+            const cx = wy * vel.z;
+            const cz = -wy * vel.x;
             const cm = Math.hypot(cx, cz);
             if (cm > 1e-6) {
                 const S  = BALL_R_PHYS * Math.abs(wy) / v;
@@ -5884,7 +5791,6 @@ function integrateVel(vel, spin, h, mode) {
     return spin;
 }
 
-/** 一步位移是否撞網（Physics.step 與模擬器共用同一判定） */
 function crossesNet(z0, z1, y1, x1) {
     return z0 !== z1 && z0 * z1 <= 0 &&
         y1 < NET_H + BALL_R && Math.abs(x1) < COURT_W / 2 + 0.2;
@@ -5894,9 +5800,8 @@ function crossesNet(z0, z1, y1, x1) {
 const _simP = new THREE.Vector3(), _simV = new THREE.Vector3();
 const _simOut = { x: 0, z: 0, t: 0, net: false, n: 0 };
 /**
- * 從 (p0, v0, spin) 模擬到第一次落地或撞網。
- * @param {?Array<THREE.Vector3>} pts 預先配置的點池；提供時依序寫入軌跡，最多 pts.length 點
- * @returns {?{x,z,t,net,n}} 共用物件，請立即讀取；超過 tMax 回傳 null
+ * 模擬到第一次落地或撞網。pts 為預先配置的點池（可為 null）。
+ * 回傳共用物件，請立即讀取；超過 tMax 回傳 null。
  */
 function simulateFlight(p0, v0, spin, pts, h, tMax) {
     h = h || PHYS_H; tMax = tMax || 4;
@@ -5931,7 +5836,7 @@ class Physics {
     constructor() {
         this.pos = new THREE.Vector3(0, 1, HALF_L);
         this.vel = new THREE.Vector3();
-        this.spin = 0;   // 無因次側旋量，正值往 +x 偏
+        this.spin = 0;
     }
     sync() {
         const k = BALL_VIS.base * BALL_VIS.item;
@@ -5943,7 +5848,6 @@ class Physics {
         ballGlow.scale.set(gs, gs, 1);
         const spd = this.vel.length();
         ballGlow.material.opacity = 0.16 + Math.min(0.26, spd * 0.02);
-        // 側旋流光：右旋紫、左旋青、直球螢光綠
         const hasCurve = Math.abs(this.spin) >= 0.12;
         if (hasCurve) {
             ballGlow.material.color.set(this.spin > 0 ? 0xc084fc : 0x38bdf8);
@@ -5993,8 +5897,8 @@ class Physics {
         const pz = this.pos.z;
         this.spin = integrateVel(this.vel, this.spin, h, currentPhysicsMode);
         if (ball) {
-            ball.rotation.x -= this.vel.z * 3.6 * h;   // 前進滾翻（視覺）
-            ball.rotation.y += this.spin * 16.0 * h;   // 側旋陀螺（視覺）
+            ball.rotation.x -= this.vel.z * 3.6 * h;
+            ball.rotation.y += this.spin * 16.0 * h;
         }
         this.pos.addScaledVector(this.vel, h);
 
@@ -6012,7 +5916,7 @@ class Physics {
             this.vel.x *= REST_XZ;
             this.vel.z *= REST_XZ;
             this.vel.x += this.spin * 0.75;   // 落地時側旋轉為額外側向速度（遊戲化效果）
-            this.spin *= 0.35;                // 落地摩擦大幅耗散自旋
+            this.spin *= 0.35;
             ballSquash = Math.min(1, imp / 7);
             S.thump(imp / 8);
             popRing(this.pos.x, this.pos.z, 1.6 + imp * 0.14, 0xffffff);
@@ -6024,8 +5928,7 @@ class Physics {
 }
 const PH = new Physics();
 
-/* ═══════ 預測 ═══════
-   FAST 保留原版真空預測（AI 走位、落點圈行為不變）；ACADEMIC 使用同一套積分器 */
+/* ═══════ 預測：FAST 保留原版真空預測；ACADEMIC 使用同一套積分器 ═══════ */
 function predictLandingVacuum(out) {
     const a = -0.5 * GRAVITY, b = PH.vel.y, c = PH.pos.y - BALL_R;
     const disc = b * b - 4 * a * c;
@@ -6074,7 +5977,7 @@ function predictApex() {
             _apP.y = BALL_R;
             if (bounced || Math.abs(_apV.y) < DEAD_VY || _apP.z > -0.05) return null;
             _apV.y = -_apV.y * REST_Y;
-            _apV.x = _apV.x * REST_XZ + s * 0.75;   // 與 step() 落地邏輯一致
+            _apV.x = _apV.x * REST_XZ + s * 0.75;
             _apV.z *= REST_XZ;
             s *= 0.35;
             bounced = true; continue;
@@ -6085,8 +5988,7 @@ function predictApex() {
 }
 
 /* ═══════ 學術模式彈道修正（打靶法） ═══════
-   以真空解為初值，反覆模擬並修正水平速度，直到落點誤差 < 10 cm。
-   刻意以 spin = 0 解算：保留 tryHit「反向起手、靠側旋兜回」的香蕉球設計。
+   以 spin = 0 解算，保留 tryHit「反向起手、靠側旋兜回」的設計。
    未收斂時回退到誤差最小、且不撞網的候選速度。 */
 const _arcP0 = new THREE.Vector3(), _arcBest = new THREE.Vector3();
 function refineArcAcademic(fx, fy, fz, tx, tz, out) {
@@ -6094,8 +5996,8 @@ function refineArcAcademic(fx, fy, fz, tx, tz, out) {
     let bestErr = Infinity;
     for (let it = 0; it < 20; it++) {
         const r = simulateFlight(_arcP0, out, 0, null);
-        if (!r)    { out.y -= 0.5; continue; }   // 超時：拋太高
-        if (r.net) { out.y += 0.4; continue; }   // 撞網：抬高
+        if (!r)    { out.y -= 0.5; continue; }
+        if (r.net) { out.y += 0.4; continue; }
         const ex = tx - r.x, ez = tz - r.z, e2 = ex * ex + ez * ez;
         if (e2 < bestErr) { bestErr = e2; _arcBest.copy(out); }
         if (e2 < 0.01) return true;
@@ -6109,10 +6011,10 @@ function refineArcAcademic(fx, fy, fz, tx, tz, out) {
 }
 
 /* ═══════ 規則判定 ═══════ */
-let server = 'PLAYER';          // 'PLAYER' | 'GOOSE'
+let server = 'PLAYER';
 let secondServe = false;
 function needBounce() { return stage >= 2 && rallyHits < 3; }
-function scoring() { return stage >= 4; }   // 前三關練習關：失誤只重試不計分
+function scoring() { return stage >= 4; }
 function swatterHunting() { return typeof FunMode !== 'undefined' && FunMode.activeBuff === 'ELECTRIC_SWATTER'; }
 
 function onNet() {
@@ -6133,7 +6035,6 @@ function onBounce() {
             return;
         }
         if (state === 'SERVE_AIR') { checkServeLanding(x, z); return; }
-        // 第一次落地必須在擊球者的對面
         const ownSide = (lastHitter === 'PLAYER' && z > 0) || (lastHitter === 'GOOSE' && z < 0);
         if (ownSide) {
             if (scoring()) endRally(lastHitter === 'PLAYER' ? 'GOOSE' : 'PLAYER', '未過網', '球落在擊球者自己的場地');
@@ -6188,7 +6089,7 @@ function onLegalServe() {
     later(() => { locked = false; resetServe(); }, 1500);
 }
 function freeze() {
-    if (swatterHunting()) return;   // 電蚊拍追殺中不可清除道具
+    if (swatterHunting()) return;
     PH.vel.set(0, 0, 0);
     charging = false; power = 0; powerDir = 1;
     swingT = 0; pLock = 0; gLock = 0;
@@ -8690,9 +8591,12 @@ function cycleTeachLevelQuick() {
             document.getElementById('sc-name').innerText = currentFriendData.nickname || '匿名球員';
             document.getElementById('sc-dept').innerText = (currentFriendData.department || '國立中興大學') + (currentFriendData.grade ? ' · ' + currentFriendData.grade : '');
             
-            const igHandle = currentFriendData.ig || ('user_' + (currentFriendData.playerId ? currentFriendData.playerId.slice(-4) : 'nchu'));
-            currentFriendData.ig = igHandle;
-            document.getElementById('sc-ig-tag').innerHTML = '<span style="font-size:11px;color:#c084fc;">📸 @' + escapeHtml(igHandle) + '</span>';
+            const igHandle = currentFriendData.ig || '';
+            document.getElementById('sc-ig-tag').innerHTML = igHandle
+                ? '<span style="font-size:11px;color:#c084fc;">📸 @' + escapeHtml(igHandle) + '</span>'
+                : '<span style="font-size:11px;color:var(--dim);">尚未綁定 IG</span>';
+            document.getElementById('sc-ig-btn').style.display = igHandle ? '' : 'none';
+            document.getElementById('mc-ig-btn').style.display = igHandle ? '' : 'none';
             document.getElementById('sc-bio').innerText = currentFriendData.bio || ('「熱愛匹克球與體感運動！最高得分 ' + (currentFriendData.score || 0) + ' 分，歡迎切磋！」');
 
             renderRadarChart(document.getElementById('radar-canvas'), currentFriendData.stats || calculateDigitalTwinStats());
@@ -8715,12 +8619,9 @@ function cycleTeachLevelQuick() {
         }
 
         function openFriendIG() {
-            if (!currentFriendData || !currentFriendData.ig) {
-                window.open('https://instagram.com/nchu_pickleball', '_blank');
-                return;
-            }
-            const clean = currentFriendData.ig.replace(/^@/, '');
-            window.open('https://instagram.com/' + encodeURIComponent(clean), '_blank');
+            const clean = (currentFriendData && currentFriendData.ig || '').replace(/^@/, '');
+            if (!/^[A-Za-z0-9._]{1,30}$/.test(clean)) { toast('對方尚未綁定 IG', ''); return; }
+            window.open('https://instagram.com/' + encodeURIComponent(clean), '_blank', 'noopener');
         }
 
         function calculateDigitalTwinStats() {
@@ -8846,7 +8747,7 @@ function cycleTeachLevelQuick() {
             toast('⏳ 正在同步數位孿生至 Google Sheets…', '');
             const twinPayload = {
                 stats: calculateDigitalTwinStats(),
-                recentShots: AUDIT_LOG.slice(-20),
+                recentShots: AUDIT_LOG.slice(-10),
                 syncedAt: new Date().toISOString()
             };
             postSigned({

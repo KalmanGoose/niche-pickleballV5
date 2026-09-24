@@ -16,39 +16,35 @@ const DRAG_CD     = 0.58;
 const DRAG_K      = 0.5 * DRAG_CD * AIR_DENSITY * BALL_AREA / BALL_MASS; // ≈ 0.0588 1/m
 const MAGNUS_K    = 0.5 * AIR_DENSITY * BALL_AREA / BALL_MASS;           // ≈ 0.101 1/m
 
-/* 假設值：多孔球缺乏公開風洞資料，以遊戲手感校正（報告時請如實說明） */
+/* 假設值：多孔球缺乏公開風洞資料，以遊戲手感校正 */
 const OMEGA_MAX = 80;      // spin = ±1 對應 80 rad/s（約 760 rpm）
 const CL_SLOPE  = 0.8;     // C_L ≈ 0.8 · S，S = R·|ω| / |v|
 const CL_MAX    = 0.25;
 
 const SPIN_DECAY_FAST  = 0.14;   // 1/s
-const SPIN_DECAY_ACAD  = 0.35;   // 1/s，ω(t) = ω₀·e^(−βt)
+const SPIN_DECAY_ACAD  = 0.35;   // 1/s
 const LINEAR_DAMP_FAST = 0.09;   // 1/s
-const PHYS_H = 1 / 120;          // 遊戲本體與預測共用步長
+const PHYS_H = 1 / 120;
 
 /* 球的視覺縮放：由 game.js（螢幕）與 fun_mode.js（道具）設定，sync() 統一套用 */
 const BALL_VIS = { base: 1, item: 1, glow: 8 };
 
-/**
- * 共用速度積分（不含碰撞、不改位置）。
- * 遊戲本體、落點預測、彈道解算都呼叫這支，確保物理一致。
- * @returns {number} 衰減後的 spin
- */
+/** 共用速度積分（不含碰撞、不改位置）。回傳衰減後的 spin */
 function integrateVel(vel, spin, h, mode) {
     vel.y -= GRAVITY * h;
 
     if (mode === PHYSICS_MODES.ACADEMIC) {
-        // ① 二次方阻力 a = −k|v|v，隱式形式：大步長下也不會讓速度反向
+        // ① 二次方阻力 a = −k|v|v，隱式形式：不會讓速度反向
         const v0 = vel.length();
         if (v0 > 1e-4) vel.multiplyScalar(1 / (1 + DRAG_K * v0 * h));
 
         // ② 馬格努斯力 a = K_M·C_L·|v|²·(ω×v)/|ω×v|，ω = (0, ωy, 0)
-        //    ωy 的正負依前進方向決定，確保 spin > 0 永遠往 +x 偏（與 FAST 語意一致）
+        //    ωy 正負依前進方向決定，確保 spin > 0 永遠往 +x 偏
         const v = vel.length();
         if (Math.abs(spin) > 0.04 && v > 0.5) {
             const wy = -spin * OMEGA_MAX * (vel.z < 0 ? 1 : -1);
-            const cx = wy * vel.z;      // (ω×v).x
-            const cz = -wy * vel.x;     // (ω×v).z
+            const cx = wy * vel.z;
+            const cz = -wy * vel.x;
             const cm = Math.hypot(cx, cz);
             if (cm > 1e-6) {
                 const S  = BALL_R_PHYS * Math.abs(wy) / v;
@@ -73,7 +69,6 @@ function integrateVel(vel, spin, h, mode) {
     return spin;
 }
 
-/** 一步位移是否撞網（Physics.step 與模擬器共用同一判定） */
 function crossesNet(z0, z1, y1, x1) {
     return z0 !== z1 && z0 * z1 <= 0 &&
         y1 < NET_H + BALL_R && Math.abs(x1) < COURT_W / 2 + 0.2;
@@ -83,9 +78,8 @@ function crossesNet(z0, z1, y1, x1) {
 const _simP = new THREE.Vector3(), _simV = new THREE.Vector3();
 const _simOut = { x: 0, z: 0, t: 0, net: false, n: 0 };
 /**
- * 從 (p0, v0, spin) 模擬到第一次落地或撞網。
- * @param {?Array<THREE.Vector3>} pts 預先配置的點池；提供時依序寫入軌跡，最多 pts.length 點
- * @returns {?{x,z,t,net,n}} 共用物件，請立即讀取；超過 tMax 回傳 null
+ * 模擬到第一次落地或撞網。pts 為預先配置的點池（可為 null）。
+ * 回傳共用物件，請立即讀取；超過 tMax 回傳 null。
  */
 function simulateFlight(p0, v0, spin, pts, h, tMax) {
     h = h || PHYS_H; tMax = tMax || 4;
@@ -120,7 +114,7 @@ class Physics {
     constructor() {
         this.pos = new THREE.Vector3(0, 1, HALF_L);
         this.vel = new THREE.Vector3();
-        this.spin = 0;   // 無因次側旋量，正值往 +x 偏
+        this.spin = 0;
     }
     sync() {
         const k = BALL_VIS.base * BALL_VIS.item;
@@ -132,7 +126,6 @@ class Physics {
         ballGlow.scale.set(gs, gs, 1);
         const spd = this.vel.length();
         ballGlow.material.opacity = 0.16 + Math.min(0.26, spd * 0.02);
-        // 側旋流光：右旋紫、左旋青、直球螢光綠
         const hasCurve = Math.abs(this.spin) >= 0.12;
         if (hasCurve) {
             ballGlow.material.color.set(this.spin > 0 ? 0xc084fc : 0x38bdf8);
@@ -182,8 +175,8 @@ class Physics {
         const pz = this.pos.z;
         this.spin = integrateVel(this.vel, this.spin, h, currentPhysicsMode);
         if (ball) {
-            ball.rotation.x -= this.vel.z * 3.6 * h;   // 前進滾翻（視覺）
-            ball.rotation.y += this.spin * 16.0 * h;   // 側旋陀螺（視覺）
+            ball.rotation.x -= this.vel.z * 3.6 * h;
+            ball.rotation.y += this.spin * 16.0 * h;
         }
         this.pos.addScaledVector(this.vel, h);
 
@@ -201,7 +194,7 @@ class Physics {
             this.vel.x *= REST_XZ;
             this.vel.z *= REST_XZ;
             this.vel.x += this.spin * 0.75;   // 落地時側旋轉為額外側向速度（遊戲化效果）
-            this.spin *= 0.35;                // 落地摩擦大幅耗散自旋
+            this.spin *= 0.35;
             ballSquash = Math.min(1, imp / 7);
             S.thump(imp / 8);
             popRing(this.pos.x, this.pos.z, 1.6 + imp * 0.14, 0xffffff);
@@ -213,8 +206,7 @@ class Physics {
 }
 const PH = new Physics();
 
-/* ═══════ 預測 ═══════
-   FAST 保留原版真空預測（AI 走位、落點圈行為不變）；ACADEMIC 使用同一套積分器 */
+/* ═══════ 預測：FAST 保留原版真空預測；ACADEMIC 使用同一套積分器 ═══════ */
 function predictLandingVacuum(out) {
     const a = -0.5 * GRAVITY, b = PH.vel.y, c = PH.pos.y - BALL_R;
     const disc = b * b - 4 * a * c;
@@ -263,7 +255,7 @@ function predictApex() {
             _apP.y = BALL_R;
             if (bounced || Math.abs(_apV.y) < DEAD_VY || _apP.z > -0.05) return null;
             _apV.y = -_apV.y * REST_Y;
-            _apV.x = _apV.x * REST_XZ + s * 0.75;   // 與 step() 落地邏輯一致
+            _apV.x = _apV.x * REST_XZ + s * 0.75;
             _apV.z *= REST_XZ;
             s *= 0.35;
             bounced = true; continue;
@@ -274,8 +266,7 @@ function predictApex() {
 }
 
 /* ═══════ 學術模式彈道修正（打靶法） ═══════
-   以真空解為初值，反覆模擬並修正水平速度，直到落點誤差 < 10 cm。
-   刻意以 spin = 0 解算：保留 tryHit「反向起手、靠側旋兜回」的香蕉球設計。
+   以 spin = 0 解算，保留 tryHit「反向起手、靠側旋兜回」的設計。
    未收斂時回退到誤差最小、且不撞網的候選速度。 */
 const _arcP0 = new THREE.Vector3(), _arcBest = new THREE.Vector3();
 function refineArcAcademic(fx, fy, fz, tx, tz, out) {
@@ -283,8 +274,8 @@ function refineArcAcademic(fx, fy, fz, tx, tz, out) {
     let bestErr = Infinity;
     for (let it = 0; it < 20; it++) {
         const r = simulateFlight(_arcP0, out, 0, null);
-        if (!r)    { out.y -= 0.5; continue; }   // 超時：拋太高
-        if (r.net) { out.y += 0.4; continue; }   // 撞網：抬高
+        if (!r)    { out.y -= 0.5; continue; }
+        if (r.net) { out.y += 0.4; continue; }
         const ex = tx - r.x, ez = tz - r.z, e2 = ex * ex + ez * ez;
         if (e2 < bestErr) { bestErr = e2; _arcBest.copy(out); }
         if (e2 < 0.01) return true;
@@ -298,10 +289,10 @@ function refineArcAcademic(fx, fy, fz, tx, tz, out) {
 }
 
 /* ═══════ 規則判定 ═══════ */
-let server = 'PLAYER';          // 'PLAYER' | 'GOOSE'
+let server = 'PLAYER';
 let secondServe = false;
 function needBounce() { return stage >= 2 && rallyHits < 3; }
-function scoring() { return stage >= 4; }   // 前三關練習關：失誤只重試不計分
+function scoring() { return stage >= 4; }
 function swatterHunting() { return typeof FunMode !== 'undefined' && FunMode.activeBuff === 'ELECTRIC_SWATTER'; }
 
 function onNet() {
@@ -322,7 +313,6 @@ function onBounce() {
             return;
         }
         if (state === 'SERVE_AIR') { checkServeLanding(x, z); return; }
-        // 第一次落地必須在擊球者的對面
         const ownSide = (lastHitter === 'PLAYER' && z > 0) || (lastHitter === 'GOOSE' && z < 0);
         if (ownSide) {
             if (scoring()) endRally(lastHitter === 'PLAYER' ? 'GOOSE' : 'PLAYER', '未過網', '球落在擊球者自己的場地');
@@ -377,7 +367,7 @@ function onLegalServe() {
     later(() => { locked = false; resetServe(); }, 1500);
 }
 function freeze() {
-    if (swatterHunting()) return;   // 電蚊拍追殺中不可清除道具
+    if (swatterHunting()) return;
     PH.vel.set(0, 0, 0);
     charging = false; power = 0; powerDir = 1;
     swingT = 0; pLock = 0; gLock = 0;

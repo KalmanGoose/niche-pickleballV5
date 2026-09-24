@@ -9,106 +9,34 @@
             ACADEMIC: 'academic'   // 🔬 嚴格學術求解 (Simulation Mode): 真實質量、密度、阻力與馬格努斯微分方程
         };
         let currentPhysicsMode = localStorage.getItem('nchu_physics_mode') || PHYSICS_MODES.FAST;
-/* ═══════════════════════════════════════════════
-   ★★★ 部署設定 (支援 Cloudflare Worker 代理或直連) ★★★
-   ═══════════════════════════════════════════════ */
-        const PROXY_URL = ''; // 若有架設 Cloudflare Worker 代理請填在此處 (例如 'https://pb-proxy.your-name.workers.dev')
-        const GAS_URL = 'https://script.google.com/macros/s/AKfycbwbQJTyJFtZjGOHs_EzYnbbQjq1Znj8KHG1l9uVhgqsyUK2KpkwdN6nydNNvyqz394mGQ/exec';
-        const SIGN_SECRET = 'nchu-pickleball-2026-secret';
-        const API_READY = () => (PROXY_URL && PROXY_URL.startsWith('http')) || /^https:\/\/script\.google\.com\/macros\/s\/.+\/exec$/.test(GAS_URL);
+// ★ 部署後由人工填入 Worker 網址；保持佔位字串時會自動進入離線模式
+const PROXY_URL = 'https://YOUR-WORKER.workers.dev';
+const API_READY = () => /^https:\/\//.test(PROXY_URL) && PROXY_URL.indexOf('YOUR-WORKER') < 0;
 
-        /* ═══════ 純 JS HMAC-SHA256 ═══════ */
-        const SHA = (() => {
-            const K = new Uint32Array([
-                0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
-                0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3, 0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174,
-                0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc, 0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da,
-                0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7, 0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967,
-                0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13, 0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85,
-                0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070,
-                0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3,
-                0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2]);
-            const rr = (x, n) => (x >>> n) | (x << (32 - n));
-            function digest(bytes) {
-                const l = bytes.length;
-                const buf = new Uint8Array(((l + 9 + 63) >> 6) << 6);
-                buf.set(bytes); buf[l] = 0x80;
-                const bits = l * 8;
-                buf[buf.length - 4] = (bits >>> 24) & 255; buf[buf.length - 3] = (bits >>> 16) & 255;
-                buf[buf.length - 2] = (bits >>> 8) & 255; buf[buf.length - 1] = bits & 255;
-                const H = new Uint32Array([0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a,
-                    0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19]);
-                const w = new Uint32Array(64);
-                for (let i = 0; i < buf.length; i += 64) {
-                    for (let t = 0; t < 16; t++) w[t] = (buf[i + 4 * t] << 24) | (buf[i + 4 * t + 1] << 16) | (buf[i + 4 * t + 2] << 8) | buf[i + 4 * t + 3];
-                    for (let t = 16; t < 64; t++) {
-                        const s0 = rr(w[t - 15], 7) ^ rr(w[t - 15], 18) ^ (w[t - 15] >>> 3);
-                        const s1 = rr(w[t - 2], 17) ^ rr(w[t - 2], 19) ^ (w[t - 2] >>> 10);
-                        w[t] = (w[t - 16] + s0 + w[t - 7] + s1) >>> 0;
-                    }
-                    let a = H[0], b = H[1], c = H[2], d = H[3], e = H[4], f = H[5], g = H[6], h = H[7];
-                    for (let t = 0; t < 64; t++) {
-                        const S1 = rr(e, 6) ^ rr(e, 11) ^ rr(e, 25), ch = (e & f) ^ (~e & g);
-                        const t1 = (h + S1 + ch + K[t] + w[t]) >>> 0;
-                        const S0 = rr(a, 2) ^ rr(a, 13) ^ rr(a, 22), mj = (a & b) ^ (a & c) ^ (b & c);
-                        const t2 = (S0 + mj) >>> 0;
-                        h = g; g = f; f = e; e = (d + t1) >>> 0; d = c; c = b; b = a; a = (t1 + t2) >>> 0;
-                    }
-                    H[0] = (H[0] + a) >>> 0; H[1] = (H[1] + b) >>> 0; H[2] = (H[2] + c) >>> 0; H[3] = (H[3] + d) >>> 0;
-                    H[4] = (H[4] + e) >>> 0; H[5] = (H[5] + f) >>> 0; H[6] = (H[6] + g) >>> 0; H[7] = (H[7] + h) >>> 0;
-                }
-                const out = new Uint8Array(32);
-                for (let i = 0; i < 8; i++) {
-                    out[4 * i] = (H[i] >>> 24) & 255; out[4 * i + 1] = (H[i] >>> 16) & 255;
-                    out[4 * i + 2] = (H[i] >>> 8) & 255; out[4 * i + 3] = H[i] & 255;
-                }
-                return out;
-            }
-            const enc = s => new TextEncoder().encode(s);
-            const b64 = b => { let s = ''; for (let i = 0; i < b.length; i++) s += String.fromCharCode(b[i]); return btoa(s); };
-            function hmac(keyStr, msgStr) {
-                let key = enc(keyStr);
-                if (key.length > 64) key = digest(key);
-                const ip = new Uint8Array(64), op = new Uint8Array(64);
-                for (let i = 0; i < 64; i++) { const k = i < key.length ? key[i] : 0; ip[i] = k ^ 0x36; op[i] = k ^ 0x5c; }
-                const m = enc(msgStr);
-                const inner = new Uint8Array(64 + m.length); inner.set(ip); inner.set(m, 64);
-                const ih = digest(inner);
-                const outer = new Uint8Array(96); outer.set(op); outer.set(ih, 64);
-                return b64(digest(outer));
-            }
-            return { hmac };
-        })();
+const TOKEN_KEY = 'nchu_pb_token';
+function getOrCreateToken() {
+    let t = null;
+    try { t = localStorage.getItem(TOKEN_KEY); } catch (e) { }
+    if (!t || !/^[a-f0-9]{32}$/.test(t)) {
+        t = Array.from(crypto.getRandomValues(new Uint8Array(16)),
+            b => b.toString(16).padStart(2, '0')).join('');
+        try { localStorage.setItem(TOKEN_KEY, t); } catch (e) { }
+    }
+    return t;
+}
 
-        /* Content-Type 必須 text/plain,否則觸發 CORS preflight 而 GAS 不處理 OPTIONS */
-        function postSigned(payload) {
-            if (!API_READY()) return Promise.resolve({ ok: false, err: 'API_URL_NOT_SET' });
-
-            // 代理模式 (Proxy Mode)：前端不帶 Secret，由 Cloudflare Worker 代理計算簽名，徹底隱藏 GAS 端點與金鑰
-            if (PROXY_URL && PROXY_URL.startsWith('http')) {
-                return fetch(PROXY_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json;charset=utf-8' },
-                    body: JSON.stringify(payload)
-                }).then(r => r.json()).catch(() => ({ ok: false, err: 'NETWORK_FAIL' }));
-            }
-
-            // 直連保底模式 (Direct Fallback Mode)
-            const data = JSON.stringify(payload);
-            const ts = Date.now(), nonce = Math.random().toString(36).slice(2, 10);
-            const env = { data, ts, nonce, sig: SHA.hmac(SIGN_SECRET, data + '|' + ts + '|' + nonce) };
-            return fetch(GAS_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                body: JSON.stringify(env)
-            }).then(r => r.json()).catch(() => ({ ok: false, err: 'NETWORK_FAIL' }));
-        }
-
-        function apiGet(qs) {
-            if (!API_READY()) return Promise.resolve({ ok: false, err: 'API_URL_NOT_SET' });
-            const targetUrl = (PROXY_URL && PROXY_URL.startsWith('http')) ? PROXY_URL : GAS_URL;
-            return fetch(targetUrl + '?' + qs).then(r => r.json()).catch(() => ({ ok: false, err: 'NETWORK_FAIL' }));
-        }
+function postSigned(payload) {
+    if (!API_READY()) return Promise.resolve({ ok: false, err: 'API_URL_NOT_SET' });
+    return fetch(PROXY_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json;charset=utf-8' },
+        body: JSON.stringify(Object.assign({}, payload, { token: getOrCreateToken() }))
+    }).then(r => r.json()).catch(() => ({ ok: false, err: 'NETWORK_FAIL' }));
+}
+function apiGet(qs) {
+    if (!API_READY()) return Promise.resolve({ ok: false, err: 'API_URL_NOT_SET' });
+    return fetch(PROXY_URL + '?' + qs).then(r => r.json()).catch(() => ({ ok: false, err: 'NETWORK_FAIL' }));
+}
 
         /* ═══════ 系所代碼表(115 學年度‧學士班) ═══════ */
         const DEPT_LIST = [
@@ -519,9 +447,9 @@
                 playerProfile.nickname = n;
                 checkAdminAccess(n);
             }
+            playerProfile.ig = document.getElementById('edit-ig').value.trim().replace(/^@/, '');
             document.getElementById('p-who-label').innerText =
                 playerProfile.avatar + ' ' + playerProfile.nickname.slice(0, 6);
-            playerProfile.ig = document.getElementById('edit-ig').value.trim().replace(/^@/, '');
             const sv = loadIdentity() || {};
             sv.playerId = playerProfile.playerId || getOrCreatePlayerId();
             sv.sidPrefix = playerProfile.sidPrefix || sv.sidPrefix;
@@ -534,7 +462,10 @@
             if (playerProfile.playerId) {
                 postSigned({
                     act: 'updateProfile', playerId: playerProfile.playerId, avatar: playerProfile.avatar,
-                    nickname: playerProfile.nickname, department: playerProfile.department
+                    nickname: playerProfile.nickname, department: playerProfile.department,
+                    ig: playerProfile.ig || ''
+                }).then(r => {
+                    if (r && r.err === 'UNAUTHORIZED') toast('⚠️ 雲端身分驗證失敗', '此玩家編號已綁定其他裝置');
                 });
             }
             toast('⚙️ 個人設定已儲存', '繼續中興湖特訓!');

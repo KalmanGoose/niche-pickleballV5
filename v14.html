@@ -612,48 +612,32 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
 
                             <!-- 核心答辯對照：理論模型 vs 遊戲引擎真實工程實作 -->
                             <div style="background:linear-gradient(135deg, rgba(234,179,8,0.12), rgba(15,23,42,0.85));border:1.5px solid rgba(234,179,8,0.4);border-radius:10px;padding:14px 16px;margin-top:6px;">
-                                <div style="font-weight:900;color:#facc15;font-size:14px;display:flex;align-items:center;gap:8px;margin-bottom:8px;">
-                                    <span>⚙️【工程答辯精髓】雙模式物理引擎架構：快速競技 vs. 學術研究模式</span>
-                                </div>
-                                <p style="font-size:12px;color:#e2e8f0;line-height:1.7;margin-bottom:10px;">
-                                    很多評審教授會提問：<i>「既然列了 Navier-Stokes 與馬格努斯微分方程，為何遊戲引擎原始碼不直接每幀做未受約束的連續積分？」</i><br>
-                                    本系統實作<b>雙模式可切換架構（可在畫面下方「物理」按鈕隨時切換）</b>，兼顧競技手感與嚴格物理仿真：
-                                </p>
-
+                                <div style="font-weight:900;color:#facc15;font-size:14px;margin-bottom:8px;">⚙️ 理論方程式 vs. 實際程式實作</div>
                                 <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(280px, 1fr));gap:10px;">
                                     <div style="background:rgba(0,0,0,0.4);border:1px solid rgba(56,189,248,0.3);border-radius:6px;padding:10px;">
-                                        <div style="font-weight:800;color:#38bdf8;font-size:12px;margin-bottom:4px;">
-                                            ⚡ 快速競技模式（FAST，預設）
-                                        </div>
+                                        <div style="font-weight:800;color:#38bdf8;font-size:12px;margin-bottom:4px;">⚡ 極速模式 (FAST)</div>
                                         <div style="font-size:11.5px;color:#cbd5e1;line-height:1.6;">
-                                            • <b>積分器</b>：Symplectic Euler，子步長 <code>h = 1/120 s</code>（每幀最多 30 步迭代），保證 60+ fps 流暢度。<br>
-                                            • <b>阻力模型</b>：線性阻尼 <code>(1 - k·h)</code>，極低運算開銷，消除浮點溢位風險。<br>
-                                            • <b>適用場景</b>：正式比賽、休閒對打、低階行動裝置。
+                                            • 線性阻尼：<code>v<sub>x,z</sub> ← v<sub>x,z</sub>·(1 − 0.09h)</code><br>
+                                            • 經驗側向加速度：<code>a<sub>x</sub> = 3.6·spin·(0.8 + 0.2·|v<sub>z</sub>|/8)</code><br>
+                                            • 自旋衰減 0.14 s⁻¹<br>
+                                            • 目的：手感穩定、落點容易預測
                                         </div>
                                     </div>
-
-                                    <div style="background:rgba(0,0,0,0.4);border:1px solid rgba(34,197,94,0.3);border-radius:6px;padding:10px;">
-                                        <div style="font-weight:800;color:#4ade80;font-size:12px;margin-bottom:4px;">
-                                            🔬 學術研究模式（ACADEMIC）
-                                        </div>
+                                    <div style="background:rgba(0,0,0,0.4);border:1px solid rgba(129,140,248,0.35);border-radius:6px;padding:10px;">
+                                        <div style="font-weight:800;color:#c7d2fe;font-size:12px;margin-bottom:4px;">🔬 學術模式 (ACADEMIC)</div>
                                         <div style="font-size:11.5px;color:#cbd5e1;line-height:1.6;">
-                                            • <b>積分器</b>：Symplectic Euler，精細子步長 <code>h = 1/240 s</code>。<br>
-                                            • <b>阻力模型</b>：嚴格二次方阻力 <code>F_drag = -½·ρ·Cd·A·|v|·v</code>，使用實測雷諾數多項式。<br>
-                                            • <b>馬格努斯力</b>：完整三維向量叉積 <code>F_mag = ½·ρ·Cm·A·r·(ω × v)</code>。<br>
-                                            • <b>適用場景</b>：軌跡研究、物理教學、論文驗證。
+                                            • 二次方阻力 <code>a = −k|v|v</code>，k = ½C<sub>d</sub>ρA/m ≈ 0.0588 m⁻¹；以隱式形式 <code>v ← v/(1+k|v|h)</code> 更新<br>
+                                            • 馬格努斯力 <code>a = ½C<sub>L</sub>ρA|v|²/m</code>，方向為 ω×v；C<sub>L</sub> ≈ 0.8·S（S = Rω/|v|），上限 0.25<br>
+                                            • 自旋指數衰減 β = 0.35 s⁻¹<br>
+                                            • 擊球初速以打靶法反覆修正，落點誤差 &lt; 10 cm
                                         </div>
                                     </div>
                                 </div>
-
-                                <div style="margin-top:10px;background:rgba(15,23,42,0.8);border:1px solid rgba(234,179,8,0.25);border-radius:6px;padding:10px 12px;">
-                                    <div style="font-weight:800;color:#fcd34d;font-size:12px;margin-bottom:6px;">
-                                        ⚠️ 模型限制（評審提問必備防守）：
-                                    </div>
-                                    <div style="font-size:11.5px;color:#94a3b8;line-height:1.7;">
-                                        1. <b>自旋耗散為經驗衰減</b>（落地衰減率 0.45，每秒自然衰減 12%），未包含地面切向摩擦微觀滑動模型。<br>
-                                        2. <b>未包含動態浮力</b>（匹克球極輕 ~26g，若球體內外溫差極大時浮力微幅影響軌跡，本系統忽略）。<br>
-                                        3. <b>球體設為均質剛體球</b>，未考慮 26~40 個通風孔洞引起的非對稱微湍流（需 CFD 網格級別運算，即時渲染無法負擔）。
-                                    </div>
+                                <div style="margin-top:10px;background:rgba(15,23,42,0.8);border:1px solid rgba(234,179,8,0.25);border-radius:6px;padding:10px 12px;font-size:11.5px;color:#cbd5e1;line-height:1.6;">
+                                    <b style="color:#fcd34d;">⚠️ 模型限制</b><br>
+                                    • 多孔球的 C<sub>L</sub> 與自旋衰減缺乏公開風洞資料；spin = 1 對應 80 rad/s 與 C<sub>L</sub> 斜率皆為假設值，以遊戲手感校正<br>
+                                    • 碰撞與視覺使用放大半徑 0.14 m（手機可見度），空氣動力學使用真實半徑 0.037 m<br>
+                                    • 落地反彈採經驗恢復係數（垂直 0.55、水平 0.68），未建模球與地面的摩擦及自旋耦合
                                 </div>
                             </div>
                         </div>

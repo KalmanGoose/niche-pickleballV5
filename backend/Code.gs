@@ -1,450 +1,356 @@
 /**
- * ═════════════════════════════════════════════════════════════════════════
- * NCHU Pickleball - Google Apps Script (GAS) 企業級安全加固後端
- * 版本：v2.2-hardened
- * 
- * 安全特性：
- * 1. 嚴格 HMAC-SHA256 簽署驗證與時間戳漂移過濾
- * 2. CacheService 隨機數 (Nonce) 防重放攻擊保護 (10 分鐘快取)
- * 3. LockService 併發事務安全排他鎖 (防止多球員併發寫入覆蓋試算表)
- * 4. 數值與物理合理性邊界檢查 (防外掛篡改單場得分)
- * 5. 防 CSV / 試算表公式注入過濾 (Formula Injection Sanitization)
- * ═════════════════════════════════════════════════════════════════════════
+ * NCHU Pickleball - Google Apps Script 後端  v3.0
+ * 1. HMAC-SHA256 驗簽（金鑰存於「指令碼屬性」SIGN_SECRET）
+ * 2. 時間戳 ±10 分鐘 + nonce 防重放（先驗簽，再記錄 nonce）
+ * 3. 玩家 token 驗證：公開 playerId + 私密 token（只存 SHA-256 雜湊）
+ * 4. LockService 排他鎖、公式注入過濾、分數邊界檢查
+ * 需要 V8 執行環境
  */
 
-var SIGN_SECRET = 'nchu-pickleball-2026-secret';
+var PLAYER_HEADERS = ['playerId', 'avatar', 'nickname', 'department', 'deptCode', 'grade',
+    'entryYear', 'bestScore', 'likes', 'updatedAt', 'twin_data', 'ig', 'tokenHash'];
+var COL = { PID: 0, AVATAR: 1, NICK: 2, DEPT: 3, DEPTCODE: 4, GRADE: 5, ENTRY: 6,
+    BEST: 7, LIKES: 8, UPDATED: 9, TWIN: 10, IG: 11, TOKEN: 12 };
 
-// 取得或初始化工作表
+var SCORE_STAGES = [5, 6];
+var MAX_SCORE = 5;
+var MAX_TWIN_CHARS = 30000;
+var POST_ACTS = ['submit', 'like', 'friendReq', 'friendAccept', 'updateProfile', 'sync_twin'];
+
+function getSecret() {
+    var s = PropertiesService.getScriptProperties().getProperty('SIGN_SECRET');
+    if (!s) throw new Error('SIGN_SECRET_NOT_CONFIGURED');
+    return s;
+}
+
 function getDb() {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  return {
-    players: getOrCreateSheet(ss, 'players', ['playerId', 'avatar', 'nickname', 'department', 'deptCode', 'grade', 'entryYear', 'bestScore', 'likes', 'updatedAt', 'twin_data']),
-    scores: getOrCreateSheet(ss, 'scores', ['id', 'playerId', 'sessionId', 'score', 'stage', 'device', 'webcam', 'createdAt']),
-    friends: getOrCreateSheet(ss, 'friends', ['id', 'fromId', 'toId', 'status', 'updatedAt']),
-    likes: getOrCreateSheet(ss, 'likes', ['id', 'fromId', 'toId', 'date', 'createdAt'])
-  };
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    return {
+        players: getOrCreateSheet(ss, 'players', PLAYER_HEADERS),
+        scores: getOrCreateSheet(ss, 'scores', ['id', 'playerId', 'sessionId', 'score', 'stage', 'device', 'webcam', 'createdAt']),
+        friends: getOrCreateSheet(ss, 'friends', ['id', 'fromId', 'toId', 'status', 'updatedAt']),
+        likes: getOrCreateSheet(ss, 'likes', ['id', 'fromId', 'toId', 'date', 'createdAt'])
+    };
 }
 
 function getOrCreateSheet(ss, name, headers) {
-  var sheet = ss.getSheetByName(name);
-  if (!sheet) {
-    sheet = ss.insertSheet(name);
-    sheet.appendRow(headers);
-    sheet.setFrozenRows(1);
-  }
-  return sheet;
+    var sheet = ss.getSheetByName(name);
+    if (!sheet) {
+        sheet = ss.insertSheet(name);
+        sheet.appendRow(headers);
+        sheet.setFrozenRows(1);
+        return sheet;
+    }
+    if (sheet.getLastColumn() < headers.length) {
+        sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+    }
+    return sheet;
 }
 
 function jsonResponse(data) {
-  return ContentService.createTextOutput(JSON.stringify(data))
-    .setMimeType(ContentService.MimeType.JSON);
+    return ContentService.createTextOutput(JSON.stringify(data)).setMimeType(ContentService.MimeType.JSON);
 }
 
-// 試算表公式注入防護：若以 =, +, -, @ 開頭，自動加上前置單引號
-function sanitize(val) {
-  if (val === null || val === undefined) return '';
-  var s = String(val).trim();
-  if (/^[=\+\-@]/.test(s)) {
-    s = "'" + s;
-  }
-  return s.slice(0, 100); // 限制長度
+function sanitize(val, maxLen) {
+    if (val === null || val === undefined) return '';
+    var s = String(val).trim();
+    if (/^[=\+\-@]/.test(s)) s = "'" + s;
+    return s.slice(0, maxLen || 100);
 }
 
-// 驗證 HMAC-SHA256 簽名
+function sanitizeIg(val) {
+    var s = String(val || '').trim().replace(/^@/, '');
+    return /^[A-Za-z0-9._]{1,30}$/.test(s) ? s : '';
+}
+
+function safeParse(str) {
+    if (!str) return null;
+    try { return JSON.parse(str); } catch (_) { return null; }
+}
+
+function newId(prefix) {
+    return prefix + '-' + Date.now().toString(36) + '-' + Utilities.getUuid().slice(0, 8);
+}
+
+function writeCells(sheet, dataRow, startCol, values) {
+    sheet.getRange(dataRow + 1, startCol + 1, 1, values.length).setValues([values]);
+}
+
+function findRow(pData, pid) {
+    for (var i = 1; i < pData.length; i++) if (pData[i][COL.PID] === pid) return i;
+    return -1;
+}
+
 function verifySignature(dataStr, ts, nonce, sig) {
-  var message = dataStr + '|' + ts + '|' + nonce;
-  var signature = Utilities.computeHmacSha256Signature(message, SIGN_SECRET);
-  var expectedSig = Utilities.base64Encode(signature);
-  return expectedSig === sig;
+    var mac = Utilities.computeHmacSha256Signature(
+        dataStr + '|' + ts + '|' + nonce, getSecret(), Utilities.Charset.UTF_8);
+    return Utilities.base64Encode(mac) === sig;
 }
 
-// ═══════════════════════════════════════════════════════════
-// GET 請求處理 (讀取排行榜、個人名片、好友名單)
-// ═══════════════════════════════════════════════════════════
+function hashToken(token) {
+    var d = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, token, Utilities.Charset.UTF_8);
+    return Utilities.base64Encode(d);
+}
+
+function authorize(db, pData, pid, token, isoTime) {
+    if (!/^[A-Za-z0-9_\-]{6,40}$/.test(pid)) return { err: 'INVALID_PLAYER_ID' };
+    if (!/^[a-f0-9]{32,64}$/.test(token)) return { err: 'TOKEN_REQUIRED' };
+    var h = hashToken(token);
+    var i = findRow(pData, pid);
+    if (i > 0) {
+        var stored = pData[i][COL.TOKEN];
+        if (!stored) {
+            db.players.getRange(i + 1, COL.TOKEN + 1).setValue(h);
+            pData[i][COL.TOKEN] = h;
+            return { row: i };
+        }
+        return stored === h ? { row: i } : { err: 'UNAUTHORIZED' };
+    }
+    var row = [];
+    for (var c = 0; c < PLAYER_HEADERS.length; c++) row.push('');
+    row[COL.PID] = pid; row[COL.AVATAR] = '🪿'; row[COL.NICK] = '匿名球員';
+    row[COL.BEST] = 0; row[COL.LIKES] = 0; row[COL.UPDATED] = isoTime; row[COL.TOKEN] = h;
+    db.players.appendRow(row);
+    pData.push(row);
+    return { row: pData.length - 1 };
+}
+
 function doGet(e) {
-  var p = e ? e.parameter : {};
-  var act = p.act || 'ping';
-  var pid = p.pid ? String(p.pid).trim() : '';
+    var p = e ? e.parameter : {};
+    var act = p.act || 'ping';
+    var pid = p.pid ? String(p.pid).trim() : '';
+    try {
+        var db = getDb();
 
-  try {
-    var db = getDb();
+        if (act === 'ping') {
+            return jsonResponse({ ok: true, api: 'nchu-pickleball-v3.0', acts: ['ping', 'leaderboard', 'me', 'friends'] });
+        }
 
-    if (act === 'ping') {
-      return jsonResponse({
-        ok: true,
-        api: 'nchu-pickleball-v2.2-hardened',
-        acts: ['ping', 'leaderboard', 'me', 'friends', 'stats']
-      });
-    }
-
-    if (act === 'leaderboard') {
-      var pData = db.players.getDataRange().getValues();
-      var list = [];
-      for (var i = 1; i < pData.length; i++) {
-        var row = pData[i];
-        if (!row[0]) continue;
-        list.push({
-          playerId: row[0],
-          avatar: row[1] || '🪿',
-          nickname: row[2] || '匿名球員',
-          department: row[3] || '',
-          deptCode: row[4] || '',
-          score: Number(row[7]) || 0,
-          likes: Number(row[8]) || 0,
-          twin_data: row[10] || ''
-        });
-      }
-
-      // 按分數降序排列
-      list.sort(function(a, b) { return b.score - a.score; });
-
-      // 附加好友與點讚狀態
-      var today = Utilities.formatDate(new Date(), 'Asia/Taipei', 'yyyy-MM-dd');
-      var likesData = db.likes.getDataRange().getValues();
-      var friendsData = db.friends.getDataRange().getValues();
-
-      var result = list.slice(0, 50).map(function(item, idx) {
-        var isMe = pid && (item.playerId === pid);
-        var liked = false;
-        var friendStatus = 'none';
-
-        if (pid && !isMe) {
-          // 檢查今日是否已按讚
-          for (var j = 1; j < likesData.length; j++) {
-            if (likesData[j][1] === pid && likesData[j][2] === item.playerId && likesData[j][3] === today) {
-              liked = true;
-              break;
+        if (act === 'leaderboard') {
+            var pData = db.players.getDataRange().getValues();
+            var list = [];
+            for (var i = 1; i < pData.length; i++) {
+                var row = pData[i];
+                var sc = Number(row[COL.BEST]) || 0;
+                if (!row[COL.PID] || sc <= 0) continue;
+                list.push({
+                    playerId: row[COL.PID], avatar: row[COL.AVATAR] || '🪿',
+                    nickname: row[COL.NICK] || '匿名球員', department: row[COL.DEPT] || '',
+                    deptCode: row[COL.DEPTCODE] || '', ig: row[COL.IG] || '',
+                    score: sc, likes: Number(row[COL.LIKES]) || 0
+                });
             }
-          }
-          // 檢查好友狀態
-          for (var k = 1; k < friendsData.length; k++) {
-            var f = friendsData[k];
-            if ((f[1] === pid && f[2] === item.playerId) || (f[2] === pid && f[1] === item.playerId)) {
-              if (f[3] === 'accepted') {
-                friendStatus = 'accepted';
-              } else if (f[1] === pid) {
-                friendStatus = 'pending';
-              } else if (f[2] === pid) {
-                friendStatus = 'incoming';
-              }
-              break;
+            list.sort(function (a, b) { return b.score - a.score; });
+
+            var today = Utilities.formatDate(new Date(), 'Asia/Taipei', 'yyyy-MM-dd');
+            var likesData = pid ? db.likes.getDataRange().getValues() : [];
+            var friendsData = pid ? db.friends.getDataRange().getValues() : [];
+
+            var result = list.slice(0, 50).map(function (item, idx) {
+                var isMe = !!pid && item.playerId === pid;
+                var liked = false, friendStatus = 'none';
+                if (pid && !isMe) {
+                    for (var j = 1; j < likesData.length; j++) {
+                        if (likesData[j][1] === pid && likesData[j][2] === item.playerId && likesData[j][3] === today) {
+                            liked = true; break;
+                        }
+                    }
+                    for (var k = 1; k < friendsData.length; k++) {
+                        var f = friendsData[k];
+                        if ((f[1] === pid && f[2] === item.playerId) || (f[2] === pid && f[1] === item.playerId)) {
+                            if (f[3] === 'accepted') friendStatus = 'accepted';
+                            else if (f[1] === pid) friendStatus = 'pending';
+                            else friendStatus = 'incoming';
+                            break;
+                        }
+                    }
+                }
+                item.rank = idx + 1; item.liked = liked; item.friend = friendStatus; item.isMe = isMe;
+                return item;
+            });
+            return jsonResponse({ ok: true, list: result });
+        }
+
+        if (act === 'me') {
+            if (!pid) return jsonResponse({ ok: false, err: 'PID_REQUIRED' });
+            var pData = db.players.getDataRange().getValues();
+            var bestScore = 0, likes = 0, scoresList = [];
+            for (var i = 1; i < pData.length; i++) {
+                var row = pData[i];
+                var sc = Number(row[COL.BEST]) || 0;
+                if (row[COL.PID] && sc > 0) scoresList.push({ pid: row[COL.PID], score: sc });
+                if (row[COL.PID] === pid) { bestScore = sc; likes = Number(row[COL.LIKES]) || 0; }
             }
-          }
+            scoresList.sort(function (a, b) { return b.score - a.score; });
+            var rank = 0;
+            for (var j = 0; j < scoresList.length; j++) if (scoresList[j].pid === pid) { rank = j + 1; break; }
+            var sData = db.scores.getDataRange().getValues(), sessions = 0;
+            for (var k = 1; k < sData.length; k++) if (sData[k][1] === pid) sessions++;
+            return jsonResponse({ ok: true, rank: rank, bestScore: bestScore, likes: likes, sessions: sessions });
         }
 
-        return {
-          rank: idx + 1,
-          playerId: item.playerId,
-          avatar: item.avatar,
-          nickname: item.nickname,
-          department: item.department,
-          deptCode: item.deptCode,
-          score: item.score,
-          likes: item.likes,
-          liked: liked,
-          friend: friendStatus,
-          isMe: isMe
-        };
-      });
-
-      return jsonResponse({ ok: true, list: result });
-    }
-
-    if (act === 'me') {
-      if (!pid) return jsonResponse({ ok: false, err: 'PID_REQUIRED' });
-      var pData = db.players.getDataRange().getValues();
-      var rank = 0, bestScore = 0, likes = 0, sessions = 0;
-      var scoresList = [];
-
-      for (var i = 1; i < pData.length; i++) {
-        var row = pData[i];
-        if (row[0]) scoresList.push({ pid: row[0], score: Number(row[7]) || 0 });
-        if (row[0] === pid) {
-          bestScore = Number(row[7]) || 0;
-          likes = Number(row[8]) || 0;
+        if (act === 'friends') {
+            if (!pid) return jsonResponse({ ok: false, err: 'PID_REQUIRED' });
+            var fData = db.friends.getDataRange().getValues();
+            var pData = db.players.getDataRange().getValues();
+            var playerMap = {};
+            for (var i = 1; i < pData.length; i++) {
+                var r = pData[i];
+                if (!r[COL.PID]) continue;
+                var twin = safeParse(r[COL.TWIN]);
+                playerMap[r[COL.PID]] = {
+                    playerId: r[COL.PID], avatar: r[COL.AVATAR] || '🪿',
+                    nickname: r[COL.NICK] || '匿名球員', department: r[COL.DEPT] || '',
+                    ig: r[COL.IG] || '', score: Number(r[COL.BEST]) || 0,
+                    stats: twin && twin.stats ? twin.stats : null
+                };
+            }
+            var inc = [], acc = [], out = [];
+            for (var j = 1; j < fData.length; j++) {
+                var fr = fData[j];
+                if (fr[3] === 'accepted') {
+                    if (fr[1] === pid && playerMap[fr[2]]) acc.push(playerMap[fr[2]]);
+                    else if (fr[2] === pid && playerMap[fr[1]]) acc.push(playerMap[fr[1]]);
+                } else if (fr[3] === 'pending') {
+                    if (fr[1] === pid && playerMap[fr[2]]) out.push(playerMap[fr[2]]);
+                    else if (fr[2] === pid && playerMap[fr[1]]) inc.push(playerMap[fr[1]]);
+                }
+            }
+            return jsonResponse({ ok: true, friends: { incoming: inc, accepted: acc, outgoing: out } });
         }
-      }
-      scoresList.sort(function(a, b) { return b.score - a.score; });
-      for (var j = 0; j < scoresList.length; j++) {
-        if (scoresList[j].pid === pid) { rank = j + 1; break; }
-      }
 
-      var sData = db.scores.getDataRange().getValues();
-      for (var k = 1; k < sData.length; k++) {
-        if (sData[k][1] === pid) sessions++;
-      }
-
-      return jsonResponse({
-        ok: true,
-        rank: rank,
-        bestScore: bestScore,
-        likes: likes,
-        sessions: sessions
-      });
+        return jsonResponse({ ok: false, err: 'UNKNOWN_GET_ACTION' });
+    } catch (err) {
+        return jsonResponse({ ok: false, err: 'GET_ERROR: ' + err });
     }
-
-    if (act === 'friends') {
-      if (!pid) return jsonResponse({ ok: false, err: 'PID_REQUIRED' });
-      var fData = db.friends.getDataRange().getValues();
-      var pData = db.players.getDataRange().getValues();
-      var playerMap = {};
-      for (var i = 1; i < pData.length; i++) {
-        var r = pData[i];
-        playerMap[r[0]] = {
-          playerId: r[0],
-          avatar: r[1] || '🪿',
-          nickname: r[2] || '匿名球員',
-          department: r[3] || '',
-          score: Number(r[7]) || 0,
-          stats: r[10] ? JSON.parse(r[10]).stats : null
-        };
-      }
-
-      var inc = [], acc = [], out = [];
-      for (var j = 1; j < fData.length; j++) {
-        var fr = fData[j];
-        if (fr[3] === 'accepted') {
-          if (fr[1] === pid && playerMap[fr[2]]) acc.push(playerMap[fr[2]]);
-          else if (fr[2] === pid && playerMap[fr[1]]) acc.push(playerMap[fr[1]]);
-        } else if (fr[3] === 'pending') {
-          if (fr[1] === pid && playerMap[fr[2]]) out.push(playerMap[fr[2]]);
-          else if (fr[2] === pid && playerMap[fr[1]]) inc.push(playerMap[fr[1]]);
-        }
-      }
-
-      return jsonResponse({
-        ok: true,
-        friends: { incoming: inc, accepted: acc, outgoing: out }
-      });
-    }
-
-    return jsonResponse({ ok: false, err: 'UNKNOWN_GET_ACTION' });
-  } catch (err) {
-    return jsonResponse({ ok: false, err: 'GET_ERROR: ' + err.toString() });
-  }
 }
 
-// ═══════════════════════════════════════════════════════════
-// POST 請求處理 (成績提交、按讚、好友邀請、個人檔案)
-// ═══════════════════════════════════════════════════════════
 function doPost(e) {
-  var lock = LockService.getScriptLock();
-  try {
-    // 獲取併發排他鎖 (最多等待 8 秒)
-    if (!lock.tryLock(8000)) {
-      return jsonResponse({ ok: false, err: 'SERVER_BUSY_PLEASE_RETRY' });
-    }
-
-    var body = e && e.postData ? e.postData.contents : '';
-    if (!body) return jsonResponse({ ok: false, err: 'EMPTY_BODY' });
-
-    var env;
+    var lock = LockService.getScriptLock();
+    if (!lock.tryLock(8000)) return jsonResponse({ ok: false, err: 'SERVER_BUSY_PLEASE_RETRY' });
     try {
-      env = JSON.parse(body);
-    } catch (_) {
-      return jsonResponse({ ok: false, err: 'INVALID_JSON_ENVELOPE' });
-    }
+        var body = e && e.postData ? e.postData.contents : '';
+        if (!body) return jsonResponse({ ok: false, err: 'EMPTY_BODY' });
+        var env = safeParse(body);
+        if (!env) return jsonResponse({ ok: false, err: 'INVALID_JSON_ENVELOPE' });
 
-    var dataStr = env.data;
-    var ts = Number(env.ts);
-    var nonce = String(env.nonce || '');
-    var sig = String(env.sig || '');
+        var dataStr = String(env.data || ''), ts = Number(env.ts);
+        var nonce = String(env.nonce || ''), sig = String(env.sig || '');
+        var now = Date.now();
 
-    // 1. 驗證時間戳漂移 (不可大於 10 分鐘)
-    var now = Date.now();
-    if (!ts || Math.abs(now - ts) > 10 * 60 * 1000) {
-      return jsonResponse({ ok: false, err: 'TIMESTAMP_EXPIRED' });
-    }
-
-    // 2. 隨機數 (Nonce) 防重放攻擊檢查
-    if (!nonce || nonce.length < 4) {
-      return jsonResponse({ ok: false, err: 'INVALID_NONCE' });
-    }
-    var cache = CacheService.getScriptCache();
-    var nonceKey = 'pb_nonce_' + nonce;
-    if (cache.get(nonceKey)) {
-      return jsonResponse({ ok: false, err: 'REPLAY_ATTACK_DETECTED' });
-    }
-    cache.put(nonceKey, '1', 600); // 記憶 10 分鐘
-
-    // 3. 驗證 HMAC-SHA256 簽名
-    if (!verifySignature(dataStr, ts, nonce, sig)) {
-      return jsonResponse({ ok: false, err: 'INVALID_SIGNATURE' });
-    }
-
-    var payload;
-    try {
-      payload = JSON.parse(dataStr);
-    } catch (_) {
-      return jsonResponse({ ok: false, err: 'INVALID_INNER_JSON' });
-    }
-
-    var act = payload.act;
-    var pid = sanitize(payload.playerId);
-    if (!pid) return jsonResponse({ ok: false, err: 'PLAYER_ID_REQUIRED' });
-
-    var db = getDb();
-    var isoTime = Utilities.formatDate(new Date(), 'Asia/Taipei', 'yyyy-MM-dd HH:mm:ss');
-
-    // ── 提交成績 (act: 'submit') ──
-    if (act === 'submit') {
-      var score = Math.floor(Number(payload.score));
-      var stage = Math.floor(Number(payload.stage));
-
-      // 物理邊界安全檢查
-      if (isNaN(score) || score < 0 || score > 21) {
-        return jsonResponse({ ok: false, err: 'INVALID_SCORE_RANGE' });
-      }
-      if (isNaN(stage) || stage < 1 || stage > 6) {
-        return jsonResponse({ ok: false, err: 'INVALID_STAGE' });
-      }
-
-      var nick = sanitize(payload.nickname) || '匿名球員';
-      var dept = sanitize(payload.department) || '';
-      var deptCode = sanitize(payload.deptCode) || '';
-      var avatar = sanitize(payload.avatar) || '🪿';
-      var grade = sanitize(payload.grade) || '';
-      var entryYear = sanitize(payload.entryYear) || '';
-      var sessionId = sanitize(payload.sessionId) || '';
-
-      // 寫入 scores 記錄表
-      var scoreId = 'SC-' + now.toString(36) + '-' + Math.floor(Math.random()*1000);
-      db.scores.appendRow([
-        scoreId, pid, sessionId, score, stage,
-        sanitize(payload.device), payload.webcamUsed ? 'Y' : 'N', isoTime
-      ]);
-
-      // 檢查並更新 players 表中的最高分
-      var pData = db.players.getDataRange().getValues();
-      var foundRow = 0, currentBest = 0;
-      for (var i = 1; i < pData.length; i++) {
-        if (pData[i][0] === pid) {
-          foundRow = i + 1;
-          currentBest = Number(pData[i][7]) || 0;
-          break;
+        if (!ts || Math.abs(now - ts) > 10 * 60 * 1000) return jsonResponse({ ok: false, err: 'TIMESTAMP_EXPIRED' });
+        if (nonce.length < 8 || !verifySignature(dataStr, ts, nonce, sig)) {
+            return jsonResponse({ ok: false, err: 'INVALID_SIGNATURE' });
         }
-      }
+        var cache = CacheService.getScriptCache(), nonceKey = 'pb_nonce_' + nonce;
+        if (cache.get(nonceKey)) return jsonResponse({ ok: false, err: 'REPLAY_ATTACK_DETECTED' });
+        cache.put(nonceKey, '1', 600);
 
-      var newBest = Math.max(currentBest, score);
-      if (foundRow > 0) {
-        db.players.getRange(foundRow, 2, 1, 9).setValues([[
-          avatar, nick, dept, deptCode, grade, entryYear, newBest, pData[foundRow-1][8] || 0, isoTime
-        ]]);
-      } else {
-        db.players.appendRow([
-          pid, avatar, nick, dept, deptCode, grade, entryYear, newBest, 0, isoTime, ''
-        ]);
-      }
+        var payload = safeParse(dataStr);
+        if (!payload) return jsonResponse({ ok: false, err: 'INVALID_INNER_JSON' });
+        var act = payload.act;
+        if (POST_ACTS.indexOf(act) < 0) return jsonResponse({ ok: false, err: 'UNKNOWN_POST_ACTION' });
 
-      return jsonResponse({ ok: true, bestScore: newBest });
+        var db = getDb();
+        var isoTime = Utilities.formatDate(new Date(), 'Asia/Taipei', 'yyyy-MM-dd HH:mm:ss');
+        var pData = db.players.getDataRange().getValues();
+
+        var pid = String(payload.playerId || '').trim();
+        var auth = authorize(db, pData, pid, String(payload.token || ''), isoTime);
+        if (auth.err) return jsonResponse({ ok: false, err: auth.err });
+        var me = auth.row;
+
+        if (act === 'submit') {
+            var score = Math.floor(Number(payload.score));
+            var stage = Math.floor(Number(payload.stage));
+            if (SCORE_STAGES.indexOf(stage) < 0) return jsonResponse({ ok: false, err: 'INVALID_STAGE' });
+            if (isNaN(score) || score < 0 || score > MAX_SCORE) return jsonResponse({ ok: false, err: 'INVALID_SCORE_RANGE' });
+
+            db.scores.appendRow([newId('SC'), pid, sanitize(payload.sessionId, 40), score, stage,
+                sanitize(payload.device, 20), payload.webcamUsed ? 'Y' : 'N', isoTime]);
+
+            var newBest = Math.max(Number(pData[me][COL.BEST]) || 0, score);
+            writeCells(db.players, me, COL.AVATAR, [
+                sanitize(payload.avatar, 8) || '🪿',
+                sanitize(payload.nickname, 30) || '匿名球員',
+                sanitize(payload.department, 40),
+                sanitize(payload.deptCode, 10),
+                sanitize(payload.grade, 10),
+                sanitize(payload.entryYear, 6),
+                newBest
+            ]);
+            writeCells(db.players, me, COL.UPDATED, [isoTime]);
+            return jsonResponse({ ok: true, bestScore: newBest });
+        }
+
+        if (act === 'like') {
+            var toId = String(payload.toId || '').trim();
+            var target = findRow(pData, toId);
+            if (target < 0 || toId === pid) return jsonResponse({ ok: false, err: 'INVALID_TARGET' });
+            var today = Utilities.formatDate(new Date(), 'Asia/Taipei', 'yyyy-MM-dd');
+            var likesData = db.likes.getDataRange().getValues();
+            for (var i = 1; i < likesData.length; i++) {
+                if (likesData[i][1] === pid && likesData[i][2] === toId && likesData[i][3] === today) {
+                    return jsonResponse({ ok: false, err: 'ALREADY_LIKED_TODAY' });
+                }
+            }
+            db.likes.appendRow([newId('LK'), pid, toId, today, isoTime]);
+            var newLikes = (Number(pData[target][COL.LIKES]) || 0) + 1;
+            writeCells(db.players, target, COL.LIKES, [newLikes]);
+            return jsonResponse({ ok: true, likes: newLikes });
+        }
+
+        if (act === 'friendReq') {
+            var toId = String(payload.toId || '').trim();
+            if (findRow(pData, toId) < 0 || toId === pid) return jsonResponse({ ok: false, err: 'INVALID_TARGET' });
+            var fData = db.friends.getDataRange().getValues();
+            for (var i = 1; i < fData.length; i++) {
+                var fr = fData[i];
+                if (fr[1] === pid && fr[2] === toId) return jsonResponse({ ok: true, status: fr[3] });
+                if (fr[1] === toId && fr[2] === pid) {
+                    db.friends.getRange(i + 1, 4, 1, 2).setValues([['accepted', isoTime]]);
+                    return jsonResponse({ ok: true, status: 'accepted' });
+                }
+            }
+            db.friends.appendRow([newId('FR'), pid, toId, 'pending', isoTime]);
+            return jsonResponse({ ok: true, status: 'pending' });
+        }
+
+        if (act === 'friendAccept') {
+            var toId = String(payload.toId || '').trim();
+            var fData = db.friends.getDataRange().getValues();
+            for (var i = 1; i < fData.length; i++) {
+                if (fData[i][1] === toId && fData[i][2] === pid && fData[i][3] === 'pending') {
+                    db.friends.getRange(i + 1, 4, 1, 2).setValues([['accepted', isoTime]]);
+                    return jsonResponse({ ok: true, status: 'accepted' });
+                }
+            }
+            return jsonResponse({ ok: false, err: 'INVITATION_NOT_FOUND' });
+        }
+
+        if (act === 'updateProfile') {
+            writeCells(db.players, me, COL.AVATAR, [
+                sanitize(payload.avatar, 8) || '🪿',
+                sanitize(payload.nickname, 30) || '匿名球員',
+                sanitize(payload.department, 40)
+            ]);
+            writeCells(db.players, me, COL.UPDATED, [isoTime]);
+            writeCells(db.players, me, COL.IG, [sanitizeIg(payload.ig)]);
+            return jsonResponse({ ok: true });
+        }
+
+        if (act === 'sync_twin') {
+            var twinData = String(payload.twin_data || '');
+            if (twinData.length > MAX_TWIN_CHARS) return jsonResponse({ ok: false, err: 'TWIN_DATA_TOO_LARGE' });
+            if (!safeParse(twinData)) return jsonResponse({ ok: false, err: 'INVALID_TWIN_JSON' });
+            writeCells(db.players, me, COL.UPDATED, [isoTime, twinData]);
+            return jsonResponse({ ok: true });
+        }
+
+        return jsonResponse({ ok: false, err: 'UNKNOWN_POST_ACTION' });
+    } catch (err) {
+        return jsonResponse({ ok: false, err: 'SERVER_ERROR: ' + err });
+    } finally {
+        lock.releaseLock();
     }
-
-    // ── 點讚互動 (act: 'like') ──
-    if (act === 'like') {
-      var toId = sanitize(payload.toId);
-      if (!toId || toId === pid) return jsonResponse({ ok: false, err: 'INVALID_TARGET' });
-
-      var today = Utilities.formatDate(new Date(), 'Asia/Taipei', 'yyyy-MM-dd');
-      var likesData = db.likes.getDataRange().getValues();
-      for (var i = 1; i < likesData.length; i++) {
-        if (likesData[i][1] === pid && likesData[i][2] === toId && likesData[i][3] === today) {
-          return jsonResponse({ ok: false, err: 'ALREADY_LIKED_TODAY' });
-        }
-      }
-
-      // 新增點讚
-      var likeId = 'LK-' + now.toString(36);
-      db.likes.appendRow([likeId, pid, toId, today, isoTime]);
-
-      // 更新目標被點讚數
-      var pData = db.players.getDataRange().getValues();
-      var newLikes = 1;
-      for (var j = 1; j < pData.length; j++) {
-        if (pData[j][0] === toId) {
-          newLikes = (Number(pData[j][8]) || 0) + 1;
-          db.players.getRange(j + 1, 9).setValue(newLikes);
-          break;
-        }
-      }
-
-      return jsonResponse({ ok: true, likes: newLikes });
-    }
-
-    // ── 好友邀請 (act: 'friendReq') ──
-    if (act === 'friendReq') {
-      var toId = sanitize(payload.toId);
-      if (!toId || toId === pid) return jsonResponse({ ok: false, err: 'INVALID_TARGET' });
-
-      var fData = db.friends.getDataRange().getValues();
-      for (var i = 1; i < fData.length; i++) {
-        var fr = fData[i];
-        if (fr[1] === pid && fr[2] === toId) {
-          return jsonResponse({ ok: true, status: fr[3] });
-        }
-        if (fr[1] === toId && fr[2] === pid) {
-          // 對方已邀請，直接結為球友
-          db.friends.getRange(i + 1, 4, 1, 2).setValues([['accepted', isoTime]]);
-          return jsonResponse({ ok: true, status: 'accepted' });
-        }
-      }
-
-      var fId = 'FR-' + now.toString(36);
-      db.friends.appendRow([fId, pid, toId, 'pending', isoTime]);
-      return jsonResponse({ ok: true, status: 'pending' });
-    }
-
-    // ── 接受好友 (act: 'friendAccept') ──
-    if (act === 'friendAccept') {
-      var toId = sanitize(payload.toId);
-      var fData = db.friends.getDataRange().getValues();
-      for (var i = 1; i < fData.length; i++) {
-        var fr = fData[i];
-        if (fr[1] === toId && fr[2] === pid) {
-          db.friends.getRange(i + 1, 4, 1, 2).setValues([['accepted', isoTime]]);
-          return jsonResponse({ ok: true, status: 'accepted' });
-        }
-      }
-      return jsonResponse({ ok: false, err: 'INVITATION_NOT_FOUND' });
-    }
-
-    // ── 更新個人設定 (act: 'updateProfile') ──
-    if (act === 'updateProfile') {
-      var nick = sanitize(payload.nickname);
-      var dept = sanitize(payload.department);
-      var avatar = sanitize(payload.avatar) || '🪿';
-
-      var pData = db.players.getDataRange().getValues();
-      for (var i = 1; i < pData.length; i++) {
-        if (pData[i][0] === pid) {
-          db.players.getRange(i + 1, 2, 1, 3).setValues([[avatar, nick, dept]]);
-          db.players.getRange(i + 1, 10).setValue(isoTime);
-          return jsonResponse({ ok: true });
-        }
-      }
-
-      db.players.appendRow([pid, avatar, nick, dept, '', '', '', 0, 0, isoTime, '']);
-      return jsonResponse({ ok: true });
-    }
-
-    // ── 數位孿生大數據同步 (act: 'sync_twin') ──
-    if (act === 'sync_twin') {
-      var twinData = String(payload.twin_data || '').slice(0, 5000); // 限制 5KB 大小
-      var pData = db.players.getDataRange().getValues();
-      for (var i = 1; i < pData.length; i++) {
-        if (pData[i][0] === pid) {
-          db.players.getRange(i + 1, 11).setValue(twinData);
-          db.players.getRange(i + 1, 10).setValue(isoTime);
-          return jsonResponse({ ok: true });
-        }
-      }
-      return jsonResponse({ ok: true });
-    }
-
-    return jsonResponse({ ok: false, err: 'UNKNOWN_POST_ACTION' });
-
-  } catch (err) {
-    return jsonResponse({ ok: false, err: 'SERVER_ERROR: ' + err.toString() });
-  } finally {
-    lock.releaseLock();
-  }
 }

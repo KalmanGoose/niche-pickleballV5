@@ -12,11 +12,9 @@
 2. 點選頂部功能表：**「擴充功能」➔「Apps Script」**。
 3. 將編輯器內原有的程式碼全部清除，複製本專案 [`backend/Code.gs`](./Code.gs) 的全部代碼並貼上。
 4. 點擊編輯器上方的 💾「儲存專案」圖示。
-5. 點擊右上角藍色的 **「部署」➔「管理部署作業」**：
-   - 點擊右側的 ✏️「編輯」鉛筆圖示。
-   - 在「版本」下拉選單中選擇 **「新版本」**。
-   - 點擊右下角 **「部署」**。
-6. 完成！現在您的 Google Sheets 資料庫已具備完整併發防護與防刷榜機制。
+5. 專案設定 ➔ 指令碼屬性 ➔ 新增 `SIGN_SECRET`，值為自行產生的隨機字串。
+6. 點擊右上角藍色的 **「部署」➔「新增部署作業」**，複製新的 `/exec` 網址，並在「管理部署作業」中**封存舊部署**。
+7. 完成！現在您的 Google Sheets 資料庫已具備完整併發防護與防刷榜機制。
 
 ---
 
@@ -32,12 +30,9 @@
    - 點擊右上角 **「儲存並部署 (Save and Deploy)」**。
 5. 設定環境變數（機密金鑰隔離）：
    - 點擊左上角返回 Worker 管理頁面，點選 **「設定 (Settings)」➔「變數與機密 (Variables and Secrets)」**。
-   - 點擊「新增變數」：
-     - 名稱：`GAS_URL`
-     - 值：您的 Google Apps Script `/exec` 網址
-   - 點擊「新增機密 (Add Secret)」：
-     - 名稱：`SIGN_SECRET`
-     - 值：`nchu-pickleball-2026-secret`
+   - `GAS_URL` 與 `SIGN_SECRET` **都**用「新增機密 (Add Secret)」：
+     - `GAS_URL`：您的 Google Apps Script `/exec` 網址
+     - `SIGN_SECRET`：與 GAS 指令碼屬性相同的隨機字串
    - 點擊儲存。
 6. 複製該 Worker 的公開網址（格式類似 `https://nchu-pickleball-proxy.your-account.workers.dev`）。
 
@@ -45,13 +40,13 @@
 
 ## 步驟 3：前端切換至代理模式 (全資安防護生效)
 
-1. 開啟專案中的 `js/config.js`，將複製的 Worker 網址填入第 14 行：
+1. 開啟專案中的 `js/config.js`，將複製的 Worker 網址填入 `PROXY_URL`：
    ```javascript
    const PROXY_URL = 'https://nchu-pickleball-proxy.your-account.workers.dev';
    ```
 2. 執行單檔編譯與同步：
    ```bash
-   node scripts/build-single.js && cp v14-single.html index.html
+   node scripts/build-single.js
    ```
 3. 提交並推送到 GitHub：
    ```bash
@@ -60,4 +55,4 @@
 4. **生效成果**：
    - 瀏覽器端再也看不到真實的 `GAS_URL` 與 `SIGN_SECRET`。
    - 享有 Cloudflare 全球 CDN 快取（排行榜 15 秒秒開）。
-   - 享有單一 IP 每分鐘 30 次頻率限制與 WAF 阻擋惡意爬蟲，徹底杜絕洗榜與 DoS 爆配額！
+   - 享有單一 IP 每分鐘頻率限制與 WAF 阻擋惡意爬蟲，防止冒用他人身分與提交超出範圍的分數！

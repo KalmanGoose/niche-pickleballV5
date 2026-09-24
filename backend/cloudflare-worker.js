@@ -1,171 +1,137 @@
 /**
- * NCHU Pickleball - Cloudflare Worker Serverless Reverse Proxy
- * 
- * 功能：
- * 1. 隱藏真實 GAS_URL 與 SIGN_SECRET 密鑰 (安全隔離)
- * 2. 嚴格 CORS 來源白名單校驗
- * 3. IP 頻率限制 (Rate Limiting: 30次/分鐘) 防 DoS 與爆配額
- * 4. 邊緣端點快取 (Leaderboard Cache: 15s) 減輕 Google Apps Script 執行負擔
- * 5. 伺服器端動態計算 HMAC-SHA256 數位簽章 (Web Crypto API)
+ * NCHU Pickleball - Cloudflare Worker 反向代理
+ * 1. GAS_URL 與 SIGN_SECRET 必須設為 Worker 機密，未設定就拒絕服務
+ * 2. CORS 來源白名單（精確比對）
+ * 3. 盡力而為的 IP 頻率限制
+ * 4. act 白名單與請求大小上限
+ * 5. 伺服器端 HMAC-SHA256 簽章（證明請求經過本代理；玩家身分由 GAS 以 token 驗證）
  */
 
-const RATE_LIMIT_MAP = new Map();
-const RATE_LIMIT_WINDOW_MS = 60 * 1000;
-const RATE_LIMIT_MAX_REQUESTS = 30;
+const POST_ACTS = new Set(['submit', 'like', 'friendReq', 'friendAccept', 'updateProfile', 'sync_twin']);
+const GET_ACTS = new Set(['ping', 'leaderboard', 'me', 'friends']);
+const MAX_BODY_CHARS = 16 * 1024;
+const WINDOW_MS = 60 * 1000;
+const LIMITS = { GET: 40, POST: 15 };
 
-function checkRateLimit(ip) {
-    const now = Date.now();
-    let record = RATE_LIMIT_MAP.get(ip);
-    if (!record || now > record.resetTime) {
-        record = { count: 1, resetTime: now + RATE_LIMIT_WINDOW_MS };
-        RATE_LIMIT_MAP.set(ip, record);
-        return true;
-    }
-    if (record.count >= RATE_LIMIT_MAX_REQUESTS) {
+const PROD_ORIGINS = new Set(['https://kalmangoose.github.io']);
+function originAllowed(origin) {
+    if (!origin) return false;
+    if (PROD_ORIGINS.has(origin)) return true;
+    try {
+        const u = new URL(origin);
+        return u.protocol === 'http:' && (u.hostname === 'localhost' || u.hostname === '127.0.0.1');
+    } catch (_) {
         return false;
     }
-    record.count++;
+}
+
+const buckets = new Map();
+function rateLimit(key, max) {
+    const now = Date.now();
+    if (buckets.size > 5000) {
+        for (const [k, r] of buckets) if (now > r.reset) buckets.delete(k);
+    }
+    const r = buckets.get(key);
+    if (!r || now > r.reset) {
+        buckets.set(key, { n: 1, reset: now + WINDOW_MS });
+        return true;
+    }
+    if (r.n >= max) return false;
+    r.n++;
     return true;
 }
 
-async function computeHmacSha256(secretStr, msgStr) {
+async function hmacSha256Base64(secret, msg) {
     const enc = new TextEncoder();
-    const key = await crypto.subtle.importKey(
-        'raw',
-        enc.encode(secretStr),
-        { name: 'HMAC', hash: 'SHA-256' },
-        false,
-        ['sign']
-    );
-    const signature = await crypto.subtle.sign('HMAC', key, enc.encode(msgStr));
-    const bytes = new Uint8Array(signature);
-    let binary = '';
-    for (let i = 0; i < bytes.byteLength; i++) {
-        binary += String.fromCharCode(bytes[i]);
-    }
-    return btoa(binary);
+    const key = await crypto.subtle.importKey('raw', enc.encode(secret),
+        { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+    const sig = new Uint8Array(await crypto.subtle.sign('HMAC', key, enc.encode(msg)));
+    let bin = '';
+    for (let i = 0; i < sig.length; i++) bin += String.fromCharCode(sig[i]);
+    return btoa(bin);
+}
+
+function json(data, status, cors) {
+    return new Response(JSON.stringify(data), {
+        status,
+        headers: { ...cors, 'Content-Type': 'application/json;charset=utf-8', 'Cache-Control': 'no-store' }
+    });
 }
 
 export default {
-    async fetch(request, env, ctx) {
-        // 從 Cloudflare 環境變數讀取，若未設定則使用預設值
-        const gasUrl = env.GAS_URL || 'https://script.google.com/macros/s/AKfycbwbQJTyJFtZjGOHs_EzYnbbQjq1Znj8KHG1l9uVhgqsyUK2KpkwdN6nydNNvyqz394mGQ/exec';
-        const signSecret = env.SIGN_SECRET || 'nchu-pickleball-2026-secret';
-
+    async fetch(request, env) {
         const origin = request.headers.get('Origin') || '';
-        const clientIp = request.headers.get('CF-Connecting-IP') || 'unknown';
-
-        // 允許的來源網域白名單
-        const allowedOrigins = [
-            'https://kalmangoose.github.io',
-            'http://localhost',
-            'http://127.0.0.1'
-        ];
-        const isAllowedOrigin = !origin || allowedOrigins.some(ao => origin.startsWith(ao));
-
-        const corsHeaders = {
-            'Access-Control-Allow-Origin': isAllowedOrigin && origin ? origin : '*',
+        const allowed = originAllowed(origin);
+        const cors = {
+            'Access-Control-Allow-Origin': allowed ? origin : 'null',
             'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
             'Access-Control-Allow-Headers': 'Content-Type',
-            'Access-Control-Max-Age': '86400'
+            'Access-Control-Max-Age': '86400',
+            'Vary': 'Origin'
         };
 
-        // 處理 CORS Preflight 預檢請求
         if (request.method === 'OPTIONS') {
-            return new Response(null, { status: 204, headers: corsHeaders });
+            return new Response(null, { status: allowed ? 204 : 403, headers: cors });
+        }
+        if (!allowed) return json({ ok: false, err: 'FORBIDDEN_ORIGIN' }, 403, cors);
+
+        if (!env.GAS_URL || !env.SIGN_SECRET) {
+            return json({ ok: false, err: 'PROXY_NOT_CONFIGURED' }, 500, cors);
         }
 
-        // 來源白名單校驗
-        if (origin && !isAllowedOrigin) {
-            return new Response(JSON.stringify({ ok: false, err: 'FORBIDDEN_ORIGIN' }), {
-                status: 403,
-                headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-            });
+        const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
+        if (!rateLimit(ip + ':' + request.method, LIMITS[request.method] || 10)) {
+            return json({ ok: false, err: 'RATE_LIMIT_EXCEEDED' }, 429, cors);
         }
 
-        // IP 頻率限制校驗
-        if (!checkRateLimit(clientIp)) {
-            return new Response(JSON.stringify({ ok: false, err: 'RATE_LIMIT_EXCEEDED' }), {
-                status: 429,
-                headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-            });
-        }
-
-        const url = new URL(request.url);
-
-        // 處理 GET 請求 (查詢排行榜、個人資訊、好友)
         if (request.method === 'GET') {
-            const forwardUrl = gasUrl + (url.search ? url.search : '');
-            const cacheOptions = (url.searchParams.get('act') === 'leaderboard') ? { cf: { cacheTtl: 15, cacheEverything: true } } : {};
+            const url = new URL(request.url);
+            const act = url.searchParams.get('act') || 'ping';
+            if (!GET_ACTS.has(act)) return json({ ok: false, err: 'UNKNOWN_GET_ACTION' }, 400, cors);
+            const fwd = new URL(env.GAS_URL);
+            fwd.searchParams.set('act', act);
+            const pid = url.searchParams.get('pid');
+            if (pid) fwd.searchParams.set('pid', pid.slice(0, 64));
             try {
-                const response = await fetch(forwardUrl, {
-                    method: 'GET',
-                    headers: { 'Accept': 'application/json' },
-                    ...cacheOptions
+                const res = await fetch(fwd.toString(), { headers: { 'Accept': 'application/json' } });
+                return new Response(await res.text(), {
+                    status: res.status,
+                    headers: { ...cors, 'Content-Type': 'application/json;charset=utf-8', 'Cache-Control': 'no-store' }
                 });
-                const data = await response.text();
-                return new Response(data, {
-                    status: response.status,
-                    headers: {
-                        ...corsHeaders,
-                        'Content-Type': 'application/json;charset=utf-8',
-                        'Cache-Control': url.searchParams.get('act') === 'leaderboard' ? 'public, max-age=15' : 'no-cache'
-                    }
-                });
-            } catch (err) {
-                return new Response(JSON.stringify({ ok: false, err: 'PROXY_UPSTREAM_ERROR' }), {
-                    status: 502,
-                    headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-                });
+            } catch (_) {
+                return json({ ok: false, err: 'PROXY_UPSTREAM_ERROR' }, 502, cors);
             }
         }
 
-        // 處理 POST 請求 (提交戰績、按讚、加好友、更新個人檔案)
         if (request.method === 'POST') {
+            const raw = await request.text();
+            if (raw.length > MAX_BODY_CHARS) return json({ ok: false, err: 'PAYLOAD_TOO_LARGE' }, 413, cors);
+            let payload;
+            try { payload = JSON.parse(raw); } catch (_) {
+                return json({ ok: false, err: 'INVALID_JSON' }, 400, cors);
+            }
+            if (!payload || typeof payload !== 'object' || !POST_ACTS.has(payload.act)) {
+                return json({ ok: false, err: 'UNKNOWN_POST_ACTION' }, 400, cors);
+            }
+            const dataStr = JSON.stringify(payload);
+            const ts = Date.now();
+            const nonce = crypto.randomUUID();
+            const sig = await hmacSha256Base64(env.SIGN_SECRET, dataStr + '|' + ts + '|' + nonce);
             try {
-                let payload;
-                const rawText = await request.text();
-                try {
-                    payload = JSON.parse(rawText);
-                } catch (_) {
-                    return new Response(JSON.stringify({ ok: false, err: 'INVALID_JSON' }), {
-                        status: 400,
-                        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-                    });
-                }
-
-                // 如果前端傳送的是未簽名純資料，由 Worker 在雲端代理計算簽名封裝
-                let envPayload;
-                if (payload && payload.data && payload.sig) {
-                    // 原生簽名封裝直接轉發
-                    envPayload = payload;
-                } else {
-                    const dataStr = JSON.stringify(payload);
-                    const ts = Date.now();
-                    const nonce = Math.random().toString(36).slice(2, 10);
-                    const sig = await computeHmacSha256(signSecret, dataStr + '|' + ts + '|' + nonce);
-                    envPayload = { data: dataStr, ts, nonce, sig };
-                }
-
-                // 送交 GAS 後端
-                const upstreamRes = await fetch(gasUrl, {
+                const res = await fetch(env.GAS_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                    body: JSON.stringify(envPayload)
+                    body: JSON.stringify({ data: dataStr, ts, nonce, sig })
                 });
-                const resText = await upstreamRes.text();
-                return new Response(resText, {
-                    status: upstreamRes.status,
-                    headers: { ...corsHeaders, 'Content-Type': 'application/json;charset=utf-8' }
+                return new Response(await res.text(), {
+                    status: res.status,
+                    headers: { ...cors, 'Content-Type': 'application/json;charset=utf-8', 'Cache-Control': 'no-store' }
                 });
-            } catch (err) {
-                return new Response(JSON.stringify({ ok: false, err: 'PROXY_POST_FAIL' }), {
-                    status: 502,
-                    headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-                });
+            } catch (_) {
+                return json({ ok: false, err: 'PROXY_POST_FAIL' }, 502, cors);
             }
         }
 
-        return new Response('Method Not Allowed', { status: 405, headers: corsHeaders });
+        return json({ ok: false, err: 'METHOD_NOT_ALLOWED' }, 405, cors);
     }
 };

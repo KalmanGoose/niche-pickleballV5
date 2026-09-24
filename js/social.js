@@ -21,9 +21,12 @@
             document.getElementById('sc-name').innerText = currentFriendData.nickname || '匿名球員';
             document.getElementById('sc-dept').innerText = (currentFriendData.department || '國立中興大學') + (currentFriendData.grade ? ' · ' + currentFriendData.grade : '');
             
-            const igHandle = currentFriendData.ig || ('user_' + (currentFriendData.playerId ? currentFriendData.playerId.slice(-4) : 'nchu'));
-            currentFriendData.ig = igHandle;
-            document.getElementById('sc-ig-tag').innerHTML = '<span style="font-size:11px;color:#c084fc;">📸 @' + escapeHtml(igHandle) + '</span>';
+            const igHandle = currentFriendData.ig || '';
+            document.getElementById('sc-ig-tag').innerHTML = igHandle
+                ? '<span style="font-size:11px;color:#c084fc;">📸 @' + escapeHtml(igHandle) + '</span>'
+                : '<span style="font-size:11px;color:var(--dim);">尚未綁定 IG</span>';
+            document.getElementById('sc-ig-btn').style.display = igHandle ? '' : 'none';
+            document.getElementById('mc-ig-btn').style.display = igHandle ? '' : 'none';
             document.getElementById('sc-bio').innerText = currentFriendData.bio || ('「熱愛匹克球與體感運動！最高得分 ' + (currentFriendData.score || 0) + ' 分，歡迎切磋！」');
 
             renderRadarChart(document.getElementById('radar-canvas'), currentFriendData.stats || calculateDigitalTwinStats());
@@ -46,12 +49,9 @@
         }
 
         function openFriendIG() {
-            if (!currentFriendData || !currentFriendData.ig) {
-                window.open('https://instagram.com/nchu_pickleball', '_blank');
-                return;
-            }
-            const clean = currentFriendData.ig.replace(/^@/, '');
-            window.open('https://instagram.com/' + encodeURIComponent(clean), '_blank');
+            const clean = (currentFriendData && currentFriendData.ig || '').replace(/^@/, '');
+            if (!/^[A-Za-z0-9._]{1,30}$/.test(clean)) { toast('對方尚未綁定 IG', ''); return; }
+            window.open('https://instagram.com/' + encodeURIComponent(clean), '_blank', 'noopener');
         }
 
         function calculateDigitalTwinStats() {
@@ -177,7 +177,7 @@
             toast('⏳ 正在同步數位孿生至 Google Sheets…', '');
             const twinPayload = {
                 stats: calculateDigitalTwinStats(),
-                recentShots: AUDIT_LOG.slice(-20),
+                recentShots: AUDIT_LOG.slice(-10),
                 syncedAt: new Date().toISOString()
             };
             postSigned({
