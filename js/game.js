@@ -2312,7 +2312,7 @@ function updateGuides(dt) {
             if (t === 'lb') { loadLeaderboard(); loadMe(); } else loadFriends();
         }
         function apiWarn(el) {
-            el.innerHTML = '<div class="lb-empty">⚠ 尚未設定 GAS_URL<br>請在程式碼頂端填入 /exec 網址</div>';
+            el.innerHTML = '<div class="lb-empty">雲端英雄榜尚未啟用，目前為本機離線模式</div>';
         }
         function loadMe() {
             const card = document.getElementById('my-card');
@@ -2451,12 +2451,12 @@ function updateGuides(dt) {
 
             // 前端物理合理性防禦檢驗
             const numScore = Math.floor(Number(score));
-            if (isNaN(numScore) || numScore < 0 || numScore > 21) {
+            if (isNaN(numScore) || numScore < 0 || numScore > 5) {
                 toast('⚠️ 成績異常', '得分超出賽事有效物理範圍');
                 return;
             }
-            if (stage < 1 || stage > 6) {
-                toast('⚠️ 關卡異常', '非正式賽程階段');
+            if (stage !== 5 && stage !== 6) {
+                toast('⚠️ 關卡異常', '僅第 5、6 關計分賽可登錄英雄榜');
                 return;
             }
 

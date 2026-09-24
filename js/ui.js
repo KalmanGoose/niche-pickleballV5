@@ -1179,7 +1179,7 @@ function cycleTeachLevelQuick() {
                 targetSelector: '#nav button[data-menu="settings"]',
                 title: '⚙️ 第一站：雙層分類設定選單',
                 badge: '第 1 / 3 站 · 功能收納',
-                desc: '點擊【設定】可滑出雙層抽屜：切換 3D 視角、調節體感靈敏度、綁定個人 IG 與同步數位孿生！',
+                desc: '點擊【設定】可展開視角畫面、操作手感與系統偏好三大分類！',
                 onEnter: () => { if (activeNavMenu !== 'settings') toggleNavMenu('settings'); switchSettingsTab('view'); },
                 onExit: () => { closePanel(); }
             },
@@ -1195,7 +1195,7 @@ function cycleTeachLevelQuick() {
                             nickname: '中興匹克球神',
                             department: '電機工程學系 四年級',
                             avatar: '🪿',
-                            ig: 'nchu_pickleball_god',
+                            ig: '',
                             score: 32,
                             stats: { serve: 95, dink: 88, spin: 94, chain: 92, speed: 90 }
                         });
@@ -1210,7 +1210,7 @@ function cycleTeachLevelQuick() {
                 targetSelector: '#speed-hud-mini',
                 title: '🎾 第三站：滑動擊球與即時數據',
                 badge: '第 3 / 3 站 · 實戰手感',
-                desc: '向前滑動推打深球、左右切刷出香蕉側旋弧線！左下角膠囊常駐顯示即時球速與揮拍蓄力值。',
+                desc: '向前滑動推打深球、左右切刷出香蕉側旋弧線！膠囊常駐顯示即時球速與揮拍蓄力值。',
                 onEnter: () => {
                     showFingerTutorial();
                 },
