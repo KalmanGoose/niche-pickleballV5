@@ -1211,16 +1211,16 @@ function cycleTeachLevelQuick() {
                 title: '🎾 第三站：滑動擊球與即時數據',
                 badge: '第 3 / 3 站 · 實戰手感',
                 desc: '向前滑動推打深球、左右切刷出香蕉側旋弧線！膠囊常駐顯示即時球速與揮拍蓄力值。',
-                onEnter: () => {
-                    showFingerTutorial();
-                },
-                onExit: () => {
-                    dismissFingerTutorial();
-                }
+                onEnter: () => {},
+                onExit: () => {}
             }
         ];
 
         function startSpotlightTour(force) {
+            const loginEl = document.getElementById('login-overlay');
+            if (loginEl && loginEl.style.display !== 'none') return;
+            if (document.body.classList.contains('login-open')) return;
+            if (typeof demoOn !== 'undefined' && demoOn) return;
             if (!force) {
                 try {
                     const seen = localStorage.getItem('nchu_pickle_tour_done_v4');

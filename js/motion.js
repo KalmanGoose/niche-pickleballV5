@@ -818,7 +818,7 @@
             if (overlay) overlay.classList.remove('hidden');
             if (!fingerAnimTimer) runFingerAnimation();
         }
-        function dismissFingerTutorial() {
+        function dismissFingerTutorial(silent) {
             if (!fingerTutActive) return;
             fingerTutActive = false;
             const overlay = document.getElementById('finger-tutorial');
@@ -826,7 +826,9 @@
             if (fingerAnimTimer) { cancelAnimationFrame(fingerAnimTimer); fingerAnimTimer = null; }
             // ★ v5.0.7: 示範結束後恢復選單與 HUD 顯示
             if (!demoOn) document.body.classList.remove('demo-mode-active');
-            toast('🎾 開始揮拍！', '向前滑動推球 · 左右刷拍側旋');
+            if (!silent && !demoOn) {
+                toast('🎾 開始揮拍！', '向前滑動推球 · 左右刷拍側旋');
+            }
         }
 
         function runFingerAnimation() {

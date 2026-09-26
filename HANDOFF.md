@@ -21,16 +21,16 @@
 | A1 physics.js | 🔧 已實作 | 雙模式（FAST/ACADEMIC）、空氣動力常數、Symplectic Euler |
 | A2 build-single.js | 🔧 已實作 | 支援 vm.Script 語法檢查、重複函式警示、自動同步 index.html |
 | A3 Worker / A4 Code.gs | 🔧 已實作 | 代碼已替換為 v3.0 HMAC 簽章代理、防重放、排他鎖；Round 5 完成：'h' 前綴、dayStr 時區正規化、setupTextFormats、String 包裹、SCHEMA_MISMATCH 檢查、SERVER_ERROR 遮蔽、nonce 1200s、Worker IP/PID 限流、40KB 上限 |
-| B1 game.js | ✅ 已 review | 含 solveArc 分流、RWD 尺寸綁定、示範修復、gooseErrorHit、離線 apiWarn 與分數關卡檢查 |
-| B2 ui.js | ✅ 已 review | U1~U4 均完成，TOUR_STEPS 站台描述與 IG 欄位已修正 |
-| B3 motion.js | 🔧 已實作 | applyPerfPreset 加入 ren.setPixelRatio(dpr) |
+| B1 game.js | ✅ 已 review | 含 solveArc 分流、RWD 尺寸綁定、示範修復、gooseErrorHit、離線 apiWarn 與分數關卡檢查；開場示範與輪到你發球交接優化、關卡2/3示範聚焦 |
+| B2 ui.js | ✅ 已 review | U1~U4 均完成，TOUR_STEPS 站台描述與 IG 欄位已修正；Spotlight Tour 登入與示範隔離、第 3 站解耦 |
+| B3 motion.js | 🔧 已實作 | applyPerfPreset 加入 ren.setPixelRatio(dpr)；dismissFingerTutorial 支援靜默與 demoOn 防護 |
 | B4 social.js | 🔧 已實作 | S1~S6 完成，IG 格式驗證與按鈕切換、recentShots slice(-10)、openFriendIG String 防護 |
 | B5 fun_mode.js | 🔧 已實作 | F1~F4 完成，本機開發限定、MEGA_BALL 顏色復原、示波器連動 |
 | B6 config.js | 🔧 已實作（待 Claude review） | C1～C7 完成，Worker 代理、token/playerId 快取、fetchJson 強化、errMsg 擴充完整錯誤碼轉譯、IG 驗證、Unicode 標籤 |
-| B7 CSS | 🔧 已實作 | hud.css body.login-open、style.css user-select、modals.css 只刪 bottom/left 保留 position:absolute |
+| B7 CSS | 🔧 已實作 | hud.css body.login-open、style.css user-select、modals.css 只刪 bottom/left；示範期間手指教學重構為右下懸浮透明 HUD |
 | B8 v14.html | 🔧 已實作 | 黃框更新為簡練版「理論方程式 vs. 實際程式實作」與模型限制 |
 | B9 文件 | 🔧 已實作 | DEPLOY_GUIDE.md 與 整合報告.md 詞彙修訂，更新部署安全步驟 |
-| 打包 | ✅ 語法檢查通過（見第 6 節） | 通過 Node.js vm.Script 語法檢查，v14-single.html 與 index.html 已同步 |
+| 打包 | ✅ 語法檢查通過（見第 6 節） | 通過 Node.js vm.Script 語法檢查，v14-single.html（14149 行）與 index.html 已同步 |
 | Part C 人工部署 | ⏳ 待人工執行 | 建立全新試算表並執行 setupTextFormats()、GAS 指令碼屬性設定、Worker Secret 設定與填入 PROXY_URL；手機測試採方案 A（同帳號預覽 repo） |
 | Part D 手機實測 | ⏳ 待實測 | 待部署後進行測試。規則：(a) 測試帳號暱稱一律加前綴 TEST-；(b) 合併 main 前刪除 Sheet 中所有 TEST- 帳號與對應資料；(c) 測試暱稱設為 `007`、`1/2`、`TRUE` 確認試算表不強制轉型；(d) 同日同對象重複按讚阻擋測試（回傳 ALREADY_LIKED_TODAY）；(e) Sheet 檢查 tokenHash 皆為 'h' 開頭字串；(f) 3 支以上手機在校園 Wi-Fi 下同時遊玩無 RATE_LIMIT_EXCEEDED 阻擋。 |
 
@@ -57,13 +57,14 @@
 - GitHub Pages 從 main 部署，v6 的修改在合併前不會上線
 - 手機測試環境（N1）：採用方案 A，使用同帳號預覽 repo（`kalmangoose.github.io/...`），共用正式站 Origin，免改 Worker 白名單且避免開放萬用字元安全性漏洞
 - 舊帳號搶先綁定 SOP：管理員至 Google 試算表 `players` 表清空該列 `TOKEN` 欄，玩家下次操作會自動重新綁定。註：管理員無法驗證誰是原主人，SOP 只處理本人主動回報的情況。
+- 開場教學分工：登入期間絕對不觸發 Spotlight Tour；示範期間手指手勢為右下半透明懸浮 HUD，無大黑幕卡片遮擋；示範結束明確提示「輪到你了！」並無縫進入發球
 
 ## 6. 最近一次打包 / 測試紀錄
 - **打包指令**：`node scripts/build-single.js`
 - **打包輸出**：
   ```
   📦 開始打包…
-  ✅ v14-single.html（14090 行）
+  ✅ v14-single.html（14149 行）
   ✅ index.html 已同步
   ```
 - **逐檔語法檢查**（`node --check`）：

@@ -1515,12 +1515,69 @@
             top: 14px !important;
         }
 
-        /* 手指手勢教學浮層：示範期間於卡片上方同步呈現揮拍手勢，100% 支援關閉按鈕點擊 */
+        /* ══════ 手指手勢浮空小工具：示範期間化身為非阻礙懸浮 HUD，徹底杜絕畫面遮擋 ══════ */
         body.demo-mode-active #finger-tutorial:not(.hidden) {
             display: flex !important;
             opacity: 1 !important;
             z-index: 9999 !important;
-            pointer-events: auto !important;
+            pointer-events: none !important;
+            background: transparent !important;
+            backdrop-filter: none !important;
+            align-items: flex-end !important;
+            justify-content: flex-end !important;
+            padding-bottom: 110px !important;
+            padding-right: 20px !important;
+        }
+        body.demo-mode-active #finger-tutorial .finger-tut-card {
+            background: rgba(15, 23, 42, 0.72) !important;
+            backdrop-filter: blur(8px) !important;
+            border: 1px solid rgba(56, 189, 248, 0.45) !important;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), 0 0 20px rgba(56, 189, 248, 0.2) !important;
+            border-radius: 16px !important;
+            width: 200px !important;
+            padding: 10px !important;
+            pointer-events: none !important;
+        }
+        body.demo-mode-active #finger-tutorial .finger-tut-close-icon,
+        body.demo-mode-active #finger-tutorial .finger-tut-desc,
+        body.demo-mode-active #finger-tutorial .finger-tut-card > div:last-child {
+            display: none !important;
+        }
+        body.demo-mode-active #finger-tutorial .finger-tut-title {
+            font-size: 11.5px !important;
+            font-weight: 800 !important;
+            color: #38bdf8 !important;
+            text-align: center !important;
+            width: 100% !important;
+        }
+        body.demo-mode-active #finger-tutorial .finger-tut-modes {
+            margin-top: 4px !important;
+            gap: 4px !important;
+        }
+        body.demo-mode-active #finger-tutorial .finger-mode-pill {
+            font-size: 8px !important;
+            padding: 2px 5px !important;
+        }
+        body.demo-mode-active #finger-tutorial .finger-tut-canvas-wrap {
+            width: 170px !important;
+            height: 110px !important;
+            margin: 6px auto 0 !important;
+            background: radial-gradient(circle at 50% 85%, rgba(56, 189, 248, 0.15), transparent 70%), rgba(15, 23, 42, 0.45) !important;
+            border-radius: 12px !important;
+        }
+        @media (max-width: 600px) {
+            body.demo-mode-active #finger-tutorial:not(.hidden) {
+                justify-content: center !important;
+                padding-right: 0 !important;
+                padding-bottom: 100px !important;
+            }
+            body.demo-mode-active #finger-tutorial .finger-tut-card {
+                width: 180px !important;
+            }
+            body.demo-mode-active #finger-tutorial .finger-tut-canvas-wrap {
+                width: 150px !important;
+                height: 95px !important;
+            }
         }
 
         /* ══════════════════════════════════════════════════════════════════════
@@ -7261,7 +7318,7 @@ function syncPhysicsModeUI() {
             if (overlay) overlay.classList.remove('hidden');
             if (!fingerAnimTimer) runFingerAnimation();
         }
-        function dismissFingerTutorial() {
+        function dismissFingerTutorial(silent) {
             if (!fingerTutActive) return;
             fingerTutActive = false;
             const overlay = document.getElementById('finger-tutorial');
@@ -7269,7 +7326,9 @@ function syncPhysicsModeUI() {
             if (fingerAnimTimer) { cancelAnimationFrame(fingerAnimTimer); fingerAnimTimer = null; }
             // ★ v5.0.7: 示範結束後恢復選單與 HUD 顯示
             if (!demoOn) document.body.classList.remove('demo-mode-active');
-            toast('🎾 開始揮拍！', '向前滑動推球 · 左右刷拍側旋');
+            if (!silent && !demoOn) {
+                toast('🎾 開始揮拍！', '向前滑動推球 · 左右刷拍側旋');
+            }
         }
 
         function runFingerAnimation() {
@@ -8545,16 +8604,16 @@ function cycleTeachLevelQuick() {
                 title: '🎾 第三站：滑動擊球與即時數據',
                 badge: '第 3 / 3 站 · 實戰手感',
                 desc: '向前滑動推打深球、左右切刷出香蕉側旋弧線！膠囊常駐顯示即時球速與揮拍蓄力值。',
-                onEnter: () => {
-                    showFingerTutorial();
-                },
-                onExit: () => {
-                    dismissFingerTutorial();
-                }
+                onEnter: () => {},
+                onExit: () => {}
             }
         ];
 
         function startSpotlightTour(force) {
+            const loginEl = document.getElementById('login-overlay');
+            if (loginEl && loginEl.style.display !== 'none') return;
+            if (document.body.classList.contains('login-open')) return;
+            if (typeof demoOn !== 'undefined' && demoOn) return;
             if (!force) {
                 try {
                     const seen = localStorage.getItem('nchu_pickle_tour_done_v4');
@@ -12025,7 +12084,7 @@ function solveArc(fx, fy, fz, tx, tz, out, speedScale) {
                 add(1.4, null, null, () => dHit(-1.6, -4.8));
                 add(3.4, '匹克鵝回擊一顆底線深球', 'STEP 2 對手深球', () => { dG(-1.4, -3.2); dDemoTgt.x = 1.2; dDemoTgt.z = 5.8; });
                 add(4.2, null, null, () => dGHit(1.2, 5.8));
-                add(5.2, '⚠️ 核心法則: 接發球必須等球落地彈跳一次！', 'STEP 3 等球落地', () => { triggerFingerDemoSwipe(0); dMove(1.2, 6.0); dPaddle(0.27, 0.54); dDemoTgt.x = -1.2; dDemoTgt.z = -3.6; });
+                add(5.2, '⚠️ 核心法則: 接發球必須等球落地彈跳一次！', 'STEP 3 等球落地', () => { dMove(1.2, 6.0); dPaddle(0.27, 0.54); dDemoTgt.x = -1.2; dDemoTgt.z = -3.6; });
                 add(7.8, '落地彈起後平穩回擊，完成雙彈跳規則！', 'STEP 4 合法回擊', () => { dHit(-1.2, -3.6); });
                 add(10.0, '雙方各落地一次後，方開放凌空截擊', '雙彈跳核心');
             } else if (st === 3) {
@@ -12034,7 +12093,7 @@ function solveArc(fx, fy, fz, tx, tz, out, speedScale) {
                 add(3.4, '匹克鵝把球輕吊進廚房區', 'STEP 2 對手吊球', () => { dG(-1.2, -3.0); dDemoTgt.x = 0.8; dDemoTgt.z = 1.35; });
                 add(4.2, null, null, () => dGHit(0.8, 1.35));
                 add(5.6, '❌ 球未落地就在廚房內揮拍 = KITCHEN FAULT 犯規', '錯誤示範', () => { dMove(0.8, 1.5); dPaddle(0.29, 1.0); dBad(); });
-                add(7.4, '✅ 正確做法: 耐心等球落地彈起後再輕推 (Dink)', '正確做法', () => { triggerFingerDemoSwipe(0); dPaddle(0.25, 0.48); dDemoTgt.x = -0.9; dDemoTgt.z = -1.7; });
+                add(7.4, '✅ 正確做法: 耐心等球落地彈起後再輕推 (Dink)', '正確做法', () => { dPaddle(0.25, 0.48); dDemoTgt.x = -0.9; dDemoTgt.z = -1.7; });
                 add(9.2, '落地後輕推小球安全過網，成功通關！', 'STEP 3 廚房輕推', () => { dHit(-0.9, -1.7); });
                 add(11.4, '廚房區落地後方可入內擊球', '通關重點');
             } else if (st === 4) {
@@ -12074,7 +12133,8 @@ function solveArc(fx, fy, fz, tx, tz, out, speedScale) {
             const wm = document.getElementById('demo-watermark'); if (wm) wm.style.display = 'none';
             warnKitchen.material.opacity = 0; resetServe();
             document.body.classList.remove('demo-mode-active');
-            dismissFingerTutorial();
+            dismissFingerTutorial(true);
+            toast('🎾 輪到你了！', '向上滑動推球發球');
         }
         function skipDemo() { if (demoOn) { clearTimers(); endDemo(); } }
         function replayDemo() { closePanel(); startDemo(stage); }
@@ -14019,7 +14079,6 @@ function handleStageResize() {
         buildAvatarGrids();
         loadAuditCache();
         updatePlayerWhoLabel();
-        setTimeout(() => startSpotlightTour(false), 800);
         initFingerTutorial();
         initLayoutMode();
         initCardResize();

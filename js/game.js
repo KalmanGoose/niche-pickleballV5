@@ -664,7 +664,7 @@ function solveArc(fx, fy, fz, tx, tz, out, speedScale) {
                 add(1.4, null, null, () => dHit(-1.6, -4.8));
                 add(3.4, '匹克鵝回擊一顆底線深球', 'STEP 2 對手深球', () => { dG(-1.4, -3.2); dDemoTgt.x = 1.2; dDemoTgt.z = 5.8; });
                 add(4.2, null, null, () => dGHit(1.2, 5.8));
-                add(5.2, '⚠️ 核心法則: 接發球必須等球落地彈跳一次！', 'STEP 3 等球落地', () => { triggerFingerDemoSwipe(0); dMove(1.2, 6.0); dPaddle(0.27, 0.54); dDemoTgt.x = -1.2; dDemoTgt.z = -3.6; });
+                add(5.2, '⚠️ 核心法則: 接發球必須等球落地彈跳一次！', 'STEP 3 等球落地', () => { dMove(1.2, 6.0); dPaddle(0.27, 0.54); dDemoTgt.x = -1.2; dDemoTgt.z = -3.6; });
                 add(7.8, '落地彈起後平穩回擊，完成雙彈跳規則！', 'STEP 4 合法回擊', () => { dHit(-1.2, -3.6); });
                 add(10.0, '雙方各落地一次後，方開放凌空截擊', '雙彈跳核心');
             } else if (st === 3) {
@@ -673,7 +673,7 @@ function solveArc(fx, fy, fz, tx, tz, out, speedScale) {
                 add(3.4, '匹克鵝把球輕吊進廚房區', 'STEP 2 對手吊球', () => { dG(-1.2, -3.0); dDemoTgt.x = 0.8; dDemoTgt.z = 1.35; });
                 add(4.2, null, null, () => dGHit(0.8, 1.35));
                 add(5.6, '❌ 球未落地就在廚房內揮拍 = KITCHEN FAULT 犯規', '錯誤示範', () => { dMove(0.8, 1.5); dPaddle(0.29, 1.0); dBad(); });
-                add(7.4, '✅ 正確做法: 耐心等球落地彈起後再輕推 (Dink)', '正確做法', () => { triggerFingerDemoSwipe(0); dPaddle(0.25, 0.48); dDemoTgt.x = -0.9; dDemoTgt.z = -1.7; });
+                add(7.4, '✅ 正確做法: 耐心等球落地彈起後再輕推 (Dink)', '正確做法', () => { dPaddle(0.25, 0.48); dDemoTgt.x = -0.9; dDemoTgt.z = -1.7; });
                 add(9.2, '落地後輕推小球安全過網，成功通關！', 'STEP 3 廚房輕推', () => { dHit(-0.9, -1.7); });
                 add(11.4, '廚房區落地後方可入內擊球', '通關重點');
             } else if (st === 4) {
@@ -713,7 +713,8 @@ function solveArc(fx, fy, fz, tx, tz, out, speedScale) {
             const wm = document.getElementById('demo-watermark'); if (wm) wm.style.display = 'none';
             warnKitchen.material.opacity = 0; resetServe();
             document.body.classList.remove('demo-mode-active');
-            dismissFingerTutorial();
+            dismissFingerTutorial(true);
+            toast('🎾 輪到你了！', '向上滑動推球發球');
         }
         function skipDemo() { if (demoOn) { clearTimers(); endDemo(); } }
         function replayDemo() { closePanel(); startDemo(stage); }
@@ -2658,7 +2659,6 @@ function handleStageResize() {
         buildAvatarGrids();
         loadAuditCache();
         updatePlayerWhoLabel();
-        setTimeout(() => startSpotlightTour(false), 800);
         initFingerTutorial();
         initLayoutMode();
         initCardResize();
