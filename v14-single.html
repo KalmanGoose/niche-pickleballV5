@@ -25,19 +25,29 @@
    NCHU Pickleball V5 - 基礎與通用樣式 (Base & Global Styles)
    ═══════════════════════════════════════════════════════════════════ */
         :root {
-            --bg: #0f172a;
-            --panel: rgba(15, 23, 42, .88);
-            --panel-solid: #1e293b;
+            --bg: #0d1f19;
+            --panel: rgba(15, 32, 25, .88);
+            --panel-solid: #162a22;
             --line: rgba(255, 255, 255, .12);
-            --line-hi: rgba(255, 255, 255, .24);
+            --line-hi: rgba(246, 196, 69, .25);
             --txt: #f8fafc;
-            --dim: #94a3b8;
-            --accent: #38bdf8;
+            --dim: #a7b9b0;
+            --accent: #40916c;
             --ok: #34d399;
             --bad: #f87171;
-            --cool: #818cf8;
+            --cool: #52b788;
             --r: 16px;
-            /* --- V5 Design Tokens --- */
+            /* --- NCHU & Animal Crossing Design Tokens --- */
+            --nchu-forest: #1b4332;
+            --nchu-grass: #2e8352;
+            --nchu-leaf: #40916c;
+            --nchu-clay: #c86446;
+            --nchu-clay-dark: #9c4127;
+            --nchu-wood: #2b1d14;
+            --nchu-gold: #f6c445;
+            --nchu-gold-sun: #eab308;
+            --nchu-ivory: #fcfbf7;
+            --nchu-paper: #f4efe6;
             --lime: #d3f36c;
             --lime-dark: #bad455;
             --font-display: 'Barlow Condensed', 'Arial Narrow', Impact, sans-serif;
@@ -3834,14 +3844,14 @@
         .polaroid-header-title {
             font-size: 17px;
             font-weight: 900;
-            color: #334155;
+            color: #1b4332;
             letter-spacing: 0.5px;
         }
 
         .polaroid-date {
             font-size: 11px;
             font-weight: 700;
-            color: #94a3b8;
+            color: #718096;
             letter-spacing: 1px;
             margin-top: 2px;
         }
@@ -3850,8 +3860,8 @@
             margin: 10px 0;
             border-radius: 12px;
             overflow: hidden;
-            background: #0f172a;
-            border: 4px solid #f1ece4;
+            background: #142823;
+            border: 4px solid #eae4d8;
             box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.15);
             display: flex;
             justify-content: center;
@@ -3874,7 +3884,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            background: #faf6ee;
+            background: #f4efe6;
             border-radius: 10px;
             margin-bottom: 12px;
         }
@@ -3883,14 +3893,14 @@
             position: absolute;
             right: 8px;
             bottom: 4px;
-            border: 2.5px dashed #ef4444;
-            color: #ef4444;
+            border: 2.5px dashed #c86446;
+            color: #c86446;
             font-size: 13px;
             font-weight: 900;
             padding: 2px 8px;
             border-radius: 6px;
             transform: rotate(-10deg);
-            opacity: 0.88;
+            opacity: 0.92;
             pointer-events: none;
             letter-spacing: 0.5px;
         }
@@ -3898,7 +3908,7 @@
         #polaroid-msg {
             margin: 0;
             font-size: 13px;
-            color: #475569;
+            color: #2b3a33;
             font-weight: 700;
             line-height: 1.45;
             padding-right: 60px;
@@ -3913,14 +3923,14 @@
         .ac-btn-primary {
             flex: 1.3;
             padding: 10px 16px;
-            background: linear-gradient(135deg, #10b981, #059669);
-            color: #ffffff;
+            background: linear-gradient(135deg, #2d6a4f, #1b4332);
+            color: #fcfbf7;
             border: none;
             border-radius: 12px;
             font-size: 14px;
             font-weight: 800;
             cursor: pointer;
-            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.35);
+            box-shadow: 0 4px 12px rgba(27, 67, 50, 0.35);
             transition: transform 0.1s, box-shadow 0.1s;
         }
 
@@ -3931,8 +3941,8 @@
         .ac-btn-sub {
             flex: 0.9;
             padding: 10px 14px;
-            background: #e2e8f0;
-            color: #475569;
+            background: #eae4d8;
+            color: #4a5568;
             border: none;
             border-radius: 12px;
             font-size: 13px;
@@ -3942,7 +3952,7 @@
         }
 
         .ac-btn-sub:hover {
-            background: #cbd5e1;
+            background: #ded6c7;
         }
 
         /* 拍立得卡片個人化玩家欄 (Polaroid Player Info Bar) */
@@ -3950,11 +3960,12 @@
             display: flex;
             align-items: center;
             gap: 10px;
-            background: #f1ece4;
+            background: #f4efe6;
             border-radius: 12px;
             padding: 8px 12px;
             margin: 6px 0 10px 0;
             text-align: left;
+            border: 1px solid rgba(0, 0, 0, 0.05);
         }
         .polaroid-avatar-badge {
             font-size: 26px;
@@ -3966,7 +3977,7 @@
             align-items: center;
             justify-content: center;
             box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-            border: 2px solid #10b981;
+            border: 2px solid #2d6a4f;
             flex-shrink: 0;
         }
         .polaroid-player-details {
@@ -3976,7 +3987,7 @@
         .polaroid-player-name {
             font-size: 14px;
             font-weight: 800;
-            color: #0f172a;
+            color: #1b4332;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
@@ -3990,11 +4001,11 @@
             font-family: "Barlow Condensed", system-ui, sans-serif;
             font-size: 19px;
             font-weight: 800;
-            background: #0f172a;
-            color: #facc15;
+            background: #1b4332;
+            color: #f6c445;
             padding: 3px 10px;
             border-radius: 8px;
-            border: 1px solid #eab308;
+            border: 1px solid #f6c445;
             letter-spacing: 0.5px;
             white-space: nowrap;
         }
@@ -4005,7 +4016,7 @@
         #mode-hub-overlay {
             position: fixed;
             inset: 0;
-            background: radial-gradient(circle at 50% 30%, #1e293b 0%, #0a0f1d 100%);
+            background: radial-gradient(circle at 50% 30%, #162a22 0%, #0a1410 100%);
             z-index: 9998;
             display: flex;
             flex-direction: column;
@@ -4027,7 +4038,7 @@
             justify-content: space-between;
             gap: 12px;
             padding-bottom: 12px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+            border-bottom: 1px solid rgba(246, 196, 69, 0.18);
         }
         .mode-hub-profile {
             display: flex;
@@ -4036,7 +4047,7 @@
             background: rgba(255, 255, 255, 0.08);
             padding: 6px 14px;
             border-radius: 99px;
-            border: 1px solid rgba(255, 255, 255, 0.15);
+            border: 1px solid rgba(246, 196, 69, 0.25);
             cursor: pointer;
             transition: all 0.2s ease;
         }
@@ -4052,7 +4063,7 @@
             font-size: 24px;
             font-weight: 800;
             letter-spacing: 1px;
-            background: linear-gradient(135deg, #38bdf8, #818cf8, #f472b6);
+            background: linear-gradient(135deg, #fef08a, #f6c445, #d97706);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             margin: 0;
@@ -4060,7 +4071,7 @@
         }
         .mode-hub-subtitle {
             font-size: 11px;
-            color: rgba(255, 255, 255, 0.65);
+            color: rgba(248, 250, 252, 0.75);
             margin-top: 2px;
             letter-spacing: 0.5px;
         }
@@ -4091,8 +4102,8 @@
             margin: 16px 0;
         }
         .mode-card {
-            background: rgba(30, 41, 59, 0.7);
-            border: 1.5px solid rgba(255, 255, 255, 0.12);
+            background: rgba(22, 42, 34, 0.82);
+            border: 1.5px solid rgba(246, 196, 69, 0.22);
             border-radius: 20px;
             padding: 20px;
             display: flex;
@@ -4100,14 +4111,14 @@
             justify-content: space-between;
             position: relative;
             overflow: hidden;
-            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.45);
             transition: all 0.28s cubic-bezier(0.16, 1, 0.3, 1);
             backdrop-filter: blur(12px);
         }
         .mode-card:hover {
             transform: translateY(-5px);
-            border-color: rgba(56, 189, 248, 0.6);
-            box-shadow: 0 20px 40px rgba(14, 165, 233, 0.25);
+            border-color: rgba(246, 196, 69, 0.6);
+            box-shadow: 0 20px 40px rgba(45, 106, 79, 0.35);
         }
         .mode-card-badge {
             align-self: flex-start;
@@ -4118,10 +4129,10 @@
             margin-bottom: 12px;
             letter-spacing: 0.5px;
         }
-        .badge-quest { background: rgba(56, 189, 248, 0.18); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.4); }
-        .badge-chaos { background: rgba(245, 158, 11, 0.18); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4); }
-        .badge-science { background: rgba(168, 85, 247, 0.18); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.4); }
-        .badge-social { background: rgba(16, 185, 129, 0.18); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4); }
+        .badge-quest { background: rgba(46, 131, 82, 0.25); color: #86efac; border: 1px solid rgba(46, 131, 82, 0.5); }
+        .badge-chaos { background: rgba(200, 100, 70, 0.25); color: #fdba74; border: 1px solid rgba(200, 100, 70, 0.5); }
+        .badge-science { background: rgba(30, 64, 175, 0.25); color: #93c5fd; border: 1px solid rgba(30, 64, 175, 0.5); }
+        .badge-social { background: rgba(217, 119, 6, 0.25); color: #fde047; border: 1px solid rgba(217, 119, 6, 0.5); }
 
         .mode-card-icon {
             font-size: 42px;
@@ -4138,7 +4149,7 @@
         }
         .mode-card-desc {
             font-size: 12.5px;
-            color: #94a3b8;
+            color: #cbd5e1;
             line-height: 1.5;
             margin-bottom: 16px;
             flex: 1;
@@ -4157,10 +4168,10 @@
             gap: 6px;
             transition: all 0.2s ease;
         }
-        .btn-quest { background: linear-gradient(135deg, #0284c7, #0369a1); color: #ffffff; box-shadow: 0 4px 14px rgba(2, 132, 199, 0.4); }
-        .btn-chaos { background: linear-gradient(135deg, #d97706, #b45309); color: #ffffff; box-shadow: 0 4px 14px rgba(217, 119, 6, 0.4); }
-        .btn-science { background: linear-gradient(135deg, #7c3aed, #6d28d9); color: #ffffff; box-shadow: 0 4px 14px rgba(124, 58, 237, 0.4); }
-        .btn-social { background: linear-gradient(135deg, #059669, #047857); color: #ffffff; box-shadow: 0 4px 14px rgba(5, 150, 105, 0.4); }
+        .btn-quest { background: linear-gradient(135deg, #2d6a4f, #1b4332); color: #fcfbf7; box-shadow: 0 4px 14px rgba(27, 67, 50, 0.4); border: 1px solid rgba(134, 239, 172, 0.3); }
+        .btn-chaos { background: linear-gradient(135deg, #c86446, #9c4127); color: #fcfbf7; box-shadow: 0 4px 14px rgba(156, 65, 39, 0.4); border: 1px solid rgba(253, 186, 116, 0.3); }
+        .btn-science { background: linear-gradient(135deg, #1e3a5f, #0f2438); color: #fcfbf7; box-shadow: 0 4px 14px rgba(15, 36, 56, 0.4); border: 1px solid rgba(147, 197, 253, 0.3); }
+        .btn-social { background: linear-gradient(135deg, #d97706, #92400e); color: #fcfbf7; box-shadow: 0 4px 14px rgba(146, 64, 14, 0.4); border: 1px solid rgba(254, 240, 138, 0.3); }
         .mode-card-btn:hover { transform: scale(1.02); filter: brightness(1.1); }
 
         .mode-level-pills {
@@ -4181,16 +4192,16 @@
             transition: all 0.15s;
         }
         .mode-level-pill:hover, .mode-level-pill.on {
-            background: #0284c7;
+            background: #2d6a4f;
             color: #ffffff;
-            border-color: #38bdf8;
+            border-color: #86efac;
         }
         .mode-hub-footer {
             font-size: 11px;
-            color: rgba(255, 255, 255, 0.45);
+            color: rgba(255, 255, 255, 0.55);
             text-align: center;
             padding-top: 8px;
-            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            border-top: 1px solid rgba(246, 196, 69, 0.15);
             width: 100%;
             max-width: 1080px;
         }
@@ -5203,6 +5214,11 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
                         <span class="snn-lbl">狀態</span>
                         <span class="snn-status rest" id="snn-circuit-state">LIF 靜息</span>
                     </div>
+                </div>
+                <div class="snn-preset-bar" onclick="cycleFlyBrainPreset()" title="點擊切換 6 大果蠅神經性格預設" style="margin-top:6px;padding:4px 8px;background:rgba(20,40,32,0.65);border:1px solid rgba(246,196,69,0.25);border-radius:8px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;font-size:11px;">
+                    <span style="color:#f6c445;font-weight:800;">🧠 神經型態:</span>
+                    <span id="snn-preset-name" style="color:#ffffff;font-weight:700;">⚡ 敏捷截擊獵手</span>
+                    <span style="font-size:9.5px;color:#a7b9b0;">[切換 ⤾]</span>
                 </div>
             </div>
         </div>
@@ -7214,7 +7230,78 @@ function syncPhysicsModeUI() {
         /* ═══════ 體感演算法 ═══════ */
         let webcamActive = false, poseInstance = null, cameraUtils = null;
         let lastWristPos = { t: performance.now() };
-        let lastWristAngle = 180, lastShoulderAngle = 0, serveCooldown = 0;
+        /* ═══════════════════════════════════════════════════════════
+           🛡️ 1€ Filter (One-Euro Filter) 自適應人體運動學防抖濾波器
+           Casiez et al., CHI 2012. 兼具靜止零抖動與高速揮拍 <10ms 極低延遲
+           ═══════════════════════════════════════════════════════════ */
+        class OneEuroFilter {
+            constructor(freq = 30, mincutoff = 1.0, beta = 2.5, dcutoff = 10.0) {
+                this.freq = freq;
+                this.mincutoff = mincutoff;
+                this.beta = beta;
+                this.dcutoff = dcutoff;
+                this.xPrev = null;
+                this.dxPrev = 0;
+                this.tPrev = null;
+            }
+            alpha(cutoff, dt) {
+                const tau = 1.0 / (2 * Math.PI * cutoff);
+                return 1.0 / (1.0 + tau / dt);
+            }
+            filter(x, t) {
+                if (typeof x !== 'number' || isNaN(x)) return x;
+                if (this.tPrev === null) {
+                    this.tPrev = t;
+                    this.xPrev = x;
+                    this.dxPrev = 0;
+                    return x;
+                }
+                let dt = (t - this.tPrev) / 1000.0;
+                if (dt <= 1e-4) dt = 1.0 / Math.max(1, this.freq);
+                this.tPrev = t;
+
+                const dx = (x - this.xPrev) / dt;
+                const aD = this.alpha(this.dcutoff, dt);
+                const dxHat = aD * dx + (1.0 - aD) * this.dxPrev;
+                this.dxPrev = dxHat;
+
+                const cutoff = this.mincutoff + this.beta * Math.abs(dxHat);
+                const a = this.alpha(cutoff, dt);
+                const xHat = a * x + (1.0 - a) * this.xPrev;
+                this.xPrev = xHat;
+                return xHat;
+            }
+            reset() {
+                this.xPrev = null;
+                this.dxPrev = 0;
+                this.tPrev = null;
+            }
+        }
+
+        const OEF_LANDMARKS = {};
+        function filterLandmarks(lm, t) {
+            if (!lm) return lm;
+            const now = (typeof t === 'number') ? t : (typeof performance !== 'undefined' ? performance.now() : Date.now());
+            // 對關鍵關節點 (肩膀 11, 12; 手肘 13, 14; 手腕 15, 16; 髖部 23, 24) 進行自適應防抖
+            const targets = [11, 12, 13, 14, 15, 16, 23, 24];
+            for (let i = 0; i < targets.length; i++) {
+                const idx = targets[i];
+                const pt = lm[idx];
+                if (!pt) continue;
+                if (!OEF_LANDMARKS[idx]) {
+                    OEF_LANDMARKS[idx] = {
+                        x: new OneEuroFilter(30, 1.0, 2.5, 10.0),
+                        y: new OneEuroFilter(30, 1.0, 2.5, 10.0),
+                        z: new OneEuroFilter(30, 1.0, 2.5, 10.0)
+                    };
+                }
+                pt.x = OEF_LANDMARKS[idx].x.filter(pt.x, now);
+                pt.y = OEF_LANDMARKS[idx].y.filter(pt.y, now);
+                if (typeof pt.z === 'number') pt.z = OEF_LANDMARKS[idx].z.filter(pt.z, now);
+            }
+            return lm;
+        }
+
         function calculateAngle(a, b, c) {
             if (!a || !b || !c) return 0;
             const ab = { x: a.x - b.x, y: a.y - b.y, z: (a.z || 0) - (b.z || 0) };
@@ -7655,9 +7742,17 @@ function syncPhysicsModeUI() {
             if (Math.abs(SWIPE.vx) > Math.abs(SWIPE.peakVx)) SWIPE.peakVx = SWIPE.vx;
             if (SWIPE.vy > SWIPE.peakVy) SWIPE.peakVy = SWIPE.vy;
 
-            // 軌跡歷史儲存 (保留最近 24 個採樣點，約 300ms)
+            // 軌跡歷史儲存 (保留最近 32 個採樣點，約 320ms)
+            // ★ 若滑動速度極快兩點距離 > 30px，自動內插中點以保證 Sagitta 與 Green's 面積連續性
+            const stepDist = Math.hypot(dx, dy);
+            if (stepDist > 30 && SWIPE.history.length > 0) {
+                const midX = (SWIPE.prevX + x) * 0.5;
+                const midY = (SWIPE.prevY + y) * 0.5;
+                const midT = (SWIPE.lastTime + now) * 0.5;
+                SWIPE.history.push({ x: midX, y: midY, t: midT });
+            }
             SWIPE.history.push({ x, y, t: now });
-            while (SWIPE.history.length > 24 || (SWIPE.history.length > 3 && now - SWIPE.history[0].t > 320)) {
+            while (SWIPE.history.length > 32 || (SWIPE.history.length > 3 && now - SWIPE.history[0].t > 320)) {
                 SWIPE.history.shift();
             }
 
@@ -7680,22 +7775,24 @@ function syncPhysicsModeUI() {
             }
             SWIPE.sagitta = maxSagitta;
 
-            // ★ 幾何分析 2: 有向多邊形面積 (Green's Theorem for Circular Spin)
-            // 捕捉寶可夢畫圓蓄力自旋 (順時針正，逆時針負)
+            // ★ 幾何分析 2: 弦線外側圍合面積 (Signed Enclosed Excursion Area relative to chord)
             let area = 0;
-            if (SWIPE.history.length >= 6) {
+            if (chordLen > 15 && SWIPE.history.length >= 4) {
                 for (let i = 1; i < SWIPE.history.length; i++) {
-                    const pA = SWIPE.history[i - 1];
-                    const pB = SWIPE.history[i];
-                    area += (pA.x - x0) * (pB.y - y0) - (pB.x - x0) * (pA.y - y0);
+                    const pt = SWIPE.history[i];
+                    const distPerp = (dxc * (pt.y - y0) - dyc * (pt.x - x0)) / chordLen;
+                    const stepSeg = Math.hypot(pt.x - SWIPE.history[i - 1].x, pt.y - SWIPE.history[i - 1].y);
+                    area += distPerp * stepSeg;
                 }
             }
-            SWIPE.spinArea = area * 0.5;
+            SWIPE.spinArea = area;
 
-            // ★ 側旋量即時估算 (敏銳響應左右劃弧、側刷、畫圈)
-            const brushRatio = SWIPE.vx / Math.max(120, Math.abs(SWIPE.vy) + 80);
+            // ★ 側旋量即時估算 (以拱高 Sagitta + 弧線面積 spinArea + 側向位移綜合判定)
+            const areaNorm = THREE.MathUtils.clamp(SWIPE.spinArea / 2500, -1, 1);
+            const sagittaNorm = THREE.MathUtils.clamp(SWIPE.sagitta / 35, -1, 1);
+            const distNorm = THREE.MathUtils.clamp(SWIPE.distX / 150, -1, 1);
             SWIPE.spin = THREE.MathUtils.clamp(
-                (SWIPE.vx / 550) * 0.45 + (SWIPE.sagitta / 45) * 0.40 + brushRatio * 0.25,
+                sagittaNorm * 0.55 + areaNorm * 0.30 + distNorm * 0.15,
                 -1.2, 1.2
             );
 
@@ -7964,6 +8061,7 @@ function syncPhysicsModeUI() {
         }
         function dismissFingerTutorial(silent) {
             fingerTutActive = false;
+            if (typeof document === 'undefined') return;
             const overlay = document.getElementById('finger-tutorial');
             if (overlay) overlay.classList.add('hidden');
             if (fingerAnimTimer) { cancelAnimationFrame(fingerAnimTimer); fingerAnimTimer = null; }
@@ -7971,9 +8069,11 @@ function syncPhysicsModeUI() {
                 skipDemo();
                 return;
             }
-            if (!demoOn) document.body.classList.remove('demo-mode-active');
-            if (!silent && !demoOn) {
-                toast('🎾 開始揮拍！', '向前滑動推球 · 左右刷拍側旋');
+            if (typeof demoOn !== 'undefined' && !demoOn && typeof document !== 'undefined' && document.body) {
+                document.body.classList.remove('demo-mode-active');
+            }
+            if (!silent && (typeof demoOn === 'undefined' || !demoOn)) {
+                if (typeof toast === 'function') toast('🎾 開始揮拍！', '向前滑動推球 · 左右刷拍側旋');
             }
         }
 
@@ -8035,6 +8135,59 @@ function syncPhysicsModeUI() {
         /* ═══════════════════════════════════════════════
            📊 體感與動力鏈審計日誌模組 (Kinematic Audit Log)
            ═══════════════════════════════════════════════ */
+        window.OneEuroFilter = OneEuroFilter;
+        window.filterLandmarks = filterLandmarks;
+        window.calculateAngle = calculateAngle;
+        window.updateShoulderWidth = updateShoulderWidth;
+        window.updateBodyScale = updateBodyScale;
+        window.updateKinematics = updateKinematics;
+        window.accumulateSwing = accumulateSwing;
+        window.resetSwing = resetSwing;
+        window.gradeChain = gradeChain;
+        window.kcPush = kcPush;
+        window.kcReset = kcReset;
+        window.kcPeak = kcPeak;
+        window.hitPower = hitPower;
+        window.updateServeFSM = updateServeFSM;
+        window.SFSM = SFSM;
+        window.KIN = KIN;
+        window.SWING = SWING;
+        window.SWIPE = SWIPE;
+        window.swipeStart = swipeStart;
+        window.swipeMove = swipeMove;
+        window.swipeEnd = swipeEnd;
+        window.updateStance = updateStance;
+        window.NORM = NORM;
+        window.BODY = BODY;
+
+        if (typeof module !== 'undefined' && module.exports) {
+            module.exports = {
+                OneEuroFilter,
+                filterLandmarks,
+                calculateAngle,
+                updateShoulderWidth,
+                updateBodyScale,
+                updateKinematics,
+                accumulateSwing,
+                resetSwing,
+                gradeChain,
+                kcPush,
+                kcReset,
+                kcPeak,
+                hitPower,
+                updateServeFSM,
+                SFSM,
+                KIN,
+                SWING,
+                SWIPE,
+                swipeStart,
+                swipeMove,
+                swipeEnd,
+                updateStance,
+                NORM,
+                BODY
+            };
+        }
 
 /* ─── ui.js ─── */
 /* ═══════════════════════════════════════════════════════════════════
@@ -9890,7 +10043,8 @@ function cycleTeachLevelQuick() {
                     cx.restore();
                     if (!res.poseLandmarks) return;
 
-                    const lm = res.poseLandmarks;
+                    const rawLm = res.poseLandmarks;
+                    const lm = (typeof filterLandmarks === 'function') ? filterLandmarks(rawLm, performance.now()) : rawLm;
                     const rS = lm[12], rE = lm[14], rW = lm[16], rH = lm[24];
                     const lS = lm[11], lW = lm[15];
                     drawSkeleton(cx, lm, skelCanvas.width, skelCanvas.height);
@@ -10038,9 +10192,72 @@ function cycleTeachLevelQuick() {
      *   -> GF (巨大纖維神經元, LIF-A 生物物理膜電位模型)
      *   -> TTMn (中足伸肌運動神經元, 瞬移逃逸起跳) + DLMn (背縱飛行肌, 125Hz 超頻振翅)
      *   -> DNa01 / DNa02 (下行轉向神經元, 精準對角線壓線截擊)
-     * 
-     * 包含 Tsodyks-Markram 短時突觸抑制 (Short-Term Synaptic Depression, STD)
-     * 以及即時多通道電生理示波器 (CRT Oscilloscope) 繪圖引擎
+     */
+
+    // ═══════════════════════════════════════════════════════════
+    // 🧠 普林斯頓 FlyWire 果蠅神經大腦多樣性配置組合矩陣 (Connectome Presets)
+    // ═══════════════════════════════════════════════════════════
+    const CONNECTOME_PRESETS = {
+        AGILE_HUNTER: {
+            id: 'AGILE_HUNTER',
+            name: '⚡ 敏捷截擊獵手 (Agile Interceptor)',
+            desc: '神經傳導超快，極低膜時間常數 (tauM = 7ms)，高頻起跳撲球',
+            badge: '敏捷型',
+            tauM: 0.007, Rm: 12.0, vThresh: -42.0, tauAdapt: 0.05, adaptB: 0.8,
+            wLC4: 4.8, wLPLC2: 5.2, dlmnBaseFreq: 85.0, dlmnMaxFreq: 140.0,
+            tauRec: 2.2, U: 0.35, noiseAmp: 0.2, steerGain: 1.15
+        },
+        CHAOTIC_JITTER: {
+            id: 'CHAOTIC_JITTER',
+            name: '🎲 神經混沌假動作 (Chaotic Feint)',
+            desc: '膜電位注入生物布朗運動神經雜訊，突發變向與假動作切球',
+            badge: '混沌型',
+            tauM: 0.012, Rm: 10.0, vThresh: -44.0, tauAdapt: 0.08, adaptB: 1.2,
+            wLC4: 3.5, wLPLC2: 4.2, dlmnBaseFreq: 75.0, dlmnMaxFreq: 125.0,
+            tauRec: 2.8, U: 0.38, noiseAmp: 2.5, steerGain: 1.0, jitterSteer: true
+        },
+        AERIAL_GLIDE: {
+            id: 'AERIAL_GLIDE',
+            name: '🦅 高空滑翔重砲 (Aerial Glide Bomber)',
+            desc: '強化雙翼垂直升力 (135Hz)，激進網前凌空下壓扣殺',
+            badge: '制空型',
+            tauM: 0.010, Rm: 11.0, vThresh: -45.0, tauAdapt: 0.07, adaptB: 1.0,
+            wLC4: 4.2, wLPLC2: 4.8, dlmnBaseFreq: 90.0, dlmnMaxFreq: 135.0,
+            tauRec: 2.5, U: 0.36, noiseAmp: 0.3, verticalBias: 0.35, steerGain: 0.95
+        },
+        ANCHOR_TACTICIAN: {
+            id: 'ANCHOR_TACTICIAN',
+            name: '🛡️ 磐石戰術家 (Anchor Tactician)',
+            desc: '抗疲勞性極佳 (U=0.18)，落點預測精準，主攻後場深角穩健吊球',
+            badge: '磐石型',
+            tauM: 0.016, Rm: 9.0, vThresh: -46.0, tauAdapt: 0.10, adaptB: 1.5,
+            wLC4: 2.8, wLPLC2: 3.6, dlmnBaseFreq: 65.0, dlmnMaxFreq: 110.0,
+            tauRec: 4.2, U: 0.18, noiseAmp: 0.05, steerGain: 0.8
+        },
+        STDP_ADAPTIVE: {
+            id: 'STDP_ADAPTIVE',
+            name: '🧬 突觸學習自適應 (STDP Adaptive)',
+            desc: '具備脈衝時序依賴突觸可塑性 (STDP)，動態學習玩家球速習慣',
+            badge: '自適應型',
+            tauM: 0.012, Rm: 10.0, vThresh: -45.0, tauAdapt: 0.08, adaptB: 1.2,
+            wLC4: 3.2, wLPLC2: 4.1, dlmnBaseFreq: 70.0, dlmnMaxFreq: 125.0,
+            tauRec: 2.8, U: 0.38, noiseAmp: 0.15, stdpEnabled: true, stdpRate: 0.05, steerGain: 1.0
+        },
+        NCHU_GOOSE_BIO: {
+            id: 'NCHU_GOOSE_BIO',
+            name: '🪿 中興神鵝仿生體 (NCHU Goose Biomimic)',
+            desc: '禽鳥與果蠅混合迴路，神鵝叫聲共振爆發，神經急速擺尾反擊',
+            badge: '神鵝型',
+            tauM: 0.014, Rm: 10.5, vThresh: -43.5, tauAdapt: 0.06, adaptB: 0.9,
+            wLC4: 3.8, wLPLC2: 4.6, dlmnBaseFreq: 72.0, dlmnMaxFreq: 130.0,
+            tauRec: 3.0, U: 0.32, noiseAmp: 0.4, gooseHonkResonance: true, steerGain: 1.1
+        }
+    };
+
+    /**
+     * DrosophilaConnectome
+     * 實作果蠅巨大纖維視覺逃逸神經迴路 (Giant Fiber Escape System - GFES)
+     * 基於普林斯頓大學 FlyWire 聯盟神經元連接組拓撲 (Dorkenwald et al., Nature 2024)
      */
     class DrosophilaConnectome {
         constructor() {
@@ -10049,7 +10266,7 @@ function cycleTeachLevelQuick() {
             this.vReset = -70.0;      // 去極化後重置電位 (mV)
             this.vThresh = -45.0;     // 動作電位放電閥值 (mV)
             this.vPeak = +25.0;       // 動作電位尖峰 (mV)
-            this.tauM = 0.012;        // 膜時間常數 12 ms (0.012 s)
+            this.tauM = 0.012;        // 膜時間常數 (s)
             this.Rm = 10.0;           // 膜電阻 10 MΩ
             this.tauRef = 0.0035;     // 絕對不反應期 3.5 ms (0.0035 s)
             this.refTimer = 0.0;      // 不反應期計時器 (s)
@@ -10073,14 +10290,25 @@ function cycleTeachLevelQuick() {
             this.vApproach = 0.0;     // 球體逼近相對速度 (m/s)
             this.lc4 = 0.0;           // LC4 柱狀神經元活化值 (擴張角速度敏感)
             this.lplc2 = 0.0;         // LPLC2 小葉板神經元活化值 (碰撞光流敏感)
+            this.wLC4 = 3.20;         // LC4 突觸權重
+            this.wLPLC2 = 4.10;       // LPLC2 突觸權重
             this.iSyn = 0.0;          // 輸入至 GF 之突觸電流 (pA / a.u.)
 
             // ─── 5. 下行運動神經元輸出 (Motor Outputs) ───
             this.gfSpike = false;     // 本幀是否發放 GF 動作電位
             this.spikeCount = 0;      // 累積放電次數
             this.ttmnActive = false;  // TTMn 起跳跳躍致動
-            this.dlmnFreq = 70.0;     // DLMn 飛行肌頻率 (Hz)
+            this.dlmnBaseFreq = 70.0; // 飛行肌基礎頻率 (Hz)
+            this.dlmnMaxFreq = 125.0; // 飛行肌爆發振翅頻率 (Hz)
+            this.dlmnFreq = 70.0;     // DLMn 飛行肌當前頻率 (Hz)
             this.dnaSteer = 0.0;      // DNa01/02 下行轉向控制量 [-1.0, 1.0]
+            this.steerGain = 1.0;     // 轉向敏感度
+            this.jitterSteer = false; // 是否開啟隨機假動作擾動
+            this.verticalBias = 0.0;  // 垂直進攻偏好
+            this.stdpEnabled = false; // 是否開啟突觸可塑性在線學習
+            this.stdpRate = 0.05;     // 學習速率
+            this.noiseAmp = 0.0;      // 膜電位噪聲強度
+            this.gooseHonkResonance = false;
 
             // ─── 6. 示波器歷史波形緩衝區 (Oscilloscope History Buffer) ───
             this.historyLength = 220; // 與 Canvas 寬度 220px 匹配
@@ -10095,12 +10323,57 @@ function cycleTeachLevelQuick() {
                 this.historyLoom[i] = 0;
             }
 
+            // 載入預設
+            let savedPreset = 'AGILE_HUNTER';
+            try { savedPreset = localStorage.getItem('nchu_fly_brain_preset') || 'AGILE_HUNTER'; } catch(e) {}
+            this.applyPreset(savedPreset);
+
             // 狀態文字快取
             this._domVm = null;
             this._domDtheta = null;
             this._domVesicle = null;
             this._domState = null;
+            this._domPreset = null;
             this.hudVisible = true;
+        }
+
+        /**
+         * 套用果蠅神經性格預設
+         * @param {string} presetKey 
+         */
+        applyPreset(presetKey) {
+            const p = CONNECTOME_PRESETS[presetKey] || CONNECTOME_PRESETS.AGILE_HUNTER;
+            this.currentPresetKey = p.id;
+            this.currentPresetName = p.name;
+            this.tauM = p.tauM;
+            this.Rm = p.Rm;
+            this.vThresh = p.vThresh;
+            this.tauAdapt = p.tauAdapt;
+            this.adaptB = p.adaptB;
+            this.wLC4 = p.wLC4;
+            this.wLPLC2 = p.wLPLC2;
+            this.dlmnBaseFreq = p.dlmnBaseFreq || 70.0;
+            this.dlmnMaxFreq = p.dlmnMaxFreq || 125.0;
+            this.tauRec = p.tauRec;
+            this.U = p.U;
+            this.noiseAmp = p.noiseAmp || 0.0;
+            this.steerGain = p.steerGain || 1.0;
+            this.jitterSteer = !!p.jitterSteer;
+            this.verticalBias = p.verticalBias || 0.0;
+            this.stdpEnabled = !!p.stdpEnabled;
+            this.stdpRate = p.stdpRate || 0.05;
+            this.gooseHonkResonance = !!p.gooseHonkResonance;
+            this.reset();
+            try { localStorage.setItem('nchu_fly_brain_preset', p.id); } catch(e) {}
+            return p;
+        }
+
+        getPresetList() {
+            return Object.values(CONNECTOME_PRESETS);
+        }
+
+        getCurrentPreset() {
+            return CONNECTOME_PRESETS[this.currentPresetKey] || CONNECTOME_PRESETS.AGILE_HUNTER;
         }
 
         /**
@@ -10116,7 +10389,7 @@ function cycleTeachLevelQuick() {
             this.dThetaDt = 0.0;
             this.iSyn = 0.0;
             this.ttmnActive = false;
-            this.dlmnFreq = 70.0;
+            this.dlmnFreq = this.dlmnBaseFreq;
             this.dnaSteer = 0.0;
             for (let i = 0; i < this.historyLength; i++) {
                 this.historyVm[i] = this.vRest;
@@ -10127,7 +10400,7 @@ function cycleTeachLevelQuick() {
 
         /**
          * 執行單步數值生物物理模擬 (60FPS 或動態 dt)
-         * 包含子步長 Euler 積分器 (sub-step <= 0.5ms)
+         * 包含子步長 Euler 積分器 (sub-step <= 0.5ms) 與子步長囊泡動力學
          */
         step(dt, ballPos, ballVel, flyPos, isRallyActive, dinkCount = 0) {
             this.gfSpike = false;
@@ -10162,40 +10435,35 @@ function cycleTeachLevelQuick() {
             this.dThetaDt = dTheta;
 
             // 2. 普林斯頓小葉突觸柱狀神經元激發度 (Lobula Columellar Neurons)
-            // LC4: 對擴張角速度敏銳 (閥值 ~ 0.12 rad/s)
             this.lc4 = Math.max(0.0, dTheta - 0.12);
-            // LPLC2: 對立體角與角膨脹之碰撞光流敏銳 (θ * dθ/dt)
             this.lplc2 = (this.theta * 12.0) * Math.max(0.0, dTheta);
 
-            // 3. Tsodyks-Markram 短時突觸抑制 (STD) 囊泡耗竭動力學
-            // 廚房區小球 (Dink): 球在網前低速滯留，複眼微距刺激持續，突觸囊泡急速釋放消耗
+            // 3. 廚房區小球 (Dink) 微距視覺輸入刺激率
             const inKitchen = (ballPos.z > -2.25 && ballPos.z < 0.0);
             let inputRate = 0.0;
             if (inKitchen) {
-                // 丁克拍數越多，網前微距過載速率呈非線性倍增
                 const dinkMultiplier = 1.0 + Math.min(3.0, dinkCount * 0.75);
                 inputRate = 2.2 * dinkMultiplier * Math.max(0.0, 1.0 - dist / 3.0);
             } else if (vApp < 3.0 && dist < 2.8) {
                 inputRate = 0.6 * Math.max(0.0, 1.0 - dist / 2.8);
             }
 
-            const dxVesicle = ((1.0 - this.xVesicle) / this.tauRec - this.U * this.xVesicle * inputRate) * dt;
-            this.xVesicle = Math.max(0.04, Math.min(1.0, this.xVesicle + dxVesicle));
-            this.isFatigued = (this.xVesicle < 0.26);
-
-            // 4. 巨纖維突觸電流傳導 (Synaptic Current to GF)
-            // 當突觸抑制發生時，I_syn 顯著衰減，巨纖維完全無法放電
-            const wLC4 = 3.20;
-            const wLPLC2 = 4.10;
-            this.iSyn = this.xVesicle * (wLC4 * this.lc4 + wLPLC2 * this.lplc2);
-
-            // 5. LIF-A 膜電位高精度 Euler 數值積分 (子步長 <= 0.5ms)
+            // 4. LIF-A 膜電位高精度 Euler 數值積分 (子步長 <= 0.5ms)
+            // ★ 3.1 Pro 建議：囊泡資源池 xVesicle 移入子步長迴圈，防止掉幀震盪
             const dtSub = 0.0005; // 0.5 ms
             const subSteps = Math.max(1, Math.ceil(dt / dtSub));
             const actualDtSub = dt / subSteps;
             let frameSpiked = false;
 
             for (let s = 0; s < subSteps; s++) {
+                // 子步長 Tsodyks-Markram STD 囊泡微分方程
+                const dxVesicle = ((1.0 - this.xVesicle) / this.tauRec - this.U * this.xVesicle * inputRate) * actualDtSub;
+                this.xVesicle = THREE_CLAMP(this.xVesicle + dxVesicle, 0.04, 1.0);
+                this.isFatigued = (this.xVesicle < 0.26);
+
+                // 巨纖維突觸電流傳導
+                this.iSyn = this.xVesicle * (this.wLC4 * this.lc4 + this.wLPLC2 * this.lplc2);
+
                 // 適應性電流指數衰減
                 this.adapt += (-this.adapt / this.tauAdapt) * actualDtSub;
 
@@ -10203,10 +10471,13 @@ function cycleTeachLevelQuick() {
                     this.refTimer -= actualDtSub;
                     this.Vm = this.vReset;
                 } else {
-                    // LIF-A 微分方程:
-                    // dVm/dt = [ -(Vm - Vrest) + Rm * I_syn - Rm * a ] / tauM
-                    const dVm = (-(this.Vm - this.vRest) + this.Rm * (this.iSyn * 1.85) - this.adapt * 2.0) / this.tauM;
-                    this.Vm += dVm * actualDtSub;
+                    // 神經生物布朗噪聲 (Ornstein-Uhlenbeck / Gaussian Jitter)
+                    const noise = (this.noiseAmp > 0) ? (Math.random() - 0.5) * this.noiseAmp * 5.0 : 0.0;
+
+                    // LIF-A 微分方程 (含 dVm 與 Vm 安全數值鉗制):
+                    let dVm = (-(this.Vm - this.vRest) + this.Rm * (this.iSyn * 1.85) - this.adapt * 2.0 + noise) / this.tauM;
+                    dVm = THREE_CLAMP(dVm, -6000.0, 6000.0);
+                    this.Vm = THREE_CLAMP(this.Vm + dVm * actualDtSub, -95.0, 35.0);
 
                     // 動作電位放電判定 (Spike Threshold Crossing)
                     if (this.Vm >= this.vThresh) {
@@ -10216,24 +10487,34 @@ function cycleTeachLevelQuick() {
                         this.spikeCount++;
                         this.refTimer = this.tauRef; // 進入 3.5ms 不反應期
                         this.adapt += this.adaptB;   // 適應性電流激增
+
+                        // STDP 脈衝依賴在線突觸自適應
+                        if (this.stdpEnabled) {
+                            const dw = (this.vApproach > 5.0 ? 0.08 : -0.02) * this.stdpRate;
+                            this.wLC4 = THREE_CLAMP(this.wLC4 + dw, 2.0, 6.0);
+                            this.wLPLC2 = THREE_CLAMP(this.wLPLC2 + dw * 1.2, 2.5, 7.0);
+                        }
                         break;
                     }
                 }
             }
 
-            // 6. 下行運動效應器驅動 (Downstream Motor Actuation)
+            // 5. 下行運動效應器驅動 (Downstream Motor Actuation)
             if (this.gfSpike) {
                 this.ttmnActive = true;
-                this.dlmnFreq = 125.0; // 飛行肌爆發振翅至 125Hz
-                // DNa01/02 轉向向量：根據球的入射角與玩家位置產生反向補償
-                this.dnaSteer = Math.sign(dx) * 0.85;
+                this.dlmnFreq = this.dlmnMaxFreq; // 飛行肌爆發振翅 (125Hz ~ 140Hz)
+                let steer = Math.sign(dx) * 0.85 * this.steerGain;
+                if (this.jitterSteer) {
+                    steer += (Math.random() - 0.5) * 0.45; // 假動作側滑
+                }
+                this.dnaSteer = THREE_CLAMP(steer, -1.0, 1.0);
             } else if (this.isFatigued) {
                 this.ttmnActive = false;
                 this.dlmnFreq = 14.0;  // 飛行肌失速至 14Hz
                 this.dnaSteer = 0.0;
             } else {
                 this.ttmnActive = false;
-                this.dlmnFreq = 70.0;  // 正常巡航 70Hz
+                this.dlmnFreq = this.dlmnBaseFreq; // 正常巡航 (65Hz ~ 90Hz)
             }
 
             this._recordHistory(this.Vm, frameSpiked ? 1 : 0, this.dThetaDt);
@@ -10403,6 +10684,12 @@ function cycleTeachLevelQuick() {
             if (!this._domDtheta) this._domDtheta = document.getElementById('snn-dtheta');
             if (!this._domVesicle) this._domVesicle = document.getElementById('snn-vesicle');
             if (!this._domState) this._domState = document.getElementById('snn-circuit-state');
+            if (!this._domPreset) this._domPreset = document.getElementById('snn-preset-name');
+
+            if (this._domPreset) {
+                const cur = this.getCurrentPreset();
+                this._domPreset.innerText = cur ? cur.name : '⚡ 敏捷截擊獵手';
+            }
 
             if (this._domVm) {
                 this._domVm.innerText = (this.Vm >= 0 ? '+' : '') + this.Vm.toFixed(1) + ' mV';
@@ -10425,7 +10712,7 @@ function cycleTeachLevelQuick() {
                 if (this.xVesicle < 0.28) {
                     this._domVesicle.style.color = '#eab308';
                 } else {
-                    this._domVesicle.style.color = '#38bdf8';
+                    this._domVesicle.style.color = '#52b788';
                 }
             }
 
@@ -10453,8 +10740,26 @@ function cycleTeachLevelQuick() {
     }
 
     // 掛載至全域
+    window.CONNECTOME_PRESETS = CONNECTOME_PRESETS;
     window.DrosophilaConnectome = DrosophilaConnectome;
     window.FLY_BRAIN = new DrosophilaConnectome();
+
+    // 全域切換大腦性格預設函式
+    window.setFlyBrainPreset = function (key) {
+        if (!window.FLY_BRAIN) return null;
+        const p = window.FLY_BRAIN.applyPreset(key);
+        if (typeof toast === 'function') {
+            toast('🧠 果蠅大腦已切換', `${p.name} · ${p.desc}`);
+        }
+        return p;
+    };
+    window.cycleFlyBrainPreset = function () {
+        if (!window.FLY_BRAIN) return null;
+        const keys = Object.keys(CONNECTOME_PRESETS);
+        const idx = keys.indexOf(window.FLY_BRAIN.currentPresetKey);
+        const nextKey = keys[(idx + 1) % keys.length];
+        return window.setFlyBrainPreset(nextKey);
+    };
 
     // 全域切換 HUD 函式
     window.toggleSnnHud = function (force) {
@@ -10590,16 +10895,18 @@ function cycleTeachLevelQuick() {
     }
 
     // 初始化拖曳
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', () => {
-            initSnnHudDrag();
-            initInfoDrag();
-        });
-    } else {
-        setTimeout(() => {
-            initSnnHudDrag();
-            initInfoDrag();
-        }, 50);
+    if (typeof document !== 'undefined') {
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => {
+                initSnnHudDrag();
+                initInfoDrag();
+            });
+        } else {
+            setTimeout(() => {
+                initSnnHudDrag();
+                initInfoDrag();
+            }, 50);
+        }
     }
 })();
 
@@ -12659,8 +12966,8 @@ function cycleTeachLevelQuick() {
                         sx.lineTo(i + 15, 256); sx.lineTo(i - 30, 256);
                         sx.fill();
                     }
-                    // 金黃 / 霓虹頂底飾條
-                    sx.fillStyle = '#facc15';
+                    // 溫暖日光暖金飾條
+                    sx.fillStyle = '#f6c445';
                     sx.fillRect(0, 0, 1024, 8);
                     sx.fillRect(0, 248, 1024, 8);
                     // 徽章圖示
@@ -12674,7 +12981,7 @@ function cycleTeachLevelQuick() {
                     sx.textAlign = 'left';
                     sx.fillText(title, 150, 108);
                     // 副標題
-                    sx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+                    sx.fillStyle = 'rgba(255, 255, 255, 0.92)';
                     sx.font = '600 28px "Barlow Condensed", system-ui, sans-serif';
                     sx.fillText(subtitle, 152, 172);
 
@@ -12699,16 +13006,16 @@ function cycleTeachLevelQuick() {
                 }
             }
 
-            // 1. 左側邊線看板：NCHU 匹克球學習社群
-            buildCourtSign(4.2, 0.58, 'NCHU PICKLEBALL LEARNING COMMUNITY', '國立中興大學匹克球學習社群 · 運動科技推廣中心', '🎾', '#0f172a', '#1e3a8a', -(COURT_W / 2 + 1.25), -1.8, Math.PI / 2);
-            // 2. 左側後段看板：馬格努斯流體力學實驗室
-            buildCourtSign(4.2, 0.58, 'MAGNUS EFFECT FLUID DYNAMICS LAB', '旋球流體力學 · NASA 空氣動力學專題科普', '🌪️', '#0c4a6e', '#0369a1', -(COURT_W / 2 + 1.25), 1.8, Math.PI / 2);
-            // 3. 右側邊線看板：國立中興大學 中興湖水上球場
-            buildCourtSign(4.2, 0.58, 'NATIONAL CHUNG HSING UNIVERSITY', '中興湖水上特訓球場 · ZHONGXING LAKE ARENA', '🌿', '#064e3b', '#047857', (COURT_W / 2 + 1.25), -1.8, -Math.PI / 2);
-            // 4. 右側後段看板：USA Pickleball 官方手冊認證
-            buildCourtSign(4.2, 0.58, '2026 USA PICKLEBALL OFFICIAL HUB', '國際競賽規則手冊 · 虛擬裁判精準判定', '🏆', '#7f1d1d', '#991b1b', (COURT_W / 2 + 1.25), 1.8, -Math.PI / 2);
-            // 5. 對手底線後方大看板 (正對鏡頭)：中興大學匹克鵝官方錦標賽
-            buildCourtSign(6.2, 0.68, 'NCHU PICKLEBALL · 中興大學匹克鵝打秋', 'LEARNING COMMUNITY · CAMPUS LEADERBOARD ARENA', '🪿', '#0f172a', '#1e293b', 0, -(HALF_L + 2.1), 0);
+            // 1. 左側邊線看板：NCHU 匹克球學習社群 (中興湖林蔭墨綠到球場草綠)
+            buildCourtSign(4.2, 0.58, 'NCHU PICKLEBALL LEARNING COMMUNITY', '國立中興大學匹克球學習社群 · 運動科技推廣中心', '🎾', '#1b4332', '#2d6a4f', -(COURT_W / 2 + 1.25), -1.8, Math.PI / 2);
+            // 2. 左側後段看板：馬格努斯流體力學實驗室 (中興湖深潭水藍)
+            buildCourtSign(4.2, 0.58, 'MAGNUS EFFECT FLUID DYNAMICS LAB', '旋球流體力學 · NASA 空氣動力學專題科普', '🌪️', '#162a38', '#1e3a5f', -(COURT_W / 2 + 1.25), 1.8, Math.PI / 2);
+            // 3. 右側邊線看板：國立中興大學 中興湖水上球場 (動森自然翠綠)
+            buildCourtSign(4.2, 0.58, 'NATIONAL CHUNG HSING UNIVERSITY', '中興湖水上特訓球場 · ZHONGXING LAKE ARENA', '🌿', '#245e3d', '#40916c', (COURT_W / 2 + 1.25), -1.8, -Math.PI / 2);
+            // 4. 右側後段看板：USA Pickleball 官方手冊認證 (暖陶土紅磚木色)
+            buildCourtSign(4.2, 0.58, '2026 USA PICKLEBALL OFFICIAL HUB', '國際競賽規則手冊 · 虛擬裁判精準判定', '🏆', '#7c341e', '#c86446', (COURT_W / 2 + 1.25), 1.8, -Math.PI / 2);
+            // 5. 對手底線後方大看板 (正對鏡頭)：中興大學匹克鵝官方錦標賽 (沉穩深邃林木綠搭配暖金字)
+            buildCourtSign(6.2, 0.68, 'NCHU PICKLEBALL · 中興大學匹克鵝打秋', 'LEARNING COMMUNITY · CAMPUS LEADERBOARD ARENA', '🪿', '#142823', '#1b3a30', 0, -(HALF_L + 2.1), 0);
         }
         function buildNet() {
             netGrp = new THREE.Group();
@@ -15281,14 +15588,17 @@ function updateGuides(dt) {
             ctx.fillRect(0, 0, cw, ch);
 
             // 3. 頂部中興大學匹克球社群標籤徽章 (NCHU Community Header Badge)
-            ctx.fillStyle = 'rgba(15, 23, 42, 0.88)';
+            ctx.fillStyle = 'rgba(20, 40, 32, 0.92)';
             ctx.shadowColor = 'rgba(0, 0, 0, 0.25)';
             ctx.shadowBlur = 8;
             ctx.beginPath();
             ctx.roundRect(16, 16, 260, 36, 18);
             ctx.fill();
+            ctx.strokeStyle = 'rgba(246, 196, 69, 0.6)';
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
             ctx.shadowBlur = 0;
-            ctx.fillStyle = '#38bdf8';
+            ctx.fillStyle = '#f6c445';
             ctx.font = 'bold 14px "Barlow Condensed", system-ui, sans-serif';
             ctx.textAlign = 'left';
             ctx.textBaseline = 'middle';
@@ -15425,14 +15735,14 @@ function updateGuides(dt) {
                 fx.fillRect(px, py, pw, ph);
 
                 // 左上角官方徽章 (Top-Left Pill)
-                fx.fillStyle = 'rgba(15, 23, 42, 0.88)';
+                fx.fillStyle = 'rgba(20, 40, 32, 0.92)';
                 fx.beginPath();
                 fx.roundRect(px + 30, py + 30, 480, 58, 29);
                 fx.fill();
-                fx.strokeStyle = 'rgba(56, 189, 248, 0.6)';
+                fx.strokeStyle = 'rgba(246, 196, 69, 0.75)';
                 fx.lineWidth = 2.5;
                 fx.stroke();
-                fx.fillStyle = '#38bdf8';
+                fx.fillStyle = '#f6c445';
                 fx.font = 'bold 24px "Barlow Condensed", system-ui, sans-serif';
                 fx.textAlign = 'left';
                 fx.textBaseline = 'middle';

@@ -2,19 +2,29 @@
    NCHU Pickleball V5 - 基礎與通用樣式 (Base & Global Styles)
    ═══════════════════════════════════════════════════════════════════ */
         :root {
-            --bg: #0f172a;
-            --panel: rgba(15, 23, 42, .88);
-            --panel-solid: #1e293b;
+            --bg: #0d1f19;
+            --panel: rgba(15, 32, 25, .88);
+            --panel-solid: #162a22;
             --line: rgba(255, 255, 255, .12);
-            --line-hi: rgba(255, 255, 255, .24);
+            --line-hi: rgba(246, 196, 69, .25);
             --txt: #f8fafc;
-            --dim: #94a3b8;
-            --accent: #38bdf8;
+            --dim: #a7b9b0;
+            --accent: #40916c;
             --ok: #34d399;
             --bad: #f87171;
-            --cool: #818cf8;
+            --cool: #52b788;
             --r: 16px;
-            /* --- V5 Design Tokens --- */
+            /* --- NCHU & Animal Crossing Design Tokens --- */
+            --nchu-forest: #1b4332;
+            --nchu-grass: #2e8352;
+            --nchu-leaf: #40916c;
+            --nchu-clay: #c86446;
+            --nchu-clay-dark: #9c4127;
+            --nchu-wood: #2b1d14;
+            --nchu-gold: #f6c445;
+            --nchu-gold-sun: #eab308;
+            --nchu-ivory: #fcfbf7;
+            --nchu-paper: #f4efe6;
             --lime: #d3f36c;
             --lime-dark: #bad455;
             --font-display: 'Barlow Condensed', 'Arial Narrow', Impact, sans-serif;

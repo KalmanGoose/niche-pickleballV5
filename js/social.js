@@ -493,7 +493,8 @@
                     cx.restore();
                     if (!res.poseLandmarks) return;
 
-                    const lm = res.poseLandmarks;
+                    const rawLm = res.poseLandmarks;
+                    const lm = (typeof filterLandmarks === 'function') ? filterLandmarks(rawLm, performance.now()) : rawLm;
                     const rS = lm[12], rE = lm[14], rW = lm[16], rH = lm[24];
                     const lS = lm[11], lW = lm[15];
                     drawSkeleton(cx, lm, skelCanvas.width, skelCanvas.height);

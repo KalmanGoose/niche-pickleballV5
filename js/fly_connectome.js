@@ -16,9 +16,72 @@
      *   -> GF (巨大纖維神經元, LIF-A 生物物理膜電位模型)
      *   -> TTMn (中足伸肌運動神經元, 瞬移逃逸起跳) + DLMn (背縱飛行肌, 125Hz 超頻振翅)
      *   -> DNa01 / DNa02 (下行轉向神經元, 精準對角線壓線截擊)
-     * 
-     * 包含 Tsodyks-Markram 短時突觸抑制 (Short-Term Synaptic Depression, STD)
-     * 以及即時多通道電生理示波器 (CRT Oscilloscope) 繪圖引擎
+     */
+
+    // ═══════════════════════════════════════════════════════════
+    // 🧠 普林斯頓 FlyWire 果蠅神經大腦多樣性配置組合矩陣 (Connectome Presets)
+    // ═══════════════════════════════════════════════════════════
+    const CONNECTOME_PRESETS = {
+        AGILE_HUNTER: {
+            id: 'AGILE_HUNTER',
+            name: '⚡ 敏捷截擊獵手 (Agile Interceptor)',
+            desc: '神經傳導超快，極低膜時間常數 (tauM = 7ms)，高頻起跳撲球',
+            badge: '敏捷型',
+            tauM: 0.007, Rm: 12.0, vThresh: -42.0, tauAdapt: 0.05, adaptB: 0.8,
+            wLC4: 4.8, wLPLC2: 5.2, dlmnBaseFreq: 85.0, dlmnMaxFreq: 140.0,
+            tauRec: 2.2, U: 0.35, noiseAmp: 0.2, steerGain: 1.15
+        },
+        CHAOTIC_JITTER: {
+            id: 'CHAOTIC_JITTER',
+            name: '🎲 神經混沌假動作 (Chaotic Feint)',
+            desc: '膜電位注入生物布朗運動神經雜訊，突發變向與假動作切球',
+            badge: '混沌型',
+            tauM: 0.012, Rm: 10.0, vThresh: -44.0, tauAdapt: 0.08, adaptB: 1.2,
+            wLC4: 3.5, wLPLC2: 4.2, dlmnBaseFreq: 75.0, dlmnMaxFreq: 125.0,
+            tauRec: 2.8, U: 0.38, noiseAmp: 2.5, steerGain: 1.0, jitterSteer: true
+        },
+        AERIAL_GLIDE: {
+            id: 'AERIAL_GLIDE',
+            name: '🦅 高空滑翔重砲 (Aerial Glide Bomber)',
+            desc: '強化雙翼垂直升力 (135Hz)，激進網前凌空下壓扣殺',
+            badge: '制空型',
+            tauM: 0.010, Rm: 11.0, vThresh: -45.0, tauAdapt: 0.07, adaptB: 1.0,
+            wLC4: 4.2, wLPLC2: 4.8, dlmnBaseFreq: 90.0, dlmnMaxFreq: 135.0,
+            tauRec: 2.5, U: 0.36, noiseAmp: 0.3, verticalBias: 0.35, steerGain: 0.95
+        },
+        ANCHOR_TACTICIAN: {
+            id: 'ANCHOR_TACTICIAN',
+            name: '🛡️ 磐石戰術家 (Anchor Tactician)',
+            desc: '抗疲勞性極佳 (U=0.18)，落點預測精準，主攻後場深角穩健吊球',
+            badge: '磐石型',
+            tauM: 0.016, Rm: 9.0, vThresh: -46.0, tauAdapt: 0.10, adaptB: 1.5,
+            wLC4: 2.8, wLPLC2: 3.6, dlmnBaseFreq: 65.0, dlmnMaxFreq: 110.0,
+            tauRec: 4.2, U: 0.18, noiseAmp: 0.05, steerGain: 0.8
+        },
+        STDP_ADAPTIVE: {
+            id: 'STDP_ADAPTIVE',
+            name: '🧬 突觸學習自適應 (STDP Adaptive)',
+            desc: '具備脈衝時序依賴突觸可塑性 (STDP)，動態學習玩家球速習慣',
+            badge: '自適應型',
+            tauM: 0.012, Rm: 10.0, vThresh: -45.0, tauAdapt: 0.08, adaptB: 1.2,
+            wLC4: 3.2, wLPLC2: 4.1, dlmnBaseFreq: 70.0, dlmnMaxFreq: 125.0,
+            tauRec: 2.8, U: 0.38, noiseAmp: 0.15, stdpEnabled: true, stdpRate: 0.05, steerGain: 1.0
+        },
+        NCHU_GOOSE_BIO: {
+            id: 'NCHU_GOOSE_BIO',
+            name: '🪿 中興神鵝仿生體 (NCHU Goose Biomimic)',
+            desc: '禽鳥與果蠅混合迴路，神鵝叫聲共振爆發，神經急速擺尾反擊',
+            badge: '神鵝型',
+            tauM: 0.014, Rm: 10.5, vThresh: -43.5, tauAdapt: 0.06, adaptB: 0.9,
+            wLC4: 3.8, wLPLC2: 4.6, dlmnBaseFreq: 72.0, dlmnMaxFreq: 130.0,
+            tauRec: 3.0, U: 0.32, noiseAmp: 0.4, gooseHonkResonance: true, steerGain: 1.1
+        }
+    };
+
+    /**
+     * DrosophilaConnectome
+     * 實作果蠅巨大纖維視覺逃逸神經迴路 (Giant Fiber Escape System - GFES)
+     * 基於普林斯頓大學 FlyWire 聯盟神經元連接組拓撲 (Dorkenwald et al., Nature 2024)
      */
     class DrosophilaConnectome {
         constructor() {
@@ -27,7 +90,7 @@
             this.vReset = -70.0;      // 去極化後重置電位 (mV)
             this.vThresh = -45.0;     // 動作電位放電閥值 (mV)
             this.vPeak = +25.0;       // 動作電位尖峰 (mV)
-            this.tauM = 0.012;        // 膜時間常數 12 ms (0.012 s)
+            this.tauM = 0.012;        // 膜時間常數 (s)
             this.Rm = 10.0;           // 膜電阻 10 MΩ
             this.tauRef = 0.0035;     // 絕對不反應期 3.5 ms (0.0035 s)
             this.refTimer = 0.0;      // 不反應期計時器 (s)
@@ -51,14 +114,25 @@
             this.vApproach = 0.0;     // 球體逼近相對速度 (m/s)
             this.lc4 = 0.0;           // LC4 柱狀神經元活化值 (擴張角速度敏感)
             this.lplc2 = 0.0;         // LPLC2 小葉板神經元活化值 (碰撞光流敏感)
+            this.wLC4 = 3.20;         // LC4 突觸權重
+            this.wLPLC2 = 4.10;       // LPLC2 突觸權重
             this.iSyn = 0.0;          // 輸入至 GF 之突觸電流 (pA / a.u.)
 
             // ─── 5. 下行運動神經元輸出 (Motor Outputs) ───
             this.gfSpike = false;     // 本幀是否發放 GF 動作電位
             this.spikeCount = 0;      // 累積放電次數
             this.ttmnActive = false;  // TTMn 起跳跳躍致動
-            this.dlmnFreq = 70.0;     // DLMn 飛行肌頻率 (Hz)
+            this.dlmnBaseFreq = 70.0; // 飛行肌基礎頻率 (Hz)
+            this.dlmnMaxFreq = 125.0; // 飛行肌爆發振翅頻率 (Hz)
+            this.dlmnFreq = 70.0;     // DLMn 飛行肌當前頻率 (Hz)
             this.dnaSteer = 0.0;      // DNa01/02 下行轉向控制量 [-1.0, 1.0]
+            this.steerGain = 1.0;     // 轉向敏感度
+            this.jitterSteer = false; // 是否開啟隨機假動作擾動
+            this.verticalBias = 0.0;  // 垂直進攻偏好
+            this.stdpEnabled = false; // 是否開啟突觸可塑性在線學習
+            this.stdpRate = 0.05;     // 學習速率
+            this.noiseAmp = 0.0;      // 膜電位噪聲強度
+            this.gooseHonkResonance = false;
 
             // ─── 6. 示波器歷史波形緩衝區 (Oscilloscope History Buffer) ───
             this.historyLength = 220; // 與 Canvas 寬度 220px 匹配
@@ -73,12 +147,57 @@
                 this.historyLoom[i] = 0;
             }
 
+            // 載入預設
+            let savedPreset = 'AGILE_HUNTER';
+            try { savedPreset = localStorage.getItem('nchu_fly_brain_preset') || 'AGILE_HUNTER'; } catch(e) {}
+            this.applyPreset(savedPreset);
+
             // 狀態文字快取
             this._domVm = null;
             this._domDtheta = null;
             this._domVesicle = null;
             this._domState = null;
+            this._domPreset = null;
             this.hudVisible = true;
+        }
+
+        /**
+         * 套用果蠅神經性格預設
+         * @param {string} presetKey 
+         */
+        applyPreset(presetKey) {
+            const p = CONNECTOME_PRESETS[presetKey] || CONNECTOME_PRESETS.AGILE_HUNTER;
+            this.currentPresetKey = p.id;
+            this.currentPresetName = p.name;
+            this.tauM = p.tauM;
+            this.Rm = p.Rm;
+            this.vThresh = p.vThresh;
+            this.tauAdapt = p.tauAdapt;
+            this.adaptB = p.adaptB;
+            this.wLC4 = p.wLC4;
+            this.wLPLC2 = p.wLPLC2;
+            this.dlmnBaseFreq = p.dlmnBaseFreq || 70.0;
+            this.dlmnMaxFreq = p.dlmnMaxFreq || 125.0;
+            this.tauRec = p.tauRec;
+            this.U = p.U;
+            this.noiseAmp = p.noiseAmp || 0.0;
+            this.steerGain = p.steerGain || 1.0;
+            this.jitterSteer = !!p.jitterSteer;
+            this.verticalBias = p.verticalBias || 0.0;
+            this.stdpEnabled = !!p.stdpEnabled;
+            this.stdpRate = p.stdpRate || 0.05;
+            this.gooseHonkResonance = !!p.gooseHonkResonance;
+            this.reset();
+            try { localStorage.setItem('nchu_fly_brain_preset', p.id); } catch(e) {}
+            return p;
+        }
+
+        getPresetList() {
+            return Object.values(CONNECTOME_PRESETS);
+        }
+
+        getCurrentPreset() {
+            return CONNECTOME_PRESETS[this.currentPresetKey] || CONNECTOME_PRESETS.AGILE_HUNTER;
         }
 
         /**
@@ -94,7 +213,7 @@
             this.dThetaDt = 0.0;
             this.iSyn = 0.0;
             this.ttmnActive = false;
-            this.dlmnFreq = 70.0;
+            this.dlmnFreq = this.dlmnBaseFreq;
             this.dnaSteer = 0.0;
             for (let i = 0; i < this.historyLength; i++) {
                 this.historyVm[i] = this.vRest;
@@ -105,7 +224,7 @@
 
         /**
          * 執行單步數值生物物理模擬 (60FPS 或動態 dt)
-         * 包含子步長 Euler 積分器 (sub-step <= 0.5ms)
+         * 包含子步長 Euler 積分器 (sub-step <= 0.5ms) 與子步長囊泡動力學
          */
         step(dt, ballPos, ballVel, flyPos, isRallyActive, dinkCount = 0) {
             this.gfSpike = false;
@@ -140,40 +259,35 @@
             this.dThetaDt = dTheta;
 
             // 2. 普林斯頓小葉突觸柱狀神經元激發度 (Lobula Columellar Neurons)
-            // LC4: 對擴張角速度敏銳 (閥值 ~ 0.12 rad/s)
             this.lc4 = Math.max(0.0, dTheta - 0.12);
-            // LPLC2: 對立體角與角膨脹之碰撞光流敏銳 (θ * dθ/dt)
             this.lplc2 = (this.theta * 12.0) * Math.max(0.0, dTheta);
 
-            // 3. Tsodyks-Markram 短時突觸抑制 (STD) 囊泡耗竭動力學
-            // 廚房區小球 (Dink): 球在網前低速滯留，複眼微距刺激持續，突觸囊泡急速釋放消耗
+            // 3. 廚房區小球 (Dink) 微距視覺輸入刺激率
             const inKitchen = (ballPos.z > -2.25 && ballPos.z < 0.0);
             let inputRate = 0.0;
             if (inKitchen) {
-                // 丁克拍數越多，網前微距過載速率呈非線性倍增
                 const dinkMultiplier = 1.0 + Math.min(3.0, dinkCount * 0.75);
                 inputRate = 2.2 * dinkMultiplier * Math.max(0.0, 1.0 - dist / 3.0);
             } else if (vApp < 3.0 && dist < 2.8) {
                 inputRate = 0.6 * Math.max(0.0, 1.0 - dist / 2.8);
             }
 
-            const dxVesicle = ((1.0 - this.xVesicle) / this.tauRec - this.U * this.xVesicle * inputRate) * dt;
-            this.xVesicle = Math.max(0.04, Math.min(1.0, this.xVesicle + dxVesicle));
-            this.isFatigued = (this.xVesicle < 0.26);
-
-            // 4. 巨纖維突觸電流傳導 (Synaptic Current to GF)
-            // 當突觸抑制發生時，I_syn 顯著衰減，巨纖維完全無法放電
-            const wLC4 = 3.20;
-            const wLPLC2 = 4.10;
-            this.iSyn = this.xVesicle * (wLC4 * this.lc4 + wLPLC2 * this.lplc2);
-
-            // 5. LIF-A 膜電位高精度 Euler 數值積分 (子步長 <= 0.5ms)
+            // 4. LIF-A 膜電位高精度 Euler 數值積分 (子步長 <= 0.5ms)
+            // ★ 3.1 Pro 建議：囊泡資源池 xVesicle 移入子步長迴圈，防止掉幀震盪
             const dtSub = 0.0005; // 0.5 ms
             const subSteps = Math.max(1, Math.ceil(dt / dtSub));
             const actualDtSub = dt / subSteps;
             let frameSpiked = false;
 
             for (let s = 0; s < subSteps; s++) {
+                // 子步長 Tsodyks-Markram STD 囊泡微分方程
+                const dxVesicle = ((1.0 - this.xVesicle) / this.tauRec - this.U * this.xVesicle * inputRate) * actualDtSub;
+                this.xVesicle = THREE_CLAMP(this.xVesicle + dxVesicle, 0.04, 1.0);
+                this.isFatigued = (this.xVesicle < 0.26);
+
+                // 巨纖維突觸電流傳導
+                this.iSyn = this.xVesicle * (this.wLC4 * this.lc4 + this.wLPLC2 * this.lplc2);
+
                 // 適應性電流指數衰減
                 this.adapt += (-this.adapt / this.tauAdapt) * actualDtSub;
 
@@ -181,10 +295,13 @@
                     this.refTimer -= actualDtSub;
                     this.Vm = this.vReset;
                 } else {
-                    // LIF-A 微分方程:
-                    // dVm/dt = [ -(Vm - Vrest) + Rm * I_syn - Rm * a ] / tauM
-                    const dVm = (-(this.Vm - this.vRest) + this.Rm * (this.iSyn * 1.85) - this.adapt * 2.0) / this.tauM;
-                    this.Vm += dVm * actualDtSub;
+                    // 神經生物布朗噪聲 (Ornstein-Uhlenbeck / Gaussian Jitter)
+                    const noise = (this.noiseAmp > 0) ? (Math.random() - 0.5) * this.noiseAmp * 5.0 : 0.0;
+
+                    // LIF-A 微分方程 (含 dVm 與 Vm 安全數值鉗制):
+                    let dVm = (-(this.Vm - this.vRest) + this.Rm * (this.iSyn * 1.85) - this.adapt * 2.0 + noise) / this.tauM;
+                    dVm = THREE_CLAMP(dVm, -6000.0, 6000.0);
+                    this.Vm = THREE_CLAMP(this.Vm + dVm * actualDtSub, -95.0, 35.0);
 
                     // 動作電位放電判定 (Spike Threshold Crossing)
                     if (this.Vm >= this.vThresh) {
@@ -194,24 +311,34 @@
                         this.spikeCount++;
                         this.refTimer = this.tauRef; // 進入 3.5ms 不反應期
                         this.adapt += this.adaptB;   // 適應性電流激增
+
+                        // STDP 脈衝依賴在線突觸自適應
+                        if (this.stdpEnabled) {
+                            const dw = (this.vApproach > 5.0 ? 0.08 : -0.02) * this.stdpRate;
+                            this.wLC4 = THREE_CLAMP(this.wLC4 + dw, 2.0, 6.0);
+                            this.wLPLC2 = THREE_CLAMP(this.wLPLC2 + dw * 1.2, 2.5, 7.0);
+                        }
                         break;
                     }
                 }
             }
 
-            // 6. 下行運動效應器驅動 (Downstream Motor Actuation)
+            // 5. 下行運動效應器驅動 (Downstream Motor Actuation)
             if (this.gfSpike) {
                 this.ttmnActive = true;
-                this.dlmnFreq = 125.0; // 飛行肌爆發振翅至 125Hz
-                // DNa01/02 轉向向量：根據球的入射角與玩家位置產生反向補償
-                this.dnaSteer = Math.sign(dx) * 0.85;
+                this.dlmnFreq = this.dlmnMaxFreq; // 飛行肌爆發振翅 (125Hz ~ 140Hz)
+                let steer = Math.sign(dx) * 0.85 * this.steerGain;
+                if (this.jitterSteer) {
+                    steer += (Math.random() - 0.5) * 0.45; // 假動作側滑
+                }
+                this.dnaSteer = THREE_CLAMP(steer, -1.0, 1.0);
             } else if (this.isFatigued) {
                 this.ttmnActive = false;
                 this.dlmnFreq = 14.0;  // 飛行肌失速至 14Hz
                 this.dnaSteer = 0.0;
             } else {
                 this.ttmnActive = false;
-                this.dlmnFreq = 70.0;  // 正常巡航 70Hz
+                this.dlmnFreq = this.dlmnBaseFreq; // 正常巡航 (65Hz ~ 90Hz)
             }
 
             this._recordHistory(this.Vm, frameSpiked ? 1 : 0, this.dThetaDt);
@@ -381,6 +508,12 @@
             if (!this._domDtheta) this._domDtheta = document.getElementById('snn-dtheta');
             if (!this._domVesicle) this._domVesicle = document.getElementById('snn-vesicle');
             if (!this._domState) this._domState = document.getElementById('snn-circuit-state');
+            if (!this._domPreset) this._domPreset = document.getElementById('snn-preset-name');
+
+            if (this._domPreset) {
+                const cur = this.getCurrentPreset();
+                this._domPreset.innerText = cur ? cur.name : '⚡ 敏捷截擊獵手';
+            }
 
             if (this._domVm) {
                 this._domVm.innerText = (this.Vm >= 0 ? '+' : '') + this.Vm.toFixed(1) + ' mV';
@@ -403,7 +536,7 @@
                 if (this.xVesicle < 0.28) {
                     this._domVesicle.style.color = '#eab308';
                 } else {
-                    this._domVesicle.style.color = '#38bdf8';
+                    this._domVesicle.style.color = '#52b788';
                 }
             }
 
@@ -431,8 +564,26 @@
     }
 
     // 掛載至全域
+    window.CONNECTOME_PRESETS = CONNECTOME_PRESETS;
     window.DrosophilaConnectome = DrosophilaConnectome;
     window.FLY_BRAIN = new DrosophilaConnectome();
+
+    // 全域切換大腦性格預設函式
+    window.setFlyBrainPreset = function (key) {
+        if (!window.FLY_BRAIN) return null;
+        const p = window.FLY_BRAIN.applyPreset(key);
+        if (typeof toast === 'function') {
+            toast('🧠 果蠅大腦已切換', `${p.name} · ${p.desc}`);
+        }
+        return p;
+    };
+    window.cycleFlyBrainPreset = function () {
+        if (!window.FLY_BRAIN) return null;
+        const keys = Object.keys(CONNECTOME_PRESETS);
+        const idx = keys.indexOf(window.FLY_BRAIN.currentPresetKey);
+        const nextKey = keys[(idx + 1) % keys.length];
+        return window.setFlyBrainPreset(nextKey);
+    };
 
     // 全域切換 HUD 函式
     window.toggleSnnHud = function (force) {
@@ -568,15 +719,17 @@
     }
 
     // 初始化拖曳
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', () => {
-            initSnnHudDrag();
-            initInfoDrag();
-        });
-    } else {
-        setTimeout(() => {
-            initSnnHudDrag();
-            initInfoDrag();
-        }, 50);
+    if (typeof document !== 'undefined') {
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => {
+                initSnnHudDrag();
+                initInfoDrag();
+            });
+        } else {
+            setTimeout(() => {
+                initSnnHudDrag();
+                initInfoDrag();
+            }, 50);
+        }
     }
 })();

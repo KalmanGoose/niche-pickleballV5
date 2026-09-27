@@ -538,8 +538,8 @@
                         sx.lineTo(i + 15, 256); sx.lineTo(i - 30, 256);
                         sx.fill();
                     }
-                    // 金黃 / 霓虹頂底飾條
-                    sx.fillStyle = '#facc15';
+                    // 溫暖日光暖金飾條
+                    sx.fillStyle = '#f6c445';
                     sx.fillRect(0, 0, 1024, 8);
                     sx.fillRect(0, 248, 1024, 8);
                     // 徽章圖示
@@ -553,7 +553,7 @@
                     sx.textAlign = 'left';
                     sx.fillText(title, 150, 108);
                     // 副標題
-                    sx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+                    sx.fillStyle = 'rgba(255, 255, 255, 0.92)';
                     sx.font = '600 28px "Barlow Condensed", system-ui, sans-serif';
                     sx.fillText(subtitle, 152, 172);
 
@@ -578,16 +578,16 @@
                 }
             }
 
-            // 1. 左側邊線看板：NCHU 匹克球學習社群
-            buildCourtSign(4.2, 0.58, 'NCHU PICKLEBALL LEARNING COMMUNITY', '國立中興大學匹克球學習社群 · 運動科技推廣中心', '🎾', '#0f172a', '#1e3a8a', -(COURT_W / 2 + 1.25), -1.8, Math.PI / 2);
-            // 2. 左側後段看板：馬格努斯流體力學實驗室
-            buildCourtSign(4.2, 0.58, 'MAGNUS EFFECT FLUID DYNAMICS LAB', '旋球流體力學 · NASA 空氣動力學專題科普', '🌪️', '#0c4a6e', '#0369a1', -(COURT_W / 2 + 1.25), 1.8, Math.PI / 2);
-            // 3. 右側邊線看板：國立中興大學 中興湖水上球場
-            buildCourtSign(4.2, 0.58, 'NATIONAL CHUNG HSING UNIVERSITY', '中興湖水上特訓球場 · ZHONGXING LAKE ARENA', '🌿', '#064e3b', '#047857', (COURT_W / 2 + 1.25), -1.8, -Math.PI / 2);
-            // 4. 右側後段看板：USA Pickleball 官方手冊認證
-            buildCourtSign(4.2, 0.58, '2026 USA PICKLEBALL OFFICIAL HUB', '國際競賽規則手冊 · 虛擬裁判精準判定', '🏆', '#7f1d1d', '#991b1b', (COURT_W / 2 + 1.25), 1.8, -Math.PI / 2);
-            // 5. 對手底線後方大看板 (正對鏡頭)：中興大學匹克鵝官方錦標賽
-            buildCourtSign(6.2, 0.68, 'NCHU PICKLEBALL · 中興大學匹克鵝打秋', 'LEARNING COMMUNITY · CAMPUS LEADERBOARD ARENA', '🪿', '#0f172a', '#1e293b', 0, -(HALF_L + 2.1), 0);
+            // 1. 左側邊線看板：NCHU 匹克球學習社群 (中興湖林蔭墨綠到球場草綠)
+            buildCourtSign(4.2, 0.58, 'NCHU PICKLEBALL LEARNING COMMUNITY', '國立中興大學匹克球學習社群 · 運動科技推廣中心', '🎾', '#1b4332', '#2d6a4f', -(COURT_W / 2 + 1.25), -1.8, Math.PI / 2);
+            // 2. 左側後段看板：馬格努斯流體力學實驗室 (中興湖深潭水藍)
+            buildCourtSign(4.2, 0.58, 'MAGNUS EFFECT FLUID DYNAMICS LAB', '旋球流體力學 · NASA 空氣動力學專題科普', '🌪️', '#162a38', '#1e3a5f', -(COURT_W / 2 + 1.25), 1.8, Math.PI / 2);
+            // 3. 右側邊線看板：國立中興大學 中興湖水上球場 (動森自然翠綠)
+            buildCourtSign(4.2, 0.58, 'NATIONAL CHUNG HSING UNIVERSITY', '中興湖水上特訓球場 · ZHONGXING LAKE ARENA', '🌿', '#245e3d', '#40916c', (COURT_W / 2 + 1.25), -1.8, -Math.PI / 2);
+            // 4. 右側後段看板：USA Pickleball 官方手冊認證 (暖陶土紅磚木色)
+            buildCourtSign(4.2, 0.58, '2026 USA PICKLEBALL OFFICIAL HUB', '國際競賽規則手冊 · 虛擬裁判精準判定', '🏆', '#7c341e', '#c86446', (COURT_W / 2 + 1.25), 1.8, -Math.PI / 2);
+            // 5. 對手底線後方大看板 (正對鏡頭)：中興大學匹克鵝官方錦標賽 (沉穩深邃林木綠搭配暖金字)
+            buildCourtSign(6.2, 0.68, 'NCHU PICKLEBALL · 中興大學匹克鵝打秋', 'LEARNING COMMUNITY · CAMPUS LEADERBOARD ARENA', '🪿', '#142823', '#1b3a30', 0, -(HALF_L + 2.1), 0);
         }
         function buildNet() {
             netGrp = new THREE.Group();
@@ -3160,14 +3160,17 @@ function updateGuides(dt) {
             ctx.fillRect(0, 0, cw, ch);
 
             // 3. 頂部中興大學匹克球社群標籤徽章 (NCHU Community Header Badge)
-            ctx.fillStyle = 'rgba(15, 23, 42, 0.88)';
+            ctx.fillStyle = 'rgba(20, 40, 32, 0.92)';
             ctx.shadowColor = 'rgba(0, 0, 0, 0.25)';
             ctx.shadowBlur = 8;
             ctx.beginPath();
             ctx.roundRect(16, 16, 260, 36, 18);
             ctx.fill();
+            ctx.strokeStyle = 'rgba(246, 196, 69, 0.6)';
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
             ctx.shadowBlur = 0;
-            ctx.fillStyle = '#38bdf8';
+            ctx.fillStyle = '#f6c445';
             ctx.font = 'bold 14px "Barlow Condensed", system-ui, sans-serif';
             ctx.textAlign = 'left';
             ctx.textBaseline = 'middle';
@@ -3304,14 +3307,14 @@ function updateGuides(dt) {
                 fx.fillRect(px, py, pw, ph);
 
                 // 左上角官方徽章 (Top-Left Pill)
-                fx.fillStyle = 'rgba(15, 23, 42, 0.88)';
+                fx.fillStyle = 'rgba(20, 40, 32, 0.92)';
                 fx.beginPath();
                 fx.roundRect(px + 30, py + 30, 480, 58, 29);
                 fx.fill();
-                fx.strokeStyle = 'rgba(56, 189, 248, 0.6)';
+                fx.strokeStyle = 'rgba(246, 196, 69, 0.75)';
                 fx.lineWidth = 2.5;
                 fx.stroke();
-                fx.fillStyle = '#38bdf8';
+                fx.fillStyle = '#f6c445';
                 fx.font = 'bold 24px "Barlow Condensed", system-ui, sans-serif';
                 fx.textAlign = 'left';
                 fx.textBaseline = 'middle';

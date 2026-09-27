@@ -71,7 +71,78 @@
         /* ═══════ 體感演算法 ═══════ */
         let webcamActive = false, poseInstance = null, cameraUtils = null;
         let lastWristPos = { t: performance.now() };
-        let lastWristAngle = 180, lastShoulderAngle = 0, serveCooldown = 0;
+        /* ═══════════════════════════════════════════════════════════
+           🛡️ 1€ Filter (One-Euro Filter) 自適應人體運動學防抖濾波器
+           Casiez et al., CHI 2012. 兼具靜止零抖動與高速揮拍 <10ms 極低延遲
+           ═══════════════════════════════════════════════════════════ */
+        class OneEuroFilter {
+            constructor(freq = 30, mincutoff = 1.0, beta = 2.5, dcutoff = 10.0) {
+                this.freq = freq;
+                this.mincutoff = mincutoff;
+                this.beta = beta;
+                this.dcutoff = dcutoff;
+                this.xPrev = null;
+                this.dxPrev = 0;
+                this.tPrev = null;
+            }
+            alpha(cutoff, dt) {
+                const tau = 1.0 / (2 * Math.PI * cutoff);
+                return 1.0 / (1.0 + tau / dt);
+            }
+            filter(x, t) {
+                if (typeof x !== 'number' || isNaN(x)) return x;
+                if (this.tPrev === null) {
+                    this.tPrev = t;
+                    this.xPrev = x;
+                    this.dxPrev = 0;
+                    return x;
+                }
+                let dt = (t - this.tPrev) / 1000.0;
+                if (dt <= 1e-4) dt = 1.0 / Math.max(1, this.freq);
+                this.tPrev = t;
+
+                const dx = (x - this.xPrev) / dt;
+                const aD = this.alpha(this.dcutoff, dt);
+                const dxHat = aD * dx + (1.0 - aD) * this.dxPrev;
+                this.dxPrev = dxHat;
+
+                const cutoff = this.mincutoff + this.beta * Math.abs(dxHat);
+                const a = this.alpha(cutoff, dt);
+                const xHat = a * x + (1.0 - a) * this.xPrev;
+                this.xPrev = xHat;
+                return xHat;
+            }
+            reset() {
+                this.xPrev = null;
+                this.dxPrev = 0;
+                this.tPrev = null;
+            }
+        }
+
+        const OEF_LANDMARKS = {};
+        function filterLandmarks(lm, t) {
+            if (!lm) return lm;
+            const now = (typeof t === 'number') ? t : (typeof performance !== 'undefined' ? performance.now() : Date.now());
+            // 對關鍵關節點 (肩膀 11, 12; 手肘 13, 14; 手腕 15, 16; 髖部 23, 24) 進行自適應防抖
+            const targets = [11, 12, 13, 14, 15, 16, 23, 24];
+            for (let i = 0; i < targets.length; i++) {
+                const idx = targets[i];
+                const pt = lm[idx];
+                if (!pt) continue;
+                if (!OEF_LANDMARKS[idx]) {
+                    OEF_LANDMARKS[idx] = {
+                        x: new OneEuroFilter(30, 1.0, 2.5, 10.0),
+                        y: new OneEuroFilter(30, 1.0, 2.5, 10.0),
+                        z: new OneEuroFilter(30, 1.0, 2.5, 10.0)
+                    };
+                }
+                pt.x = OEF_LANDMARKS[idx].x.filter(pt.x, now);
+                pt.y = OEF_LANDMARKS[idx].y.filter(pt.y, now);
+                if (typeof pt.z === 'number') pt.z = OEF_LANDMARKS[idx].z.filter(pt.z, now);
+            }
+            return lm;
+        }
+
         function calculateAngle(a, b, c) {
             if (!a || !b || !c) return 0;
             const ab = { x: a.x - b.x, y: a.y - b.y, z: (a.z || 0) - (b.z || 0) };
@@ -512,9 +583,17 @@
             if (Math.abs(SWIPE.vx) > Math.abs(SWIPE.peakVx)) SWIPE.peakVx = SWIPE.vx;
             if (SWIPE.vy > SWIPE.peakVy) SWIPE.peakVy = SWIPE.vy;
 
-            // 軌跡歷史儲存 (保留最近 24 個採樣點，約 300ms)
+            // 軌跡歷史儲存 (保留最近 32 個採樣點，約 320ms)
+            // ★ 若滑動速度極快兩點距離 > 30px，自動內插中點以保證 Sagitta 與 Green's 面積連續性
+            const stepDist = Math.hypot(dx, dy);
+            if (stepDist > 30 && SWIPE.history.length > 0) {
+                const midX = (SWIPE.prevX + x) * 0.5;
+                const midY = (SWIPE.prevY + y) * 0.5;
+                const midT = (SWIPE.lastTime + now) * 0.5;
+                SWIPE.history.push({ x: midX, y: midY, t: midT });
+            }
             SWIPE.history.push({ x, y, t: now });
-            while (SWIPE.history.length > 24 || (SWIPE.history.length > 3 && now - SWIPE.history[0].t > 320)) {
+            while (SWIPE.history.length > 32 || (SWIPE.history.length > 3 && now - SWIPE.history[0].t > 320)) {
                 SWIPE.history.shift();
             }
 
@@ -537,22 +616,24 @@
             }
             SWIPE.sagitta = maxSagitta;
 
-            // ★ 幾何分析 2: 有向多邊形面積 (Green's Theorem for Circular Spin)
-            // 捕捉寶可夢畫圓蓄力自旋 (順時針正，逆時針負)
+            // ★ 幾何分析 2: 弦線外側圍合面積 (Signed Enclosed Excursion Area relative to chord)
             let area = 0;
-            if (SWIPE.history.length >= 6) {
+            if (chordLen > 15 && SWIPE.history.length >= 4) {
                 for (let i = 1; i < SWIPE.history.length; i++) {
-                    const pA = SWIPE.history[i - 1];
-                    const pB = SWIPE.history[i];
-                    area += (pA.x - x0) * (pB.y - y0) - (pB.x - x0) * (pA.y - y0);
+                    const pt = SWIPE.history[i];
+                    const distPerp = (dxc * (pt.y - y0) - dyc * (pt.x - x0)) / chordLen;
+                    const stepSeg = Math.hypot(pt.x - SWIPE.history[i - 1].x, pt.y - SWIPE.history[i - 1].y);
+                    area += distPerp * stepSeg;
                 }
             }
-            SWIPE.spinArea = area * 0.5;
+            SWIPE.spinArea = area;
 
-            // ★ 側旋量即時估算 (敏銳響應左右劃弧、側刷、畫圈)
-            const brushRatio = SWIPE.vx / Math.max(120, Math.abs(SWIPE.vy) + 80);
+            // ★ 側旋量即時估算 (以拱高 Sagitta + 弧線面積 spinArea + 側向位移綜合判定)
+            const areaNorm = THREE.MathUtils.clamp(SWIPE.spinArea / 2500, -1, 1);
+            const sagittaNorm = THREE.MathUtils.clamp(SWIPE.sagitta / 35, -1, 1);
+            const distNorm = THREE.MathUtils.clamp(SWIPE.distX / 150, -1, 1);
             SWIPE.spin = THREE.MathUtils.clamp(
-                (SWIPE.vx / 550) * 0.45 + (SWIPE.sagitta / 45) * 0.40 + brushRatio * 0.25,
+                sagittaNorm * 0.55 + areaNorm * 0.30 + distNorm * 0.15,
                 -1.2, 1.2
             );
 
@@ -821,6 +902,7 @@
         }
         function dismissFingerTutorial(silent) {
             fingerTutActive = false;
+            if (typeof document === 'undefined') return;
             const overlay = document.getElementById('finger-tutorial');
             if (overlay) overlay.classList.add('hidden');
             if (fingerAnimTimer) { cancelAnimationFrame(fingerAnimTimer); fingerAnimTimer = null; }
@@ -828,9 +910,11 @@
                 skipDemo();
                 return;
             }
-            if (!demoOn) document.body.classList.remove('demo-mode-active');
-            if (!silent && !demoOn) {
-                toast('🎾 開始揮拍！', '向前滑動推球 · 左右刷拍側旋');
+            if (typeof demoOn !== 'undefined' && !demoOn && typeof document !== 'undefined' && document.body) {
+                document.body.classList.remove('demo-mode-active');
+            }
+            if (!silent && (typeof demoOn === 'undefined' || !demoOn)) {
+                if (typeof toast === 'function') toast('🎾 開始揮拍！', '向前滑動推球 · 左右刷拍側旋');
             }
         }
 
@@ -892,3 +976,56 @@
         /* ═══════════════════════════════════════════════
            📊 體感與動力鏈審計日誌模組 (Kinematic Audit Log)
            ═══════════════════════════════════════════════ */
+        window.OneEuroFilter = OneEuroFilter;
+        window.filterLandmarks = filterLandmarks;
+        window.calculateAngle = calculateAngle;
+        window.updateShoulderWidth = updateShoulderWidth;
+        window.updateBodyScale = updateBodyScale;
+        window.updateKinematics = updateKinematics;
+        window.accumulateSwing = accumulateSwing;
+        window.resetSwing = resetSwing;
+        window.gradeChain = gradeChain;
+        window.kcPush = kcPush;
+        window.kcReset = kcReset;
+        window.kcPeak = kcPeak;
+        window.hitPower = hitPower;
+        window.updateServeFSM = updateServeFSM;
+        window.SFSM = SFSM;
+        window.KIN = KIN;
+        window.SWING = SWING;
+        window.SWIPE = SWIPE;
+        window.swipeStart = swipeStart;
+        window.swipeMove = swipeMove;
+        window.swipeEnd = swipeEnd;
+        window.updateStance = updateStance;
+        window.NORM = NORM;
+        window.BODY = BODY;
+
+        if (typeof module !== 'undefined' && module.exports) {
+            module.exports = {
+                OneEuroFilter,
+                filterLandmarks,
+                calculateAngle,
+                updateShoulderWidth,
+                updateBodyScale,
+                updateKinematics,
+                accumulateSwing,
+                resetSwing,
+                gradeChain,
+                kcPush,
+                kcReset,
+                kcPeak,
+                hitPower,
+                updateServeFSM,
+                SFSM,
+                KIN,
+                SWING,
+                SWIPE,
+                swipeStart,
+                swipeMove,
+                swipeEnd,
+                updateStance,
+                NORM,
+                BODY
+            };
+        }
