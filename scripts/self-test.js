@@ -193,6 +193,14 @@ try {
         "tryHit 具備防高速殺球穿透之連續碰撞檢測 (Swept CCD)");
     assert(refereeSrc.includes("stage >= 4") && refereeSrc.includes("showPolaroidSouvenir(true"),
         "clearStage 拍立得完賽卡嚴格限定正式比賽關卡 (stage >= 4)");
+
+    const motionSrc = fs.readFileSync(path.join(ROOT, "js", "motion.js"), "utf8");
+    assert(motionSrc.includes("let fingerTutActive = false;"),
+        "fingerTutActive 預設為 false，杜絕開機阻斷玩家控制");
+    assert(gameSrc.includes("if (fingerTutActive && demoOn && state === 'DEMO')"),
+        "updatePlayer 僅在電腦示範模式 (demoOn && state === 'DEMO') 允許手指引導動畫接管主角");
+    assert(!gameSrc.includes("if (!dSeen[n] && n === 1 && !isAdvance) {\n                dSeen[n] = true;\n                startDemo(n);"),
+        "switchStage(1) 開局直接進入玩家發球 (resetServe)，不再強制 13.4 秒電腦示範鎖定");
 } catch (e) {
     assert(false, "防衝突檢測錯誤", e.message);
 }

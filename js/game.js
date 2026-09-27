@@ -1154,7 +1154,8 @@ function solveArc(fx, fy, fz, tx, tz, out, speedScale) {
             updateOpponentMeshVisibility();
             warnKitchen.material.opacity = 0;
             const isAdvance = !!(opts && opts.fromClear);
-            if (!dSeen[n] && n === 1 && !isAdvance) {
+            const showDemo = !!(opts && opts.showDemo);
+            if (showDemo) {
                 dSeen[n] = true;
                 startDemo(n);
             } else {
@@ -1825,8 +1826,8 @@ function solveArc(fx, fy, fz, tx, tz, out, speedScale) {
                 return;
             }
 
-            // ★ 動態新手引導:手指滑動時，主角同步執行揮拍與腳步示範
-            if (fingerTutActive && (state === 'SERVE_READY' || state === 'DEMO')) {
+            // ★ 動態新手引導:手指滑動時，僅在示範模式中主角同步執行揮拍與腳步示範
+            if (fingerTutActive && demoOn && state === 'DEMO') {
                 const t = fingerAnimProgress;
                 const easeT = Math.sin(t * Math.PI * 0.5);
                 if (fingerAnimStep === 0) {

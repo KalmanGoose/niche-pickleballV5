@@ -581,7 +581,7 @@
         /* ═══════════════════════════════════════════════
            👆 新手手指動畫示範控制器 (Finger Tutorial)
            ═══════════════════════════════════════════════ */
-        let fingerTutActive = true;
+        let fingerTutActive = false;
         let fingerAnimTimer = null;
         let fingerAnimStep = 0; // 0: straight, 1: right curve, 2: left curve
         let fingerAnimProgress = 0;
@@ -795,6 +795,7 @@
         }
 
         function initFingerTutorial() {
+            fingerTutActive = false;
             const overlay = document.getElementById('finger-tutorial');
             if (!overlay) return;
             // ★ v5.0.11: 啟動時預設隱藏，絕不污染登入畫面
@@ -819,7 +820,6 @@
             if (!fingerAnimTimer) runFingerAnimation();
         }
         function dismissFingerTutorial(silent) {
-            if (!fingerTutActive) return;
             fingerTutActive = false;
             const overlay = document.getElementById('finger-tutorial');
             if (overlay) overlay.classList.add('hidden');

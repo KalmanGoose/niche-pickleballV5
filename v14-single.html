@@ -7323,7 +7323,7 @@ function syncPhysicsModeUI() {
         /* ═══════════════════════════════════════════════
            👆 新手手指動畫示範控制器 (Finger Tutorial)
            ═══════════════════════════════════════════════ */
-        let fingerTutActive = true;
+        let fingerTutActive = false;
         let fingerAnimTimer = null;
         let fingerAnimStep = 0; // 0: straight, 1: right curve, 2: left curve
         let fingerAnimProgress = 0;
@@ -7537,6 +7537,7 @@ function syncPhysicsModeUI() {
         }
 
         function initFingerTutorial() {
+            fingerTutActive = false;
             const overlay = document.getElementById('finger-tutorial');
             if (!overlay) return;
             // ★ v5.0.11: 啟動時預設隱藏，絕不污染登入畫面
@@ -7561,7 +7562,6 @@ function syncPhysicsModeUI() {
             if (!fingerAnimTimer) runFingerAnimation();
         }
         function dismissFingerTutorial(silent) {
-            if (!fingerTutActive) return;
             fingerTutActive = false;
             const overlay = document.getElementById('finger-tutorial');
             if (overlay) overlay.classList.add('hidden');
@@ -12820,7 +12820,8 @@ function solveArc(fx, fy, fz, tx, tz, out, speedScale) {
             updateOpponentMeshVisibility();
             warnKitchen.material.opacity = 0;
             const isAdvance = !!(opts && opts.fromClear);
-            if (!dSeen[n] && n === 1 && !isAdvance) {
+            const showDemo = !!(opts && opts.showDemo);
+            if (showDemo) {
                 dSeen[n] = true;
                 startDemo(n);
             } else {
@@ -13491,8 +13492,8 @@ function solveArc(fx, fy, fz, tx, tz, out, speedScale) {
                 return;
             }
 
-            // ★ 動態新手引導:手指滑動時，主角同步執行揮拍與腳步示範
-            if (fingerTutActive && (state === 'SERVE_READY' || state === 'DEMO')) {
+            // ★ 動態新手引導:手指滑動時，僅在示範模式中主角同步執行揮拍與腳步示範
+            if (fingerTutActive && demoOn && state === 'DEMO') {
                 const t = fingerAnimProgress;
                 const easeT = Math.sin(t * Math.PI * 0.5);
                 if (fingerAnimStep === 0) {
