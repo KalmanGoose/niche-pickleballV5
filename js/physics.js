@@ -113,6 +113,7 @@ function simulateFlight(p0, v0, spin, pts, h, tMax) {
 class Physics {
     constructor() {
         this.pos = new THREE.Vector3(0, 1, HALF_L);
+        this.prevPos = new THREE.Vector3(0, 1, HALF_L);
         this.vel = new THREE.Vector3();
         this.spin = 0;
     }
@@ -155,15 +156,21 @@ class Physics {
         ballBlob.scale.set(bs, bs, 1);
         ballBlob.material.opacity = THREE.MathUtils.lerp(0.5, 0.09, hh / 3.2);
     }
-    setPos(x, y, z) { this.pos.set(x, y, z); if (ball) this.sync(); }
+    setPos(x, y, z) { this.pos.set(x, y, z); this.prevPos.copy(this.pos); if (ball) this.sync(); }
     reset(x, y, z) {
         this.setPos(x, y, z);
+        this.prevPos.copy(this.pos);
         this.vel.set(0, 0, 0);
         this.spin = 0;
         if (ball) ball.rotation.set(0, 0, 0);
     }
     update(dt) {
-        if (state === 'SERVE_READY' || state === 'FAULT' || state === 'OVER') { this.sync(); return; }
+        if (state === 'SERVE_READY' || state === 'FAULT' || state === 'OVER') {
+            this.prevPos.copy(this.pos);
+            this.sync();
+            return;
+        }
+        this.prevPos.copy(this.pos);
         let rem = dt, guard = 0;
         while (rem > 1e-6 && guard++ < 16) {
             const h = Math.min(PHYS_H, rem); rem -= h;
@@ -200,6 +207,11 @@ class Physics {
             popRing(this.pos.x, this.pos.z, 1.6 + imp * 0.14, 0xffffff);
             onBounce();
             return (state === 'RALLY' || state === 'SERVE_AIR' || state === 'DEMO');
+        }
+        // ★ 邊界極限防禦：避免超高速球飛出地圖邊界而無法觸發落地判定
+        if ((Math.abs(this.pos.z) > HALF_L + 6.0 || Math.abs(this.pos.x) > COURT_W + 4.0 || this.pos.y < -2.0) &&
+            (state === 'RALLY' || state === 'SERVE_AIR')) {
+            onBounce(); return false;
         }
         return true;
     }

@@ -572,7 +572,7 @@
                 width: 320, height: 240
             });
             cameraUtils.start().then(() => {
-                webcamActive = true; btn.innerText = '📷 體感: 開'; syncAimPips();
+                webcamActive = true; servePrepared = false; btn.innerText = '📷 體感: 開'; syncAimPips();
                 toast('體感 AI 已啟動', '預設 🔒 自動對角,先專心練揮拍時機');
                 syncSubbarStates();
             }).catch(err => {
@@ -596,6 +596,7 @@
         }
         function stopWebcamAI() {
             webcamActive = false;
+            servePrepared = true;
             if (cameraUtils) cameraUtils.stop();
             const video = document.getElementById('webcam-video');
             if (video && video.srcObject) {

@@ -861,7 +861,7 @@ function solveArc(fx, fy, fz, tx, tz, out, speedScale) {
             rallyHits = 0; bounces = 0; lastHitter = 'NONE';
             pLock = 0; gLock = 0; swingT = 0;
             charging = false; power = 0; powerDir = 1; locked = false; powerBarDisplay = 0;
-            servePrepared = false; calibT0 = 0; serveCooldown = 1.2;
+            servePrepared = !webcamActive; calibT0 = 0; serveCooldown = 1.2;
             resetServeFSM(); kcReset();
 
             dinkRallyCount = 0;
@@ -886,10 +886,17 @@ function solveArc(fx, fy, fz, tx, tz, out, speedScale) {
                 if (webcamActive) document.getElementById('calibration-box').style.display = 'flex';
                 D.pFill.style.width = '0%';
                 const whoOpp = (typeof diffLevel !== 'undefined' && diffLevel === 'fly') ? '🪰 仿生蒼蠅' : '🪿 匹克鵝';
-                const hints = {
+                const hints = webcamActive ? {
                     1: '左手舉高解鎖 → 拍面低於腰 → 向上推拍 → 收拍抬過肩',
                     2: '左手舉高預備 → ' + whoOpp + '回深球 → 讓球落地一次再回擊',
                     3: '左手舉高預備 → ' + whoOpp + '吊球進廚房 → 等球落地再輕推 1 次',
+                    4: '對決 ' + whoOpp + ' (發球得分制, 先得 3 分勝)',
+                    5: '🔥 中興湖魔王戰! (發球得分制, 搶 5 分登錄英雄榜)',
+                    6: '🍄 瘋狂道具大亂鬥! (踩盲盒搶神裝/防踩雷, 先得 5 分勝)'
+                } : {
+                    1: '向上滑動推球發球，雙腳在底線後，對角送進綠區',
+                    2: '發球進對角區 → ' + whoOpp + '回深球 → 讓球落地一次再回擊',
+                    3: '發球進對角區 → ' + whoOpp + '吊球進廚房 → 等球落地再輕推 1 次',
                     4: '對決 ' + whoOpp + ' (發球得分制, 先得 3 分勝)',
                     5: '🔥 中興湖魔王戰! (發球得分制, 搶 5 分登錄英雄榜)',
                     6: '🍄 瘋狂道具大亂鬥! (踩盲盒搶神裝/防踩雷, 先得 5 分勝)'
@@ -1130,7 +1137,7 @@ function solveArc(fx, fy, fz, tx, tz, out, speedScale) {
             if (demoOn) return;
             if (state !== 'RALLY' || pLock > 0 || locked) return;
             if (PH.vel.z <= 0 || PH.pos.z < 0.05) return;
-            const b = PH.pos, p = padW;
+            const b = PH.pos, prevB = (PH.prevPos || b), p = padW;
             const isMegaPad = (typeof FunMode !== 'undefined' && FunMode.activeBuff === 'MEGA_PADDLE');
             const isMiniPad = (typeof FunMode !== 'undefined' && FunMode.activeBuff === 'MINI_PADDLE');
             const padScale = isMegaPad ? 3.8 : (isMiniPad ? 0.45 : 1.5); // ★ 巨無霸球拍 3.8 倍超寬判定，迷你拍 0.45 倍極限縮水，一般 1.5 倍
@@ -1138,7 +1145,23 @@ function solveArc(fx, fy, fz, tx, tz, out, speedScale) {
             const r = swingT > 0
                 ? { z: (0.62 + BALL_R) * assist, x: (0.82 + BALL_R) * assist, y: (0.78 + BALL_R) * assist }
                 : { z: (0.45 + BALL_R) * assist, x: (0.60 + BALL_R) * assist, y: (0.55 + BALL_R) * assist };
-            if (Math.abs(b.z - p.z) > r.z || Math.abs(b.x - p.x) > r.x || Math.abs(b.y - p.y) > r.y) return;
+
+            // ★ 連續碰撞檢測 (Swept Continuous Collision Detection)：
+            // 避免在 30 FPS 或卡頓掉幀時，高速殺球（14~18 m/s，單幀位移可達 0.6m）穿透球拍
+            const minZ = Math.min(prevB.z, b.z) - r.z;
+            const maxZ = Math.max(prevB.z, b.z) + r.z;
+            const crossesZ = (p.z >= minZ && p.z <= maxZ) || (Math.abs(b.z - p.z) <= r.z);
+            if (!crossesZ) return;
+
+            // 根據穿過球拍平面的時刻插值 X、Y 座標
+            const dz = b.z - prevB.z;
+            const tCross = Math.abs(dz) > 1e-4 ? THREE.MathUtils.clamp((p.z - prevB.z) / dz, 0, 1) : 1;
+            const crossX = THREE.MathUtils.lerp(prevB.x, b.x, tCross);
+            const crossY = THREE.MathUtils.lerp(prevB.y, b.y, tCross);
+
+            const inX = Math.abs(crossX - p.x) <= r.x || Math.abs(b.x - p.x) <= r.x;
+            const inY = Math.abs(crossY - p.y) <= r.y || Math.abs(b.y - p.y) <= r.y;
+            if (!inX || !inY) return;
 
             dismissFingerTutorial();
             const volley = (bounces === 0);
@@ -1236,8 +1259,8 @@ function solveArc(fx, fy, fz, tx, tz, out, speedScale) {
 
             PH.spin = spin; PH.spinInc = 0;
 
-            // 側旋切球裁判廣播
-            if (Math.abs(spin) >= 0.20) {
+            // 側旋切球裁判廣播 (只在顯著自旋且非暴抽時提示，避免過度干擾)
+            if (Math.abs(spin) >= 0.25) {
                 const spinSideTxt = spin > 0 ? '⭐ 寶可夢式右曲球 (RIGHT CURVE)' : '⭐ 寶可夢式左曲球 (LEFT CURVE)';
                 announceReferee(spinSideTxt, Math.abs(spin) > 1.10 ? '⚠️ 甩球過猛，球偏出界外！' : '精準曲球已觸發', false);
             }
@@ -1266,19 +1289,18 @@ function solveArc(fx, fy, fz, tx, tz, out, speedScale) {
             } else if (isPassiveBlock) {
                 // 第 0 級：手指完全沒動 / 被動減力碰球 (Passive Block)
                 const incomingEnergy = Math.hypot(PH.vel.x, PH.vel.y, PH.vel.z);
-                const hitLow = (b.y < 0.38);
-                // 若來球慢 (< 6.2m/s) 或接觸點太低，減力過度，有 40% 機率能量不足掛網 (Net Error)！
-                if ((incomingEnergy < 6.2 || hitLow) && Math.random() < 0.40) {
+                const hitLow = (b.y < 0.32);
+                // 確定性物理：來球過慢 (< 4.8m/s) 或接觸點過低 (低於 0.32m 且無主動推拍)，能量不足必然掛網
+                if (incomingEnergy < 4.8 || hitLow) {
                     tz = -0.15; // 沒過網
                     spdScale = 0.52;
                     solveArc(b.x, b.y, b.z, tx, tz, PH.vel, spdScale);
-                    toast('⚠️ 減力擋球掛網', '手指完全沒動，能量不足掛網');
+                    toast('⚠️ 被動擋球掛網', '來球過低或推力不足（微向上滑動可順利起球）');
                 } else {
-                    // 借力剛好柔和過網，落入廚房前端 (0.70m ~ 1.15m)
-                    tz = -(0.70 + Math.random() * 0.45);
+                    // 借力卸力柔和過網，落入廚房前端 (0.75m ~ 1.25m)
+                    tz = -(0.75 + Math.min(1.0, (incomingEnergy - 4.8) / 6.0) * 0.50);
                     spdScale = 0.60;
                     solveArc(b.x, b.y, b.z, tx, tz, PH.vel, spdScale);
-                    toast('🎾 減力擋球 (Passive Block)', '借力剛好過網，落入廚房前端');
                 }
             } else if (ch < 0.26) {
                 // 第 1 級：稍微動一點點 -> 100% 精準落在廚房區 (Kitchen Dink: 1.15m ~ 1.75m)
@@ -1286,14 +1308,12 @@ function solveArc(fx, fy, fz, tx, tz, out, speedScale) {
                 tz = -(1.15 + k * 0.60); // 1.15m ~ 1.75m (廚房線以內)
                 spdScale = 0.65; // ★ 柔和低速弧線 (約 5.5 m/s)
                 solveArc(b.x, b.y, b.z, tx, tz, PH.vel, spdScale);
-                toast('🎾 廚房區精準丁克 (Dink)', '柔和越網，貼網低彈跳！');
             } else if (ch < 0.52) {
                 // 第 2 級：稍微動多一點 -> 落在廚房線後緣或過渡區 (Deep Dink / Drop: 2.10m ~ 3.60m)
                 const k = (ch - 0.26) / 0.26;
                 tz = -(2.10 + k * 1.50); // 2.10m ~ 3.60m
                 spdScale = 0.95 + k * 0.15;
                 solveArc(b.x, b.y, b.z, tx, tz, PH.vel, spdScale);
-                toast('🎾 過渡區深推球 (Deep Dink)', '壓制在對手腳邊');
             } else {
                 // 第 3 級：大幅/快速滑動 -> 底線平抽或扣殺 (Power Drive / Smash)
                 const k = (ch - 0.52) / 0.48;
@@ -1301,7 +1321,6 @@ function solveArc(fx, fy, fz, tx, tz, out, speedScale) {
                 tz = -(4.40 + k * 1.70); // -4.40m ~ -6.10m
                 spdScale = 1.10 + k * 0.25; // 1.10 ~ 1.35
                 solveArc(b.x, b.y, b.z, tx, tz, PH.vel, spdScale);
-                toast('💥 重砲抽球 (Drive / Smash)', '極速直轟底線！');
             }
 
             // 擊球後重置本次滑動位移、幾何分析與快照，避免延續至下一次碰球
@@ -1321,7 +1340,7 @@ function solveArc(fx, fy, fz, tx, tz, out, speedScale) {
 
             if (stage === 3 && !volley) {
                 S.pop(0.4 + ch * 0.6);
-                toast('NICE DINK!', '成功完成中興湖廚房合法回擊!');
+                toast('NICE DINK! · ' + hitMph + ' mph', '成功完成中興湖廚房合法回擊!');
                 twoBounceDone = 1; updateGoal();
                 auditLogAdd({
                     stage: stage, type: hitType, hitter: 'PLAYER', speed: hitMph,
@@ -1333,10 +1352,18 @@ function solveArc(fx, fy, fz, tx, tz, out, speedScale) {
 
             S.pop(0.4 + ch * 0.6); addShake(0.05 + ch * 0.06);
 
-            if (Math.abs(spin) >= 0.18) {
-                toast((spin > 0 ? '🌪️ 右側旋切球' : '🌪️ 左側旋切球') + ' · ' + hitType, hitMph + ' mph');
-            } else {
-                toast(hitType, hitMph + ' mph');
+            // ★ 統一單一高品質 Toast 回饋，杜絕 0ms 內連續覆蓋與閃爍
+            const spinBadge = Math.abs(spin) >= 0.20 ? (spin > 0 ? '🌪️ 右側旋 · ' : '🌪️ 左側旋 · ') : '';
+            if (!isChanceBall) {
+                if (isPassiveBlock) {
+                    if (tz < -0.2) toast('🎾 減力擋球 · ' + hitMph + ' mph', '借力卸力柔和過網，落入廚房前端');
+                } else if (ch < 0.26) {
+                    toast(spinBadge + '🎾 廚房精準丁克 · ' + hitMph + ' mph', '柔和越網，貼網低彈跳');
+                } else if (ch < 0.52) {
+                    toast(spinBadge + '🎾 過渡區深推球 · ' + hitMph + ' mph', '壓制在對手腳邊');
+                } else {
+                    toast(spinBadge + '💥 重砲抽球 · ' + hitMph + ' mph', '極速直轟底線！');
+                }
             }
 
             auditLogAdd({
@@ -2239,8 +2266,10 @@ function updateGuides(dt) {
         const willNet = !r || r.net;
         const fresh = webcamActive && serveCue.txt && (performance.now() - serveCue.t < 700);
         let msg = fresh ? serveCue.txt
-            : (servePrepared ? '✅ 已解鎖,拍面低於腰後向上推拍' : '👉 請先「左手舉高」解鎖發球');
-        let col = fresh ? serveCue.col : (servePrepared ? '#3fe0c4' : '#ffc857');
+            : (!webcamActive
+                ? '✅ 向上推拍發球（拍面低於腰）'
+                : (servePrepared ? '✅ 已解鎖,拍面低於腰後向上推拍' : '👉 請先「左手舉高」解鎖發球'));
+        let col = fresh ? serveCue.col : (!webcamActive || servePrepared ? '#3fe0c4' : '#ffc857');
         const tX = ringLand.position.x, tZ = ringLand.position.z;
         if (pPos.z < HALF_L - 0.05) { msg = '⚠ 雙腳未在底線後'; col = '#ff6b6b'; }
         else if (stage === 1 && sideOf(pPos.x) !== serveSide) {

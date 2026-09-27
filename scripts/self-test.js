@@ -30,7 +30,7 @@ console.log("🧪 開始執行 NCHU Pickleball 自我檢測套件 (Self-Test Sui
 console.log("═══════════════════════════════════════════════════════════\n");
 
 // ── 1. 語法檢測 (Syntax Check) ──
-console.log("▶ [1/6] 模組語法檢測 (Node.js vm & Syntax Parsing)...");
+console.log("▶ [1/7] 模組語法檢測 (Node.js vm & Syntax Parsing)...");
 const jsFiles = ["config.js", "audio.js", "physics.js", "referee.js", "motion.js",
     "ui.js", "social.js", "fly_connectome.js", "fun_mode.js", "game.js"];
 for (const f of jsFiles) {
@@ -60,7 +60,7 @@ try {
 }
 
 // ── 2. 打包與產物一致性檢測 (Build & Sync Integrity) ──
-console.log("\n▶ [2/6] 打包產物一致性檢測 (Build & Sync Integrity)...");
+console.log("\n▶ [2/7] 打包產物一致性檢測 (Build & Sync Integrity)...");
 try {
     cp.execSync("node scripts/build-single.js", { cwd: ROOT, stdio: "pipe" });
     const single = fs.readFileSync(path.join(ROOT, "v14-single.html"), "utf8");
@@ -73,7 +73,7 @@ try {
 }
 
 // ── 3. 機密金鑰洩漏掃描 (Secret Scan) ──
-console.log("\n▶ [3/6] 安全邊界與金鑰洩漏掃描 (Secret Leak Scan)...");
+console.log("\n▶ [3/7] 安全邊界與金鑰洩漏掃描 (Secret Leak Scan)...");
 try {
     const res = cp.execSync(
         "grep -rnE '(AKIA|AIza|ghp_|glpat-|https://script\\.google\\.com/macros/s/[A-Za-z0-9_-]{20,}/exec)' --exclude-dir={.git,node_modules} --exclude=self-test.js --exclude=review_round2.txt --exclude=\*.md . || true",
@@ -85,7 +85,7 @@ try {
 }
 
 // ── 4. 後端防護單元測試 (Backend Security Logic Unit Tests) ──
-console.log("\n▶ [4/6] 後端試算表防禦邏輯測試 (Code.gs Functions)...");
+console.log("\n▶ [4/7] 後端試算表防禦邏輯測試 (Code.gs Functions)...");
 try {
     const codeGs = fs.readFileSync(path.join(ROOT, "backend", "Code.gs"), "utf8");
     const sandbox = { Utilities: {}, SpreadsheetApp: {} };
@@ -132,7 +132,7 @@ try {
 }
 
 // ── 5. 前端設定與驗證測試 (Frontend Config & Validations) ──
-console.log("\n▶ [5/6] 前端驗證與錯誤碼測試 (config.js Functions)...");
+console.log("\n▶ [5/7] 前端驗證與錯誤碼測試 (config.js Functions)...");
 try {
     const configSrc = fs.readFileSync(path.join(ROOT, "js", "config.js"), "utf8");
     const mErr = configSrc.match(/function errMsg\(err\)[\s\S]*?\n}/);
@@ -167,7 +167,7 @@ try {
 }
 
 // ── 6. 示範與手勢衝突防護檢測 (Tutorial & Demo Conflict Checks) ──
-console.log("\n▶ [6/6] 開場示範與導覽防衝突檢測 (Demo & Tour Isolation)...");
+console.log("\n▶ [6/7] 開場示範與導覽防衝突檢測 (Demo & Tour Isolation)...");
 try {
     const gameSrc = fs.readFileSync(path.join(ROOT, "js", "game.js"), "utf8");
     const uiSrc = fs.readFileSync(path.join(ROOT, "js", "ui.js"), "utf8");
@@ -183,8 +183,26 @@ try {
         "hud.css 包含示範期間懸浮手指教學專屬樣式");
     assert(hudCss.includes("pointer-events: none !important") && hudCss.includes("background: transparent !important"),
         "示範期間手指教學為 100% 透明無阻礙浮空 HUD");
+
+    assert(gameSrc.includes("servePrepared = !webcamActive;"),
+        "無體感時 servePrepared 立即就緒，不提示「請先左手舉高」");
+    assert(gameSrc.includes("hints = webcamActive ?"),
+        "resetServe 提示文案依據 webcamActive 動態區分體感與手機/觸控");
+    assert(gameSrc.includes("Swept Continuous Collision Detection"),
+        "tryHit 具備防高速殺球穿透之連續碰撞檢測 (Swept CCD)");
 } catch (e) {
     assert(false, "防衝突檢測錯誤", e.message);
+}
+
+// ── 7. 物理動力學與防穿透碰撞矩陣模擬 (Physics Dynamics & CCD Simulation) ──
+console.log("\n▶ [7/7] 多版本物理動力學與連續碰撞模擬 (Physics & CCD Matrix)...");
+try {
+    const simOut = cp.execSync("node scripts/physics-sim.js", { cwd: ROOT, encoding: "utf8" });
+    const mPass = simOut.match(/通過:\s*(\d+)\s*項/);
+    const passCount = mPass ? parseInt(mPass[1], 10) : 0;
+    assert(passCount >= 80, `82 項物理動力學與 CCD 防穿透測試全數 PASS (通過 ${passCount} 項)`);
+} catch (e) {
+    assert(false, "物理模擬腳本執行異常", e.message);
 }
 
 // ── 總結 ──
