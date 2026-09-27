@@ -1130,7 +1130,7 @@ function solveArc(fx, fy, fz, tx, tz, out, speedScale) {
             D.name.innerText = STAGES[n].name; D.sub.innerText = STAGES[n].sub; D.desc.innerText = STAGES[n].desc;
             pScore = 0; aScore = 0; legalServes = 0; twoBounceDone = 0; serveSide = 1; server = 'PLAYER'; secondServe = false; locked = false;
             updateScore(); updateGoal();
-            gGrp.visible = (n >= 2); gGrp.position.set(0, 0, -HALF_L - 0.5);
+            gGrp.visible = true; gGrp.position.set(0, 0, -HALF_L - 0.5);
 
             // ★ 🍄 道具戰關卡管理 (前4關鎖定停用，第5關魔王自由開關，第6關常駐開啟)
             if (typeof FunMode !== 'undefined') {
@@ -2235,18 +2235,25 @@ function gooseForceNet(b) {
                 aiTo.z = THREE.MathUtils.clamp(gGrp.position.z + (pdz / pd) * 4.2, -HALF_L + 0.4, -0.6);
             } else if (active && PH.vel.z < 0) {
                 const hasLand = predictLanding(_land);
-                const ap = predictApex();
-
-                if (hasLand && _land.z < 0 && _land.z > -KITCHEN_D - 0.25) {
-                    // ★ 小球落入廚房區：AI 快速壓上廚房線前 (z: -2.25m ~ -1.15m)，準備網前對攻！
-                    aiTo.x = THREE.MathUtils.clamp(_land.x, -COURT_W / 2 + 0.4, COURT_W / 2 - 0.4);
-                    aiTo.z = THREE.MathUtils.clamp(_land.z - 0.45, -KITCHEN_D - 0.20, -1.15);
-                } else if (ap) {
-                    aiTo.x = THREE.MathUtils.clamp(ap.x, -COURT_W / 2 - 0.7, COURT_W / 2 + 0.7);
-                    if (ap.z > -KITCHEN_D - 0.20) {
-                        aiTo.z = THREE.MathUtils.clamp(ap.z - 0.15, -KITCHEN_D - 0.25, -0.95);
+                if (bounces >= 1) {
+                    // ★ 球已在對手半場彈起：最高優先級動態直追球體即時位置，保證貼身迎擊
+                    aiTo.x = THREE.MathUtils.clamp(PH.pos.x, -COURT_W / 2 + 0.35, COURT_W / 2 - 0.35);
+                    aiTo.z = THREE.MathUtils.clamp(PH.pos.z - 0.45, -HALF_L - 1.2, -0.9);
+                } else if (hasLand && _land.z < 0) {
+                    // ★ 球在飛行中：根據物理預測落點 _land 全力跑位
+                    aiTo.x = THREE.MathUtils.clamp(_land.x, -COURT_W / 2 + 0.35, COURT_W / 2 - 0.35);
+                    if (_land.z > -KITCHEN_D - 0.20) {
+                        // 廚房小球：AI 壓上廚房線前 (z: -2.25m ~ -1.10m)
+                        aiTo.z = THREE.MathUtils.clamp(_land.z - 0.45, -KITCHEN_D - 0.25, -1.10);
                     } else {
-                        aiTo.z = THREE.MathUtils.clamp(ap.z, -HALF_L - 2.5, -0.9);
+                        // 底線深球：站在落點後方 0.65m，球拍自然迎向彈跳上升期
+                        aiTo.z = THREE.MathUtils.clamp(_land.z - 0.65, -HALF_L - 2.0, -KITCHEN_D - 0.35);
+                    }
+                } else {
+                    const ap = predictApex();
+                    if (ap) {
+                        aiTo.x = THREE.MathUtils.clamp(ap.x, -COURT_W / 2 + 0.35, COURT_W / 2 - 0.35);
+                        aiTo.z = THREE.MathUtils.clamp(ap.z - 0.45, -HALF_L - 2.0, -0.9);
                     }
                 }
             } else if (state === 'SERVE_READY') {
@@ -2266,7 +2273,12 @@ function gooseForceNet(b) {
                 else spd = 10.5;
             } else {
                 const diffScale = stage >= 4 ? (DIFF_PRESETS[diffLevel]?.speedScale || 1.0) : 1.0;
-                spd = (AI_SPEED[stage] || 5.5) * diffScale;
+                let baseSpd = (AI_SPEED[stage] || 5.5) * diffScale;
+                // ★ 前三關教學關與初階模式保證陪練到位，防止玩家發大角度遠球 AI 來不及就位
+                if (stage <= 3 || diffLevel === 'easy') {
+                    baseSpd = Math.max(baseSpd, 7.2);
+                }
+                spd = baseSpd;
             }
 
             const dx = aiTo.x - gGrp.position.x, dz = aiTo.z - gGrp.position.z, d = Math.hypot(dx, dz);
@@ -2292,9 +2304,11 @@ function gooseForceNet(b) {
             if (!active || gLock > 0 || locked) return;
             if (PH.pos.z > -0.05 || PH.vel.z > 0 || bounces === 0) return;
             const b = PH.pos, gp = gPadW;
-            const xTol = isFly ? 1.05 : 0.80;
-            const zTol = isFly ? 0.85 : 0.62;
-            const yTol = isFly ? 0.95 : 0.75;
+            // ★ 放寬擊球容差：前三關教學關卡與初階模式給予充足接球範圍，確保對手 100% 把球打回！
+            const isEasyOrTeach = (stage <= 3 || diffLevel === 'easy');
+            const xTol = isFly ? 1.25 : (isEasyOrTeach ? 1.65 : 1.15);
+            const zTol = isFly ? 1.05 : (isEasyOrTeach ? 1.35 : 0.95);
+            const yTol = isFly ? 1.15 : (isEasyOrTeach ? 1.55 : 1.15);
             if (Math.abs(b.z - gp.z) > zTol + BALL_R || Math.abs(b.x - gp.x) > xTol + BALL_R ||
                 Math.abs(b.y - gp.y) > yTol + BALL_R) return;
 
@@ -2441,9 +2455,9 @@ function gooseForceNet(b) {
                 return;
             }
 
-            // ★ 規格 6: 人性化失誤機制 + ★ v5.0.12 前三關新手教學失誤率極低 (2.5%)，第4~5關依難度調節
+            // ★ 規格 6: 前三關新手教學失誤率徹底歸零 (100% 穩健回球)；第4~5關依難度調節
             const diffMult = stage >= 4 ? (DIFF_PRESETS[diffLevel]?.missMultiplier || 1.0) : 1.0;
-            let missRate = (AI_MISS[stage] || 0.025) * diffMult;
+            let missRate = stage <= 3 ? 0 : (AI_MISS[stage] || 0.15) * diffMult;
             const incomingSpeed = PH.vel.length();
             if (incomingSpeed > 14.2 && stage >= 4) missRate += 0.11; // 僅對第4~5關玩家極速回球提升失誤率
             missRate = Math.min(missRate, 0.92);
