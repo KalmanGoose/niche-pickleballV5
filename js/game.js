@@ -655,42 +655,46 @@
             scene.add(pGrp);
         }
 
-        let gooseEmoteSprite = null, gooseEmoteCanvas = null, gooseEmoteTimer = 0;
+        let gooseEmoteSprite = null, gooseEmoteCanvas = null, gooseEmoteTex = null, gooseEmoteTimer = 0;
         function updateGooseEmote(emoji) {
-            if (!gooseEmoteCanvas) {
-                gooseEmoteCanvas = document.createElement('canvas');
-                gooseEmoteCanvas.width = 128; gooseEmoteCanvas.height = 128;
-                const tex = new THREE.CanvasTexture(gooseEmoteCanvas);
-                const mat = new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false });
-                gooseEmoteSprite = new THREE.Sprite(mat);
-                gooseEmoteSprite.scale.set(1.05, 1.05, 1);
-                scene.add(gooseEmoteSprite);
+            try {
+                if (!gooseEmoteCanvas) {
+                    gooseEmoteCanvas = document.createElement('canvas');
+                    gooseEmoteCanvas.width = 128; gooseEmoteCanvas.height = 128;
+                    gooseEmoteTex = new THREE.CanvasTexture(gooseEmoteCanvas);
+                    const mat = new THREE.SpriteMaterial({ map: gooseEmoteTex, transparent: true, depthWrite: false });
+                    gooseEmoteSprite = new THREE.Sprite(mat);
+                    gooseEmoteSprite.scale.set(1.05, 1.05, 1);
+                    scene.add(gooseEmoteSprite);
+                }
+                const ctx = gooseEmoteCanvas.getContext('2d');
+                ctx.clearRect(0, 0, 128, 128);
+                if (!emoji) {
+                    if (gooseEmoteSprite) gooseEmoteSprite.visible = false;
+                    return;
+                }
+                // 繪製圓角對話氣泡 (Cute Speech Bubble)
+                ctx.fillStyle = '#ffffff';
+                ctx.shadowColor = 'rgba(0,0,0,0.22)';
+                ctx.shadowBlur = 8;
+                ctx.beginPath();
+                ctx.roundRect(14, 14, 100, 78, 18);
+                ctx.fill();
+                // 下方尖角
+                ctx.beginPath();
+                ctx.moveTo(54, 92); ctx.lineTo(64, 112); ctx.lineTo(74, 92); ctx.fill();
+                ctx.shadowBlur = 0;
+                // Emoji
+                ctx.font = '44px system-ui, sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(emoji, 64, 53);
+                if (gooseEmoteTex) gooseEmoteTex.needsUpdate = true;
+                if (gooseEmoteSprite) gooseEmoteSprite.visible = true;
+                gooseEmoteTimer = 2.2;
+            } catch (e) {
+                console.warn('updateGooseEmote error safely caught:', e);
             }
-            const ctx = gooseEmoteCanvas.getContext('2d');
-            ctx.clearRect(0, 0, 128, 128);
-            if (!emoji) {
-                if (gooseEmoteSprite) gooseEmoteSprite.visible = false;
-                return;
-            }
-            // 繪製圓角對話氣泡 (Cute Speech Bubble)
-            ctx.fillStyle = '#ffffff';
-            ctx.shadowColor = 'rgba(0,0,0,0.22)';
-            ctx.shadowBlur = 8;
-            ctx.beginPath();
-            ctx.roundRect(14, 14, 100, 78, 18);
-            ctx.fill();
-            // 下方尖角
-            ctx.beginPath();
-            ctx.moveTo(54, 92); ctx.lineTo(64, 112); ctx.lineTo(74, 92); ctx.fill();
-            ctx.shadowBlur = 0;
-            // Emoji
-            ctx.font = '44px system-ui, sans-serif';
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.fillText(emoji, 64, 53);
-            gooseEmoteCanvas.material.map.needsUpdate = true;
-            gooseEmoteSprite.visible = true;
-            gooseEmoteTimer = 2.2;
         }
 
         function buildCreeper() {
@@ -1130,7 +1134,10 @@ function solveArc(fx, fy, fz, tx, tz, out, speedScale) {
             D.name.innerText = STAGES[n].name; D.sub.innerText = STAGES[n].sub; D.desc.innerText = STAGES[n].desc;
             pScore = 0; aScore = 0; legalServes = 0; twoBounceDone = 0; serveSide = 1; server = 'PLAYER'; secondServe = false; locked = false;
             updateScore(); updateGoal();
-            gGrp.visible = true; gGrp.position.set(0, 0, -HALF_L - 0.5);
+            if (gGrp) {
+                gGrp.visible = true;
+                gGrp.position.set(0, 0, -HALF_L - 0.5);
+            }
 
             // ★ 🍄 道具戰關卡管理 (前4關鎖定停用，第5關魔王自由開關，第6關常駐開啟)
             if (typeof FunMode !== 'undefined') {
