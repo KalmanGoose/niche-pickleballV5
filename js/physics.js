@@ -165,7 +165,7 @@ class Physics {
         if (ball) ball.rotation.set(0, 0, 0);
     }
     update(dt) {
-        if (state === 'SERVE_READY' || state === 'FAULT' || state === 'OVER') {
+        if (state === 'SERVE_READY' || state === 'FAULT' || state === 'OVER' || state === 'CLEARED') {
             this.prevPos.copy(this.pos);
             this.sync();
             return;

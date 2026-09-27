@@ -1157,16 +1157,22 @@ function solveArc(fx, fy, fz, tx, tz, out, speedScale) {
             warnKitchen.material.opacity = 0;
             const isAdvance = !!(opts && opts.fromClear);
             const showDemo = !!(opts && opts.showDemo);
-            // ★ 恢復教學示範：前三關首發自動展示示範教學，或由 opts.showDemo 明確觸發；否則直接開球
-            if (showDemo || (!dSeen[n] && n <= 3)) {
+            // ★ 永遠優先讓玩家親自操作，手上永遠有球！只有點擊「觀看示範」時才啟動 startDemo
+            if (showDemo) {
                 dSeen[n] = true;
                 startDemo(n);
             } else {
                 dSeen[n] = true;
                 resetServe();
-                if (isAdvance) {
-                    toast('🎯 STAGE ' + n + '：' + STAGES[n].name, STAGES[n].desc);
-                }
+                const stageHints = {
+                    1: '向上滑動推拍，將球對角發進綠區即過關！',
+                    2: '雙彈跳規則：發球過網，等匹克鵝回球落地彈起再打回去！',
+                    3: '廚房區攻防：等球在廚房落地彈起後輕推小球過網！',
+                    4: '綜合對決：發球得分制，先得 3 分過關！',
+                    5: '魔王對決：全力揮拍擊敗中興湖魔王匹克鵝！',
+                    6: '瘋狂道具戰：拾取盲盒神裝，稱霸全場！'
+                };
+                toast('🎯 STAGE ' + n + '：' + STAGES[n].name, stageHints[n] || STAGES[n].desc);
             }
         }
         let gooseServeTimer = null;
@@ -1176,7 +1182,7 @@ function solveArc(fx, fy, fz, tx, tz, out, speedScale) {
             rallyHits = 0; bounces = 0; lastHitter = 'NONE';
             pLock = 0; gLock = 0; swingT = 0;
             charging = false; power = 0; powerDir = 1; locked = false; powerBarDisplay = 0;
-            servePrepared = !webcamActive; calibT0 = 0; serveCooldown = 1.2;
+            servePrepared = !webcamActive; calibT0 = 0; serveCooldown = 0.5;
             resetServeFSM(); kcReset();
 
             dinkRallyCount = 0;
@@ -1197,6 +1203,10 @@ function solveArc(fx, fy, fz, tx, tz, out, speedScale) {
                 pPos.x = 1.5 * serveSide; pPos.z = HALF_L + 0.35;
                 serveFromRight = pPos.x >= 0;
                 aiTo.x = 0; aiTo.z = -HALF_L - 0.5;
+                // ★ 關鍵：在 resetServe 當下立即將球精確重置在玩家球拍旁，手上有球絕不漏發！
+                pPad.position.set(padX, padY, -0.24);
+                pPad.getWorldPosition(padW);
+                PH.reset(padW.x - 0.22, Math.max(BALL_R, padW.y + 0.1), padW.z - 0.06);
                 AIM.idx = 2; AIM.cand = 2; AIM.dwell = 0; syncAimPips();
                 if (webcamActive) document.getElementById('calibration-box').style.display = 'flex';
                 D.pFill.style.width = '0%';

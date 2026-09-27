@@ -100,8 +100,8 @@
             if (typeof FunMode !== 'undefined' && FunMode.activeBuff === 'ELECTRIC_SWATTER') return;
             updateLastAuditOutcome(msg, sub);
             state = 'FAULT'; freeze(); S.fault(); addShake(0.14);
-            toast(msg, sub || '練習關不扣分,按空白鍵重來');
-            later(resetServe, 1650);
+            toast(msg, sub || '練習關不扣分，點擊螢幕重新發球');
+            later(resetServe, 900);
         }
         function serveFail(msg, sub) {
             if (state === 'CLEARED') return;
@@ -126,7 +126,7 @@
                 stageAdvanceTimer = setTimeout(() => {
                     stageAdvanceTimer = null;
                     switchStage(nextSt, { fromClear: true });
-                }, 1500);
+                }, 1200);
             } else if (stage === 5) {
                 toast('STAGE 5 CLEARED', '🏆 擊敗中興湖魔王！解鎖隱藏娛樂關！');
                 stageAdvanceTimer = setTimeout(() => {
