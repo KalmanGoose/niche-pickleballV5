@@ -1321,12 +1321,10 @@
             visibility: hidden !important;
         }
 
-        /* ══════ ★ 示範期間操作控制與選單暫時隱藏，避免遮擋教學畫面 ══════ */
+        /* ══════ ★ 示範期間操作控制暫時淡出，避免遮擋教學畫面；頂部活動選單 (#nav) 永遠保持可見，確保玩家能隨時切換/暫停/跳過 ══════ */
         body.demo-mode-active #joy,
         body.demo-mode-active #speed-hud-mini,
         body.demo-mode-active #bottom,
-        body.demo-mode-active #nav,
-        body.demo-mode-active #nav-sheet,
         body.demo-mode-active #info-diff-row,
         body.demo-mode-active #referee-announcement {
             opacity: 0 !important;
@@ -1673,6 +1671,7 @@
     width: max-content !important;
     max-width: calc(100% - 16px) !important;
     box-sizing: border-box !important;
+    z-index: 100 !important;
 }
 #nav-wrapper.minimized {
     width: max-content !important;

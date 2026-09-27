@@ -1121,6 +1121,8 @@ function solveArc(fx, fy, fz, tx, tz, out, speedScale) {
             if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
             demoOn = false; D.demo.style.display = 'none';
             const wm = document.getElementById('demo-watermark'); if (wm) wm.style.display = 'none';
+            document.body.classList.remove('demo-mode-active');
+            if (typeof dismissFingerTutorial === 'function') dismissFingerTutorial(true);
             stage = n;
             document.querySelectorAll('[data-stage]').forEach(b => b.classList.toggle('on', +b.dataset.stage === n));
             closePanel();

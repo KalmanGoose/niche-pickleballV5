@@ -442,6 +442,30 @@ function apiGet(qs) {
             }
         }
 
+        function handleGuestPlay() {
+            playerProfile.playerId = getOrCreatePlayerId();
+            playerProfile.avatar = '🏓';
+            playerProfile.sidPrefix = 'GUEST';
+            playerProfile.deptCode = 'OTHER';
+            playerProfile.department = '熱情訪客';
+            playerProfile.grade = '挑戰者';
+            playerProfile.entryYear = String(new Date().getFullYear() - 1911);
+            playerProfile.nickname = '興大球神訪客';
+            playerProfile.ig = '';
+            playerProfile.sessionId = 'S-' + Date.now().toString(36);
+            checkAdminAccess(playerProfile.nickname);
+
+            updateWhoLabel(playerProfile.nickname, playerProfile.avatar);
+            const overlay = document.getElementById('login-overlay');
+            if (overlay) overlay.style.display = 'none';
+            document.body.classList.remove('login-open');
+            document.body.classList.remove('demo-mode-active');
+            clearKeys();
+            S.init();
+            toast('👋 歡迎訪客！', '已進入特訓球場 (Stage 1)');
+            switchStage(1);
+        }
+
         function handleLogin() {
             const r = parseStudentId(document.getElementById('user-sid').value);
             if (!r.ok) { loginErr(r.msg); return; }

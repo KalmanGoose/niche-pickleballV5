@@ -1480,12 +1480,10 @@
             visibility: hidden !important;
         }
 
-        /* ══════ ★ 示範期間操作控制與選單暫時隱藏，避免遮擋教學畫面 ══════ */
+        /* ══════ ★ 示範期間操作控制暫時淡出，避免遮擋教學畫面；頂部活動選單 (#nav) 永遠保持可見，確保玩家能隨時切換/暫停/跳過 ══════ */
         body.demo-mode-active #joy,
         body.demo-mode-active #speed-hud-mini,
         body.demo-mode-active #bottom,
-        body.demo-mode-active #nav,
-        body.demo-mode-active #nav-sheet,
         body.demo-mode-active #info-diff-row,
         body.demo-mode-active #referee-announcement {
             opacity: 0 !important;
@@ -1832,6 +1830,7 @@
     width: max-content !important;
     max-width: calc(100% - 16px) !important;
     box-sizing: border-box !important;
+    z-index: 100 !important;
 }
 #nav-wrapper.minimized {
     width: max-content !important;
@@ -3965,6 +3964,7 @@
                 </div>
                 <button class="btn-main" onclick="handleQuickStart()">🚀 快速進入球場 (Space / Enter)</button>
                 <button type="button" onclick="showFullLoginForm()" style="width:100%;margin-top:8px;padding:9px;background:rgba(255,255,255,0.04);border:1px solid var(--line);border-radius:10px;color:var(--dim);font-size:12px;cursor:pointer;">✏️ 修改系級 / 暱稱 / 頭像</button>
+                <button type="button" onclick="handleGuestPlay()" style="width:100%;margin-top:8px;padding:9px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.18);border-radius:10px;color:var(--accent);font-size:12px;font-weight:700;cursor:pointer;">👟 訪客快速試玩 (免登入直接開打)</button>
             </div>
 
             <!-- 完整填寫表單 (首次登入或點擊修改) -->
@@ -4020,6 +4020,7 @@
                 </div>
 
                 <button class="btn-main" onclick="handleLogin()">🚀 進入中興球場開打!</button>
+                <button type="button" onclick="handleGuestPlay()" style="width:100%;margin-top:8px;padding:10px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.22);border-radius:10px;color:var(--txt);font-size:13px;font-weight:700;cursor:pointer;">👟 訪客快速試玩 (免填學號直接暢玩)</button>
             </div>
 
             <div class="id-badge" style="margin-top:14px;font-size:11px;line-height:1.6;color:var(--dim);text-align:center;background:rgba(0,0,0,0.22);padding:8px 12px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);">
@@ -5658,6 +5659,30 @@ function apiGet(qs) {
             } else {
                 showFullLoginForm();
             }
+        }
+
+        function handleGuestPlay() {
+            playerProfile.playerId = getOrCreatePlayerId();
+            playerProfile.avatar = '🏓';
+            playerProfile.sidPrefix = 'GUEST';
+            playerProfile.deptCode = 'OTHER';
+            playerProfile.department = '熱情訪客';
+            playerProfile.grade = '挑戰者';
+            playerProfile.entryYear = String(new Date().getFullYear() - 1911);
+            playerProfile.nickname = '興大球神訪客';
+            playerProfile.ig = '';
+            playerProfile.sessionId = 'S-' + Date.now().toString(36);
+            checkAdminAccess(playerProfile.nickname);
+
+            updateWhoLabel(playerProfile.nickname, playerProfile.avatar);
+            const overlay = document.getElementById('login-overlay');
+            if (overlay) overlay.style.display = 'none';
+            document.body.classList.remove('login-open');
+            document.body.classList.remove('demo-mode-active');
+            clearKeys();
+            S.init();
+            toast('👋 歡迎訪客！', '已進入特訓球場 (Stage 1)');
+            switchStage(1);
         }
 
         function handleLogin() {
@@ -8374,10 +8399,11 @@ function syncSubbarStates() {
                         });
                     }
                 }
-                const savedMin = localStorage.getItem('nchu_nav_minimized');
-                if (savedMin === '1') {
-                    toggleNavMinimize(true);
-                }
+                // ★ 每次重新整理或載入頁面時，預設保持完整選單列展開，防止使用者因前次誤觸收折而誤認選單遺失
+                try {
+                    localStorage.removeItem('nchu_nav_minimized');
+                    toggleNavMinimize(false);
+                } catch (_) {}
             } catch (e) {}
 
             function bindDrag(el, isPill) {
@@ -8642,7 +8668,8 @@ function cycleTeachLevelQuick() {
                 if (k === 'a' || k === 'arrowleft') { keys.a = true; e.preventDefault(); }
                 if (k === 'd' || k === 'arrowright') { keys.d = true; e.preventDefault(); }
                 if (e.code === 'Space') { e.preventDefault(); if (!e.repeat) beginCharge(); }
-                if (e.key === 'Escape') closePanel();
+                if (e.key === 'Escape') { closePanel(); toggleNavMinimize(false); }
+                if (k === 'm') { toggleNavMinimize(false); e.preventDefault(); }
             });
             window.addEventListener('keyup', e => {
                 if (isTypingTarget(e) || anyModalOpen()) return;
@@ -12787,6 +12814,8 @@ function solveArc(fx, fy, fz, tx, tz, out, speedScale) {
             if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
             demoOn = false; D.demo.style.display = 'none';
             const wm = document.getElementById('demo-watermark'); if (wm) wm.style.display = 'none';
+            document.body.classList.remove('demo-mode-active');
+            if (typeof dismissFingerTutorial === 'function') dismissFingerTutorial(true);
             stage = n;
             document.querySelectorAll('[data-stage]').forEach(b => b.classList.toggle('on', +b.dataset.stage === n));
             closePanel();

@@ -736,10 +736,11 @@ function syncSubbarStates() {
                         });
                     }
                 }
-                const savedMin = localStorage.getItem('nchu_nav_minimized');
-                if (savedMin === '1') {
-                    toggleNavMinimize(true);
-                }
+                // ★ 每次重新整理或載入頁面時，預設保持完整選單列展開，防止使用者因前次誤觸收折而誤認選單遺失
+                try {
+                    localStorage.removeItem('nchu_nav_minimized');
+                    toggleNavMinimize(false);
+                } catch (_) {}
             } catch (e) {}
 
             function bindDrag(el, isPill) {
@@ -1004,7 +1005,8 @@ function cycleTeachLevelQuick() {
                 if (k === 'a' || k === 'arrowleft') { keys.a = true; e.preventDefault(); }
                 if (k === 'd' || k === 'arrowright') { keys.d = true; e.preventDefault(); }
                 if (e.code === 'Space') { e.preventDefault(); if (!e.repeat) beginCharge(); }
-                if (e.key === 'Escape') closePanel();
+                if (e.key === 'Escape') { closePanel(); toggleNavMinimize(false); }
+                if (k === 'm') { toggleNavMinimize(false); e.preventDefault(); }
             });
             window.addEventListener('keyup', e => {
                 if (isTypingTarget(e) || anyModalOpen()) return;

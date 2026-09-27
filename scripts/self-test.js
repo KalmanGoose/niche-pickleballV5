@@ -195,12 +195,27 @@ try {
         "clearStage 拍立得完賽卡嚴格限定正式比賽關卡 (stage >= 4)");
 
     const motionSrc = fs.readFileSync(path.join(ROOT, "js", "motion.js"), "utf8");
+    const configSrc = fs.readFileSync(path.join(ROOT, "js", "config.js"), "utf8");
+    const v14Html = fs.readFileSync(path.join(ROOT, "v14.html"), "utf8");
+
     assert(motionSrc.includes("let fingerTutActive = false;"),
         "fingerTutActive 預設為 false，杜絕開機阻斷玩家控制");
     assert(gameSrc.includes("if (fingerTutActive && demoOn && state === 'DEMO')"),
         "updatePlayer 僅在電腦示範模式 (demoOn && state === 'DEMO') 允許手指引導動畫接管主角");
     assert(!gameSrc.includes("if (!dSeen[n] && n === 1 && !isAdvance) {\n                dSeen[n] = true;\n                startDemo(n);"),
         "switchStage(1) 開局直接進入玩家發球 (resetServe)，不再強制 13.4 秒電腦示範鎖定");
+
+    // ★ 選單列可見性與訪客體驗防呆
+    assert(!/body\.demo-mode-active\s+[^,{]*#nav\b/.test(hudCss),
+        "示範模式不隱藏頂部選單列 #nav，確保玩家隨時具備控制權");
+    assert(gameSrc.includes("document.body.classList.remove('demo-mode-active');"),
+        "switchStage 強制清除 demo-mode-active，防止選單或搖桿殘留隱藏");
+    assert(configSrc.includes("function handleGuestPlay()"),
+        "config.js 包含 handleGuestPlay 訪客直接開局管道");
+    assert(v14Html.includes("handleGuestPlay()"),
+        "v14.html 包含訪客快速試玩按鈕");
+    assert(uiSrc.includes("localStorage.removeItem('nchu_nav_minimized')"),
+        "ui.js 於載入時自動清除最小化記憶，保證選單列 100% 完整展開");
 } catch (e) {
     assert(false, "防衝突檢測錯誤", e.message);
 }
