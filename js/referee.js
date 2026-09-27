@@ -6,6 +6,7 @@
         let pScore = 0, aScore = 0, legalServes = 0, twoBounceDone = 0;
         let rallyHits = 0, bounces = 0, lastHitter = 'NONE';
         let serveFromRight = true, serveSide = 1, locked = false;
+        let stageAdvanceTimer = null; // ★ 獨立關卡推進定時器，防護 clearTimers 抹除
         const pPos = { x: 1.5, z: HALF_L + 0.35 };
         const keys = { w: false, a: false, s: false, d: false };
         const mouse = new THREE.Vector2(0, -0.22);
@@ -18,7 +19,7 @@
 
 /* ═══════ 計分判定、發球權轉換、規則手冊與虛擬裁判廣播 ═══════ */
         function endRally(scorer, msg, sub) {
-            if (locked || demoOn) return;
+            if (locked || demoOn || state === 'CLEARED') return;
             if (state === 'FAULT' || state === 'OVER') return;
             // ★ 🍄 瘋狂道具戰：電蚊拍追殺模式下，球落地/掛網完全不結算！必須衝過去電到蒼蠅才算贏！
             if (typeof FunMode !== 'undefined' && FunMode.activeBuff === 'ELECTRIC_SWATTER') return;
@@ -93,7 +94,7 @@
             later(resetServe, 2200);
         }
         function fail(msg, sub) {
-            if (locked || demoOn) return;
+            if (locked || demoOn || state === 'CLEARED') return;
             if (state === 'FAULT' || state === 'OVER') return;
             // ★ 🍄 瘋狂道具戰：電蚊拍追殺模式下，不判練習關失敗
             if (typeof FunMode !== 'undefined' && FunMode.activeBuff === 'ELECTRIC_SWATTER') return;
@@ -103,29 +104,44 @@
             later(resetServe, 1650);
         }
         function serveFail(msg, sub) {
+            if (state === 'CLEARED') return;
             if (typeof FunMode !== 'undefined' && FunMode.activeBuff === 'ELECTRIC_SWATTER') return;
             if (scoring()) endRally(server === 'PLAYER' ? 'GOOSE' : 'PLAYER', msg, sub); else fail(msg, sub);
         }
         function clearStage() {
             updateLastAuditOutcome('關卡順利通過');
-            state = 'FAULT'; freeze(); clearTimers(); locked = true; S.point();
+            state = 'CLEARED'; freeze(); clearTimers(); locked = true; S.point();
             popRing(0, 2, 8, 0xffc857);
             if (typeof updateGooseEmote === 'function') updateGooseEmote('👏');
             if (typeof showPolaroidSouvenir === 'function' && stage >= 4) {
                 showPolaroidSouvenir(true, pScore, aScore);
             }
+            if (stageAdvanceTimer) {
+                clearTimeout(stageAdvanceTimer);
+                stageAdvanceTimer = null;
+            }
             if (stage < 5) {
-                toast('STAGE ' + stage + ' CLEARED', '自動進入下一關');
-                later(() => switchStage(stage + 1, { fromClear: true }), 1800);
+                const nextSt = stage + 1;
+                toast('STAGE ' + stage + ' CLEARED', '🎉 恭喜通關！自動進入 STAGE ' + nextSt);
+                stageAdvanceTimer = setTimeout(() => {
+                    stageAdvanceTimer = null;
+                    switchStage(nextSt, { fromClear: true });
+                }, 1500);
             } else if (stage === 5) {
                 toast('STAGE 5 CLEARED', '🏆 擊敗中興湖魔王！解鎖隱藏娛樂關！');
-                later(() => {
+                stageAdvanceTimer = setTimeout(() => {
+                    stageAdvanceTimer = null;
                     submitScoreToCloud(pScore);
-                    switchStage(6);
-                }, 2600);
+                    switchStage(6, { fromClear: true });
+                }, 2400);
             } else {
                 toast('🎉 STAGE 6 完美通關！', '🏆 稱霸瘋狂道具戰！登錄英雄榜！');
-                later(() => { locked = false; resetServe(); submitScoreToCloud(pScore); }, 2100);
+                stageAdvanceTimer = setTimeout(() => {
+                    stageAdvanceTimer = null;
+                    locked = false;
+                    resetServe();
+                    submitScoreToCloud(pScore);
+                }, 2000);
             }
         }
         function forfeitMatch() {

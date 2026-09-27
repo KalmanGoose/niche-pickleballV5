@@ -216,6 +216,14 @@ try {
         "v14.html 包含訪客快速試玩按鈕");
     assert(uiSrc.includes("localStorage.removeItem('nchu_nav_minimized')"),
         "ui.js 於載入時自動清除最小化記憶，保證選單列 100% 完整展開");
+
+    // ★ 關卡推進與教學恢復檢測
+    assert(configSrc.includes("goal: 1") && configSrc.includes("1: { name: '發球養成'"),
+        "STAGES[1].goal 改為 1 球成功即過關");
+    assert(refereeSrc.includes("let stageAdvanceTimer = null") && refereeSrc.includes("state = 'CLEARED'"),
+        "clearStage 具備獨立 stageAdvanceTimer 與 CLEARED 狀態保護");
+    assert(v14Html.includes("replayDemo()") && v14Html.includes("showFingerTutorial(0)"),
+        "v14.html 關卡子排包含「觀看示範」與「揮拍教學」快捷入口");
 } catch (e) {
     assert(false, "防衝突檢測錯誤", e.message);
 }

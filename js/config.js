@@ -575,7 +575,7 @@ function apiGet(qs) {
         const DIAG_DEADZONE = 0.12;
 
         const STAGES = {
-            1: { name: '發球養成', sub: 'Underhand Serve', desc: '雙腳在底線後、球拍低於腰部，向上推拍將球對角送進綠區。', goal: 2 },
+            1: { name: '發球養成', sub: 'Underhand Serve', desc: '雙腳在底線後、球拍低於腰部，向上推拍將球對角送進綠區。', goal: 1 },
             2: { name: '雙彈跳規則', sub: 'Two-Bounce Rule', desc: '發球與接發球各必須先落地一次。等球彈起再回擊。', goal: 1 },
             3: { name: '廚房區攻防', sub: 'Kitchen Zone', desc: '球落進廚房時,等它彈起後再輕推回去 1 次即過關;球未落地就在廚房揮拍會被判違規。', goal: 1 },
             4: { name: '對決匹克鵝', sub: 'Full Match', desc: '綜合對決匹克鵝,先得 3 分過關。', goal: 3 },

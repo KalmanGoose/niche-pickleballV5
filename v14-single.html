@@ -4995,6 +4995,8 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
                         <button class="stage-btn" data-stage="5" onclick="switchStage(5)">5 冠軍賽</button>
                         <button class="stage-btn" data-stage="6" onclick="switchStage(6)" style="color:#fbbf24;font-weight:700;">6 娛樂戰</button>
                         <button class="stage-btn" onclick="openItemCardsModal()" style="color:#f59e0b;font-weight:700;">🃏 卡包</button>
+                        <button class="stage-btn" onclick="replayDemo()" style="color:var(--accent);font-weight:700;">▶ 觀看示範</button>
+                        <button class="stage-btn" onclick="showFingerTutorial(0)" style="color:var(--ok);font-weight:700;">👆 揮拍教學</button>
                     </div>
                     <div style="display:flex;align-items:center;gap:4px;border-top:1px solid rgba(255,255,255,0.1);padding-top:4px;width:100%;justify-content:center;">
                         <span style="font-size:10px;font-weight:800;color:var(--dim);white-space:nowrap;">🤖 AI 難度:</span>
@@ -5794,7 +5796,7 @@ function apiGet(qs) {
         const DIAG_DEADZONE = 0.12;
 
         const STAGES = {
-            1: { name: '發球養成', sub: 'Underhand Serve', desc: '雙腳在底線後、球拍低於腰部，向上推拍將球對角送進綠區。', goal: 2 },
+            1: { name: '發球養成', sub: 'Underhand Serve', desc: '雙腳在底線後、球拍低於腰部，向上推拍將球對角送進綠區。', goal: 1 },
             2: { name: '雙彈跳規則', sub: 'Two-Bounce Rule', desc: '發球與接發球各必須先落地一次。等球彈起再回擊。', goal: 1 },
             3: { name: '廚房區攻防', sub: 'Kitchen Zone', desc: '球落進廚房時,等它彈起後再輕推回去 1 次即過關;球未落地就在廚房揮拍會被判違規。', goal: 1 },
             4: { name: '對決匹克鵝', sub: 'Full Match', desc: '綜合對決匹克鵝,先得 3 分過關。', goal: 3 },
@@ -6516,6 +6518,7 @@ function syncPhysicsModeUI() {
         let pScore = 0, aScore = 0, legalServes = 0, twoBounceDone = 0;
         let rallyHits = 0, bounces = 0, lastHitter = 'NONE';
         let serveFromRight = true, serveSide = 1, locked = false;
+        let stageAdvanceTimer = null; // ★ 獨立關卡推進定時器，防護 clearTimers 抹除
         const pPos = { x: 1.5, z: HALF_L + 0.35 };
         const keys = { w: false, a: false, s: false, d: false };
         const mouse = new THREE.Vector2(0, -0.22);
@@ -6528,7 +6531,7 @@ function syncPhysicsModeUI() {
 
 /* ═══════ 計分判定、發球權轉換、規則手冊與虛擬裁判廣播 ═══════ */
         function endRally(scorer, msg, sub) {
-            if (locked || demoOn) return;
+            if (locked || demoOn || state === 'CLEARED') return;
             if (state === 'FAULT' || state === 'OVER') return;
             // ★ 🍄 瘋狂道具戰：電蚊拍追殺模式下，球落地/掛網完全不結算！必須衝過去電到蒼蠅才算贏！
             if (typeof FunMode !== 'undefined' && FunMode.activeBuff === 'ELECTRIC_SWATTER') return;
@@ -6603,7 +6606,7 @@ function syncPhysicsModeUI() {
             later(resetServe, 2200);
         }
         function fail(msg, sub) {
-            if (locked || demoOn) return;
+            if (locked || demoOn || state === 'CLEARED') return;
             if (state === 'FAULT' || state === 'OVER') return;
             // ★ 🍄 瘋狂道具戰：電蚊拍追殺模式下，不判練習關失敗
             if (typeof FunMode !== 'undefined' && FunMode.activeBuff === 'ELECTRIC_SWATTER') return;
@@ -6613,29 +6616,44 @@ function syncPhysicsModeUI() {
             later(resetServe, 1650);
         }
         function serveFail(msg, sub) {
+            if (state === 'CLEARED') return;
             if (typeof FunMode !== 'undefined' && FunMode.activeBuff === 'ELECTRIC_SWATTER') return;
             if (scoring()) endRally(server === 'PLAYER' ? 'GOOSE' : 'PLAYER', msg, sub); else fail(msg, sub);
         }
         function clearStage() {
             updateLastAuditOutcome('關卡順利通過');
-            state = 'FAULT'; freeze(); clearTimers(); locked = true; S.point();
+            state = 'CLEARED'; freeze(); clearTimers(); locked = true; S.point();
             popRing(0, 2, 8, 0xffc857);
             if (typeof updateGooseEmote === 'function') updateGooseEmote('👏');
             if (typeof showPolaroidSouvenir === 'function' && stage >= 4) {
                 showPolaroidSouvenir(true, pScore, aScore);
             }
+            if (stageAdvanceTimer) {
+                clearTimeout(stageAdvanceTimer);
+                stageAdvanceTimer = null;
+            }
             if (stage < 5) {
-                toast('STAGE ' + stage + ' CLEARED', '自動進入下一關');
-                later(() => switchStage(stage + 1, { fromClear: true }), 1800);
+                const nextSt = stage + 1;
+                toast('STAGE ' + stage + ' CLEARED', '🎉 恭喜通關！自動進入 STAGE ' + nextSt);
+                stageAdvanceTimer = setTimeout(() => {
+                    stageAdvanceTimer = null;
+                    switchStage(nextSt, { fromClear: true });
+                }, 1500);
             } else if (stage === 5) {
                 toast('STAGE 5 CLEARED', '🏆 擊敗中興湖魔王！解鎖隱藏娛樂關！');
-                later(() => {
+                stageAdvanceTimer = setTimeout(() => {
+                    stageAdvanceTimer = null;
                     submitScoreToCloud(pScore);
-                    switchStage(6);
-                }, 2600);
+                    switchStage(6, { fromClear: true });
+                }, 2400);
             } else {
                 toast('🎉 STAGE 6 完美通關！', '🏆 稱霸瘋狂道具戰！登錄英雄榜！');
-                later(() => { locked = false; resetServe(); submitScoreToCloud(pScore); }, 2100);
+                stageAdvanceTimer = setTimeout(() => {
+                    stageAdvanceTimer = null;
+                    locked = false;
+                    resetServe();
+                    submitScoreToCloud(pScore);
+                }, 2000);
             }
         }
         function forfeitMatch() {
@@ -12645,14 +12663,10 @@ function solveArc(fx, fy, fz, tx, tz, out, speedScale) {
             const A = [], add = (at, main, tag, fn) => A.push({ at: at, main: main, tag: tag, do: fn });
             const back = HALF_L + 0.35;
             if (st === 1) {
-                add(0.0, '發球預備: 站進右側藍圈，拍面自然就位', 'STEP 1 站位預備', () => { dMove(1.5, back); dPaddle(0.34, 0.74); dDemoTgt.x = -1.5; dDemoTgt.z = -4.8; });
-                add(1.0, '👆 向上滑動推拍: 對角送進綠色發球區', 'STEP 2 滑動教學', () => { dPaddle(0.31, 0.60); });
-                add(3.2, '拍面低於腰部 = 合法下手臂直推發球！', 'STEP 3 直推發球', () => { dHit(-1.5, -4.8, 0); });
-                add(5.6, '收拍時手腕自然抬高過肩', 'STEP 3.5 完整收拍');
-                add(6.8, '走到左側藍圈，準備示範側旋發球', 'STEP 4 換邊發球', () => { dMove(-1.5, back); dPaddle(-0.31, 0.60); dDemoTgt.x = 1.5; dDemoTgt.z = -4.8; });
-                add(7.4, '🌪️ 右上刷切揮拍: 劃出微弧線落入右側發球區', 'STEP 5 側切教學');
-                add(8.6, '香蕉側旋弧線球成功擊出！', 'STEP 5.5 側切發球', () => { dHit(1.5, -4.8, 0.65); });
-                add(11.0, '左右發球各成功一次即過關！點擊畫面開始', '通關重點');
+                add(0.0, '發球預備: 雙腳在底線後，球拍自然就位', 'STEP 1 站位預備', () => { dMove(1.5, back); dPaddle(0.34, 0.74); dDemoTgt.x = -1.5; dDemoTgt.z = -4.8; });
+                add(1.0, '👆 向上滑動推拍: 球拍由下往上推球', 'STEP 2 向上推拍', () => { dPaddle(0.31, 0.60); });
+                add(2.8, '拍面低於腰部向上直推，將球對角送進綠區！', 'STEP 3 直推發球', () => { dHit(-1.5, -4.8, 0); });
+                add(4.5, '球落入綠色對角區即成功過關！點擊任意處開始', '通關重點');
             } else if (st === 2) {
                 add(0.0, '先正常對角發球過網', 'STEP 1 發球', () => { dMove(1.5, back); dPaddle(0.31, 0.60); dG(0, -HALF_L - 0.5); dDemoTgt.x = -1.6; dDemoTgt.z = -4.8; });
                 add(1.4, null, null, () => dHit(-1.6, -4.8));
@@ -12808,6 +12822,10 @@ function solveArc(fx, fy, fz, tx, tz, out, speedScale) {
             if (dClock >= dEnd) endDemo();
         }
         function switchStage(n, opts) {
+            if (typeof stageAdvanceTimer !== 'undefined' && stageAdvanceTimer) {
+                clearTimeout(stageAdvanceTimer);
+                stageAdvanceTimer = null;
+            }
             clearTimers();
             if (typeof restoreTwinParams === 'function' && !(opts && opts.keepTwin)) restoreTwinParams();
             if (typeof FunMode !== 'undefined') FunMode.usedForcedItem = false;
@@ -12850,12 +12868,16 @@ function solveArc(fx, fy, fz, tx, tz, out, speedScale) {
             warnKitchen.material.opacity = 0;
             const isAdvance = !!(opts && opts.fromClear);
             const showDemo = !!(opts && opts.showDemo);
-            if (showDemo) {
+            // ★ 恢復教學示範：前三關首發自動展示示範教學，或由 opts.showDemo 明確觸發；否則直接開球
+            if (showDemo || (!dSeen[n] && n <= 3)) {
                 dSeen[n] = true;
                 startDemo(n);
             } else {
                 dSeen[n] = true;
                 resetServe();
+                if (isAdvance) {
+                    toast('🎯 STAGE ' + n + '：' + STAGES[n].name, STAGES[n].desc);
+                }
             }
         }
         let gooseServeTimer = null;
@@ -12950,7 +12972,7 @@ function solveArc(fx, fy, fz, tx, tz, out, speedScale) {
             }
             if (camEdit) return;                       // 編輯視角時不蓄力
             if (demoOn) { skipDemo(); return; }
-            if (locked) return;
+            if (locked || state === 'CLEARED') return;
             if (state === 'FAULT') { clearTimers(); resetServe(); return; }
             if (webcamActive) return;                  // 體感模式不用震盪蓄力,避免與 AI 搶 power
             if (state === 'SERVE_READY' && server !== 'PLAYER') return;   // ★ 鵝發球期間不蓄力
@@ -13352,7 +13374,7 @@ function solveArc(fx, fy, fz, tx, tz, out, speedScale) {
                     stance: { ok: stanceOK, bal: +stanceBal.toFixed(2) }, outcome: '廚房合法回擊 (過關)'
                 });
                 locked = true;
-                later(() => { locked = false; clearStage(); }, 700);
+                clearStage();
                 return;
             }
 
@@ -13380,7 +13402,7 @@ function solveArc(fx, fy, fz, tx, tz, out, speedScale) {
 
             if (stage === 2 && rallyHits >= 3 && !volley) {
                 twoBounceDone = 1; updateGoal(); locked = true;
-                later(() => { locked = false; clearStage(); }, 700);
+                clearStage();
             }
         }
         const joyAnalog = { x: 0, z: 0 };

@@ -952,14 +952,10 @@ function solveArc(fx, fy, fz, tx, tz, out, speedScale) {
             const A = [], add = (at, main, tag, fn) => A.push({ at: at, main: main, tag: tag, do: fn });
             const back = HALF_L + 0.35;
             if (st === 1) {
-                add(0.0, '發球預備: 站進右側藍圈，拍面自然就位', 'STEP 1 站位預備', () => { dMove(1.5, back); dPaddle(0.34, 0.74); dDemoTgt.x = -1.5; dDemoTgt.z = -4.8; });
-                add(1.0, '👆 向上滑動推拍: 對角送進綠色發球區', 'STEP 2 滑動教學', () => { dPaddle(0.31, 0.60); });
-                add(3.2, '拍面低於腰部 = 合法下手臂直推發球！', 'STEP 3 直推發球', () => { dHit(-1.5, -4.8, 0); });
-                add(5.6, '收拍時手腕自然抬高過肩', 'STEP 3.5 完整收拍');
-                add(6.8, '走到左側藍圈，準備示範側旋發球', 'STEP 4 換邊發球', () => { dMove(-1.5, back); dPaddle(-0.31, 0.60); dDemoTgt.x = 1.5; dDemoTgt.z = -4.8; });
-                add(7.4, '🌪️ 右上刷切揮拍: 劃出微弧線落入右側發球區', 'STEP 5 側切教學');
-                add(8.6, '香蕉側旋弧線球成功擊出！', 'STEP 5.5 側切發球', () => { dHit(1.5, -4.8, 0.65); });
-                add(11.0, '左右發球各成功一次即過關！點擊畫面開始', '通關重點');
+                add(0.0, '發球預備: 雙腳在底線後，球拍自然就位', 'STEP 1 站位預備', () => { dMove(1.5, back); dPaddle(0.34, 0.74); dDemoTgt.x = -1.5; dDemoTgt.z = -4.8; });
+                add(1.0, '👆 向上滑動推拍: 球拍由下往上推球', 'STEP 2 向上推拍', () => { dPaddle(0.31, 0.60); });
+                add(2.8, '拍面低於腰部向上直推，將球對角送進綠區！', 'STEP 3 直推發球', () => { dHit(-1.5, -4.8, 0); });
+                add(4.5, '球落入綠色對角區即成功過關！點擊任意處開始', '通關重點');
             } else if (st === 2) {
                 add(0.0, '先正常對角發球過網', 'STEP 1 發球', () => { dMove(1.5, back); dPaddle(0.31, 0.60); dG(0, -HALF_L - 0.5); dDemoTgt.x = -1.6; dDemoTgt.z = -4.8; });
                 add(1.4, null, null, () => dHit(-1.6, -4.8));
@@ -1115,6 +1111,10 @@ function solveArc(fx, fy, fz, tx, tz, out, speedScale) {
             if (dClock >= dEnd) endDemo();
         }
         function switchStage(n, opts) {
+            if (typeof stageAdvanceTimer !== 'undefined' && stageAdvanceTimer) {
+                clearTimeout(stageAdvanceTimer);
+                stageAdvanceTimer = null;
+            }
             clearTimers();
             if (typeof restoreTwinParams === 'function' && !(opts && opts.keepTwin)) restoreTwinParams();
             if (typeof FunMode !== 'undefined') FunMode.usedForcedItem = false;
@@ -1157,12 +1157,16 @@ function solveArc(fx, fy, fz, tx, tz, out, speedScale) {
             warnKitchen.material.opacity = 0;
             const isAdvance = !!(opts && opts.fromClear);
             const showDemo = !!(opts && opts.showDemo);
-            if (showDemo) {
+            // ★ 恢復教學示範：前三關首發自動展示示範教學，或由 opts.showDemo 明確觸發；否則直接開球
+            if (showDemo || (!dSeen[n] && n <= 3)) {
                 dSeen[n] = true;
                 startDemo(n);
             } else {
                 dSeen[n] = true;
                 resetServe();
+                if (isAdvance) {
+                    toast('🎯 STAGE ' + n + '：' + STAGES[n].name, STAGES[n].desc);
+                }
             }
         }
         let gooseServeTimer = null;
@@ -1257,7 +1261,7 @@ function solveArc(fx, fy, fz, tx, tz, out, speedScale) {
             }
             if (camEdit) return;                       // 編輯視角時不蓄力
             if (demoOn) { skipDemo(); return; }
-            if (locked) return;
+            if (locked || state === 'CLEARED') return;
             if (state === 'FAULT') { clearTimers(); resetServe(); return; }
             if (webcamActive) return;                  // 體感模式不用震盪蓄力,避免與 AI 搶 power
             if (state === 'SERVE_READY' && server !== 'PLAYER') return;   // ★ 鵝發球期間不蓄力
@@ -1659,7 +1663,7 @@ function solveArc(fx, fy, fz, tx, tz, out, speedScale) {
                     stance: { ok: stanceOK, bal: +stanceBal.toFixed(2) }, outcome: '廚房合法回擊 (過關)'
                 });
                 locked = true;
-                later(() => { locked = false; clearStage(); }, 700);
+                clearStage();
                 return;
             }
 
@@ -1687,7 +1691,7 @@ function solveArc(fx, fy, fz, tx, tz, out, speedScale) {
 
             if (stage === 2 && rallyHits >= 3 && !volley) {
                 twoBounceDone = 1; updateGoal(); locked = true;
-                later(() => { locked = false; clearStage(); }, 700);
+                clearStage();
             }
         }
         const joyAnalog = { x: 0, z: 0 };
