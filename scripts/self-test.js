@@ -275,6 +275,40 @@ try {
     assert(false, "動森與拍立得模組檢測異常", e.message);
 }
 
+// ── [9/9] 遊戲化模式選擇大廳、NCHU 品牌看板與 2K 個人化拍立得卡 ──
+console.log("\n▶ [9/9] 遊戲化模式大廳、NCHU 品牌看板與 2K 拍立得 (Mode Hub & 2K Souvenir)...");
+try {
+    const v14Src = fs.readFileSync(path.resolve(__dirname, "../v14.html"), "utf8");
+    const indexSrc = fs.readFileSync(path.resolve(__dirname, "../index.html"), "utf8");
+    const gameSrc = fs.readFileSync(path.resolve(__dirname, "../js/game.js"), "utf8");
+    const uiSrc = fs.readFileSync(path.resolve(__dirname, "../js/ui.js"), "utf8");
+    const motionSrc = fs.readFileSync(path.resolve(__dirname, "../js/motion.js"), "utf8");
+
+    // 1. 遊戲模式選擇大廳 (Mode Hub) 完整性
+    assert(v14Src.includes('id="mode-hub-overlay"') && indexSrc.includes('id="mode-hub-overlay"'),
+        "v14.html 與 index.html 均包含遊戲化模式選擇大廳 (#mode-hub-overlay)");
+    assert(v14Src.includes('data-menu="hub"') && indexSrc.includes('data-menu="hub"'),
+        "主選單列包含「🎮 模式大廳」捷徑按鈕");
+    assert(uiSrc.includes("openModeHub") && uiSrc.includes("closeModeHub"),
+        "js/ui.js 包含 openModeHub 與 closeModeHub 大廳控制器");
+
+    // 2. NCHU 賽事規格 3D 品牌圍欄看板
+    assert(gameSrc.includes("NCHU PICKLEBALL LEARNING COMMUNITY") && gameSrc.includes("NATIONAL CHUNG HSING UNIVERSITY"),
+        "js/game.js 包含 NCHU 匹克球學習社群與中興大學 3D 賽事廣告看板");
+
+    // 3. 2K 超取樣高解析度拍立得完整相框導出
+    assert(gameSrc.includes("fullCanvas.width = 1600") && gameSrc.includes("fullCanvas.height = 1350"),
+        "js/game.js 具備 1600x1350 2K 超取樣完整相紙相框繪製");
+    assert(gameSrc.includes("pAvatar") && gameSrc.includes("pNick") && gameSrc.includes("MATCH RESULT"),
+        "拍立得導出具備玩家自選頭像、暱稱、系級與立體金箔比分勳章");
+
+    // 4. 寶可夢式精準滑動與馬格努斯旋球教學
+    assert(v14Src.includes("寶可夢式精準滑動 · 馬格努斯旋球教學") && motionSrc.includes("Pokemon Curve Swipe"),
+        "新手教學完整回歸寶可夢式滑動推拍與馬格努斯側旋香蕉球指引");
+} catch (e) {
+    assert(false, "模式大廳與 2K 拍立得檢測異常", e.message);
+}
+
 // ── 總結 ──
 console.log("\n═══════════════════════════════════════════════════════════");
 if (failed === 0) {

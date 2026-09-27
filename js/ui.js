@@ -1301,3 +1301,55 @@ function cycleTeachLevelQuick() {
             closeSocialCard();
             toast('🎾 導覽完成！', '隨時可在【設定】中重新觀看互動導覽');
         }
+
+        /* ═══════════════════════════════════════════════════════════
+           🎮 遊戲化模式選擇大廳控制器 (Game Mode Select Hub Controller)
+           ═══════════════════════════════════════════════════════════ */
+        let hubSelectedStage = 1;
+
+        function openModeHub() {
+            const hub = document.getElementById('mode-hub-overlay');
+            if (!hub) return;
+            const av = document.getElementById('hub-avatar');
+            const nk = document.getElementById('hub-nick');
+            const dp = document.getElementById('hub-dept');
+            if (av) av.innerText = (typeof playerProfile !== 'undefined' && playerProfile.avatar) ? playerProfile.avatar : '🧢';
+            if (nk) nk.innerText = (typeof playerProfile !== 'undefined' && playerProfile.nickname) ? playerProfile.nickname : '興大球神';
+            if (dp) dp.innerText = (typeof playerProfile !== 'undefined' && playerProfile.department) ? (playerProfile.department + ' · 國立中興大學') : '國立中興大學匹克球社群';
+            const camBtn = document.getElementById('hub-webcam-btn');
+            if (camBtn) camBtn.innerText = '📷 體感: ' + (typeof webcamActive !== 'undefined' && webcamActive ? '開' : '關');
+            hub.style.display = 'flex';
+            if (typeof closePanel === 'function') closePanel();
+        }
+
+        function closeModeHub() {
+            const hub = document.getElementById('mode-hub-overlay');
+            if (hub) hub.style.display = 'none';
+        }
+
+        function selectHubStage(n) {
+            hubSelectedStage = n;
+            document.querySelectorAll('.mode-level-pill').forEach((btn, idx) => {
+                btn.classList.toggle('on', (idx + 1) === n);
+            });
+        }
+
+        function startHubQuest() {
+            closeModeHub();
+            if (typeof switchStage === 'function') {
+                switchStage(hubSelectedStage || 1);
+            }
+        }
+
+        function startHubChaos() {
+            closeModeHub();
+            if (typeof switchStage === 'function') {
+                switchStage(6);
+            }
+        }
+
+        window.openModeHub = openModeHub;
+        window.closeModeHub = closeModeHub;
+        window.selectHubStage = selectHubStage;
+        window.startHubQuest = startHubQuest;
+        window.startHubChaos = startHubChaos;

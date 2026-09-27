@@ -517,6 +517,77 @@
             line(COURT_W, lw, 0, KITCHEN_D); line(COURT_W, lw, 0, -KITCHEN_D);
             line(lw, HALF_L - KITCHEN_D, 0, (HALF_L + KITCHEN_D) / 2);
             line(lw, HALF_L - KITCHEN_D, 0, -(HALF_L + KITCHEN_D) / 2);
+
+            // ★ NCHU 賽事規格 3D 廣告圍欄與匹克球社群看板 (Tournament A-Frame Signboards)
+            function buildCourtSign(w, h, title, subtitle, emblem, col1, col2, x, z, rotY) {
+                try {
+                    const sc = document.createElement('canvas');
+                    sc.width = 1024; sc.height = 256;
+                    const sx = sc.getContext('2d');
+                    // 底色漸層
+                    const g = sx.createLinearGradient(0, 0, 1024, 0);
+                    g.addColorStop(0, col1);
+                    g.addColorStop(1, col2);
+                    sx.fillStyle = g;
+                    sx.fillRect(0, 0, 1024, 256);
+                    // 運動斜切條紋裝飾
+                    sx.fillStyle = 'rgba(255, 255, 255, 0.08)';
+                    for (let i = -100; i < 1100; i += 70) {
+                        sx.beginPath();
+                        sx.moveTo(i, 0); sx.lineTo(i + 45, 0);
+                        sx.lineTo(i + 15, 256); sx.lineTo(i - 30, 256);
+                        sx.fill();
+                    }
+                    // 金黃 / 霓虹頂底飾條
+                    sx.fillStyle = '#facc15';
+                    sx.fillRect(0, 0, 1024, 8);
+                    sx.fillRect(0, 248, 1024, 8);
+                    // 徽章圖示
+                    sx.font = '64px system-ui, sans-serif';
+                    sx.textAlign = 'center';
+                    sx.textBaseline = 'middle';
+                    sx.fillText(emblem || '🎾', 80, 128);
+                    // 主標題
+                    sx.fillStyle = '#ffffff';
+                    sx.font = 'bold 54px "Barlow Condensed", system-ui, sans-serif';
+                    sx.textAlign = 'left';
+                    sx.fillText(title, 150, 108);
+                    // 副標題
+                    sx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+                    sx.font = '600 28px "Barlow Condensed", system-ui, sans-serif';
+                    sx.fillText(subtitle, 152, 172);
+
+                    const stex = new THREE.CanvasTexture(sc);
+                    stex.anisotropy = 4;
+                    const smat = new THREE.MeshStandardMaterial({
+                        map: stex, roughness: 0.35, metalness: 0.15
+                    });
+                    // 3D 傾斜 A 字板組 (Tilted A-Board Group)
+                    const grp = new THREE.Group();
+                    grp.position.set(x, 0, z);
+                    grp.rotation.y = rotY || 0;
+                    const board = new THREE.Mesh(new THREE.BoxGeometry(w, h, 0.08), smat);
+                    board.position.y = (h / 2) * Math.cos(0.22);
+                    board.rotation.x = -0.22; // 微微後傾 12.6 度，對向鏡頭清晰可見
+                    board.castShadow = true;
+                    board.receiveShadow = true;
+                    grp.add(board);
+                    scene.add(grp);
+                } catch(e) {
+                    console.warn('buildCourtSign error:', e);
+                }
+            }
+
+            // 1. 左側邊線看板：NCHU 匹克球學習社群
+            buildCourtSign(4.2, 0.58, 'NCHU PICKLEBALL LEARNING COMMUNITY', '國立中興大學匹克球學習社群 · 運動科技推廣中心', '🎾', '#0f172a', '#1e3a8a', -(COURT_W / 2 + 1.25), -1.8, Math.PI / 2);
+            // 2. 左側後段看板：馬格努斯流體力學實驗室
+            buildCourtSign(4.2, 0.58, 'MAGNUS EFFECT FLUID DYNAMICS LAB', '旋球流體力學 · NASA 空氣動力學專題科普', '🌪️', '#0c4a6e', '#0369a1', -(COURT_W / 2 + 1.25), 1.8, Math.PI / 2);
+            // 3. 右側邊線看板：國立中興大學 中興湖水上球場
+            buildCourtSign(4.2, 0.58, 'NATIONAL CHUNG HSING UNIVERSITY', '中興湖水上特訓球場 · ZHONGXING LAKE ARENA', '🌿', '#064e3b', '#047857', (COURT_W / 2 + 1.25), -1.8, -Math.PI / 2);
+            // 4. 右側後段看板：USA Pickleball 官方手冊認證
+            buildCourtSign(4.2, 0.58, '2026 USA PICKLEBALL OFFICIAL HUB', '國際競賽規則手冊 · 虛擬裁判精準判定', '🏆', '#7f1d1d', '#991b1b', (COURT_W / 2 + 1.25), 1.8, -Math.PI / 2);
+            // 5. 對手底線後方大看板 (正對鏡頭)：中興大學匹克鵝官方錦標賽
+            buildCourtSign(6.2, 0.68, 'NCHU PICKLEBALL · 中興大學匹克鵝打秋', 'LEARNING COMMUNITY · CAMPUS LEADERBOARD ARENA', '🪿', '#0f172a', '#1e293b', 0, -(HALF_L + 2.1), 0);
         }
         function buildNet() {
             netGrp = new THREE.Group();
@@ -3052,7 +3123,12 @@ function updateGuides(dt) {
         }
 
         /* ═══════════ 動物森友會 拍立得完賽紀念卡 (Polaroid Souvenir) ═══════════ */
+        let lastSouvenirWon = true, lastSouvenirP = 3, lastSouvenirA = 1;
+
         function showPolaroidSouvenir(won, pScore, aScore) {
+            lastSouvenirWon = !!won;
+            lastSouvenirP = pScore;
+            lastSouvenirA = aScore;
             const modal = document.getElementById('polaroid-modal');
             if (!modal) return;
             const canvas = document.getElementById('polaroid-canvas');
@@ -3083,35 +3159,56 @@ function updateGuides(dt) {
             ctx.fillStyle = vig;
             ctx.fillRect(0, 0, cw, ch);
 
-            // 3. 頂部島嶼標籤徽章 (Island Header Badge)
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.92)';
+            // 3. 頂部中興大學匹克球社群標籤徽章 (NCHU Community Header Badge)
+            ctx.fillStyle = 'rgba(15, 23, 42, 0.88)';
             ctx.shadowColor = 'rgba(0, 0, 0, 0.25)';
             ctx.shadowBlur = 8;
             ctx.beginPath();
-            ctx.roundRect(16, 16, 210, 36, 18);
+            ctx.roundRect(16, 16, 260, 36, 18);
             ctx.fill();
             ctx.shadowBlur = 0;
-            ctx.fillStyle = '#0f766e';
-            ctx.font = 'bold 15px system-ui, sans-serif';
+            ctx.fillStyle = '#38bdf8';
+            ctx.font = 'bold 14px "Barlow Condensed", system-ui, sans-serif';
             ctx.textAlign = 'left';
             ctx.textBaseline = 'middle';
-            ctx.fillText('🏝️ 無人島 · 友誼盃', 32, 34);
+            ctx.fillText('🎾 NCHU PICKLEBALL COMMUNITY', 30, 34);
 
-            // 4. 右下角比分徽章 (Match Score Badge)
-            ctx.fillStyle = 'rgba(15, 23, 42, 0.85)';
+            // 4. 右下角高對比立體金箔比分徽章 (3D Gold Foil Match Score Badge)
+            const bw = 170, bh = 46, bx = cw - bw - 14, by = ch - bh - 14;
+            const bgGrad = ctx.createLinearGradient(bx, by, bx, by + bh);
+            bgGrad.addColorStop(0, '#064e3b');
+            bgGrad.addColorStop(1, '#022c22');
+            ctx.fillStyle = bgGrad;
+            ctx.strokeStyle = '#facc15';
+            ctx.lineWidth = 2.5;
             ctx.beginPath();
-            ctx.roundRect(cw - 180, ch - 54, 164, 40, 12);
+            ctx.roundRect(bx, by, bw, bh, 14);
             ctx.fill();
-            ctx.fillStyle = '#facc15';
-            ctx.font = 'bold 18px "Barlow Condensed", system-ui, sans-serif';
-            ctx.textAlign = 'center';
-            ctx.fillText('FINAL  ' + pScore + '  :  ' + aScore, cw - 98, ch - 34);
+            ctx.stroke();
 
-            // 5. 更新 DOM 模態文字與印章
+            ctx.fillStyle = '#fef08a';
+            ctx.font = '800 11px system-ui, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('🏆 MATCH RESULT', bx + bw / 2, by + 14);
+
+            ctx.fillStyle = '#facc15';
+            ctx.font = 'bold 22px "Barlow Condensed", system-ui, sans-serif';
+            ctx.fillText('FINAL  ' + pScore + '  :  ' + aScore, bx + bw / 2, by + 34);
+
+            // 5. 更新 DOM 模態文字、個人頭像暱稱與印章
+            const avatarEl = document.getElementById('polaroid-avatar-preview');
+            const nickEl = document.getElementById('polaroid-nick-preview');
+            const deptEl = document.getElementById('polaroid-dept-preview');
+            const scoreEl = document.getElementById('polaroid-score-preview');
+            if (avatarEl) avatarEl.innerText = (typeof playerProfile !== 'undefined' && playerProfile.avatar) ? playerProfile.avatar : '🧢';
+            if (nickEl) nickEl.innerText = (typeof playerProfile !== 'undefined' && playerProfile.nickname) ? playerProfile.nickname : '興大匹克球神';
+            if (deptEl) deptEl.innerText = (typeof playerProfile !== 'undefined' && playerProfile.department) ? (playerProfile.department + ' · 國立中興大學') : '國立中興大學匹克球社群';
+            if (scoreEl) scoreEl.innerText = 'FINAL ' + pScore + ' : ' + aScore;
+
             const dateEl = document.getElementById('polaroid-date');
             if (dateEl) {
                 const now = new Date();
-                dateEl.innerText = now.getFullYear() + '.' + String(now.getMonth() + 1).padStart(2, '0') + '.' + String(now.getDate()).padStart(2, '0') + ' · 晴天 26°C';
+                dateEl.innerText = now.getFullYear() + '.' + String(now.getMonth() + 1).padStart(2, '0') + '.' + String(now.getDate()).padStart(2, '0') + ' · 中興湖畔 晴天 26°C';
             }
 
             const stampEl = document.getElementById('polaroid-stamp');
@@ -3121,7 +3218,7 @@ function updateGuides(dt) {
                     stampEl.innerText = 'VICTORY!';
                     stampEl.style.color = '#10b981';
                     stampEl.style.borderColor = '#10b981';
-                    msgEl.innerText = '「太精彩了！村長鵝為你熱烈鼓掌，無人島的居民們都為你的球技歡呼！」';
+                    msgEl.innerText = '「太精彩了！村長鵝為你熱烈鼓掌，中興大學的球迷們都為你的球技歡呼！」';
                     if (S && S.fanfare) S.fanfare();
                 } else {
                     stampEl.innerText = 'NICE PLAY!';
@@ -3142,18 +3239,183 @@ function updateGuides(dt) {
         }
 
         function downloadPolaroid() {
-            const canvas = document.getElementById('polaroid-canvas');
-            if (!canvas) return;
             try {
+                // ★ 2K 超取樣高解析度完整拍立得畫布 (1600 x 1350)
+                const fullCanvas = document.createElement('canvas');
+                fullCanvas.width = 1600;
+                fullCanvas.height = 1350;
+                const fx = fullCanvas.getContext('2d');
+                fx.imageSmoothingEnabled = true;
+                fx.imageSmoothingQuality = 'high';
+
+                // 1. 溫潤拍立得米白藝術相紙底襯 (Warm Fine Art Paper)
+                fx.fillStyle = '#fcfbf7';
+                fx.beginPath();
+                fx.roundRect(0, 0, 1600, 1350, 36);
+                fx.fill();
+                fx.strokeStyle = '#e2ded6';
+                fx.lineWidth = 4;
+                fx.stroke();
+
+                // 2. 頂部立體木質圖釘 (Wooden Pin)
+                fx.font = '72px system-ui, sans-serif';
+                fx.textAlign = 'center';
+                fx.textBaseline = 'middle';
+                fx.fillText('📌', 800, 52);
+
+                // 3. 標頭文字 (Header Title & Date)
+                fx.fillStyle = '#334155';
+                fx.font = 'bold 36px "Barlow Condensed", system-ui, sans-serif';
+                fx.textAlign = 'center';
+                fx.fillText('國立中興大學匹克球學習社群 · 友誼錦標賽', 800, 102);
+
+                const now = new Date();
+                const dateStr = now.getFullYear() + '.' + String(now.getMonth() + 1).padStart(2, '0') + '.' + String(now.getDate()).padStart(2, '0') + ' · 中興湖水上特訓球場 · 晴天 26°C';
+                fx.fillStyle = '#64748b';
+                fx.font = '600 22px system-ui, sans-serif';
+                fx.fillText(dateStr, 800, 138);
+
+                // 4. 繪製 3D 照片主體區域 (Photo Area: 1440 x 860)
+                const px = 80, py = 165, pw = 1440, ph = 860;
+                fx.save();
+                fx.beginPath();
+                fx.roundRect(px, py, pw, ph, 20);
+                fx.clip();
+
+                // 擷取 3D WebGL 畫面
+                if (ren && ren.domElement) {
+                    try {
+                        ren.render(scene, cam);
+                        fx.drawImage(ren.domElement, px, py, pw, ph);
+                    } catch(e) {
+                        const fallbackGrad = fx.createLinearGradient(px, py, px, py + ph);
+                        fallbackGrad.addColorStop(0, '#0284c7');
+                        fallbackGrad.addColorStop(1, '#059669');
+                        fx.fillStyle = fallbackGrad;
+                        fx.fillRect(px, py, pw, ph);
+                    }
+                }
+
+                // 照片暗角 (Vignette)
+                const vig = fx.createRadialGradient(px + pw / 2, py + ph / 2, pw * 0.28, px + pw / 2, py + ph / 2, pw * 0.72);
+                vig.addColorStop(0, 'rgba(0,0,0,0)');
+                vig.addColorStop(1, 'rgba(15,23,42,0.42)');
+                fx.fillStyle = vig;
+                fx.fillRect(px, py, pw, ph);
+
+                // 左上角官方徽章 (Top-Left Pill)
+                fx.fillStyle = 'rgba(15, 23, 42, 0.88)';
+                fx.beginPath();
+                fx.roundRect(px + 30, py + 30, 480, 58, 29);
+                fx.fill();
+                fx.strokeStyle = 'rgba(56, 189, 248, 0.6)';
+                fx.lineWidth = 2.5;
+                fx.stroke();
+                fx.fillStyle = '#38bdf8';
+                fx.font = 'bold 24px "Barlow Condensed", system-ui, sans-serif';
+                fx.textAlign = 'left';
+                fx.textBaseline = 'middle';
+                fx.fillText('🎾 NCHU PICKLEBALL COMMUNITY · OFFICIAL SOUVENIR', px + 52, py + 59);
+
+                // 右下角立體金箔比分勳章 (Bottom-Right 3D Gold Foil Score Badge)
+                const sbw = 340, sbh = 96, sbx = px + pw - sbw - 30, sby = py + ph - sbh - 30;
+                const sbGrad = fx.createLinearGradient(sbx, sby, sbx, sby + sbh);
+                sbGrad.addColorStop(0, '#064e3b');
+                sbGrad.addColorStop(1, '#022c22');
+                fx.fillStyle = sbGrad;
+                fx.beginPath();
+                fx.roundRect(sbx, sby, sbw, sbh, 24);
+                fx.fill();
+                fx.strokeStyle = '#facc15';
+                fx.lineWidth = 4;
+                fx.stroke();
+
+                fx.fillStyle = '#fef08a';
+                fx.font = '800 18px system-ui, sans-serif';
+                fx.textAlign = 'center';
+                fx.fillText('🏆 MATCH RESULT', sbx + sbw / 2, sby + 30);
+
+                fx.fillStyle = '#facc15';
+                fx.font = 'bold 44px "Barlow Condensed", system-ui, sans-serif';
+                fx.fillText('FINAL  ' + lastSouvenirP + '  :  ' + lastSouvenirA, sbx + sbw / 2, sby + 72);
+
+                fx.restore();
+
+                // 5. 拍立得下方個人化玩家資訊與官方認證印章 (Classic Bottom Margin)
+                const pAvatar = (typeof playerProfile !== 'undefined' && playerProfile.avatar) ? playerProfile.avatar : '🧢';
+                const pNick = (typeof playerProfile !== 'undefined' && playerProfile.nickname) ? playerProfile.nickname : '興大匹克球神';
+                const pDept = (typeof playerProfile !== 'undefined' && playerProfile.department) ? (playerProfile.department + ' · 國立中興大學') : '國立中興大學匹克球社群';
+                const pId = (typeof playerProfile !== 'undefined' && playerProfile.playerId) ? ('ID: ' + playerProfile.playerId) : 'ID: NCHU-2026';
+
+                // 玩家頭像圈
+                const avX = 140, avY = 1145, avR = 48;
+                fx.fillStyle = '#e2e8f0';
+                fx.beginPath();
+                fx.arc(avX, avY, avR, 0, Math.PI * 2);
+                fx.fill();
+                fx.strokeStyle = '#10b981';
+                fx.lineWidth = 4;
+                fx.stroke();
+
+                fx.font = '52px system-ui, sans-serif';
+                fx.textAlign = 'center';
+                fx.textBaseline = 'middle';
+                fx.fillText(pAvatar, avX, avY + 2);
+
+                // 玩家名稱與系級
+                fx.textAlign = 'left';
+                fx.fillStyle = '#0f172a';
+                fx.font = 'bold 36px system-ui, sans-serif';
+                fx.fillText(pNick, avX + 64, avY - 14);
+
+                fx.fillStyle = '#64748b';
+                fx.font = '600 22px system-ui, sans-serif';
+                fx.fillText(pDept + '   |   ' + pId, avX + 66, avY + 26);
+
+                // 右側官方印章 (Stamp)
+                fx.save();
+                fx.translate(1420, 1145);
+                fx.rotate(-0.16); // 逆時針傾斜 9 度
+                const stampWon = lastSouvenirWon;
+                const stampCol = stampWon ? '#dc2626' : '#d97706';
+                fx.strokeStyle = stampCol;
+                fx.fillStyle = stampCol;
+                fx.lineWidth = 4;
+                fx.beginPath();
+                fx.arc(0, 0, 72, 0, Math.PI * 2);
+                fx.stroke();
+                fx.lineWidth = 2;
+                fx.beginPath();
+                fx.arc(0, 0, 64, 0, Math.PI * 2);
+                fx.stroke();
+
+                fx.font = 'bold 12px "Barlow Condensed", system-ui, sans-serif';
+                fx.textAlign = 'center';
+                fx.fillText('★ NATIONAL CHUNG HSING UNIV ★', 0, -42);
+
+                fx.font = '900 32px "Barlow Condensed", system-ui, sans-serif';
+                fx.fillText(stampWon ? 'VICTORY!' : 'NICE PLAY!', 0, 2);
+
+                fx.font = '800 13px system-ui, sans-serif';
+                fx.fillText(stampWon ? 'OFFICIAL CERTIFIED' : 'FRIENDLY MATCH', 0, 40);
+                fx.restore();
+
+                // 最底部版權與社群浮水印
+                fx.fillStyle = '#94a3b8';
+                fx.font = '600 18px "Barlow Condensed", system-ui, sans-serif';
+                fx.textAlign = 'center';
+                fx.fillText('NCHU PICKLEBALL LEARNING COMMUNITY · OFFICIAL SOUVENIR POSTCARD · ZHONGXING LAKE ARENA', 800, 1315);
+
+                // 6. 下載完整 2K 高清圖片
                 const link = document.createElement('a');
-                link.download = 'pickleball-island-souvenir-' + Date.now() + '.png';
-                link.href = canvas.toDataURL('image/png');
+                link.download = 'NCHU-Pickleball-Souvenir-' + (pNick.replace(/\s+/g, '_')) + '-' + Date.now() + '.png';
+                link.href = fullCanvas.toDataURL('image/png');
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
-                if (typeof toast === 'function') toast('📸 紀念照已儲存', '快分享給朋友炫耀你的島嶼戰績！');
+                if (typeof toast === 'function') toast('📸 2K 高清紀念卡已儲存', '完整相紙、比分勳章與個人頭像已匯出！');
             } catch (e) {
-                console.error('Download polaroid failed', e);
+                console.error('Download high-res polaroid failed', e);
             }
         }
 

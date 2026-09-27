@@ -863,25 +863,25 @@
                 const currY = startY + (targetY - startY) * easeT;
                 if (hand) hand.style.transform = 'translate(' + currX + 'px, ' + currY + 'px)';
                 if (p1 && p2 && p3) { p1.className = 'finger-mode-pill on'; p2.className = 'finger-mode-pill'; p3.className = 'finger-mode-pill'; }
-                if (desc) desc.innerHTML = '👆 <b>直線快速前推</b> (Fast Upward Swipe)<br><span style="color:var(--ok);">➔ 爆發力道打出後場深球</span>';
+                if (desc) desc.innerHTML = '👆 <b>直線快速前推</b> (Fast Upward Swipe)<br><span style="color:var(--ok);">➔ 爆發直推深球 · 穩健打入後場深區</span>';
                 pathD = '<path d="M 110 145 L 110 ' + (145 + currY) + '" stroke="#38bdf8" stroke-width="3" stroke-dasharray="4 4" fill="none" opacity="' + (1 - t*0.25) + '"/>';
             } else if (fingerAnimStep === 1) {
-                // 2. 右刷拍側旋弧線
+                // 2. 寶可夢式右上刷拍側旋弧線
                 targetX = 60; targetY = -85;
                 const currX = startX + (targetX - startX) * easeT;
                 const currY = startY + (targetY - startY) * Math.sin(easeT * Math.PI * 0.5);
                 if (hand) hand.style.transform = 'translate(' + currX + 'px, ' + currY + 'px) rotate(15deg)';
                 if (p1 && p2 && p3) { p1.className = 'finger-mode-pill'; p2.className = 'finger-mode-pill on'; p3.className = 'finger-mode-pill'; }
-                if (desc) desc.innerHTML = '🌪️ <b>向右上刷拍</b> (Swipe Up-Right)<br><span style="color:#c084fc;">➔ 觸發右側旋香蕉弧線球 (Right Curve)</span>';
+                if (desc) desc.innerHTML = '🌪️ <b>寶可夢式右上刷拍</b> (Pokemon Curve Swipe Right)<br><span style="color:#c084fc;">➔ 觸發馬格努斯效應 (Magnus Effect) · 右側旋香蕉球！</span>';
                 pathD = '<path d="M 110 145 Q 130 110 ' + (110 + currX) + ' ' + (145 + currY) + '" stroke="#c084fc" stroke-width="3" stroke-dasharray="4 4" fill="none" opacity="' + (1 - t*0.25) + '"/>';
             } else {
-                // 3. 左刷拍側旋弧線
+                // 3. 寶可夢式左上刷拍側旋弧線
                 targetX = -60; targetY = -85;
                 const currX = startX + (targetX - startX) * easeT;
                 const currY = startY + (targetY - startY) * Math.sin(easeT * Math.PI * 0.5);
                 if (hand) hand.style.transform = 'translate(' + currX + 'px, ' + currY + 'px) rotate(-15deg)';
                 if (p1 && p2 && p3) { p1.className = 'finger-mode-pill'; p2.className = 'finger-mode-pill'; p3.className = 'finger-mode-pill on'; }
-                if (desc) desc.innerHTML = '🌪️ <b>向左上刷拍</b> (Swipe Up-Left)<br><span style="color:#c084fc;">➔ 觸發左側旋香蕉弧線球 (Left Curve)</span>';
+                if (desc) desc.innerHTML = '🌪️ <b>寶可夢式左上刷拍</b> (Pokemon Curve Swipe Left)<br><span style="color:#c084fc;">➔ 觸發馬格努斯效應 (Magnus Effect) · 左側旋香蕉球！</span>';
                 pathD = '<path d="M 110 145 Q 90 110 ' + (110 + currX) + ' ' + (145 + currY) + '" stroke="#c084fc" stroke-width="3" stroke-dasharray="4 4" fill="none" opacity="' + (1 - t*0.25) + '"/>';
             }
 

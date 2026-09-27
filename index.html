@@ -12,7 +12,7 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>NCHU Pickleball Lab · 中興大學匹克鵝打秋 (v5.1.3)</title>
+    <title>NCHU Pickleball Lab · 中興大學匹克鵝打秋 (v5.2.0)</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.3.1675466862/camera_utils.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/pose.js" crossorigin="anonymous"></script>
@@ -3945,6 +3945,257 @@
             background: #cbd5e1;
         }
 
+        /* 拍立得卡片個人化玩家欄 (Polaroid Player Info Bar) */
+        .polaroid-player-bar {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: #f1ece4;
+            border-radius: 12px;
+            padding: 8px 12px;
+            margin: 6px 0 10px 0;
+            text-align: left;
+        }
+        .polaroid-avatar-badge {
+            font-size: 26px;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+            border: 2px solid #10b981;
+            flex-shrink: 0;
+        }
+        .polaroid-player-details {
+            flex: 1;
+            min-width: 0;
+        }
+        .polaroid-player-name {
+            font-size: 14px;
+            font-weight: 800;
+            color: #0f172a;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .polaroid-player-dept {
+            font-size: 11px;
+            font-weight: 600;
+            color: #64748b;
+        }
+        .polaroid-score-tag {
+            font-family: "Barlow Condensed", system-ui, sans-serif;
+            font-size: 19px;
+            font-weight: 800;
+            background: #0f172a;
+            color: #facc15;
+            padding: 3px 10px;
+            border-radius: 8px;
+            border: 1px solid #eab308;
+            letter-spacing: 0.5px;
+            white-space: nowrap;
+        }
+
+        /* ═══════════════════════════════════════════════════════════
+           🎮 遊戲化模式選擇大廳 (Game Mode Select Hub Overlay)
+           ═══════════════════════════════════════════════════════════ */
+        #mode-hub-overlay {
+            position: fixed;
+            inset: 0;
+            background: radial-gradient(circle at 50% 30%, #1e293b 0%, #0a0f1d 100%);
+            z-index: 9998;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 20px;
+            box-sizing: border-box;
+            overflow-y: auto;
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            color: #ffffff;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+        .mode-hub-header {
+            width: 100%;
+            max-width: 1080px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+        }
+        .mode-hub-profile {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(255, 255, 255, 0.08);
+            padding: 6px 14px;
+            border-radius: 99px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .mode-hub-profile:hover {
+            background: rgba(255, 255, 255, 0.16);
+            transform: translateY(-1px);
+        }
+        .mode-hub-brand {
+            text-align: center;
+        }
+        .mode-hub-title {
+            font-family: "Barlow Condensed", system-ui, sans-serif;
+            font-size: 24px;
+            font-weight: 800;
+            letter-spacing: 1px;
+            background: linear-gradient(135deg, #38bdf8, #818cf8, #f472b6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin: 0;
+            line-height: 1.1;
+        }
+        .mode-hub-subtitle {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.65);
+            margin-top: 2px;
+            letter-spacing: 0.5px;
+        }
+        .mode-hub-controls {
+            display: flex;
+            gap: 8px;
+        }
+        .mode-hub-btn-icon {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: #ffffff;
+            border-radius: 10px;
+            padding: 7px 12px;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .mode-hub-btn-icon:hover {
+            background: rgba(255, 255, 255, 0.18);
+        }
+        .mode-hub-grid {
+            width: 100%;
+            max-width: 1080px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 16px;
+            margin: 16px 0;
+        }
+        .mode-card {
+            background: rgba(30, 41, 59, 0.7);
+            border: 1.5px solid rgba(255, 255, 255, 0.12);
+            border-radius: 20px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+            transition: all 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+            backdrop-filter: blur(12px);
+        }
+        .mode-card:hover {
+            transform: translateY(-5px);
+            border-color: rgba(56, 189, 248, 0.6);
+            box-shadow: 0 20px 40px rgba(14, 165, 233, 0.25);
+        }
+        .mode-card-badge {
+            align-self: flex-start;
+            font-size: 11px;
+            font-weight: 800;
+            padding: 3px 10px;
+            border-radius: 99px;
+            margin-bottom: 12px;
+            letter-spacing: 0.5px;
+        }
+        .badge-quest { background: rgba(56, 189, 248, 0.18); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.4); }
+        .badge-chaos { background: rgba(245, 158, 11, 0.18); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4); }
+        .badge-science { background: rgba(168, 85, 247, 0.18); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.4); }
+        .badge-social { background: rgba(16, 185, 129, 0.18); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4); }
+
+        .mode-card-icon {
+            font-size: 42px;
+            margin-bottom: 10px;
+            filter: drop-shadow(0 4px 10px rgba(0,0,0,0.3));
+        }
+        .mode-card-title {
+            font-family: "Barlow Condensed", system-ui, sans-serif;
+            font-size: 22px;
+            font-weight: 800;
+            color: #f8fafc;
+            margin: 0 0 6px 0;
+            letter-spacing: 0.5px;
+        }
+        .mode-card-desc {
+            font-size: 12.5px;
+            color: #94a3b8;
+            line-height: 1.5;
+            margin-bottom: 16px;
+            flex: 1;
+        }
+        .mode-card-btn {
+            width: 100%;
+            padding: 12px 16px;
+            border-radius: 12px;
+            border: none;
+            font-size: 14px;
+            font-weight: 800;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            transition: all 0.2s ease;
+        }
+        .btn-quest { background: linear-gradient(135deg, #0284c7, #0369a1); color: #ffffff; box-shadow: 0 4px 14px rgba(2, 132, 199, 0.4); }
+        .btn-chaos { background: linear-gradient(135deg, #d97706, #b45309); color: #ffffff; box-shadow: 0 4px 14px rgba(217, 119, 6, 0.4); }
+        .btn-science { background: linear-gradient(135deg, #7c3aed, #6d28d9); color: #ffffff; box-shadow: 0 4px 14px rgba(124, 58, 237, 0.4); }
+        .btn-social { background: linear-gradient(135deg, #059669, #047857); color: #ffffff; box-shadow: 0 4px 14px rgba(5, 150, 105, 0.4); }
+        .mode-card-btn:hover { transform: scale(1.02); filter: brightness(1.1); }
+
+        .mode-level-pills {
+            display: flex;
+            gap: 4px;
+            flex-wrap: wrap;
+            margin-bottom: 12px;
+        }
+        .mode-level-pill {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: #cbd5e1;
+            padding: 3px 8px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .mode-level-pill:hover, .mode-level-pill.on {
+            background: #0284c7;
+            color: #ffffff;
+            border-color: #38bdf8;
+        }
+        .mode-hub-footer {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.45);
+            text-align: center;
+            padding-top: 8px;
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            width: 100%;
+            max-width: 1080px;
+        }
+
+
 
 
     </style>
@@ -4183,19 +4434,19 @@
     </div>
 
     
-    <!-- ══════ 新手手指滑動教學指引 (完全去背透明 Overlay) ══════ -->
+    <!-- ══════ ⚡ 寶可夢式精準滑動 · 馬格努斯旋球手勢教學 (Pokemon & Magnus Curve Tutorial) ══════ -->
     <div id="finger-tutorial" class="finger-tut-overlay hidden" onclick="dismissFingerTutorial()">
         <div class="finger-tut-card" onclick="event.stopPropagation();">
             <div class="finger-tut-banner">
                 <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
-                    <div class="finger-tut-title">🏸 滑動擊球與角色連動指引</div>
-                    <button type="button" class="finger-tut-close-icon" onclick="dismissFingerTutorial()" title="關閉指引視窗">✕</button>
+                    <div class="finger-tut-title">⚡ 寶可夢式精準滑動 · 馬格努斯旋球教學</div>
+                    <button type="button" class="finger-tut-close-icon" onclick="dismissFingerTutorial()" title="關閉教學視窗">✕</button>
                 </div>
-                <div class="finger-tut-desc" id="finger-tut-desc">👆 往前滑動推拍打深球 · 左右刷拍打出香蕉側旋弧線</div>
+                <div class="finger-tut-desc" id="finger-tut-desc">👆 直線快速前推打深球 · 🌪️ 弧形刷拍產生馬格努斯側旋香蕉球！</div>
                 <div class="finger-tut-modes">
-                    <span class="finger-mode-pill on" id="tut-mode-1">1. 直推打深 (Power)</span>
-                    <span class="finger-mode-pill" id="tut-mode-2">2. 右弧側旋 (Right Spin)</span>
-                    <span class="finger-mode-pill" id="tut-mode-3">3. 左弧側旋 (Left Spin)</span>
+                    <span class="finger-mode-pill on" id="tut-mode-1" onclick="triggerFingerDemoSwipe(0)">1. 直推打深 (Drive)</span>
+                    <span class="finger-mode-pill" id="tut-mode-2" onclick="triggerFingerDemoSwipe(1)">2. 右弧側旋 (Right Spin)</span>
+                    <span class="finger-mode-pill" id="tut-mode-3" onclick="triggerFingerDemoSwipe(2)">3. 左弧側旋 (Left Spin)</span>
                 </div>
             </div>
             
@@ -4210,8 +4461,8 @@
                 </div>
             </div>
             <div style="display:flex;flex-direction:column;align-items:center;gap:6px;margin-top:8px;">
-                <button type="button" class="finger-tut-close-btn" onclick="dismissFingerTutorial()">✕ 關閉視窗 (開始揮拍)</button>
-                <div style="font-size:11px;color:rgba(255,255,255,0.75);text-shadow:0 2px 4px rgba(0,0,0,0.8);">💡 點擊按鈕或螢幕任意處即可關閉並開始揮拍</div>
+                <button type="button" class="finger-tut-close-btn" onclick="dismissFingerTutorial()">✕ 關閉視窗 (隨時發球揮拍)</button>
+                <div style="font-size:11px;color:rgba(255,255,255,0.85);text-shadow:0 2px 4px rgba(0,0,0,0.8);">💡 像丟寶可夢精靈球一樣在螢幕上畫弧度，即可產生劇烈側旋！點擊任意處開始揮拍</div>
             </div>
         </div>
     </div>
@@ -4746,15 +4997,24 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
     </div>
 
     <!-- ══════ 拍立得完賽紀念卡 Modal (Animal Crossing Polaroid Souvenir) ══════ -->
-    <div id="polaroid-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="polaroid-title" style="display:none;align-items:center;justify-content:center;background:rgba(15,23,42,0.85);backdrop-filter:blur(10px);z-index:9999;">
+    <div id="polaroid-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="polaroid-title" style="display:none;align-items:center;justify-content:center;background:rgba(15,23,42,0.88);backdrop-filter:blur(12px);z-index:9999;">
         <div class="polaroid-card">
             <div class="polaroid-pin">📌</div>
             <div class="polaroid-header">
-                <div class="polaroid-header-title" id="polaroid-title">🏝️ 無人島匹克球大賽 · 完賽紀念</div>
-                <div class="polaroid-date" id="polaroid-date">2026.09.27</div>
+                <div class="polaroid-header-title" id="polaroid-title">🏝️ 國立中興大學匹克球學習社群 · 完賽紀念</div>
+                <div class="polaroid-date" id="polaroid-date">2026.09.28 · 中興湖水上特訓球場</div>
             </div>
             <div class="polaroid-photo-wrapper">
                 <canvas id="polaroid-canvas" width="600" height="420"></canvas>
+            </div>
+            <!-- 玩家個人化戰績欄 -->
+            <div class="polaroid-player-bar">
+                <div class="polaroid-avatar-badge" id="polaroid-avatar-preview">🧢</div>
+                <div class="polaroid-player-details">
+                    <div class="polaroid-player-name" id="polaroid-nick-preview">叫獸aka愛叫的野獸</div>
+                    <div class="polaroid-player-dept" id="polaroid-dept-preview">國立中興大學 · 資訊工程</div>
+                </div>
+                <div class="polaroid-score-tag" id="polaroid-score-preview">FINAL 3 : 1</div>
             </div>
             <div class="polaroid-caption" id="polaroid-caption">
                 <span class="polaroid-stamp" id="polaroid-stamp">WINNER!</span>
@@ -4762,8 +5022,100 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
             </div>
             <div class="polaroid-actions">
                 <button class="ac-btn-sub" onclick="closePolaroidModal()">繼續遊戲</button>
-                <button class="ac-btn-primary" onclick="downloadPolaroid()">📸 儲存紀念照</button>
+                <button class="ac-btn-primary" onclick="downloadPolaroid()">📸 下載 2K 超清紀念卡 (PNG)</button>
             </div>
+        </div>
+    </div>
+
+    <!-- ══════ 🎮 遊戲化模式選擇大廳 (Game Mode Select Hub Overlay) ══════ -->
+    <div id="mode-hub-overlay" style="display:none;">
+        <div class="mode-hub-header">
+            <div class="mode-hub-profile" onclick="openProfileModal()" title="點擊修改個人頭像與暱稱">
+                <span id="hub-avatar" style="font-size:22px;">🧢</span>
+                <div>
+                    <div id="hub-nick" style="font-size:13px;font-weight:800;line-height:1.2;">叫獸aka愛叫的野獸</div>
+                    <div id="hub-dept" style="font-size:10px;color:rgba(255,255,255,0.65);">國立中興大學 · 資訊工程</div>
+                </div>
+                <span style="font-size:11px;opacity:0.7;">⚙️</span>
+            </div>
+            <div class="mode-hub-brand">
+                <h1 class="mode-hub-title">NCHU PICKLEBALL ARENA</h1>
+                <div class="mode-hub-subtitle">國立中興大學匹克球學習社群 · 運動科技體驗館</div>
+            </div>
+            <div class="mode-hub-controls">
+                <button type="button" class="mode-hub-btn-icon" onclick="openAudioModal()" title="音效設定">🎶 音效</button>
+                <button type="button" class="mode-hub-btn-icon" id="hub-webcam-btn" onclick="toggleWebcamAI()" title="切換鏡頭體感模式">📷 體感: 關</button>
+                <button type="button" class="mode-hub-btn-icon" onclick="closeModeHub()" title="關閉大廳直接進入球場" style="background:#0284c7;border-color:#38bdf8;">🎾 進入球場</button>
+            </div>
+        </div>
+
+        <div class="mode-hub-grid">
+            <!-- 模式卡 1: 關卡闖關挑戰 -->
+            <div class="mode-card">
+                <div>
+                    <span class="mode-card-badge badge-quest">新手必練 · 5 大關卡</span>
+                    <div class="mode-card-icon">🎯</div>
+                    <h2 class="mode-card-title">關卡闖關挑戰</h2>
+                    <p class="mode-card-desc">循序漸進掌握匹克球核心規則：對角發球進區、雙彈跳、廚房區短打，一路晉級迎戰中興湖村長鵝！</p>
+                    <div class="mode-level-pills">
+                        <button type="button" class="mode-level-pill on" onclick="selectHubStage(1)">1 發球</button>
+                        <button type="button" class="mode-level-pill" onclick="selectHubStage(2)">2 雙彈跳</button>
+                        <button type="button" class="mode-level-pill" onclick="selectHubStage(3)">3 廚房區</button>
+                        <button type="button" class="mode-level-pill" onclick="selectHubStage(4)">4 對決</button>
+                        <button type="button" class="mode-level-pill" onclick="selectHubStage(5)">5 冠軍賽</button>
+                    </div>
+                </div>
+                <button type="button" class="mode-card-btn btn-quest" onclick="startHubQuest()">▶ 開始關卡闖關</button>
+            </div>
+
+            <!-- 模式卡 2: 瘋狂道具大亂鬥 -->
+            <div class="mode-card">
+                <div>
+                    <span class="mode-card-badge badge-chaos">娛樂模式 · 盲盒神裝</span>
+                    <div class="mode-card-icon">🍄</div>
+                    <h2 class="mode-card-title">瘋狂道具大亂鬥</h2>
+                    <p class="mode-card-desc">拾取場上隨機空投問號盲盒！召喚巨型千斤鐵球、大火球、手持電蚊拍大戰生化仿生蒼蠅！</p>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:8px;">
+                    <button type="button" class="mode-card-btn btn-chaos" onclick="startHubChaos()">🍄 立即開打 (進入 Stage 6)</button>
+                    <button type="button" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.18);border-radius:10px;padding:7px;color:#facc15;font-size:12px;font-weight:700;cursor:pointer;" onclick="openItemCardsModal()">🃏 查看道具圖鑑</button>
+                </div>
+            </div>
+
+            <!-- 模式卡 3: 旋球物理與競賽手冊 -->
+            <div class="mode-card">
+                <div>
+                    <span class="mode-card-badge badge-science">流體力學 · USA 官方手冊</span>
+                    <div class="mode-card-icon">🌪️</div>
+                    <h2 class="mode-card-title">科普與競賽手冊</h2>
+                    <p class="mode-card-desc">探索 NASA 馬格努斯效應 (Magnus Effect) 旋球微積分流體力學，與 2026 USA Pickleball 官方完整競賽手冊。</p>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:6px;">
+                    <button type="button" class="mode-card-btn btn-science" onclick="openRulesModal('physics')">🌪️ 馬格努斯流體力學</button>
+                    <div style="display:flex;gap:6px;">
+                        <button type="button" style="flex:1;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.18);border-radius:10px;padding:8px;color:#ffffff;font-size:12px;font-weight:700;cursor:pointer;" onclick="openRulesModal('rules')">📖 競賽規則手冊</button>
+                        <button type="button" style="flex:1;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.18);border-radius:10px;padding:8px;color:#38bdf8;font-size:12px;font-weight:700;cursor:pointer;" onclick="showFingerTutorial(0)">👆 旋球教學</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 模式卡 4: 校園榮譽英雄榜 -->
+            <div class="mode-card">
+                <div>
+                    <span class="mode-card-badge badge-social">全校爭霸 · 系所排行</span>
+                    <div class="mode-card-icon">🏆</div>
+                    <h2 class="mode-card-title">校園榮譽英雄榜</h2>
+                    <p class="mode-card-desc">檢視全校系級即時戰績排行、個人擊球動力鏈日誌與雲端榮譽殿堂，爭奪中興球王寶座！</p>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:6px;">
+                    <button type="button" class="mode-card-btn btn-social" onclick="openSocial()">🏆 查閱校園排行榜</button>
+                    <button type="button" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.18);border-radius:10px;padding:8px;color:#ffffff;font-size:12px;font-weight:700;cursor:pointer;" onclick="openAuditModal()">📋 體感動力鏈日誌</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="mode-hub-footer">
+            🔒 零個資隱私承諾 · 姿態運算全程於本機端執行 · 國立中興大學匹克球學習社群 · 運動科技推廣中心
         </div>
     </div>
 
@@ -4931,6 +5283,7 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
             <div id="nav" class="card">
                 <div class="nav-drag-handle" title="按住拖曳整組選單，雙擊重置回預設位置">⠿</div>
                 <button class="nav-min-btn" onclick="toggleNavMinimize(true)" title="收折最小化為懸浮球"><span class="nav-min-icon">−</span></button>
+                <button data-menu="hub" onclick="openModeHub()" style="background:linear-gradient(135deg, #0284c7, #6366f1);color:#ffffff;font-weight:800;border:1px solid #38bdf8;box-shadow:0 2px 8px rgba(2,132,199,0.35);">🎮 模式大廳</button>
                 <button data-menu="settings" onclick="toggleNavMenu('settings')">⚙️ 設定 ▾</button>
                 <button data-menu="stage" onclick="toggleNavMenu('stage')">🎯 關卡 ▾</button>
                 <button data-menu="ai" onclick="toggleNavMenu('ai')">🤖 體感 ▾</button>
@@ -5225,7 +5578,7 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
 /* ═══════════════════════════════════════════════════════════════════
    NCHU Pickleball V5 - 系統常數、設定與資料庫 (Config & Identity)
    ═══════════════════════════════════════════════════════════════════ */
-        const APP_VERSION = 'v5.1.3';
+        const APP_VERSION = 'v5.2.0';
 
         /* ═══════ 雙軌物理引擎模式 (Dual Physics Modes) ═══════ */
         const PHYSICS_MODES = {
@@ -5686,8 +6039,9 @@ function apiGet(qs) {
             document.body.classList.remove('demo-mode-active');
             clearKeys();
             S.init();
-            toast('👋 歡迎訪客！', '已進入特訓球場 (Stage 1)');
+            toast('👋 歡迎訪客！', '已進入模式大廳');
             switchStage(1);
+            if (typeof openModeHub === 'function') openModeHub();
         }
 
         function handleLogin() {
@@ -5731,6 +6085,7 @@ function apiGet(qs) {
             S.init();
             toast('👋 歡迎,' + playerProfile.department, '編號 ' + playerProfile.playerId);
             switchStage(1);
+            if (typeof openModeHub === 'function') openModeHub();
         }
         function openProfileModal() {
             document.getElementById('edit-dept').value = playerProfile.department || '';
@@ -7651,25 +8006,25 @@ function syncPhysicsModeUI() {
                 const currY = startY + (targetY - startY) * easeT;
                 if (hand) hand.style.transform = 'translate(' + currX + 'px, ' + currY + 'px)';
                 if (p1 && p2 && p3) { p1.className = 'finger-mode-pill on'; p2.className = 'finger-mode-pill'; p3.className = 'finger-mode-pill'; }
-                if (desc) desc.innerHTML = '👆 <b>直線快速前推</b> (Fast Upward Swipe)<br><span style="color:var(--ok);">➔ 爆發力道打出後場深球</span>';
+                if (desc) desc.innerHTML = '👆 <b>直線快速前推</b> (Fast Upward Swipe)<br><span style="color:var(--ok);">➔ 爆發直推深球 · 穩健打入後場深區</span>';
                 pathD = '<path d="M 110 145 L 110 ' + (145 + currY) + '" stroke="#38bdf8" stroke-width="3" stroke-dasharray="4 4" fill="none" opacity="' + (1 - t*0.25) + '"/>';
             } else if (fingerAnimStep === 1) {
-                // 2. 右刷拍側旋弧線
+                // 2. 寶可夢式右上刷拍側旋弧線
                 targetX = 60; targetY = -85;
                 const currX = startX + (targetX - startX) * easeT;
                 const currY = startY + (targetY - startY) * Math.sin(easeT * Math.PI * 0.5);
                 if (hand) hand.style.transform = 'translate(' + currX + 'px, ' + currY + 'px) rotate(15deg)';
                 if (p1 && p2 && p3) { p1.className = 'finger-mode-pill'; p2.className = 'finger-mode-pill on'; p3.className = 'finger-mode-pill'; }
-                if (desc) desc.innerHTML = '🌪️ <b>向右上刷拍</b> (Swipe Up-Right)<br><span style="color:#c084fc;">➔ 觸發右側旋香蕉弧線球 (Right Curve)</span>';
+                if (desc) desc.innerHTML = '🌪️ <b>寶可夢式右上刷拍</b> (Pokemon Curve Swipe Right)<br><span style="color:#c084fc;">➔ 觸發馬格努斯效應 (Magnus Effect) · 右側旋香蕉球！</span>';
                 pathD = '<path d="M 110 145 Q 130 110 ' + (110 + currX) + ' ' + (145 + currY) + '" stroke="#c084fc" stroke-width="3" stroke-dasharray="4 4" fill="none" opacity="' + (1 - t*0.25) + '"/>';
             } else {
-                // 3. 左刷拍側旋弧線
+                // 3. 寶可夢式左上刷拍側旋弧線
                 targetX = -60; targetY = -85;
                 const currX = startX + (targetX - startX) * easeT;
                 const currY = startY + (targetY - startY) * Math.sin(easeT * Math.PI * 0.5);
                 if (hand) hand.style.transform = 'translate(' + currX + 'px, ' + currY + 'px) rotate(-15deg)';
                 if (p1 && p2 && p3) { p1.className = 'finger-mode-pill'; p2.className = 'finger-mode-pill'; p3.className = 'finger-mode-pill on'; }
-                if (desc) desc.innerHTML = '🌪️ <b>向左上刷拍</b> (Swipe Up-Left)<br><span style="color:#c084fc;">➔ 觸發左側旋香蕉弧線球 (Left Curve)</span>';
+                if (desc) desc.innerHTML = '🌪️ <b>寶可夢式左上刷拍</b> (Pokemon Curve Swipe Left)<br><span style="color:#c084fc;">➔ 觸發馬格努斯效應 (Magnus Effect) · 左側旋香蕉球！</span>';
                 pathD = '<path d="M 110 145 Q 90 110 ' + (110 + currX) + ' ' + (145 + currY) + '" stroke="#c084fc" stroke-width="3" stroke-dasharray="4 4" fill="none" opacity="' + (1 - t*0.25) + '"/>';
             }
 
@@ -8985,6 +9340,58 @@ function cycleTeachLevelQuick() {
             closeSocialCard();
             toast('🎾 導覽完成！', '隨時可在【設定】中重新觀看互動導覽');
         }
+
+        /* ═══════════════════════════════════════════════════════════
+           🎮 遊戲化模式選擇大廳控制器 (Game Mode Select Hub Controller)
+           ═══════════════════════════════════════════════════════════ */
+        let hubSelectedStage = 1;
+
+        function openModeHub() {
+            const hub = document.getElementById('mode-hub-overlay');
+            if (!hub) return;
+            const av = document.getElementById('hub-avatar');
+            const nk = document.getElementById('hub-nick');
+            const dp = document.getElementById('hub-dept');
+            if (av) av.innerText = (typeof playerProfile !== 'undefined' && playerProfile.avatar) ? playerProfile.avatar : '🧢';
+            if (nk) nk.innerText = (typeof playerProfile !== 'undefined' && playerProfile.nickname) ? playerProfile.nickname : '興大球神';
+            if (dp) dp.innerText = (typeof playerProfile !== 'undefined' && playerProfile.department) ? (playerProfile.department + ' · 國立中興大學') : '國立中興大學匹克球社群';
+            const camBtn = document.getElementById('hub-webcam-btn');
+            if (camBtn) camBtn.innerText = '📷 體感: ' + (typeof webcamActive !== 'undefined' && webcamActive ? '開' : '關');
+            hub.style.display = 'flex';
+            if (typeof closePanel === 'function') closePanel();
+        }
+
+        function closeModeHub() {
+            const hub = document.getElementById('mode-hub-overlay');
+            if (hub) hub.style.display = 'none';
+        }
+
+        function selectHubStage(n) {
+            hubSelectedStage = n;
+            document.querySelectorAll('.mode-level-pill').forEach((btn, idx) => {
+                btn.classList.toggle('on', (idx + 1) === n);
+            });
+        }
+
+        function startHubQuest() {
+            closeModeHub();
+            if (typeof switchStage === 'function') {
+                switchStage(hubSelectedStage || 1);
+            }
+        }
+
+        function startHubChaos() {
+            closeModeHub();
+            if (typeof switchStage === 'function') {
+                switchStage(6);
+            }
+        }
+
+        window.openModeHub = openModeHub;
+        window.closeModeHub = closeModeHub;
+        window.selectHubStage = selectHubStage;
+        window.startHubQuest = startHubQuest;
+        window.startHubChaos = startHubChaos;
 
 
 /* ─── social.js ─── */
@@ -12231,6 +12638,77 @@ function cycleTeachLevelQuick() {
             line(COURT_W, lw, 0, KITCHEN_D); line(COURT_W, lw, 0, -KITCHEN_D);
             line(lw, HALF_L - KITCHEN_D, 0, (HALF_L + KITCHEN_D) / 2);
             line(lw, HALF_L - KITCHEN_D, 0, -(HALF_L + KITCHEN_D) / 2);
+
+            // ★ NCHU 賽事規格 3D 廣告圍欄與匹克球社群看板 (Tournament A-Frame Signboards)
+            function buildCourtSign(w, h, title, subtitle, emblem, col1, col2, x, z, rotY) {
+                try {
+                    const sc = document.createElement('canvas');
+                    sc.width = 1024; sc.height = 256;
+                    const sx = sc.getContext('2d');
+                    // 底色漸層
+                    const g = sx.createLinearGradient(0, 0, 1024, 0);
+                    g.addColorStop(0, col1);
+                    g.addColorStop(1, col2);
+                    sx.fillStyle = g;
+                    sx.fillRect(0, 0, 1024, 256);
+                    // 運動斜切條紋裝飾
+                    sx.fillStyle = 'rgba(255, 255, 255, 0.08)';
+                    for (let i = -100; i < 1100; i += 70) {
+                        sx.beginPath();
+                        sx.moveTo(i, 0); sx.lineTo(i + 45, 0);
+                        sx.lineTo(i + 15, 256); sx.lineTo(i - 30, 256);
+                        sx.fill();
+                    }
+                    // 金黃 / 霓虹頂底飾條
+                    sx.fillStyle = '#facc15';
+                    sx.fillRect(0, 0, 1024, 8);
+                    sx.fillRect(0, 248, 1024, 8);
+                    // 徽章圖示
+                    sx.font = '64px system-ui, sans-serif';
+                    sx.textAlign = 'center';
+                    sx.textBaseline = 'middle';
+                    sx.fillText(emblem || '🎾', 80, 128);
+                    // 主標題
+                    sx.fillStyle = '#ffffff';
+                    sx.font = 'bold 54px "Barlow Condensed", system-ui, sans-serif';
+                    sx.textAlign = 'left';
+                    sx.fillText(title, 150, 108);
+                    // 副標題
+                    sx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+                    sx.font = '600 28px "Barlow Condensed", system-ui, sans-serif';
+                    sx.fillText(subtitle, 152, 172);
+
+                    const stex = new THREE.CanvasTexture(sc);
+                    stex.anisotropy = 4;
+                    const smat = new THREE.MeshStandardMaterial({
+                        map: stex, roughness: 0.35, metalness: 0.15
+                    });
+                    // 3D 傾斜 A 字板組 (Tilted A-Board Group)
+                    const grp = new THREE.Group();
+                    grp.position.set(x, 0, z);
+                    grp.rotation.y = rotY || 0;
+                    const board = new THREE.Mesh(new THREE.BoxGeometry(w, h, 0.08), smat);
+                    board.position.y = (h / 2) * Math.cos(0.22);
+                    board.rotation.x = -0.22; // 微微後傾 12.6 度，對向鏡頭清晰可見
+                    board.castShadow = true;
+                    board.receiveShadow = true;
+                    grp.add(board);
+                    scene.add(grp);
+                } catch(e) {
+                    console.warn('buildCourtSign error:', e);
+                }
+            }
+
+            // 1. 左側邊線看板：NCHU 匹克球學習社群
+            buildCourtSign(4.2, 0.58, 'NCHU PICKLEBALL LEARNING COMMUNITY', '國立中興大學匹克球學習社群 · 運動科技推廣中心', '🎾', '#0f172a', '#1e3a8a', -(COURT_W / 2 + 1.25), -1.8, Math.PI / 2);
+            // 2. 左側後段看板：馬格努斯流體力學實驗室
+            buildCourtSign(4.2, 0.58, 'MAGNUS EFFECT FLUID DYNAMICS LAB', '旋球流體力學 · NASA 空氣動力學專題科普', '🌪️', '#0c4a6e', '#0369a1', -(COURT_W / 2 + 1.25), 1.8, Math.PI / 2);
+            // 3. 右側邊線看板：國立中興大學 中興湖水上球場
+            buildCourtSign(4.2, 0.58, 'NATIONAL CHUNG HSING UNIVERSITY', '中興湖水上特訓球場 · ZHONGXING LAKE ARENA', '🌿', '#064e3b', '#047857', (COURT_W / 2 + 1.25), -1.8, -Math.PI / 2);
+            // 4. 右側後段看板：USA Pickleball 官方手冊認證
+            buildCourtSign(4.2, 0.58, '2026 USA PICKLEBALL OFFICIAL HUB', '國際競賽規則手冊 · 虛擬裁判精準判定', '🏆', '#7f1d1d', '#991b1b', (COURT_W / 2 + 1.25), 1.8, -Math.PI / 2);
+            // 5. 對手底線後方大看板 (正對鏡頭)：中興大學匹克鵝官方錦標賽
+            buildCourtSign(6.2, 0.68, 'NCHU PICKLEBALL · 中興大學匹克鵝打秋', 'LEARNING COMMUNITY · CAMPUS LEADERBOARD ARENA', '🪿', '#0f172a', '#1e293b', 0, -(HALF_L + 2.1), 0);
         }
         function buildNet() {
             netGrp = new THREE.Group();
@@ -14766,7 +15244,12 @@ function updateGuides(dt) {
         }
 
         /* ═══════════ 動物森友會 拍立得完賽紀念卡 (Polaroid Souvenir) ═══════════ */
+        let lastSouvenirWon = true, lastSouvenirP = 3, lastSouvenirA = 1;
+
         function showPolaroidSouvenir(won, pScore, aScore) {
+            lastSouvenirWon = !!won;
+            lastSouvenirP = pScore;
+            lastSouvenirA = aScore;
             const modal = document.getElementById('polaroid-modal');
             if (!modal) return;
             const canvas = document.getElementById('polaroid-canvas');
@@ -14797,35 +15280,56 @@ function updateGuides(dt) {
             ctx.fillStyle = vig;
             ctx.fillRect(0, 0, cw, ch);
 
-            // 3. 頂部島嶼標籤徽章 (Island Header Badge)
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.92)';
+            // 3. 頂部中興大學匹克球社群標籤徽章 (NCHU Community Header Badge)
+            ctx.fillStyle = 'rgba(15, 23, 42, 0.88)';
             ctx.shadowColor = 'rgba(0, 0, 0, 0.25)';
             ctx.shadowBlur = 8;
             ctx.beginPath();
-            ctx.roundRect(16, 16, 210, 36, 18);
+            ctx.roundRect(16, 16, 260, 36, 18);
             ctx.fill();
             ctx.shadowBlur = 0;
-            ctx.fillStyle = '#0f766e';
-            ctx.font = 'bold 15px system-ui, sans-serif';
+            ctx.fillStyle = '#38bdf8';
+            ctx.font = 'bold 14px "Barlow Condensed", system-ui, sans-serif';
             ctx.textAlign = 'left';
             ctx.textBaseline = 'middle';
-            ctx.fillText('🏝️ 無人島 · 友誼盃', 32, 34);
+            ctx.fillText('🎾 NCHU PICKLEBALL COMMUNITY', 30, 34);
 
-            // 4. 右下角比分徽章 (Match Score Badge)
-            ctx.fillStyle = 'rgba(15, 23, 42, 0.85)';
+            // 4. 右下角高對比立體金箔比分徽章 (3D Gold Foil Match Score Badge)
+            const bw = 170, bh = 46, bx = cw - bw - 14, by = ch - bh - 14;
+            const bgGrad = ctx.createLinearGradient(bx, by, bx, by + bh);
+            bgGrad.addColorStop(0, '#064e3b');
+            bgGrad.addColorStop(1, '#022c22');
+            ctx.fillStyle = bgGrad;
+            ctx.strokeStyle = '#facc15';
+            ctx.lineWidth = 2.5;
             ctx.beginPath();
-            ctx.roundRect(cw - 180, ch - 54, 164, 40, 12);
+            ctx.roundRect(bx, by, bw, bh, 14);
             ctx.fill();
-            ctx.fillStyle = '#facc15';
-            ctx.font = 'bold 18px "Barlow Condensed", system-ui, sans-serif';
-            ctx.textAlign = 'center';
-            ctx.fillText('FINAL  ' + pScore + '  :  ' + aScore, cw - 98, ch - 34);
+            ctx.stroke();
 
-            // 5. 更新 DOM 模態文字與印章
+            ctx.fillStyle = '#fef08a';
+            ctx.font = '800 11px system-ui, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('🏆 MATCH RESULT', bx + bw / 2, by + 14);
+
+            ctx.fillStyle = '#facc15';
+            ctx.font = 'bold 22px "Barlow Condensed", system-ui, sans-serif';
+            ctx.fillText('FINAL  ' + pScore + '  :  ' + aScore, bx + bw / 2, by + 34);
+
+            // 5. 更新 DOM 模態文字、個人頭像暱稱與印章
+            const avatarEl = document.getElementById('polaroid-avatar-preview');
+            const nickEl = document.getElementById('polaroid-nick-preview');
+            const deptEl = document.getElementById('polaroid-dept-preview');
+            const scoreEl = document.getElementById('polaroid-score-preview');
+            if (avatarEl) avatarEl.innerText = (typeof playerProfile !== 'undefined' && playerProfile.avatar) ? playerProfile.avatar : '🧢';
+            if (nickEl) nickEl.innerText = (typeof playerProfile !== 'undefined' && playerProfile.nickname) ? playerProfile.nickname : '興大匹克球神';
+            if (deptEl) deptEl.innerText = (typeof playerProfile !== 'undefined' && playerProfile.department) ? (playerProfile.department + ' · 國立中興大學') : '國立中興大學匹克球社群';
+            if (scoreEl) scoreEl.innerText = 'FINAL ' + pScore + ' : ' + aScore;
+
             const dateEl = document.getElementById('polaroid-date');
             if (dateEl) {
                 const now = new Date();
-                dateEl.innerText = now.getFullYear() + '.' + String(now.getMonth() + 1).padStart(2, '0') + '.' + String(now.getDate()).padStart(2, '0') + ' · 晴天 26°C';
+                dateEl.innerText = now.getFullYear() + '.' + String(now.getMonth() + 1).padStart(2, '0') + '.' + String(now.getDate()).padStart(2, '0') + ' · 中興湖畔 晴天 26°C';
             }
 
             const stampEl = document.getElementById('polaroid-stamp');
@@ -14835,7 +15339,7 @@ function updateGuides(dt) {
                     stampEl.innerText = 'VICTORY!';
                     stampEl.style.color = '#10b981';
                     stampEl.style.borderColor = '#10b981';
-                    msgEl.innerText = '「太精彩了！村長鵝為你熱烈鼓掌，無人島的居民們都為你的球技歡呼！」';
+                    msgEl.innerText = '「太精彩了！村長鵝為你熱烈鼓掌，中興大學的球迷們都為你的球技歡呼！」';
                     if (S && S.fanfare) S.fanfare();
                 } else {
                     stampEl.innerText = 'NICE PLAY!';
@@ -14856,18 +15360,183 @@ function updateGuides(dt) {
         }
 
         function downloadPolaroid() {
-            const canvas = document.getElementById('polaroid-canvas');
-            if (!canvas) return;
             try {
+                // ★ 2K 超取樣高解析度完整拍立得畫布 (1600 x 1350)
+                const fullCanvas = document.createElement('canvas');
+                fullCanvas.width = 1600;
+                fullCanvas.height = 1350;
+                const fx = fullCanvas.getContext('2d');
+                fx.imageSmoothingEnabled = true;
+                fx.imageSmoothingQuality = 'high';
+
+                // 1. 溫潤拍立得米白藝術相紙底襯 (Warm Fine Art Paper)
+                fx.fillStyle = '#fcfbf7';
+                fx.beginPath();
+                fx.roundRect(0, 0, 1600, 1350, 36);
+                fx.fill();
+                fx.strokeStyle = '#e2ded6';
+                fx.lineWidth = 4;
+                fx.stroke();
+
+                // 2. 頂部立體木質圖釘 (Wooden Pin)
+                fx.font = '72px system-ui, sans-serif';
+                fx.textAlign = 'center';
+                fx.textBaseline = 'middle';
+                fx.fillText('📌', 800, 52);
+
+                // 3. 標頭文字 (Header Title & Date)
+                fx.fillStyle = '#334155';
+                fx.font = 'bold 36px "Barlow Condensed", system-ui, sans-serif';
+                fx.textAlign = 'center';
+                fx.fillText('國立中興大學匹克球學習社群 · 友誼錦標賽', 800, 102);
+
+                const now = new Date();
+                const dateStr = now.getFullYear() + '.' + String(now.getMonth() + 1).padStart(2, '0') + '.' + String(now.getDate()).padStart(2, '0') + ' · 中興湖水上特訓球場 · 晴天 26°C';
+                fx.fillStyle = '#64748b';
+                fx.font = '600 22px system-ui, sans-serif';
+                fx.fillText(dateStr, 800, 138);
+
+                // 4. 繪製 3D 照片主體區域 (Photo Area: 1440 x 860)
+                const px = 80, py = 165, pw = 1440, ph = 860;
+                fx.save();
+                fx.beginPath();
+                fx.roundRect(px, py, pw, ph, 20);
+                fx.clip();
+
+                // 擷取 3D WebGL 畫面
+                if (ren && ren.domElement) {
+                    try {
+                        ren.render(scene, cam);
+                        fx.drawImage(ren.domElement, px, py, pw, ph);
+                    } catch(e) {
+                        const fallbackGrad = fx.createLinearGradient(px, py, px, py + ph);
+                        fallbackGrad.addColorStop(0, '#0284c7');
+                        fallbackGrad.addColorStop(1, '#059669');
+                        fx.fillStyle = fallbackGrad;
+                        fx.fillRect(px, py, pw, ph);
+                    }
+                }
+
+                // 照片暗角 (Vignette)
+                const vig = fx.createRadialGradient(px + pw / 2, py + ph / 2, pw * 0.28, px + pw / 2, py + ph / 2, pw * 0.72);
+                vig.addColorStop(0, 'rgba(0,0,0,0)');
+                vig.addColorStop(1, 'rgba(15,23,42,0.42)');
+                fx.fillStyle = vig;
+                fx.fillRect(px, py, pw, ph);
+
+                // 左上角官方徽章 (Top-Left Pill)
+                fx.fillStyle = 'rgba(15, 23, 42, 0.88)';
+                fx.beginPath();
+                fx.roundRect(px + 30, py + 30, 480, 58, 29);
+                fx.fill();
+                fx.strokeStyle = 'rgba(56, 189, 248, 0.6)';
+                fx.lineWidth = 2.5;
+                fx.stroke();
+                fx.fillStyle = '#38bdf8';
+                fx.font = 'bold 24px "Barlow Condensed", system-ui, sans-serif';
+                fx.textAlign = 'left';
+                fx.textBaseline = 'middle';
+                fx.fillText('🎾 NCHU PICKLEBALL COMMUNITY · OFFICIAL SOUVENIR', px + 52, py + 59);
+
+                // 右下角立體金箔比分勳章 (Bottom-Right 3D Gold Foil Score Badge)
+                const sbw = 340, sbh = 96, sbx = px + pw - sbw - 30, sby = py + ph - sbh - 30;
+                const sbGrad = fx.createLinearGradient(sbx, sby, sbx, sby + sbh);
+                sbGrad.addColorStop(0, '#064e3b');
+                sbGrad.addColorStop(1, '#022c22');
+                fx.fillStyle = sbGrad;
+                fx.beginPath();
+                fx.roundRect(sbx, sby, sbw, sbh, 24);
+                fx.fill();
+                fx.strokeStyle = '#facc15';
+                fx.lineWidth = 4;
+                fx.stroke();
+
+                fx.fillStyle = '#fef08a';
+                fx.font = '800 18px system-ui, sans-serif';
+                fx.textAlign = 'center';
+                fx.fillText('🏆 MATCH RESULT', sbx + sbw / 2, sby + 30);
+
+                fx.fillStyle = '#facc15';
+                fx.font = 'bold 44px "Barlow Condensed", system-ui, sans-serif';
+                fx.fillText('FINAL  ' + lastSouvenirP + '  :  ' + lastSouvenirA, sbx + sbw / 2, sby + 72);
+
+                fx.restore();
+
+                // 5. 拍立得下方個人化玩家資訊與官方認證印章 (Classic Bottom Margin)
+                const pAvatar = (typeof playerProfile !== 'undefined' && playerProfile.avatar) ? playerProfile.avatar : '🧢';
+                const pNick = (typeof playerProfile !== 'undefined' && playerProfile.nickname) ? playerProfile.nickname : '興大匹克球神';
+                const pDept = (typeof playerProfile !== 'undefined' && playerProfile.department) ? (playerProfile.department + ' · 國立中興大學') : '國立中興大學匹克球社群';
+                const pId = (typeof playerProfile !== 'undefined' && playerProfile.playerId) ? ('ID: ' + playerProfile.playerId) : 'ID: NCHU-2026';
+
+                // 玩家頭像圈
+                const avX = 140, avY = 1145, avR = 48;
+                fx.fillStyle = '#e2e8f0';
+                fx.beginPath();
+                fx.arc(avX, avY, avR, 0, Math.PI * 2);
+                fx.fill();
+                fx.strokeStyle = '#10b981';
+                fx.lineWidth = 4;
+                fx.stroke();
+
+                fx.font = '52px system-ui, sans-serif';
+                fx.textAlign = 'center';
+                fx.textBaseline = 'middle';
+                fx.fillText(pAvatar, avX, avY + 2);
+
+                // 玩家名稱與系級
+                fx.textAlign = 'left';
+                fx.fillStyle = '#0f172a';
+                fx.font = 'bold 36px system-ui, sans-serif';
+                fx.fillText(pNick, avX + 64, avY - 14);
+
+                fx.fillStyle = '#64748b';
+                fx.font = '600 22px system-ui, sans-serif';
+                fx.fillText(pDept + '   |   ' + pId, avX + 66, avY + 26);
+
+                // 右側官方印章 (Stamp)
+                fx.save();
+                fx.translate(1420, 1145);
+                fx.rotate(-0.16); // 逆時針傾斜 9 度
+                const stampWon = lastSouvenirWon;
+                const stampCol = stampWon ? '#dc2626' : '#d97706';
+                fx.strokeStyle = stampCol;
+                fx.fillStyle = stampCol;
+                fx.lineWidth = 4;
+                fx.beginPath();
+                fx.arc(0, 0, 72, 0, Math.PI * 2);
+                fx.stroke();
+                fx.lineWidth = 2;
+                fx.beginPath();
+                fx.arc(0, 0, 64, 0, Math.PI * 2);
+                fx.stroke();
+
+                fx.font = 'bold 12px "Barlow Condensed", system-ui, sans-serif';
+                fx.textAlign = 'center';
+                fx.fillText('★ NATIONAL CHUNG HSING UNIV ★', 0, -42);
+
+                fx.font = '900 32px "Barlow Condensed", system-ui, sans-serif';
+                fx.fillText(stampWon ? 'VICTORY!' : 'NICE PLAY!', 0, 2);
+
+                fx.font = '800 13px system-ui, sans-serif';
+                fx.fillText(stampWon ? 'OFFICIAL CERTIFIED' : 'FRIENDLY MATCH', 0, 40);
+                fx.restore();
+
+                // 最底部版權與社群浮水印
+                fx.fillStyle = '#94a3b8';
+                fx.font = '600 18px "Barlow Condensed", system-ui, sans-serif';
+                fx.textAlign = 'center';
+                fx.fillText('NCHU PICKLEBALL LEARNING COMMUNITY · OFFICIAL SOUVENIR POSTCARD · ZHONGXING LAKE ARENA', 800, 1315);
+
+                // 6. 下載完整 2K 高清圖片
                 const link = document.createElement('a');
-                link.download = 'pickleball-island-souvenir-' + Date.now() + '.png';
-                link.href = canvas.toDataURL('image/png');
+                link.download = 'NCHU-Pickleball-Souvenir-' + (pNick.replace(/\s+/g, '_')) + '-' + Date.now() + '.png';
+                link.href = fullCanvas.toDataURL('image/png');
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
-                if (typeof toast === 'function') toast('📸 紀念照已儲存', '快分享給朋友炫耀你的島嶼戰績！');
+                if (typeof toast === 'function') toast('📸 2K 高清紀念卡已儲存', '完整相紙、比分勳章與個人頭像已匯出！');
             } catch (e) {
-                console.error('Download polaroid failed', e);
+                console.error('Download high-res polaroid failed', e);
             }
         }
 

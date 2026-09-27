@@ -12,7 +12,7 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>NCHU Pickleball Lab · 中興大學匹克鵝打秋 (v5.1.3)</title>
+    <title>NCHU Pickleball Lab · 中興大學匹克鵝打秋 (v5.2.0)</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.3.1675466862/camera_utils.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/pose.js" crossorigin="anonymous"></script>
@@ -258,19 +258,19 @@
     </div>
 
     
-    <!-- ══════ 新手手指滑動教學指引 (完全去背透明 Overlay) ══════ -->
+    <!-- ══════ ⚡ 寶可夢式精準滑動 · 馬格努斯旋球手勢教學 (Pokemon & Magnus Curve Tutorial) ══════ -->
     <div id="finger-tutorial" class="finger-tut-overlay hidden" onclick="dismissFingerTutorial()">
         <div class="finger-tut-card" onclick="event.stopPropagation();">
             <div class="finger-tut-banner">
                 <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
-                    <div class="finger-tut-title">🏸 滑動擊球與角色連動指引</div>
-                    <button type="button" class="finger-tut-close-icon" onclick="dismissFingerTutorial()" title="關閉指引視窗">✕</button>
+                    <div class="finger-tut-title">⚡ 寶可夢式精準滑動 · 馬格努斯旋球教學</div>
+                    <button type="button" class="finger-tut-close-icon" onclick="dismissFingerTutorial()" title="關閉教學視窗">✕</button>
                 </div>
-                <div class="finger-tut-desc" id="finger-tut-desc">👆 往前滑動推拍打深球 · 左右刷拍打出香蕉側旋弧線</div>
+                <div class="finger-tut-desc" id="finger-tut-desc">👆 直線快速前推打深球 · 🌪️ 弧形刷拍產生馬格努斯側旋香蕉球！</div>
                 <div class="finger-tut-modes">
-                    <span class="finger-mode-pill on" id="tut-mode-1">1. 直推打深 (Power)</span>
-                    <span class="finger-mode-pill" id="tut-mode-2">2. 右弧側旋 (Right Spin)</span>
-                    <span class="finger-mode-pill" id="tut-mode-3">3. 左弧側旋 (Left Spin)</span>
+                    <span class="finger-mode-pill on" id="tut-mode-1" onclick="triggerFingerDemoSwipe(0)">1. 直推打深 (Drive)</span>
+                    <span class="finger-mode-pill" id="tut-mode-2" onclick="triggerFingerDemoSwipe(1)">2. 右弧側旋 (Right Spin)</span>
+                    <span class="finger-mode-pill" id="tut-mode-3" onclick="triggerFingerDemoSwipe(2)">3. 左弧側旋 (Left Spin)</span>
                 </div>
             </div>
             
@@ -285,8 +285,8 @@
                 </div>
             </div>
             <div style="display:flex;flex-direction:column;align-items:center;gap:6px;margin-top:8px;">
-                <button type="button" class="finger-tut-close-btn" onclick="dismissFingerTutorial()">✕ 關閉視窗 (開始揮拍)</button>
-                <div style="font-size:11px;color:rgba(255,255,255,0.75);text-shadow:0 2px 4px rgba(0,0,0,0.8);">💡 點擊按鈕或螢幕任意處即可關閉並開始揮拍</div>
+                <button type="button" class="finger-tut-close-btn" onclick="dismissFingerTutorial()">✕ 關閉視窗 (隨時發球揮拍)</button>
+                <div style="font-size:11px;color:rgba(255,255,255,0.85);text-shadow:0 2px 4px rgba(0,0,0,0.8);">💡 像丟寶可夢精靈球一樣在螢幕上畫弧度，即可產生劇烈側旋！點擊任意處開始揮拍</div>
             </div>
         </div>
     </div>
@@ -821,15 +821,24 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
     </div>
 
     <!-- ══════ 拍立得完賽紀念卡 Modal (Animal Crossing Polaroid Souvenir) ══════ -->
-    <div id="polaroid-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="polaroid-title" style="display:none;align-items:center;justify-content:center;background:rgba(15,23,42,0.85);backdrop-filter:blur(10px);z-index:9999;">
+    <div id="polaroid-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="polaroid-title" style="display:none;align-items:center;justify-content:center;background:rgba(15,23,42,0.88);backdrop-filter:blur(12px);z-index:9999;">
         <div class="polaroid-card">
             <div class="polaroid-pin">📌</div>
             <div class="polaroid-header">
-                <div class="polaroid-header-title" id="polaroid-title">🏝️ 無人島匹克球大賽 · 完賽紀念</div>
-                <div class="polaroid-date" id="polaroid-date">2026.09.27</div>
+                <div class="polaroid-header-title" id="polaroid-title">🏝️ 國立中興大學匹克球學習社群 · 完賽紀念</div>
+                <div class="polaroid-date" id="polaroid-date">2026.09.28 · 中興湖水上特訓球場</div>
             </div>
             <div class="polaroid-photo-wrapper">
                 <canvas id="polaroid-canvas" width="600" height="420"></canvas>
+            </div>
+            <!-- 玩家個人化戰績欄 -->
+            <div class="polaroid-player-bar">
+                <div class="polaroid-avatar-badge" id="polaroid-avatar-preview">🧢</div>
+                <div class="polaroid-player-details">
+                    <div class="polaroid-player-name" id="polaroid-nick-preview">叫獸aka愛叫的野獸</div>
+                    <div class="polaroid-player-dept" id="polaroid-dept-preview">國立中興大學 · 資訊工程</div>
+                </div>
+                <div class="polaroid-score-tag" id="polaroid-score-preview">FINAL 3 : 1</div>
             </div>
             <div class="polaroid-caption" id="polaroid-caption">
                 <span class="polaroid-stamp" id="polaroid-stamp">WINNER!</span>
@@ -837,8 +846,100 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
             </div>
             <div class="polaroid-actions">
                 <button class="ac-btn-sub" onclick="closePolaroidModal()">繼續遊戲</button>
-                <button class="ac-btn-primary" onclick="downloadPolaroid()">📸 儲存紀念照</button>
+                <button class="ac-btn-primary" onclick="downloadPolaroid()">📸 下載 2K 超清紀念卡 (PNG)</button>
             </div>
+        </div>
+    </div>
+
+    <!-- ══════ 🎮 遊戲化模式選擇大廳 (Game Mode Select Hub Overlay) ══════ -->
+    <div id="mode-hub-overlay" style="display:none;">
+        <div class="mode-hub-header">
+            <div class="mode-hub-profile" onclick="openProfileModal()" title="點擊修改個人頭像與暱稱">
+                <span id="hub-avatar" style="font-size:22px;">🧢</span>
+                <div>
+                    <div id="hub-nick" style="font-size:13px;font-weight:800;line-height:1.2;">叫獸aka愛叫的野獸</div>
+                    <div id="hub-dept" style="font-size:10px;color:rgba(255,255,255,0.65);">國立中興大學 · 資訊工程</div>
+                </div>
+                <span style="font-size:11px;opacity:0.7;">⚙️</span>
+            </div>
+            <div class="mode-hub-brand">
+                <h1 class="mode-hub-title">NCHU PICKLEBALL ARENA</h1>
+                <div class="mode-hub-subtitle">國立中興大學匹克球學習社群 · 運動科技體驗館</div>
+            </div>
+            <div class="mode-hub-controls">
+                <button type="button" class="mode-hub-btn-icon" onclick="openAudioModal()" title="音效設定">🎶 音效</button>
+                <button type="button" class="mode-hub-btn-icon" id="hub-webcam-btn" onclick="toggleWebcamAI()" title="切換鏡頭體感模式">📷 體感: 關</button>
+                <button type="button" class="mode-hub-btn-icon" onclick="closeModeHub()" title="關閉大廳直接進入球場" style="background:#0284c7;border-color:#38bdf8;">🎾 進入球場</button>
+            </div>
+        </div>
+
+        <div class="mode-hub-grid">
+            <!-- 模式卡 1: 關卡闖關挑戰 -->
+            <div class="mode-card">
+                <div>
+                    <span class="mode-card-badge badge-quest">新手必練 · 5 大關卡</span>
+                    <div class="mode-card-icon">🎯</div>
+                    <h2 class="mode-card-title">關卡闖關挑戰</h2>
+                    <p class="mode-card-desc">循序漸進掌握匹克球核心規則：對角發球進區、雙彈跳、廚房區短打，一路晉級迎戰中興湖村長鵝！</p>
+                    <div class="mode-level-pills">
+                        <button type="button" class="mode-level-pill on" onclick="selectHubStage(1)">1 發球</button>
+                        <button type="button" class="mode-level-pill" onclick="selectHubStage(2)">2 雙彈跳</button>
+                        <button type="button" class="mode-level-pill" onclick="selectHubStage(3)">3 廚房區</button>
+                        <button type="button" class="mode-level-pill" onclick="selectHubStage(4)">4 對決</button>
+                        <button type="button" class="mode-level-pill" onclick="selectHubStage(5)">5 冠軍賽</button>
+                    </div>
+                </div>
+                <button type="button" class="mode-card-btn btn-quest" onclick="startHubQuest()">▶ 開始關卡闖關</button>
+            </div>
+
+            <!-- 模式卡 2: 瘋狂道具大亂鬥 -->
+            <div class="mode-card">
+                <div>
+                    <span class="mode-card-badge badge-chaos">娛樂模式 · 盲盒神裝</span>
+                    <div class="mode-card-icon">🍄</div>
+                    <h2 class="mode-card-title">瘋狂道具大亂鬥</h2>
+                    <p class="mode-card-desc">拾取場上隨機空投問號盲盒！召喚巨型千斤鐵球、大火球、手持電蚊拍大戰生化仿生蒼蠅！</p>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:8px;">
+                    <button type="button" class="mode-card-btn btn-chaos" onclick="startHubChaos()">🍄 立即開打 (進入 Stage 6)</button>
+                    <button type="button" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.18);border-radius:10px;padding:7px;color:#facc15;font-size:12px;font-weight:700;cursor:pointer;" onclick="openItemCardsModal()">🃏 查看道具圖鑑</button>
+                </div>
+            </div>
+
+            <!-- 模式卡 3: 旋球物理與競賽手冊 -->
+            <div class="mode-card">
+                <div>
+                    <span class="mode-card-badge badge-science">流體力學 · USA 官方手冊</span>
+                    <div class="mode-card-icon">🌪️</div>
+                    <h2 class="mode-card-title">科普與競賽手冊</h2>
+                    <p class="mode-card-desc">探索 NASA 馬格努斯效應 (Magnus Effect) 旋球微積分流體力學，與 2026 USA Pickleball 官方完整競賽手冊。</p>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:6px;">
+                    <button type="button" class="mode-card-btn btn-science" onclick="openRulesModal('physics')">🌪️ 馬格努斯流體力學</button>
+                    <div style="display:flex;gap:6px;">
+                        <button type="button" style="flex:1;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.18);border-radius:10px;padding:8px;color:#ffffff;font-size:12px;font-weight:700;cursor:pointer;" onclick="openRulesModal('rules')">📖 競賽規則手冊</button>
+                        <button type="button" style="flex:1;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.18);border-radius:10px;padding:8px;color:#38bdf8;font-size:12px;font-weight:700;cursor:pointer;" onclick="showFingerTutorial(0)">👆 旋球教學</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 模式卡 4: 校園榮譽英雄榜 -->
+            <div class="mode-card">
+                <div>
+                    <span class="mode-card-badge badge-social">全校爭霸 · 系所排行</span>
+                    <div class="mode-card-icon">🏆</div>
+                    <h2 class="mode-card-title">校園榮譽英雄榜</h2>
+                    <p class="mode-card-desc">檢視全校系級即時戰績排行、個人擊球動力鏈日誌與雲端榮譽殿堂，爭奪中興球王寶座！</p>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:6px;">
+                    <button type="button" class="mode-card-btn btn-social" onclick="openSocial()">🏆 查閱校園排行榜</button>
+                    <button type="button" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.18);border-radius:10px;padding:8px;color:#ffffff;font-size:12px;font-weight:700;cursor:pointer;" onclick="openAuditModal()">📋 體感動力鏈日誌</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="mode-hub-footer">
+            🔒 零個資隱私承諾 · 姿態運算全程於本機端執行 · 國立中興大學匹克球學習社群 · 運動科技推廣中心
         </div>
     </div>
 
@@ -1006,6 +1107,7 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
             <div id="nav" class="card">
                 <div class="nav-drag-handle" title="按住拖曳整組選單，雙擊重置回預設位置">⠿</div>
                 <button class="nav-min-btn" onclick="toggleNavMinimize(true)" title="收折最小化為懸浮球"><span class="nav-min-icon">−</span></button>
+                <button data-menu="hub" onclick="openModeHub()" style="background:linear-gradient(135deg, #0284c7, #6366f1);color:#ffffff;font-weight:800;border:1px solid #38bdf8;box-shadow:0 2px 8px rgba(2,132,199,0.35);">🎮 模式大廳</button>
                 <button data-menu="settings" onclick="toggleNavMenu('settings')">⚙️ 設定 ▾</button>
                 <button data-menu="stage" onclick="toggleNavMenu('stage')">🎯 關卡 ▾</button>
                 <button data-menu="ai" onclick="toggleNavMenu('ai')">🤖 體感 ▾</button>

@@ -1,7 +1,7 @@
 /* ═══════════════════════════════════════════════════════════════════
    NCHU Pickleball V5 - 系統常數、設定與資料庫 (Config & Identity)
    ═══════════════════════════════════════════════════════════════════ */
-        const APP_VERSION = 'v5.1.3';
+        const APP_VERSION = 'v5.2.0';
 
         /* ═══════ 雙軌物理引擎模式 (Dual Physics Modes) ═══════ */
         const PHYSICS_MODES = {
@@ -462,8 +462,9 @@ function apiGet(qs) {
             document.body.classList.remove('demo-mode-active');
             clearKeys();
             S.init();
-            toast('👋 歡迎訪客！', '已進入特訓球場 (Stage 1)');
+            toast('👋 歡迎訪客！', '已進入模式大廳');
             switchStage(1);
+            if (typeof openModeHub === 'function') openModeHub();
         }
 
         function handleLogin() {
@@ -507,6 +508,7 @@ function apiGet(qs) {
             S.init();
             toast('👋 歡迎,' + playerProfile.department, '編號 ' + playerProfile.playerId);
             switchStage(1);
+            if (typeof openModeHub === 'function') openModeHub();
         }
         function openProfileModal() {
             document.getElementById('edit-dept').value = playerProfile.department || '';
