@@ -815,6 +815,28 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
         </div>
     </div>
 
+    <!-- ══════ 拍立得完賽紀念卡 Modal (Animal Crossing Polaroid Souvenir) ══════ -->
+    <div id="polaroid-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="polaroid-title" style="display:none;align-items:center;justify-content:center;background:rgba(15,23,42,0.85);backdrop-filter:blur(10px);z-index:9999;">
+        <div class="polaroid-card">
+            <div class="polaroid-pin">📌</div>
+            <div class="polaroid-header">
+                <div class="polaroid-header-title" id="polaroid-title">🏝️ 無人島匹克球大賽 · 完賽紀念</div>
+                <div class="polaroid-date" id="polaroid-date">2026.09.27</div>
+            </div>
+            <div class="polaroid-photo-wrapper">
+                <canvas id="polaroid-canvas" width="600" height="420"></canvas>
+            </div>
+            <div class="polaroid-caption" id="polaroid-caption">
+                <span class="polaroid-stamp" id="polaroid-stamp">WINNER!</span>
+                <p id="polaroid-msg">「這是一場超棒的友誼賽！村長鵝給了你一個大大的擁抱～」</p>
+            </div>
+            <div class="polaroid-actions">
+                <button class="ac-btn-sub" onclick="closePolaroidModal()">繼續遊戲</button>
+                <button class="ac-btn-primary" onclick="downloadPolaroid()">📸 儲存紀念照</button>
+            </div>
+        </div>
+    </div>
+
     <!-- ══════ Spotlight 聚光燈互動導覽 (A+B 方案) ══════ -->
     <div id="spotlight-tour">
         <div class="spotlight-mask" onclick="nextSpotlightStep()"></div>

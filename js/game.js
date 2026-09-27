@@ -81,9 +81,110 @@
         function skyTex() {
             const c = document.createElement('canvas'); c.width = 8; c.height = 256;
             const x = c.getContext('2d'), g = x.createLinearGradient(0, 0, 0, 256);
-            g.addColorStop(0, '#267cb5'); g.addColorStop(0.34, '#53a5df');
-            g.addColorStop(0.62, '#8ecaf0'); g.addColorStop(0.84, '#cfeefa'); g.addColorStop(1, '#e5f6fd');
+            g.addColorStop(0, '#38bdf8'); g.addColorStop(0.35, '#7dd3fc');
+            g.addColorStop(0.65, '#bae6fd'); g.addColorStop(0.85, '#fef08a'); g.addColorStop(1, '#fef9c3');
             x.fillStyle = g; x.fillRect(0, 0, 8, 256);
+            const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding;
+            return t;
+        }
+
+        /* ═══════════ 動物森友會風格 程序化紋理 (Animal Crossing Procedural Textures) ═══════════ */
+        function acGrassTex() {
+            const c = document.createElement('canvas'); c.width = c.height = 128;
+            const ctx = c.getContext('2d');
+            ctx.fillStyle = '#62ad35'; ctx.fillRect(0, 0, 128, 128);
+            ctx.fillStyle = '#73bf43';
+            for (let y = 0; y < 128; y += 32) {
+                for (let x = 0; x < 128; x += 32) {
+                    ctx.beginPath();
+                    ctx.moveTo(x + 16, y + 4); ctx.lineTo(x + 28, y + 16);
+                    ctx.lineTo(x + 16, y + 28); ctx.lineTo(x + 4, y + 16);
+                    ctx.closePath(); ctx.fill();
+                }
+            }
+            const t = new THREE.CanvasTexture(c);
+            t.encoding = THREE.sRGBEncoding; t.wrapS = t.wrapT = THREE.RepeatWrapping;
+            return t;
+        }
+
+        let waterTexRef = null;
+        function acWaterTex() {
+            const c = document.createElement('canvas'); c.width = c.height = 128;
+            const ctx = c.getContext('2d');
+            ctx.fillStyle = '#38bdf8'; ctx.fillRect(0, 0, 128, 128);
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.45)'; ctx.lineWidth = 3; ctx.lineCap = 'round';
+            for (let y = 8; y < 128; y += 24) {
+                for (let x = 6; x < 128; x += 32) {
+                    ctx.beginPath(); ctx.arc(x + 10, y, 8, 0.2 * Math.PI, 0.8 * Math.PI, false); ctx.stroke();
+                }
+            }
+            const t = new THREE.CanvasTexture(c);
+            t.encoding = THREE.sRGBEncoding; t.wrapS = t.wrapT = THREE.RepeatWrapping;
+            waterTexRef = t;
+            return t;
+        }
+
+        function acFaceTex() {
+            const c = document.createElement('canvas'); c.width = c.height = 128;
+            const ctx = c.getContext('2d');
+            ctx.fillStyle = '#fce5cd'; ctx.fillRect(0, 0, 128, 128);
+            ctx.fillStyle = '#5c3a21'; ctx.fillRect(0, 0, 128, 36);
+            ctx.beginPath(); ctx.moveTo(0, 36);
+            for (let i = 0; i <= 128; i += 16) ctx.lineTo(i, 36 + (i % 32 === 0 ? 12 : 2));
+            ctx.lineTo(128, 0); ctx.lineTo(0, 0); ctx.fill();
+            // Rosy cheeks
+            ctx.fillStyle = 'rgba(255, 130, 160, 0.55)';
+            ctx.beginPath(); ctx.arc(28, 84, 13, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(100, 84, 13, 0, Math.PI * 2); ctx.fill();
+            // Anime sparkling eyes
+            ctx.fillStyle = '#1e293b';
+            ctx.beginPath(); ctx.ellipse(38, 66, 9, 14, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.ellipse(90, 66, 9, 14, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath(); ctx.arc(36, 60, 4, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(88, 60, 4, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(40, 70, 2, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(92, 70, 2, 0, Math.PI * 2); ctx.fill();
+            // Cute smile
+            ctx.strokeStyle = '#8d5b4c'; ctx.lineWidth = 3; ctx.lineCap = 'round';
+            ctx.beginPath(); ctx.arc(64, 88, 10, 0.15 * Math.PI, 0.85 * Math.PI, false); ctx.stroke();
+            const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding;
+            return t;
+        }
+
+        function acPaddleTex() {
+            const c = document.createElement('canvas'); c.width = 128; c.height = 160;
+            const ctx = c.getContext('2d');
+            ctx.fillStyle = '#fef3c7'; ctx.fillRect(0, 0, 128, 160);
+            ctx.strokeStyle = 'rgba(217, 119, 6, 0.25)'; ctx.lineWidth = 2;
+            for (let y = 10; y < 160; y += 18) {
+                ctx.beginPath(); ctx.moveTo(0, y);
+                ctx.bezierCurveTo(40, y + 4, 80, y - 4, 128, y); ctx.stroke();
+            }
+            // Animal Crossing Leaf emblem
+            ctx.fillStyle = '#10b981'; ctx.beginPath();
+            ctx.moveTo(64, 45); ctx.bezierCurveTo(92, 55, 96, 95, 68, 115);
+            ctx.bezierCurveTo(76, 95, 66, 88, 58, 92);
+            ctx.bezierCurveTo(34, 90, 36, 60, 64, 45); ctx.fill();
+            ctx.strokeStyle = '#047857'; ctx.lineWidth = 2.5; ctx.beginPath();
+            ctx.moveTo(64, 52); ctx.quadraticCurveTo(66, 80, 68, 110); ctx.stroke();
+            const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding;
+            return t;
+        }
+
+        function acGooseFaceTex() {
+            const c = document.createElement('canvas'); c.width = c.height = 128;
+            const ctx = c.getContext('2d');
+            ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, 128, 128);
+            ctx.fillStyle = '#0f172a';
+            ctx.beginPath(); ctx.arc(42, 60, 8, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(86, 60, 8, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath(); ctx.arc(40, 57, 3, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(84, 57, 3, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = 'rgba(255, 160, 180, 0.45)';
+            ctx.beginPath(); ctx.arc(32, 74, 9, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(96, 74, 9, 0, Math.PI * 2); ctx.fill();
             const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding;
             return t;
         }
@@ -122,14 +223,14 @@
         function init3D() {
             scene = new THREE.Scene();
             scene.background = skyTex();
-            scene.fog = new THREE.Fog(0xc3ddee, GRADE.fogNear, GRADE.fogFar);
+            scene.fog = new THREE.Fog(0xcfeefa, GRADE.fogNear, GRADE.fogFar);
 
             const dims = getStageDimensions();
             const camCfg = getResponsiveCameraConfig(dims.w, dims.h);
             cam = new THREE.PerspectiveCamera(camCfg.fov, dims.w / dims.h, 0.1, 200);
             cam.position.set(0, camCfg.camH, camCfg.camDist);
             try {
-                ren = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+                ren = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance', preserveDrawingBuffer: true });
             } catch (e) {
                 document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;' +
                     'padding:24px;text-align:center;font-size:15px;line-height:1.8;color:#f8fafc;">' +
@@ -155,8 +256,8 @@
             if (typeof FunMode !== 'undefined' && FunMode.init) FunMode.init();
         }
         function buildLights() {
-            scene.add(new THREE.HemisphereLight(0xdcefff, 0x7d9c5e, GRADE.hemiI));
-            sunKey = new THREE.DirectionalLight(0xfff4e0, GRADE.sunI);
+            scene.add(new THREE.HemisphereLight(0xfdf4dc, 0x86efac, GRADE.hemiI * 1.05));
+            sunKey = new THREE.DirectionalLight(0xfffae5, GRADE.sunI * 1.08);
             const key = sunKey;
             key.position.set(8, 15, 9); key.castShadow = true;
             key.shadow.mapSize.set(512, 512);
@@ -166,9 +267,9 @@
             key.shadow.camera.near = 1; key.shadow.camera.far = 42;
             key.shadow.bias = -0.0012; key.shadow.radius = 3;
             scene.add(key);
-            const fill = new THREE.DirectionalLight(0xbcd8ff, GRADE.fillI);
+            const fill = new THREE.DirectionalLight(0xdbeafe, GRADE.fillI);
             fill.position.set(-9, 6, 7); scene.add(fill);
-            const rim = new THREE.DirectionalLight(0xaef0ff, GRADE.rimI);
+            const rim = new THREE.DirectionalLight(0xfef08a, GRADE.rimI * 0.9);
             rim.position.set(-2, 5, -13); scene.add(rim);
         }
         let scoreboard3DMesh = null, scoreboard3DTex = null;
@@ -177,65 +278,158 @@
             const canvas = scoreboard3DTex.image;
             if (!canvas) return;
             const ctx = canvas.getContext('2d');
-            ctx.fillStyle = '#0f172a';
+            // 黑板底色 (Chalkboard Slate Green)
+            ctx.fillStyle = '#163828';
             ctx.fillRect(0, 0, 512, 256);
 
-            // 邊框與裝飾線
-            ctx.strokeStyle = '#38bdf8';
-            ctx.lineWidth = 6;
-            ctx.strokeRect(6, 6, 500, 244);
-            ctx.fillStyle = 'rgba(56, 189, 248, 0.12)';
-            ctx.fillRect(6, 6, 500, 244);
+            // 仿木質外邊框與暖色粉筆內線
+            ctx.strokeStyle = '#92400e';
+            ctx.lineWidth = 10;
+            ctx.strokeRect(5, 5, 502, 246);
+            ctx.strokeStyle = 'rgba(254, 240, 138, 0.45)';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(14, 14, 484, 228);
 
-            // 頂部標題
-            ctx.fillStyle = '#38bdf8';
-            ctx.font = 'bold 24px system-ui, sans-serif';
+            // 頂部標題 (動森小島風)
+            ctx.fillStyle = '#fde047';
+            ctx.font = 'bold 22px system-ui, sans-serif';
             ctx.textAlign = 'center';
-            ctx.fillText('NCHU PICKLE LEARNING GROUP', 256, 42);
+            ctx.fillText('🏝️ NCHU ANIMAL CROSSING PICKLEBALL 🏝️', 256, 42);
 
             // 關卡資訊
-            ctx.fillStyle = '#94a3b8';
-            ctx.font = '16px system-ui, sans-serif';
-            const sName = STAGES[stage] ? STAGES[stage].name : '匹克球對決';
-            ctx.fillText('STAGE ' + stage + ' · ' + sName, 256, 74);
+            ctx.fillStyle = '#6ee7b7';
+            ctx.font = '15px system-ui, sans-serif';
+            const sName = STAGES[stage] ? STAGES[stage].name : '島嶼對決';
+            ctx.fillText('STAGE ' + stage + ' · ' + sName, 256, 72);
 
-            // 即時比分區塊
-            ctx.fillStyle = '#34d399';
-            ctx.font = 'bold 64px "Barlow Condensed", system-ui, sans-serif'; ctx.fillStyle = '#d3f36c';
+            // 即時比分區塊 (明亮溫暖的粉筆字體)
+            ctx.font = 'bold 64px "Barlow Condensed", system-ui, sans-serif';
+            ctx.fillStyle = '#fef08a';
             ctx.textAlign = 'center';
             ctx.fillText(pScore + '  :  ' + aScore, 256, 148);
 
-            // 玩家 vs 匹克鵝
-            ctx.font = 'bold 20px system-ui, sans-serif';
-            ctx.fillStyle = '#f8fafc';
+            // 玩家 vs 村長鵝
+            ctx.font = 'bold 19px system-ui, sans-serif';
+            ctx.fillStyle = '#ffffff';
             ctx.textAlign = 'left';
-            ctx.fillText('🪿 ' + (playerProfile.nickname || '玩家'), 40, 205);
+            ctx.fillText('🌿 ' + (playerProfile.nickname || '島民玩家'), 36, 205);
             ctx.textAlign = 'right';
-            ctx.fillText('匹克鵝 AI 🪿', 472, 205);
+            ctx.fillText('村長鵝 AI 🪿', 476, 205);
 
             scoreboard3DTex.needsUpdate = true;
         }
 
+        let lilyPads = [];
+        let spectatorDucklings = [];
         function buildEnvironment() {
-            const gt = noiseTex('#5f9440', 256, 2400, 0.07); gt.repeat.set(7, 7);
-            const ground = new THREE.Mesh(new THREE.PlaneGeometry(80, 80),
-                new THREE.MeshStandardMaterial({ map: gt, color: 0x4f7d37, roughness: 0.96 }));
-            ground.rotation.x = -Math.PI / 2; ground.position.y = -0.02;
-            ground.receiveShadow = true; scene.add(ground);
+            // ═══════ 1. 溫暖島嶼湖水與草皮 (Surrounding Lake & Island Lawn) ═══════
+            const wt = acWaterTex(); wt.repeat.set(12, 12);
+            const waterPlane = new THREE.Mesh(new THREE.PlaneGeometry(160, 160),
+                new THREE.MeshStandardMaterial({ map: wt, color: 0x38bdf8, roughness: 0.15, metalness: 0.08, transparent: true, opacity: 0.92 }));
+            waterPlane.rotation.x = -Math.PI / 2; waterPlane.position.y = -0.05;
+            waterPlane.receiveShadow = true; scene.add(waterPlane);
 
-            // ★ 視覺調色:採用沉穩耐看之深岩藍/海軍灰，降低刺眼反光
-            const seatMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.95, metalness: 0.05 });
-            const railMat = new THREE.MeshStandardMaterial({ color: 0x475569, roughness: 0.75, metalness: 0.15 });
-            for (const dir of [1, -1]) for (let t = 0; t < 3; t++) {
-                const w = COURT_W + 7 - t * 0.6, h = 0.55 + t * 0.55, dep = 1.5;
-                const z = dir * (HALF_L + 4.2 + t * 1.45);
-                const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, dep), seatMat);
-                m.position.set(0, h / 2, z); m.castShadow = (t === 0); m.receiveShadow = true; scene.add(m);
-                const r = new THREE.Mesh(new THREE.BoxGeometry(w, 0.07, 0.12), railMat);
-                r.position.set(0, h + 0.035, z - dir * dep / 2); scene.add(r);
+            const gt = acGrassTex(); gt.repeat.set(10, 12);
+            const islandGround = new THREE.Mesh(new THREE.PlaneGeometry(36, 46),
+                new THREE.MeshStandardMaterial({ map: gt, color: 0x5aa334, roughness: 0.92 }));
+            islandGround.rotation.x = -Math.PI / 2; islandGround.position.y = -0.015;
+            islandGround.receiveShadow = true; scene.add(islandGround);
+
+            // ═══════ 2. 湖面漂浮睡蓮與荷花 (Water Lilies & Lotus Blossoms) ═══════
+            lilyPads = [];
+            const lilyGeo = new THREE.CylinderGeometry(0.55, 0.55, 0.02, 16);
+            const lilyMat = new THREE.MeshStandardMaterial({ color: 0x22c55e, roughness: 0.8 });
+            const lotusGeo = new THREE.ConeGeometry(0.14, 0.20, 6);
+            const lotusMat = new THREE.MeshStandardMaterial({ color: 0xf472b6, roughness: 0.6 });
+
+            const lilyCoords = [
+                { x: -11, z: -8 }, { x: -13, z: 2 }, { x: -10, z: 9 }, { x: -14, z: -14 },
+                { x: 12, z: -6 }, { x: 11, z: 5 }, { x: 13, z: 12 }, { x: 10, z: -13 }
+            ];
+            for (let i = 0; i < lilyCoords.length; i++) {
+                const pad = new THREE.Mesh(lilyGeo, lilyMat);
+                pad.position.set(lilyCoords[i].x, -0.025, lilyCoords[i].z);
+                pad.rotation.y = Math.random() * Math.PI * 2;
+                scene.add(pad);
+                if (i % 2 === 0) {
+                    const flower = new THREE.Mesh(lotusGeo, lotusMat);
+                    flower.position.set(lilyCoords[i].x, 0.08, lilyCoords[i].z);
+                    scene.add(flower);
+                }
+                lilyPads.push({ mesh: pad, baseRot: pad.rotation.y, phase: i * 0.8 });
             }
 
-            // ★ 3D 看台計分板 (NCHU pickle learning group)
+            // ═══════ 3. 白色矮木柵欄 (Cute White Picket Fences) ═══════
+            const fenceMat = new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.7 });
+            const fencePostGeo = new THREE.BoxGeometry(0.12, 0.72, 0.12);
+            const fenceRailGeo = new THREE.BoxGeometry(0.06, 0.10, 18);
+            for (const sx of [-1, 1]) {
+                const fx = sx * (COURT_W / 2 + 3.8);
+                // 橫木
+                const railUpper = new THREE.Mesh(fenceRailGeo, fenceMat);
+                railUpper.position.set(fx, 0.48, 0); railUpper.castShadow = true; scene.add(railUpper);
+                const railLower = new THREE.Mesh(fenceRailGeo, fenceMat);
+                railLower.position.set(fx, 0.22, 0); railLower.castShadow = true; scene.add(railLower);
+                // 柱子
+                for (let z = -9; z <= 9; z += 1.8) {
+                    const post = new THREE.Mesh(fencePostGeo, fenceMat);
+                    post.position.set(fx, 0.36, z); post.castShadow = true; scene.add(post);
+                }
+            }
+
+            // ═══════ 4. 動物森友會低多邊形果樹 (Low-poly Fruit Trees) ═══════
+            const trunkMat = new THREE.MeshStandardMaterial({ color: 0x78350f, roughness: 0.9 });
+            const leavesMat = new THREE.MeshStandardMaterial({ color: 0x16a34a, roughness: 0.7 });
+            const fruitMat = new THREE.MeshStandardMaterial({ color: 0xef4444, roughness: 0.4 });
+            const treeCoords = [
+                { x: -10.5, z: -10 }, { x: -11.5, z: 8 },
+                { x: 10.5, z: -9 }, { x: 11.0, z: 9 }
+            ];
+            for (const tc of treeCoords) {
+                const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.30, 2.0, 8), trunkMat);
+                trunk.position.set(tc.x, 1.0, tc.z); trunk.castShadow = true; scene.add(trunk);
+                // 3 層樹冠
+                const foliage1 = new THREE.Mesh(new THREE.SphereGeometry(1.05, 8, 8), leavesMat);
+                foliage1.position.set(tc.x, 2.2, tc.z); foliage1.castShadow = true; scene.add(foliage1);
+                const foliage2 = new THREE.Mesh(new THREE.SphereGeometry(0.85, 8, 8), leavesMat);
+                foliage2.position.set(tc.x, 2.9, tc.z); foliage2.castShadow = true; scene.add(foliage2);
+                // 紅蘋果
+                for (let a = 0; a < 3; a++) {
+                    const ang = (a / 3) * Math.PI * 2;
+                    const apple = new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 8), fruitMat);
+                    apple.position.set(tc.x + Math.cos(ang) * 0.85, 2.2, tc.z + Math.sin(ang) * 0.85);
+                    scene.add(apple);
+                }
+            }
+
+            // ═══════ 5. 側邊觀眾原木長椅與可愛加油小鴨 (Duckling Spectators on Log Benches) ═══════
+            const logMat = new THREE.MeshStandardMaterial({ color: 0x92400e, roughness: 0.85 });
+            const duckMat = new THREE.MeshStandardMaterial({ color: 0xfacc15, roughness: 0.6 });
+            const duckBeakMat = new THREE.MeshStandardMaterial({ color: 0xf97316, roughness: 0.5 });
+            spectatorDucklings = [];
+
+            for (const sx of [-1, 1]) {
+                const bx = sx * (COURT_W / 2 + 2.4);
+                const bench = new THREE.Mesh(new THREE.BoxGeometry(0.65, 0.32, 3.6), logMat);
+                bench.position.set(bx, 0.16, 0); bench.castShadow = true; scene.add(bench);
+
+                // 2 隻觀眾小鴨坐在長椅上
+                for (const dz of [-0.9, 0.9]) {
+                    const duckGrp = new THREE.Group();
+                    const dBody = new THREE.Mesh(new THREE.SphereGeometry(0.20, 10, 10), duckMat);
+                    dBody.position.y = 0.44; dBody.scale.set(0.9, 0.8, 1.1); dBody.castShadow = true; duckGrp.add(dBody);
+                    const dHead = new THREE.Mesh(new THREE.SphereGeometry(0.13, 10, 10), duckMat);
+                    dHead.position.set(0, 0.60, 0.10); dHead.castShadow = true; duckGrp.add(dHead);
+                    const dBeak = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.05, 0.10), duckBeakMat);
+                    dBeak.position.set(0, 0.58, 0.22); duckGrp.add(dBeak);
+                    duckGrp.position.set(bx, 0, dz);
+                    duckGrp.rotation.y = (sx > 0 ? -Math.PI / 2 : Math.PI / 2);
+                    scene.add(duckGrp);
+                    spectatorDucklings.push({ grp: duckGrp, baseY: 0, phase: dz * 2.0 });
+                }
+            }
+
+            // ═══════ 6. 3D 看台黑板計分板 (Animal Crossing Chalkboard) ═══════
             const scCanvas = document.createElement('canvas');
             scCanvas.width = 512; scCanvas.height = 256;
             scoreboard3DTex = new THREE.CanvasTexture(scCanvas);
@@ -244,50 +438,62 @@
             scoreboard3DMesh.position.set(0, 4.4, -(HALF_L + 7.8));
             scene.add(scoreboard3DMesh);
 
-            // 計分板外框
+            // 計分板原木外框
             const scFrame = new THREE.Mesh(new THREE.BoxGeometry(6.6, 3.4, 0.18),
-                new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.8 }));
+                new THREE.MeshStandardMaterial({ color: 0x78350f, roughness: 0.8 }));
             scFrame.position.set(0, 4.4, -(HALF_L + 7.9));
             scene.add(scFrame);
 
+            // 支撐原木立柱
+            for (const px of [-2.6, 2.6]) {
+                const scPost = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.14, 5.0, 8), trunkMat);
+                scPost.position.set(px, 2.2, -(HALF_L + 7.9)); scPost.castShadow = true; scene.add(scPost);
+            }
+
             updateScore3D();
-            const poleMat = new THREE.MeshStandardMaterial({ color: 0xc9d6e4, roughness: 0.42, metalness: 0.55 });
+
+            // ═══════ 7. 花園木樁暖色庭園燈 (Cozy Garden Lanterns) ═══════
+            const woodPostMat = new THREE.MeshStandardMaterial({ color: 0x78350f, roughness: 0.8 });
             const lampMat = new THREE.MeshStandardMaterial({
-                color: 0xf2f7ff, roughness: 0.3, metalness: 0.3,
-                emissive: 0xfff6dd, emissiveIntensity: 0.35
+                color: 0xfef08a, roughness: 0.2, emissive: 0xfde047, emissiveIntensity: 0.45
             });
             for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
                 const px = sx * (COURT_W / 2 + 3.4), pz = sz * (HALF_L + 2.0);
-                const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.14, 7.2, 8), poleMat);
-                pole.position.set(px, 3.6, pz); pole.castShadow = true; scene.add(pole);
-                const head = new THREE.Mesh(new THREE.BoxGeometry(0.95, 0.2, 0.42), lampMat);
-                head.position.set(px - sx * 0.4, 7.2, pz); head.castShadow = true; scene.add(head);
+                const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.10, 0.12, 4.8, 8), woodPostMat);
+                pole.position.set(px, 2.4, pz); pole.castShadow = true; scene.add(pole);
+                const head = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.65, 0.55), lampMat);
+                head.position.set(px, 4.8, pz); head.castShadow = true; scene.add(head);
+                const roof = new THREE.Mesh(new THREE.ConeGeometry(0.52, 0.35, 4), woodPostMat);
+                roof.position.set(px, 5.3, pz); roof.rotation.y = Math.PI / 4; scene.add(roof);
                 const hg = new THREE.Sprite(new THREE.SpriteMaterial({
-                    map: TEX_GLOW, color: 0xfff3d4,
-                    transparent: true, opacity: 0.18, blending: THREE.AdditiveBlending, depthWrite: false
+                    map: TEX_GLOW, color: 0xffedd5,
+                    transparent: true, opacity: 0.28, blending: THREE.AdditiveBlending, depthWrite: false
                 }));
-                hg.position.copy(head.position); hg.scale.set(2.6, 2.6, 1); scene.add(hg);
+                hg.position.copy(head.position); hg.scale.set(3.2, 3.2, 1); scene.add(hg);
             }
         }
+
         function buildCourt() {
-            const ot = noiseTex('#1c6d97', 256, 2000, 0.06); ot.repeat.set(4, 6);
-            const out = new THREE.Mesh(new THREE.PlaneGeometry(COURT_W + 5.6, COURT_L + 5.6),
-                new THREE.MeshStandardMaterial({ map: ot, color: 0x2278a3, roughness: 0.8 }));
+            // ★ 外圍緩衝區：溫暖蜂蜜細沙 (Honey Sand Apron)
+            const outMat = new THREE.MeshStandardMaterial({ color: 0xf0c27b, roughness: 0.85 });
+            const out = new THREE.Mesh(new THREE.PlaneGeometry(COURT_W + 5.6, COURT_L + 5.6), outMat);
             out.rotation.x = -Math.PI / 2; out.position.y = -0.008; out.receiveShadow = true; scene.add(out);
-            const ct = noiseTex('#2489b8', 256, 1600, 0.05); ct.repeat.set(3, 6);
-            const court = new THREE.Mesh(new THREE.PlaneGeometry(COURT_W, COURT_L),
-                new THREE.MeshStandardMaterial({ map: ct, color: 0x3498db, roughness: 0.66 }));
+
+            // ★ 正式比賽發球區：草本薄荷綠草皮 (Mint Green Turf)
+            const courtMat = new THREE.MeshStandardMaterial({ color: 0x34d399, roughness: 0.65 });
+            const court = new THREE.Mesh(new THREE.PlaneGeometry(COURT_W, COURT_L), courtMat);
             court.rotation.x = -Math.PI / 2; court.receiveShadow = true; scene.add(court);
-            const kt = noiseTex('#c25a3c', 256, 1400, 0.06); kt.repeat.set(3, 2);
-            const kit = new THREE.Mesh(new THREE.PlaneGeometry(COURT_W, KITCHEN_D * 2),
-                new THREE.MeshStandardMaterial({ map: kt, color: 0xe67e22, roughness: 0.62 }));
+
+            // ★ 廚房區 (7 FT NVZ)：珊瑚蜜桃粉 (Coral Peach Kitchen)
+            const kitMat = new THREE.MeshStandardMaterial({ color: 0xfb7185, roughness: 0.62 });
+            const kit = new THREE.Mesh(new THREE.PlaneGeometry(COURT_W, KITCHEN_D * 2), kitMat);
             kit.rotation.x = -Math.PI / 2; kit.position.y = 0.002; kit.receiveShadow = true; scene.add(kit);
 
-            // ★ V5 3D 廚房區 (7 FT Non-Volley Zone) 立體視覺標註
+            // ★ 3D 廚房區 (7 FT Non-Volley Zone) 清新木紋白字立體標註
             try {
                 const nvzC = document.createElement('canvas'); nvzC.width = 512; nvzC.height = 128;
                 const nvzX = nvzC.getContext('2d');
-                nvzX.fillStyle = 'rgba(255,255,255,0.25)';
+                nvzX.fillStyle = 'rgba(255,255,255,0.45)';
                 nvzX.font = 'bold 36px "Barlow Condensed", system-ui, sans-serif';
                 nvzX.textAlign = 'center';
                 nvzX.fillText('7 FT · NON-VOLLEY ZONE (KITCHEN)', 256, 75);
@@ -298,6 +504,8 @@
                 const nvzM2 = new THREE.Mesh(new THREE.PlaneGeometry(COURT_W * 0.82, 0.48), nvzMat);
                 nvzM2.rotation.x = -Math.PI / 2; nvzM2.rotation.z = Math.PI; nvzM2.position.set(0, 0.004, -KITCHEN_D * 0.5); scene.add(nvzM2);
             } catch(e) { console.warn('NVZ canvas marking init error', e); }
+
+            // ★ 白堊純白邊界線 (Chalk White Lines)
             const lm = new THREE.MeshBasicMaterial({ color: 0xffffff, toneMapped: false });
             function line(w, h, x, z) {
                 const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), lm);
@@ -382,60 +590,153 @@
             _q.setFromUnitVectors(UPY, _c.set(dx / len, dy / len, dz / len));
             mesh.quaternion.copy(_q); mesh.scale.set(1, len, 1);
         }
-        let pTorso = null, pLegs = null, pHead = null, pLeftArm = null;
+        let pTorso = null, pLegs = null, pHead = null, pLeftArm = null, pCap = null;
         function buildSteve() {
             pGrp = new THREE.Group();
-            const skin = new THREE.MeshStandardMaterial({ color: 0xf0b085, roughness: 0.6 });
-            const shirt = new THREE.MeshStandardMaterial({ color: 0x2fd4c4, roughness: 0.5 });
-            const pants = new THREE.MeshStandardMaterial({ color: 0x4265a8, roughness: 0.66 });
-            pTorso = new THREE.Mesh(new THREE.BoxGeometry(0.44, 0.6, 0.24), shirt);
+            const skin = new THREE.MeshStandardMaterial({ color: 0xfce5cd, roughness: 0.6 });
+            const shirt = new THREE.MeshStandardMaterial({ color: 0x2dd4bf, roughness: 0.5 }); // Mint turquoise polo
+            const pants = new THREE.MeshStandardMaterial({ color: 0x3b82f6, roughness: 0.66 }); // Cobalt shorts
+            const shoes = new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.5 }); // White sneakers
+
+            // 1. 圓潤動森風格上身 Polo 衫 (Chibi Torso)
+            pTorso = new THREE.Mesh(new THREE.CylinderGeometry(0.20, 0.23, 0.56, 14), shirt);
             pTorso.position.y = 0.82; pTorso.castShadow = true; pGrp.add(pTorso);
-            pLegs = new THREE.Mesh(new THREE.BoxGeometry(0.41, 0.52, 0.23), pants);
-            pLegs.position.y = 0.26; pLegs.castShadow = true; pGrp.add(pLegs);
-            const hc = document.createElement('canvas'); hc.width = hc.height = 32;
-            const h = hc.getContext('2d');
-            h.fillStyle = '#f0b085'; h.fillRect(0, 0, 32, 32);
-            h.fillStyle = '#4a3018'; h.fillRect(0, 0, 32, 9);
-            h.fillStyle = '#ffffff'; h.fillRect(6, 14, 7, 4); h.fillRect(19, 14, 7, 4);
-            h.fillStyle = '#33518f'; h.fillRect(9, 14, 4, 4); h.fillRect(19, 14, 4, 4);
-            h.fillStyle = 'rgba(150,90,55,.55)'; h.fillRect(11, 23, 10, 3);
-            const ht = new THREE.CanvasTexture(hc); ht.magFilter = THREE.NearestFilter; ht.encoding = THREE.sRGBEncoding;
-            pHead = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.35, 0.35),
-                new THREE.MeshStandardMaterial({ map: ht, roughness: 0.6 }));
-            pHead.position.y = 1.29; pHead.castShadow = true; pGrp.add(pHead);
-            pLeftArm = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.54, 0.14), shirt);
-            pLeftArm.position.set(-0.29, 0.8, 0.02); pLeftArm.rotation.z = 0.16; pLeftArm.castShadow = true; pGrp.add(pLeftArm);
-            pArm = new THREE.Mesh(new THREE.BoxGeometry(0.135, 1, 0.135), skin);
+
+            // Polo 領口
+            const collar = new THREE.Mesh(new THREE.TorusGeometry(0.16, 0.035, 8, 14), shirt);
+            collar.rotation.x = Math.PI / 2; collar.position.set(0, 1.08, 0); pGrp.add(collar);
+
+            // 2. 短褲與運動鞋腿部 (Shorts & Sneakers)
+            pLegs = new THREE.Group();
+            pLegs.position.y = 0.26;
+            for (const sx of [-0.11, 0.11]) {
+                const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.32, 10), pants);
+                leg.position.set(sx, 0.12, 0); leg.castShadow = true; pLegs.add(leg);
+                const shoe = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.12, 0.19), shoes);
+                shoe.position.set(sx, -0.06, 0.03); shoe.castShadow = true; pLegs.add(shoe);
+            }
+            pGrp.add(pLegs);
+
+            // 3. 圓萌動森 Chibi 頭部 (Chibi Head with Sparkling Anime Eyes & Rosy Cheeks)
+            const headTex = acFaceTex();
+            pHead = new THREE.Mesh(new THREE.SphereGeometry(0.25, 20, 20),
+                new THREE.MeshStandardMaterial({ map: headTex, roughness: 0.55 }));
+            pHead.position.y = 1.30; pHead.castShadow = true; pGrp.add(pHead);
+
+            // 4. 動森經典遮陽帽 (Sun Visor Cap)
+            pCap = new THREE.Group();
+            const capCrown = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.26, 0.08, 16),
+                new THREE.MeshStandardMaterial({ color: 0xff5252, roughness: 0.4 }));
+            capCrown.position.y = 1.44; capCrown.castShadow = true; pCap.add(capCrown);
+            const capBrim = new THREE.Mesh(new THREE.CylinderGeometry(0.30, 0.30, 0.025, 16, 1, false, -Math.PI * 0.32, Math.PI * 0.64),
+                new THREE.MeshStandardMaterial({ color: 0xff5252, roughness: 0.4, side: THREE.DoubleSide }));
+            capBrim.rotation.x = 0.15; capBrim.position.set(0, 1.41, 0.10); capBrim.castShadow = true; pCap.add(capBrim);
+            pGrp.add(pCap);
+
+            // 5. 左手臂 (Left Arm)
+            pLeftArm = new THREE.Mesh(new THREE.CylinderGeometry(0.065, 0.065, 0.50, 10), shirt);
+            pLeftArm.position.set(-0.27, 0.82, 0.02); pLeftArm.rotation.z = 0.16; pLeftArm.castShadow = true; pGrp.add(pLeftArm);
+
+            // 6. 右手臂與球拍 (Right Arm & Paddle with AC Leaf Logo)
+            pArm = new THREE.Mesh(new THREE.CylinderGeometry(0.065, 0.065, 1.0, 10), skin);
             pArm.castShadow = true; pGrp.add(pArm);
+
             pPad = new THREE.Group();
-            const face = new THREE.Mesh(new THREE.BoxGeometry(0.27, 0.36, 0.035),
-                new THREE.MeshStandardMaterial({ color: 0xf0454f, roughness: 0.32, metalness: 0.06 }));
+            const padMat = new THREE.MeshStandardMaterial({ map: acPaddleTex(), roughness: 0.32, metalness: 0.05 });
+            const face = new THREE.Mesh(new THREE.BoxGeometry(0.27, 0.36, 0.035), padMat);
             face.position.y = 0.18; face.castShadow = true; pPad.add(face);
             const edge = new THREE.Mesh(new THREE.BoxGeometry(0.29, 0.38, 0.02),
-                new THREE.MeshStandardMaterial({ color: 0x24304a, roughness: 0.5 }));
+                new THREE.MeshStandardMaterial({ color: 0x0f766e, roughness: 0.5 }));
             edge.position.set(0, 0.18, -0.012); pPad.add(edge);
             const grip = new THREE.Mesh(new THREE.BoxGeometry(0.055, 0.16, 0.055),
-                new THREE.MeshStandardMaterial({ color: 0x24304a, roughness: 0.8 }));
+                new THREE.MeshStandardMaterial({ color: 0x0f766e, roughness: 0.8 }));
             grip.position.y = -0.055; pPad.add(grip);
             pPad.scale.setScalar(2.175); pGrp.add(pPad); // ★ 球拍放大 1.5 倍 (1.45 * 1.5 = 2.175)
             scene.add(pGrp);
         }
+
+        let gooseEmoteSprite = null, gooseEmoteCanvas = null, gooseEmoteTimer = 0;
+        function updateGooseEmote(emoji) {
+            if (!gooseEmoteCanvas) {
+                gooseEmoteCanvas = document.createElement('canvas');
+                gooseEmoteCanvas.width = 128; gooseEmoteCanvas.height = 128;
+                const tex = new THREE.CanvasTexture(gooseEmoteCanvas);
+                const mat = new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false });
+                gooseEmoteSprite = new THREE.Sprite(mat);
+                gooseEmoteSprite.scale.set(1.05, 1.05, 1);
+                scene.add(gooseEmoteSprite);
+            }
+            const ctx = gooseEmoteCanvas.getContext('2d');
+            ctx.clearRect(0, 0, 128, 128);
+            if (!emoji) {
+                if (gooseEmoteSprite) gooseEmoteSprite.visible = false;
+                return;
+            }
+            // 繪製圓角對話氣泡 (Cute Speech Bubble)
+            ctx.fillStyle = '#ffffff';
+            ctx.shadowColor = 'rgba(0,0,0,0.22)';
+            ctx.shadowBlur = 8;
+            ctx.beginPath();
+            ctx.roundRect(14, 14, 100, 78, 18);
+            ctx.fill();
+            // 下方尖角
+            ctx.beginPath();
+            ctx.moveTo(54, 92); ctx.lineTo(64, 112); ctx.lineTo(74, 92); ctx.fill();
+            ctx.shadowBlur = 0;
+            // Emoji
+            ctx.font = '44px system-ui, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(emoji, 64, 53);
+            gooseEmoteCanvas.material.map.needsUpdate = true;
+            gooseEmoteSprite.visible = true;
+            gooseEmoteTimer = 2.2;
+        }
+
         function buildCreeper() {
             gGrp = new THREE.Group();
             gooseMesh = new THREE.Group();
-            const gs = new THREE.MeshStandardMaterial({ color: 0xf4f6f9, roughness: 0.5 });
-            const bk = new THREE.MeshStandardMaterial({ color: 0xff8800, roughness: 0.4 });
-            const body = new THREE.Mesh(new THREE.BoxGeometry(0.54, 0.58, 0.74), gs);
-            body.position.y = 0.52; body.castShadow = true; gooseMesh.add(body);
-            const neck = new THREE.Mesh(new THREE.BoxGeometry(0.17, 0.44, 0.17), gs);
-            neck.position.set(0, 0.96, 0.19); neck.castShadow = true; gooseMesh.add(neck);
-            const head = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.32, 0.32), gs);
-            head.position.set(0, 1.26, 0.21); head.castShadow = true; gooseMesh.add(head);
-            const beak = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.12, 0.26), bk);
-            beak.position.set(0, 1.2, 0.42); gooseMesh.add(beak);
-            for (const sx of [-0.15, 0.15]) for (const sz of [-0.16, 0.16]) {
-                const leg = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.26, 0.1), bk);
-                leg.position.set(sx, 0.13, sz); leg.castShadow = true; gooseMesh.add(leg);
+            const gs = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.45 }); // Clean white goose feathers
+            const bk = new THREE.MeshStandardMaterial({ color: 0xf97316, roughness: 0.4 }); // Bright orange beak & feet
+            const visorMat = new THREE.MeshStandardMaterial({ color: 0xef4444, roughness: 0.35 }); // Mayor red visor
+            const bandanaMat = new THREE.MeshStandardMaterial({ color: 0x06b6d4, roughness: 0.5 }); // Turquoise neck bandana
+
+            // 1. 胖嘟嘟圓潤鵝身體 (Plump Goose Body)
+            const body = new THREE.Mesh(new THREE.SphereGeometry(0.38, 16, 16), gs);
+            body.position.y = 0.54; body.scale.set(0.92, 0.95, 1.25);
+            body.castShadow = true; gooseMesh.add(body);
+
+            // 2. 優雅圓柱頸部 (Goose Neck)
+            const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.15, 0.44, 12), gs);
+            neck.position.set(0, 0.95, 0.18); neck.castShadow = true; gooseMesh.add(neck);
+
+            // 3. 村長鵝湖水綠領巾 (Turquoise Mayor Bandana)
+            const bandana = new THREE.Mesh(new THREE.TorusGeometry(0.14, 0.038, 8, 14), bandanaMat);
+            bandana.rotation.x = Math.PI / 2; bandana.position.set(0, 0.82, 0.17); gooseMesh.add(bandana);
+
+            // 4. 可愛圓圓鵝頭 (Cute Goose Head with acGooseFaceTex)
+            const gHeadTex = acGooseFaceTex();
+            const head = new THREE.Mesh(new THREE.SphereGeometry(0.22, 16, 16),
+                new THREE.MeshStandardMaterial({ map: gHeadTex, roughness: 0.45 }));
+            head.position.set(0, 1.26, 0.20); head.castShadow = true; gooseMesh.add(head);
+
+            // 5. 村長紅色遮陽帽 (Mayor Red Visor Cap)
+            const gVisor = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.23, 0.06, 14), visorMat);
+            gVisor.position.set(0, 1.39, 0.20); gVisor.castShadow = true; gooseMesh.add(gVisor);
+            const gBrim = new THREE.Mesh(new THREE.CylinderGeometry(0.26, 0.26, 0.02, 14, 1, false, -Math.PI * 0.32, Math.PI * 0.64),
+                new THREE.MeshStandardMaterial({ color: 0xef4444, roughness: 0.35, side: THREE.DoubleSide }));
+            gBrim.rotation.x = 0.16; gBrim.position.set(0, 1.36, 0.29); gooseMesh.add(gBrim);
+
+            // 6. 鮮橘色鵝喙 (Orange Beak)
+            const beak = new THREE.Mesh(new THREE.ConeGeometry(0.10, 0.22, 10), bk);
+            beak.rotation.x = Math.PI / 2; beak.position.set(0, 1.20, 0.42); gooseMesh.add(beak);
+
+            // 7. 橘色蹼足 (Webbed Feet)
+            for (const sx of [-0.15, 0.15]) {
+                const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.22, 8), bk);
+                leg.position.set(sx, 0.14, 0); leg.castShadow = true; gooseMesh.add(leg);
+                const foot = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.04, 0.20), bk);
+                foot.position.set(sx, 0.02, 0.05); foot.castShadow = true; gooseMesh.add(foot);
             }
             gGrp.add(gooseMesh);
 
@@ -1624,7 +1925,23 @@ function solveArc(fx, fy, fz, tx, tz, out, speedScale) {
                 pGrp.rotation.y += dt * 14.0;
                 pGrp.rotation.z = Math.sin((FunMode.slipTimer || 0) * 16) * 0.32;
             } else if (!isHunting) {
-                pGrp.rotation.set(0, 0, 0);
+                // 數位孿生上半身轉動鏡像 (Digital Twin Torso Mirroring)
+                if (webcamActive && typeof YAW !== 'undefined') {
+                    const wantYaw = -YAW.ema * 0.45;
+                    pGrp.rotation.y = THREE.MathUtils.lerp(pGrp.rotation.y, wantYaw, Math.min(1, dt * 12));
+                    if (pHead) pHead.rotation.y = -wantYaw * 0.5;
+                } else {
+                    pGrp.rotation.set(0, 0, 0);
+                    // 可愛動森奔跑彈跳 (Cute AC Bouncy Jog)
+                    const speed = Math.hypot(playerVel.x, playerVel.z);
+                    if (speed > 0.5) {
+                        pGrp.position.y = Math.abs(Math.sin(performance.now() * 0.014)) * 0.035;
+                        if (pHead) pHead.rotation.z = Math.sin(performance.now() * 0.014) * 0.04;
+                    } else {
+                        pGrp.position.y = 0;
+                        if (pHead) pHead.rotation.z = 0;
+                    }
+                }
             }
             if (webcamActive) updatePaddleAssist(dt);
             else {
@@ -2117,9 +2434,14 @@ function gooseForceNet(b) {
 
             if (Math.random() < missRate) {
                 const errType = Math.random();
-                if (stage >= 4 && errType >= 0.80) { gLock = 0.6; return; }   // 20% 慢揮漏球：沒碰到球
+                if (stage >= 4 && errType >= 0.80) {
+                    gLock = 0.6;
+                    if (typeof updateGooseEmote === 'function') updateGooseEmote('❓');
+                    return;
+                }   // 20% 慢揮漏球：沒碰到球
                 planShot();
                 gooseErrorHit();
+                if (typeof updateGooseEmote === 'function') updateGooseEmote('💦');
                 if (stage >= 4 && errType < 0.40) {
                     gooseForceNet(b);                                   // 40% 掛網 → onNet → 玩家得分
                     S.pop(0.4); toast('🪿 匹克鵝回擊掛網', '失誤');
@@ -2176,6 +2498,8 @@ function gooseForceNet(b) {
             }
 
             planShot(); solveArc(b.x, b.y, b.z, aiShot.x, aiShot.z, PH.vel); S.pop(0.6);
+            if (S.quack && Math.random() < 0.45) S.quack();
+            if (rallyHits >= 6 && typeof updateGooseEmote === 'function') updateGooseEmote('🌟');
             if (stage === 2) toast('底線深球來了', '等它落地一次,再打回去就過關');
             else if (stage === 3 || aiShot.z < KITCHEN_D) toast('匹克鵝把球吊進中興湖廚房', '等落地再打');
         }
@@ -2641,8 +2965,155 @@ function updateGuides(dt) {
                 camLookTarget.z += (pPos.z * 0.25 - 0.3 - camLookTarget.z) * Math.min(1, dt * 4.5);
                 cam.lookAt(camLookTarget.x, 0.85, camLookTarget.z);
             }
+
+            // ═══════ 動物森友會活潑環境動畫 (Animal Crossing Living World Updates) ═══════
+            // 1. 湖水水波細膩平移
+            if (waterTexRef) {
+                waterTexRef.offset.x = (waterTexRef.offset.x + dt * 0.015) % 1;
+                waterTexRef.offset.y = (waterTexRef.offset.y + dt * 0.012) % 1;
+            }
+            // 2. 睡蓮與荷花隨波輕晃
+            if (lilyPads && lilyPads.length) {
+                const nowSec = now * 0.001;
+                for (let i = 0; i < lilyPads.length; i++) {
+                    const lp = lilyPads[i];
+                    lp.mesh.rotation.y = lp.baseRot + Math.sin(nowSec * 0.8 + lp.phase) * 0.05;
+                    lp.mesh.position.y = -0.025 + Math.sin(nowSec * 1.2 + lp.phase) * 0.006;
+                }
+            }
+            // 3. 觀眾小鴨加油歡呼節奏微動
+            if (spectatorDucklings && spectatorDucklings.length) {
+                const nowSec = now * 0.001;
+                for (let i = 0; i < spectatorDucklings.length; i++) {
+                    const sd = spectatorDucklings[i];
+                    const cheer = (pLock > 0 || gLock > 0) ? 2.5 : 1.0;
+                    sd.grp.position.y = sd.baseY + Math.abs(Math.sin(nowSec * 3.5 * cheer + sd.phase)) * (0.04 * cheer);
+                }
+            }
+            // 4. 村長鵝頭頂對話氣泡跟隨與計時
+            if (gooseEmoteSprite && gooseEmoteSprite.visible) {
+                if (gGrp) {
+                    gooseEmoteSprite.position.set(gGrp.position.x, 2.15 + Math.sin(now * 0.006) * 0.06, gGrp.position.z + 0.15);
+                }
+                if (gooseEmoteTimer > 0) {
+                    gooseEmoteTimer -= dt;
+                    if (gooseEmoteTimer <= 0) gooseEmoteSprite.visible = false;
+                }
+            }
+
             ren.render(scene, cam);
         }
+
+        /* ═══════════ 動物森友會 拍立得完賽紀念卡 (Polaroid Souvenir) ═══════════ */
+        function showPolaroidSouvenir(won, pScore, aScore) {
+            const modal = document.getElementById('polaroid-modal');
+            if (!modal) return;
+            const canvas = document.getElementById('polaroid-canvas');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            const cw = canvas.width = 600;
+            const ch = canvas.height = 420;
+
+            // 1. 擷取 WebGL 3D 畫面 (Capture 3D WebGL screen)
+            try {
+                if (ren && ren.domElement) {
+                    ren.render(scene, cam);
+                    ctx.drawImage(ren.domElement, 0, 0, cw, ch);
+                }
+            } catch (e) {
+                console.warn('3D screen capture failed, using gradient fallback', e);
+                const grad = ctx.createLinearGradient(0, 0, 0, ch);
+                grad.addColorStop(0, '#7dd3fc');
+                grad.addColorStop(1, '#86efac');
+                ctx.fillStyle = grad;
+                ctx.fillRect(0, 0, cw, ch);
+            }
+
+            // 2. 柔和暗角與照片光暈 (Soft Vignette)
+            const vig = ctx.createRadialGradient(cw / 2, ch / 2, cw * 0.25, cw / 2, ch / 2, cw * 0.7);
+            vig.addColorStop(0, 'rgba(0,0,0,0)');
+            vig.addColorStop(1, 'rgba(15,23,42,0.38)');
+            ctx.fillStyle = vig;
+            ctx.fillRect(0, 0, cw, ch);
+
+            // 3. 頂部島嶼標籤徽章 (Island Header Badge)
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.92)';
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.25)';
+            ctx.shadowBlur = 8;
+            ctx.beginPath();
+            ctx.roundRect(16, 16, 210, 36, 18);
+            ctx.fill();
+            ctx.shadowBlur = 0;
+            ctx.fillStyle = '#0f766e';
+            ctx.font = 'bold 15px system-ui, sans-serif';
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('🏝️ 無人島 · 友誼盃', 32, 34);
+
+            // 4. 右下角比分徽章 (Match Score Badge)
+            ctx.fillStyle = 'rgba(15, 23, 42, 0.85)';
+            ctx.beginPath();
+            ctx.roundRect(cw - 180, ch - 54, 164, 40, 12);
+            ctx.fill();
+            ctx.fillStyle = '#facc15';
+            ctx.font = 'bold 18px "Barlow Condensed", system-ui, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('FINAL  ' + pScore + '  :  ' + aScore, cw - 98, ch - 34);
+
+            // 5. 更新 DOM 模態文字與印章
+            const dateEl = document.getElementById('polaroid-date');
+            if (dateEl) {
+                const now = new Date();
+                dateEl.innerText = now.getFullYear() + '.' + String(now.getMonth() + 1).padStart(2, '0') + '.' + String(now.getDate()).padStart(2, '0') + ' · 晴天 26°C';
+            }
+
+            const stampEl = document.getElementById('polaroid-stamp');
+            const msgEl = document.getElementById('polaroid-msg');
+            if (stampEl && msgEl) {
+                if (won) {
+                    stampEl.innerText = 'VICTORY!';
+                    stampEl.style.color = '#10b981';
+                    stampEl.style.borderColor = '#10b981';
+                    msgEl.innerText = '「太精彩了！村長鵝為你熱烈鼓掌，無人島的居民們都為你的球技歡呼！」';
+                    if (S && S.fanfare) S.fanfare();
+                } else {
+                    stampEl.innerText = 'NICE PLAY!';
+                    stampEl.style.color = '#f59e0b';
+                    stampEl.style.borderColor = '#f59e0b';
+                    msgEl.innerText = '「這是一場超棒的友誼賽！村長鵝給了你一個大大的擁抱，休息一下再來挑戰吧～」';
+                    if (S && S.point) S.point();
+                }
+            }
+
+            if (S && S.shutter) setTimeout(() => S.shutter(), 250);
+            modal.style.display = 'flex';
+        }
+
+        function closePolaroidModal() {
+            const modal = document.getElementById('polaroid-modal');
+            if (modal) modal.style.display = 'none';
+        }
+
+        function downloadPolaroid() {
+            const canvas = document.getElementById('polaroid-canvas');
+            if (!canvas) return;
+            try {
+                const link = document.createElement('a');
+                link.download = 'pickleball-island-souvenir-' + Date.now() + '.png';
+                link.href = canvas.toDataURL('image/png');
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                if (typeof toast === 'function') toast('📸 紀念照已儲存', '快分享給朋友炫耀你的島嶼戰績！');
+            } catch (e) {
+                console.error('Download polaroid failed', e);
+            }
+        }
+
+        window.showPolaroidSouvenir = showPolaroidSouvenir;
+        window.closePolaroidModal = closePolaroidModal;
+        window.downloadPolaroid = downloadPolaroid;
+        window.updateGooseEmote = updateGooseEmote;
 
 let camCfgCache = null;
 function handleStageResize() {

@@ -34,16 +34,24 @@
                     // 發球方贏得回合 ➔ 得 1 分 + 換至另一側繼續發球
                     if (server === 'PLAYER') {
                         pScore++; S.point(); popRing(0, -3, 6, 0x3fe0c4);
+                        if (typeof updateGooseEmote === 'function') updateGooseEmote('💦');
                         toast('🏆 玩家得分！換邊發球', '比分 ' + pScore + ' - ' + aScore);
                     } else {
                         aScore++; S.fault(); addShake(0.22);
+                        if (typeof updateGooseEmote === 'function') updateGooseEmote('🎵');
                         toast(oppName + '得分！換邊發球', '比分 ' + pScore + ' - ' + aScore);
                     }
                     serveSide *= -1;
                     secondServe = false; // 得分繼續保有第 1 次發球權
                 } else {
                     // 接球方贏得回合 ➔ 不得分, 破壞對方發球權 (Fault / Side-out)
-                    if (scorer === 'PLAYER') S.point(); else { S.fault(); addShake(0.22); }
+                    if (scorer === 'PLAYER') {
+                        S.point();
+                        if (typeof updateGooseEmote === 'function') updateGooseEmote('💦');
+                    } else {
+                        S.fault(); addShake(0.22);
+                        if (typeof updateGooseEmote === 'function') updateGooseEmote('🎵');
+                    }
                     if (!secondServe) {
                         // 第一次失誤 ➔ 換邊進行 Second Serve
                         secondServe = true;
@@ -58,8 +66,13 @@
                     }
                 }
             } else {
-                if (scorer === 'PLAYER') { pScore++; S.point(); popRing(0, -3, 6, 0x3fe0c4); }
-                else { aScore++; S.fault(); addShake(0.22); }
+                if (scorer === 'PLAYER') {
+                    pScore++; S.point(); popRing(0, -3, 6, 0x3fe0c4);
+                    if (typeof updateGooseEmote === 'function') updateGooseEmote('💦');
+                } else {
+                    aScore++; S.fault(); addShake(0.22);
+                    if (typeof updateGooseEmote === 'function') updateGooseEmote('🎵');
+                }
                 toast(msg, sub || '按空白鍵重新發球');
             }
 
@@ -72,7 +85,9 @@
                     const opp = (typeof diffLevel !== 'undefined' && diffLevel === 'fly') ? '🪰 仿生蒼蠅' : '🪿 匹克鵝';
                     const loseMsg = stage === 5 ? '魔王匹克鵝獲勝!' : (stage === 6 ? '🍄 道具戰 ' + opp + ' 獲勝!' : (opp + '先得 ' + goal + ' 分'));
                     toast(loseMsg, '3 秒後重新挑戰');
-                    later(() => switchStage(stage), 3000); return;
+                    if (typeof updateGooseEmote === 'function') updateGooseEmote('🏆');
+                    if (typeof showPolaroidSouvenir === 'function') showPolaroidSouvenir(false, pScore, aScore);
+                    later(() => switchStage(stage), 3500); return;
                 }
             }
             later(resetServe, 2200);
@@ -95,6 +110,10 @@
             updateLastAuditOutcome('關卡順利通過');
             state = 'FAULT'; freeze(); clearTimers(); locked = true; S.point();
             popRing(0, 2, 8, 0xffc857);
+            if (typeof updateGooseEmote === 'function') updateGooseEmote('👏');
+            if (typeof showPolaroidSouvenir === 'function' && stage >= 3) {
+                showPolaroidSouvenir(true, pScore, aScore);
+            }
             if (stage < 5) {
                 toast('STAGE ' + stage + ' CLEARED', '自動進入下一關');
                 later(() => switchStage(stage + 1), 2100);
@@ -115,6 +134,7 @@
             if (confirm('確定棄賽直接結算比分?')) {
                 state = 'OVER'; clearTimers();
                 toast('🏳️ 玩家選擇棄賽', '最終比分:' + pScore + ' - ' + aScore);
+                if (typeof showPolaroidSouvenir === 'function') showPolaroidSouvenir(false, pScore, aScore);
                 later(() => {
                     if ((stage === 5 || stage === 6) && pScore > 0) submitScoreToCloud(pScore);
                     resetServe();

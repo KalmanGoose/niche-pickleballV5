@@ -30,7 +30,7 @@ console.log("🧪 開始執行 NCHU Pickleball 自我檢測套件 (Self-Test Sui
 console.log("═══════════════════════════════════════════════════════════\n");
 
 // ── 1. 語法檢測 (Syntax Check) ──
-console.log("▶ [1/7] 模組語法檢測 (Node.js vm & Syntax Parsing)...");
+console.log("▶ [1/8] 模組語法檢測 (Node.js vm & Syntax Parsing)...");
 const jsFiles = ["config.js", "audio.js", "physics.js", "referee.js", "motion.js",
     "ui.js", "social.js", "fly_connectome.js", "fun_mode.js", "game.js"];
 for (const f of jsFiles) {
@@ -60,7 +60,7 @@ try {
 }
 
 // ── 2. 打包與產物一致性檢測 (Build & Sync Integrity) ──
-console.log("\n▶ [2/7] 打包產物一致性檢測 (Build & Sync Integrity)...");
+console.log("\n▶ [2/8] 打包產物一致性檢測 (Build & Sync Integrity)...");
 try {
     cp.execSync("node scripts/build-single.js", { cwd: ROOT, stdio: "pipe" });
     const single = fs.readFileSync(path.join(ROOT, "v14-single.html"), "utf8");
@@ -73,7 +73,7 @@ try {
 }
 
 // ── 3. 機密金鑰洩漏掃描 (Secret Scan) ──
-console.log("\n▶ [3/7] 安全邊界與金鑰洩漏掃描 (Secret Leak Scan)...");
+console.log("\n▶ [3/8] 安全邊界與金鑰洩漏掃描 (Secret Leak Scan)...");
 try {
     const res = cp.execSync(
         "grep -rnE '(AKIA|AIza|ghp_|glpat-|https://script\\.google\\.com/macros/s/[A-Za-z0-9_-]{20,}/exec)' --exclude-dir={.git,node_modules} --exclude=self-test.js --exclude=review_round2.txt --exclude=\*.md . || true",
@@ -85,7 +85,7 @@ try {
 }
 
 // ── 4. 後端防護單元測試 (Backend Security Logic Unit Tests) ──
-console.log("\n▶ [4/7] 後端試算表防禦邏輯測試 (Code.gs Functions)...");
+console.log("\n▶ [4/8] 後端試算表防禦邏輯測試 (Code.gs Functions)...");
 try {
     const codeGs = fs.readFileSync(path.join(ROOT, "backend", "Code.gs"), "utf8");
     const sandbox = { Utilities: {}, SpreadsheetApp: {} };
@@ -132,7 +132,7 @@ try {
 }
 
 // ── 5. 前端設定與驗證測試 (Frontend Config & Validations) ──
-console.log("\n▶ [5/7] 前端驗證與錯誤碼測試 (config.js Functions)...");
+console.log("\n▶ [5/8] 前端驗證與錯誤碼測試 (config.js Functions)...");
 try {
     const configSrc = fs.readFileSync(path.join(ROOT, "js", "config.js"), "utf8");
     const mErr = configSrc.match(/function errMsg\(err\)[\s\S]*?\n}/);
@@ -167,7 +167,7 @@ try {
 }
 
 // ── 6. 示範與手勢衝突防護檢測 (Tutorial & Demo Conflict Checks) ──
-console.log("\n▶ [6/7] 開場示範與導覽防衝突檢測 (Demo & Tour Isolation)...");
+console.log("\n▶ [6/8] 開場示範與導覽防衝突檢測 (Demo & Tour Isolation)...");
 try {
     const gameSrc = fs.readFileSync(path.join(ROOT, "js", "game.js"), "utf8");
     const uiSrc = fs.readFileSync(path.join(ROOT, "js", "ui.js"), "utf8");
@@ -195,7 +195,7 @@ try {
 }
 
 // ── 7. 物理動力學與防穿透碰撞矩陣模擬 (Physics Dynamics & CCD Simulation) ──
-console.log("\n▶ [7/7] 多版本物理動力學與連續碰撞模擬 (Physics & CCD Matrix)...");
+console.log("\n▶ [7/8] 多版本物理動力學與連續碰撞模擬 (Physics & CCD Matrix)...");
 try {
     const simOut = cp.execSync("node scripts/physics-sim.js", { cwd: ROOT, encoding: "utf8" });
     const mPass = simOut.match(/通過:\s*(\d+)\s*項/);
@@ -203,6 +203,38 @@ try {
     assert(passCount >= 80, `82 項物理動力學與 CCD 防穿透測試全數 PASS (通過 ${passCount} 項)`);
 } catch (e) {
     assert(false, "物理模擬腳本執行異常", e.message);
+}
+
+// ── 8. 動物森友會視覺音效與拍立得紀念卡 (Animal Crossing & Polaroid Souvenir) ──
+console.log("\n▶ [8/8] 動物森友會風格與拍立得完賽紀念卡 (Animal Crossing & Polaroid Souvenir)...");
+try {
+    const gameSrc = fs.readFileSync(path.join(ROOT, "js/game.js"), "utf8");
+    const audioSrc = fs.readFileSync(path.join(ROOT, "js/audio.js"), "utf8");
+    const modalsCss = fs.readFileSync(path.join(ROOT, "css/modals.css"), "utf8");
+    const v14Html = fs.readFileSync(path.join(ROOT, "v14.html"), "utf8");
+    const singleHtml = fs.readFileSync(path.join(ROOT, "v14-single.html"), "utf8");
+
+    // 1. 動森程序化紋理
+    assert(gameSrc.includes("function acGrassTex()") && gameSrc.includes("function acWaterTex()"),
+        "js/game.js 包含動森草皮 (acGrassTex) 與湖水水波紋理 (acWaterTex)");
+    assert(gameSrc.includes("function acFaceTex()") && gameSrc.includes("function acPaddleTex()"),
+        "js/game.js 包含動森島民臉龐 (acFaceTex) 與樹葉球拍 (acPaddleTex)");
+    assert(gameSrc.includes("function acGooseFaceTex()") && gameSrc.includes("function updateGooseEmote("),
+        "js/game.js 包含村長鵝表情 (acGooseFaceTex) 與動態情緒氣泡 (updateGooseEmote)");
+
+    // 2. 拍立得完賽紀念卡 Modal 與下載
+    assert(v14Html.includes('id="polaroid-modal"') && singleHtml.includes('id="polaroid-modal"'),
+        "v14.html 與 v14-single.html 均包含拍立得完賽紀念卡 Modal (#polaroid-modal)");
+    assert(v14Html.includes('id="polaroid-canvas"') && modalsCss.includes(".polaroid-card"),
+        "modals.css 包含拍立得卡片 (.polaroid-card) 與頂部圖釘 (.polaroid-pin) 樣式");
+    assert(gameSrc.includes("function showPolaroidSouvenir(") && gameSrc.includes("function downloadPolaroid()"),
+        "js/game.js 實作 3D 畫面截圖合成與下載 (showPolaroidSouvenir / downloadPolaroid)");
+
+    // 3. 動物森友會手感音效
+    assert(audioSrc.includes("quack(") && audioSrc.includes("fanfare(") && audioSrc.includes("shutter("),
+        "js/audio.js 包含動物森友會專屬音效 (quack 鵝叫 / fanfare 勝利馬林巴 / shutter 快門)");
+} catch (e) {
+    assert(false, "動森與拍立得模組檢測異常", e.message);
 }
 
 // ── 總結 ──

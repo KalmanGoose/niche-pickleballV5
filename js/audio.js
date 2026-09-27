@@ -55,14 +55,53 @@
                 o.connect(g); g.connect(this.ctx.destination);
                 o.start(t); o.stop(t + dur);
             }
-            pop(p = 0.5) { this.tone('sine', 190 + p * 150, 48, 0.038, 0.62); this.tone('triangle', 900 + p * 400, 300, 0.03, 0.12); }
+            pop(p = 0.5) {
+                // 原木球拍清脆打擊聲 (Crisp Wood Paddle Pop)
+                this.tone('sine', 220 + p * 180, 55, 0.042, 0.65);
+                this.tone('triangle', 950 + p * 450, 320, 0.035, 0.18);
+            }
             thump(p = 1) { this.tone('sine', 108, 30, 0.075, 0.30 * Math.min(1, p)); }
             net() { this.tone('triangle', 250, 85, 0.13, 0.34); }
-            fault() { this.tone('square', 760, 220, 0.24, 0.17); }
-            point() { this.tone('triangle', 540, 1020, 0.17, 0.26); later(() => this.tone('triangle', 780, 1300, 0.14, 0.2), 95); }
-            swap() { this.tone('triangle', 420, 740, 0.13, 0.22); }
-            tick() { this.tone('square', 1200, 900, 0.03, 0.08); }
-            ready() { this.tone('sine', 660, 990, 0.10, 0.16); }
-            like() { this.tone('triangle', 700, 1250, 0.12, 0.20); }
+            fault() {
+                // 溫和抱歉的小失誤聲，非刺耳噪音
+                this.tone('sine', 480, 220, 0.18, 0.18);
+                this.tone('triangle', 320, 160, 0.22, 0.14);
+            }
+            point() {
+                // 動森風歡快雙音木琴 (Cozy Marimba Two-tone)
+                this.tone('triangle', 587.33, 587.33, 0.14, 0.26); // D5
+                if (typeof later === 'function') later(() => this.tone('triangle', 880, 880, 0.18, 0.22), 85); // A5
+                else setTimeout(() => this.tone('triangle', 880, 880, 0.18, 0.22), 85);
+            }
+            swap() { this.tone('triangle', 440, 660, 0.12, 0.20); }
+            tick() { this.tone('sine', 1200, 800, 0.025, 0.08); }
+            ready() { this.tone('sine', 659.25, 783.99, 0.12, 0.18); }
+            like() {
+                // 甜美愛心叮咚聲
+                this.tone('sine', 659.25, 659.25, 0.08, 0.18);
+                const delayFn = (typeof later === 'function') ? later : setTimeout;
+                delayFn(() => this.tone('sine', 987.77, 987.77, 0.14, 0.22), 70);
+            }
+            // ═══════ 動森風格專屬療癒音效 ═══════
+            quack() {
+                // 匹克鵝村長俏皮叫聲 (Playful Goose Quack)
+                this.tone('sawtooth', 330, 240, 0.09, 0.16);
+                const delayFn = (typeof later === 'function') ? later : setTimeout;
+                delayFn(() => this.tone('sawtooth', 290, 210, 0.11, 0.14), 75);
+            }
+            fanfare() {
+                // 勝利大獎賽動森號角琶音 (Victory Marimba Arpeggio: C-E-G-C)
+                const delayFn = (typeof later === 'function') ? later : setTimeout;
+                this.tone('triangle', 523.25, 523.25, 0.12, 0.25); // C5
+                delayFn(() => this.tone('triangle', 659.25, 659.25, 0.12, 0.25), 90); // E5
+                delayFn(() => this.tone('triangle', 783.99, 783.99, 0.12, 0.25), 180); // G5
+                delayFn(() => this.tone('triangle', 1046.50, 1046.50, 0.28, 0.32), 270); // C6
+            }
+            shutter() {
+                // 拍立得快門機械喀嚓聲 (Polaroid Camera Shutter)
+                this.tone('sine', 1600, 200, 0.03, 0.22);
+                const delayFn = (typeof later === 'function') ? later : setTimeout;
+                delayFn(() => this.tone('triangle', 400, 120, 0.08, 0.25), 45);
+            }
         }
         const S = new Sound();
