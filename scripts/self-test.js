@@ -172,6 +172,7 @@ try {
     const gameSrc = fs.readFileSync(path.join(ROOT, "js", "game.js"), "utf8");
     const uiSrc = fs.readFileSync(path.join(ROOT, "js", "ui.js"), "utf8");
     const hudCss = fs.readFileSync(path.join(ROOT, "css", "hud.css"), "utf8");
+    const refereeSrc = fs.readFileSync(path.join(ROOT, "js", "referee.js"), "utf8");
 
     assert(!/setTimeout\s*\(\s*\(\)\s*=>\s*startSpotlightTour\(false\)\s*,\s*800\s*\)/.test(gameSrc),
         "開機時不再自動調用 startSpotlightTour(false)");
@@ -190,6 +191,8 @@ try {
         "resetServe 提示文案依據 webcamActive 動態區分體感與手機/觸控");
     assert(gameSrc.includes("Swept Continuous Collision Detection"),
         "tryHit 具備防高速殺球穿透之連續碰撞檢測 (Swept CCD)");
+    assert(refereeSrc.includes("stage >= 4") && refereeSrc.includes("showPolaroidSouvenir(true"),
+        "clearStage 拍立得完賽卡嚴格限定正式比賽關卡 (stage >= 4)");
 } catch (e) {
     assert(false, "防衝突檢測錯誤", e.message);
 }
@@ -233,6 +236,10 @@ try {
     // 3. 動物森友會手感音效
     assert(audioSrc.includes("quack(") && audioSrc.includes("fanfare(") && audioSrc.includes("shutter("),
         "js/audio.js 包含動物森友會專屬音效 (quack 鵝叫 / fanfare 勝利馬林巴 / shutter 快門)");
+
+    // 4. 球場柔和光照與動森大地色盤
+    assert(gameSrc.includes("ACESFilmicToneMapping") && gameSrc.includes("0x2e8352") && gameSrc.includes("0xc86446"),
+        "js/game.js 包含 ACESFilmic 色調映射、動森草坪綠 (0x2e8352) 與暖陶土 (0xc86446)");
 } catch (e) {
     assert(false, "動森與拍立得模組檢測異常", e.message);
 }

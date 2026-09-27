@@ -111,12 +111,12 @@
             state = 'FAULT'; freeze(); clearTimers(); locked = true; S.point();
             popRing(0, 2, 8, 0xffc857);
             if (typeof updateGooseEmote === 'function') updateGooseEmote('👏');
-            if (typeof showPolaroidSouvenir === 'function' && stage >= 3) {
+            if (typeof showPolaroidSouvenir === 'function' && stage >= 4) {
                 showPolaroidSouvenir(true, pScore, aScore);
             }
             if (stage < 5) {
                 toast('STAGE ' + stage + ' CLEARED', '自動進入下一關');
-                later(() => switchStage(stage + 1), 2100);
+                later(() => switchStage(stage + 1, { fromClear: true }), 1800);
             } else if (stage === 5) {
                 toast('STAGE 5 CLEARED', '🏆 擊敗中興湖魔王！解鎖隱藏娛樂關！');
                 later(() => {

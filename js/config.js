@@ -543,7 +543,7 @@ function apiGet(qs) {
 
 /* ═══════ 賽場尺寸、物理常數與 AI 難度常數 ═══════ */
         const IS_MOBILE = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 820;
-        const GRADE = { exposure: 1.05, hemiI: 1.05, sunI: 1.80, fillI: 0.45, rimI: 0.32, fogNear: 34, fogFar: 98 };
+        const GRADE = { exposure: 0.95, hemiI: 0.90, sunI: 1.25, fillI: 0.35, rimI: 0.25, fogNear: 34, fogFar: 98 };
         const COURT_W = 6.10, COURT_L = 13.41, HALF_L = COURT_L / 2;
         const KITCHEN_D = 2.13, NET_H = 0.914, GRAVITY = 9.81;
         const BALL_R = 0.14, NET_CLEAR = NET_H + BALL_R + 0.14, SERVE_MAX_H = 1.15;

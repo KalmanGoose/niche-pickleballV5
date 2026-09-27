@@ -242,7 +242,7 @@
             ren.setPixelRatio(initPR);
             ren.setSize(dims.w, dims.h);
             ren.outputEncoding = THREE.sRGBEncoding;
-            ren.toneMapping = THREE.LinearToneMapping;
+            ren.toneMapping = THREE.ACESFilmicToneMapping;
             ren.toneMappingExposure = GRADE.exposure;
             ren.shadowMap.enabled = true;
             ren.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -256,8 +256,8 @@
             if (typeof FunMode !== 'undefined' && FunMode.init) FunMode.init();
         }
         function buildLights() {
-            scene.add(new THREE.HemisphereLight(0xfdf4dc, 0x86efac, GRADE.hemiI * 1.05));
-            sunKey = new THREE.DirectionalLight(0xfffae5, GRADE.sunI * 1.08);
+            scene.add(new THREE.HemisphereLight(0xf8f3e6, 0x476b38, GRADE.hemiI * 0.85));
+            sunKey = new THREE.DirectionalLight(0xfff7e6, GRADE.sunI);
             const key = sunKey;
             key.position.set(8, 15, 9); key.castShadow = true;
             key.shadow.mapSize.set(512, 512);
@@ -267,9 +267,9 @@
             key.shadow.camera.near = 1; key.shadow.camera.far = 42;
             key.shadow.bias = -0.0012; key.shadow.radius = 3;
             scene.add(key);
-            const fill = new THREE.DirectionalLight(0xdbeafe, GRADE.fillI);
+            const fill = new THREE.DirectionalLight(0xdcebf7, GRADE.fillI * 0.80);
             fill.position.set(-9, 6, 7); scene.add(fill);
-            const rim = new THREE.DirectionalLight(0xfef08a, GRADE.rimI * 0.9);
+            const rim = new THREE.DirectionalLight(0xfef3c7, GRADE.rimI * 0.70);
             rim.position.set(-2, 5, -13); scene.add(rim);
         }
         let scoreboard3DMesh = null, scoreboard3DTex = null;
@@ -474,18 +474,18 @@
         }
 
         function buildCourt() {
-            // ★ 外圍緩衝區：溫暖蜂蜜細沙 (Honey Sand Apron)
-            const outMat = new THREE.MeshStandardMaterial({ color: 0xf0c27b, roughness: 0.85 });
+            // ★ 外圍緩衝區：溫潤大地細沙 (Warm Earthy Sand Apron)
+            const outMat = new THREE.MeshStandardMaterial({ color: 0xd4a373, roughness: 0.90, metalness: 0.0 });
             const out = new THREE.Mesh(new THREE.PlaneGeometry(COURT_W + 5.6, COURT_L + 5.6), outMat);
             out.rotation.x = -Math.PI / 2; out.position.y = -0.008; out.receiveShadow = true; scene.add(out);
 
-            // ★ 正式比賽發球區：草本薄荷綠草皮 (Mint Green Turf)
-            const courtMat = new THREE.MeshStandardMaterial({ color: 0x34d399, roughness: 0.65 });
+            // ★ 正式比賽發球區：動森草坪綠 (Cozy Meadow Turf Green)
+            const courtMat = new THREE.MeshStandardMaterial({ color: 0x2e8352, roughness: 0.88, metalness: 0.02 });
             const court = new THREE.Mesh(new THREE.PlaneGeometry(COURT_W, COURT_L), courtMat);
             court.rotation.x = -Math.PI / 2; court.receiveShadow = true; scene.add(court);
 
-            // ★ 廚房區 (7 FT NVZ)：珊瑚蜜桃粉 (Coral Peach Kitchen)
-            const kitMat = new THREE.MeshStandardMaterial({ color: 0xfb7185, roughness: 0.62 });
+            // ★ 廚房區 (7 FT NVZ)：溫暖陶土紅土 (Warm Terracotta Peach Kitchen)
+            const kitMat = new THREE.MeshStandardMaterial({ color: 0xc86446, roughness: 0.88, metalness: 0.02 });
             const kit = new THREE.Mesh(new THREE.PlaneGeometry(COURT_W, KITCHEN_D * 2), kitMat);
             kit.rotation.x = -Math.PI / 2; kit.position.y = 0.002; kit.receiveShadow = true; scene.add(kit);
 
@@ -493,7 +493,7 @@
             try {
                 const nvzC = document.createElement('canvas'); nvzC.width = 512; nvzC.height = 128;
                 const nvzX = nvzC.getContext('2d');
-                nvzX.fillStyle = 'rgba(255,255,255,0.45)';
+                nvzX.fillStyle = 'rgba(255,255,255,0.40)';
                 nvzX.font = 'bold 36px "Barlow Condensed", system-ui, sans-serif';
                 nvzX.textAlign = 'center';
                 nvzX.fillText('7 FT · NON-VOLLEY ZONE (KITCHEN)', 256, 75);
@@ -505,8 +505,8 @@
                 nvzM2.rotation.x = -Math.PI / 2; nvzM2.rotation.z = Math.PI; nvzM2.position.set(0, 0.004, -KITCHEN_D * 0.5); scene.add(nvzM2);
             } catch(e) { console.warn('NVZ canvas marking init error', e); }
 
-            // ★ 白堊純白邊界線 (Chalk White Lines)
-            const lm = new THREE.MeshBasicMaterial({ color: 0xffffff, toneMapped: false });
+            // ★ 柔和白堊粉筆線 (Soft Chalk White Lines)
+            const lm = new THREE.MeshBasicMaterial({ color: 0xf1f5f9 });
             function line(w, h, x, z) {
                 const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), lm);
                 m.rotation.x = -Math.PI / 2; m.position.set(x, 0.005, z); scene.add(m);
@@ -953,11 +953,11 @@ function solveArc(fx, fy, fz, tx, tz, out, speedScale) {
             const back = HALF_L + 0.35;
             if (st === 1) {
                 add(0.0, '發球預備: 站進右側藍圈，拍面自然就位', 'STEP 1 站位預備', () => { dMove(1.5, back); dPaddle(0.34, 0.74); dDemoTgt.x = -1.5; dDemoTgt.z = -4.8; });
-                add(1.0, '👆 向上滑動推拍: 對角送進綠色發球區', 'STEP 2 滑動教學', () => { triggerFingerDemoSwipe(0); dPaddle(0.31, 0.60); });
+                add(1.0, '👆 向上滑動推拍: 對角送進綠色發球區', 'STEP 2 滑動教學', () => { dPaddle(0.31, 0.60); });
                 add(3.2, '拍面低於腰部 = 合法下手臂直推發球！', 'STEP 3 直推發球', () => { dHit(-1.5, -4.8, 0); });
                 add(5.6, '收拍時手腕自然抬高過肩', 'STEP 3.5 完整收拍');
                 add(6.8, '走到左側藍圈，準備示範側旋發球', 'STEP 4 換邊發球', () => { dMove(-1.5, back); dPaddle(-0.31, 0.60); dDemoTgt.x = 1.5; dDemoTgt.z = -4.8; });
-                add(7.4, '🌪️ 右上刷切揮拍: 劃出微弧線落入右側發球區', 'STEP 5 側切教學', () => { triggerFingerDemoSwipe(1); });
+                add(7.4, '🌪️ 右上刷切揮拍: 劃出微弧線落入右側發球區', 'STEP 5 側切教學');
                 add(8.6, '香蕉側旋弧線球成功擊出！', 'STEP 5.5 側切發球', () => { dHit(1.5, -4.8, 0.65); });
                 add(11.0, '左右發球各成功一次即過關！點擊畫面開始', '通關重點');
             } else if (st === 2) {
@@ -1153,7 +1153,14 @@ function solveArc(fx, fy, fz, tx, tz, out, speedScale) {
 
             updateOpponentMeshVisibility();
             warnKitchen.material.opacity = 0;
-            if (!dSeen[n] && n !== 6) { dSeen[n] = true; startDemo(n); } else resetServe();
+            const isAdvance = !!(opts && opts.fromClear);
+            if (!dSeen[n] && n === 1 && !isAdvance) {
+                dSeen[n] = true;
+                startDemo(n);
+            } else {
+                dSeen[n] = true;
+                resetServe();
+            }
         }
         let gooseServeTimer = null;
         function resetServe() {
@@ -1648,7 +1655,9 @@ function solveArc(fx, fy, fz, tx, tz, out, speedScale) {
                     power: Math.round(ch * 100), spin: +spin.toFixed(2), chain: chainRes,
                     stance: { ok: stanceOK, bal: +stanceBal.toFixed(2) }, outcome: '廚房合法回擊 (過關)'
                 });
-                clearStage(); return;
+                locked = true;
+                later(() => { locked = false; clearStage(); }, 700);
+                return;
             }
 
             S.pop(0.4 + ch * 0.6); addShake(0.05 + ch * 0.06);
