@@ -523,18 +523,115 @@ function apiGet(qs) {
             switchStage(1);
             if (typeof openModeHub === 'function') openModeHub();
         }
+        function buildEditDeptOptions() {
+            const sel = document.getElementById('edit-dept-sel');
+            if (!sel || sel.children.length > 1) return;
+            sel.innerHTML = '<option value="">— 請選擇系所 —</option>';
+            const g = {};
+            DEPT_LIST.forEach(d => { (g[d.college] = g[d.college] || []).push(d); });
+            Object.keys(g).forEach(col => {
+                const og = document.createElement('optgroup'); og.label = col;
+                g[col].forEach(d => {
+                    const o = document.createElement('option');
+                    o.value = d.code; o.textContent = d.name; og.appendChild(o);
+                });
+                sel.appendChild(og);
+            });
+        }
+
+        function onEditSidInput(v) {
+            const msg = document.getElementById('edit-sid-msg');
+            const sel = document.getElementById('edit-dept-sel');
+            const gsel = document.getElementById('edit-grade-sel');
+            if (!v || !v.trim()) {
+                if (msg) { msg.innerText = '輸入 7 碼學號自動判定系所與年級'; msg.className = 'sid-msg'; }
+                return;
+            }
+            const r = parseStudentId(v);
+            if (!r.ok) {
+                if (msg) { msg.innerText = '⚠ ' + r.msg; msg.className = 'sid-msg bad'; }
+                return;
+            }
+            if (r.matched && r.edu) {
+                if (msg) {
+                    msg.innerText = '✅ ' + r.dept.name + r.grade + ' (入學 ' + r.entryYear + ' 學年)';
+                    msg.className = 'sid-msg ok';
+                }
+                if (sel) { sel.value = r.dept.code; onEditDeptSelect(); }
+                if (gsel) gsel.value = r.grade;
+            } else {
+                if (msg) {
+                    msg.innerText = '⚠ 無法自動識別系所，請手動選擇系所與年級';
+                    msg.className = 'sid-msg warn';
+                }
+            }
+        }
+
+        function onEditDeptSelect() {
+            const sel = document.getElementById('edit-dept-sel');
+            const manual = document.getElementById('edit-dept-manual');
+            if (sel && manual) {
+                manual.style.display = (sel.value === 'OTHER') ? 'block' : 'none';
+            }
+        }
+
         function openProfileModal() {
-            document.getElementById('edit-dept').value = playerProfile.department || '';
+            buildEditDeptOptions();
+            const isGuest = (playerProfile.sidPrefix === 'GUEST' || !playerProfile.sidPrefix || playerProfile.isGuest);
+            
+            const sidInput = document.getElementById('edit-sid');
+            const sidMsg = document.getElementById('edit-sid-msg');
+            const deptSel = document.getElementById('edit-dept-sel');
+            const gradeSel = document.getElementById('edit-grade-sel');
+            const guestBanner = document.getElementById('edit-guest-banner');
+            const saveBtn = document.getElementById('edit-save-btn');
+
+            if (sidInput) sidInput.value = (isGuest ? '' : (playerProfile.sidPrefix || ''));
+            if (sidMsg) {
+                sidMsg.innerText = isGuest ? '👟 訪客模式：輸入學號前 7 碼即可一鍵升級正式學生！' : '輸入後自動判定系所與年級';
+                sidMsg.className = isGuest ? 'sid-msg warn' : 'sid-msg';
+            }
+            if (guestBanner) {
+                guestBanner.style.display = isGuest ? 'block' : 'none';
+            }
+            if (saveBtn) {
+                saveBtn.innerText = isGuest ? '🎓 綁定學號轉為正式學生' : '💾 保存修改';
+            }
+
+            if (deptSel) {
+                deptSel.value = playerProfile.deptCode || '';
+                onEditDeptSelect();
+            }
+            if (gradeSel && playerProfile.grade) {
+                gradeSel.value = playerProfile.grade;
+            }
+
+            const deptTxt = document.getElementById('edit-dept');
+            if (deptTxt) deptTxt.value = playerProfile.department || '';
+
             document.getElementById('edit-nick').value = playerProfile.nickname || '';
             document.getElementById('edit-ig').value = playerProfile.ig || '';
             document.getElementById('edit-id-badge').innerText =
                 '玩家編號 ' + (playerProfile.playerId || '未登入') +
-                '　學號前綴 ' + (playerProfile.sidPrefix || '—');
+                '　學號前綴 ' + (playerProfile.sidPrefix || '訪客免登入');
             buildAvatarGrid('edit-avatar-grid', selectEditAvatar);
             document.getElementById('profile-modal').style.display = 'flex';
             closePanel();
         }
+
         function closeProfileModal() { document.getElementById('profile-modal').style.display = 'none'; clearKeys(); }
+
+        function reopenLoginOverlay() {
+            closeProfileModal();
+            if (typeof closeModeHub === 'function') closeModeHub();
+            const overlay = document.getElementById('login-overlay');
+            if (overlay) {
+                overlay.style.display = 'flex';
+                document.body.classList.add('login-open');
+                showFullLoginForm();
+            }
+        }
+
         function saveProfile() {
             const rawIg = document.getElementById('edit-ig').value.trim();
             const cleanIg = rawIg.replace(/^@/, '');
@@ -543,7 +640,44 @@ function apiGet(qs) {
                 return;
             }
 
-            playerProfile.department = document.getElementById('edit-dept').value.trim() || playerProfile.department;
+            const sidVal = (document.getElementById('edit-sid') ? document.getElementById('edit-sid').value.trim() : '');
+            const deptSel = document.getElementById('edit-dept-sel');
+            const gradeSel = document.getElementById('edit-grade-sel');
+            const manualDept = document.getElementById('edit-dept-manual');
+
+            let isUpgrading = false;
+
+            if (sidVal) {
+                const r = parseStudentId(sidVal);
+                if (!r.ok) {
+                    toast('⚠️ 學號格式錯誤', r.msg);
+                    return;
+                }
+                const code = deptSel ? deptSel.value : '';
+                if (!code) {
+                    toast('⚠️ 請選擇系所', '請在下拉選單選擇您的系所');
+                    return;
+                }
+                const manual = manualDept ? manualDept.value.trim() : '';
+                if (code === 'OTHER' && !manual) {
+                    toast('⚠️ 請填寫系所', '請填寫您的系所名稱');
+                    return;
+                }
+                const deptName = (code === 'OTHER') ? manual : ((DEPT_LIST.find(d => d.code === code) || {}).name || '');
+                const grade = gradeSel ? gradeSel.value : '大一';
+
+                playerProfile.sidPrefix = r.prefix;
+                playerProfile.deptCode = code;
+                playerProfile.grade = grade;
+                playerProfile.entryYear = String(r.entryYear);
+                playerProfile.department = deptName + grade;
+                playerProfile.isGuest = false;
+                isUpgrading = true;
+            } else {
+                const customDept = document.getElementById('edit-dept') ? document.getElementById('edit-dept').value.trim() : '';
+                if (customDept) playerProfile.department = customDept;
+            }
+
             const n = document.getElementById('edit-nick').value.trim();
             if (n) {
                 playerProfile.nickname = n;
@@ -551,20 +685,44 @@ function apiGet(qs) {
             }
             playerProfile.ig = cleanIg;
             updateWhoLabel(playerProfile.nickname, playerProfile.avatar);
+
             const sv = loadIdentity() || {};
             sv.playerId = playerProfile.playerId || getOrCreatePlayerId();
-            sv.sidPrefix = playerProfile.sidPrefix || sv.sidPrefix;
+            sv.sidPrefix = playerProfile.sidPrefix;
             sv.avatar = playerProfile.avatar;
             sv.nickname = playerProfile.nickname;
             sv.department = playerProfile.department;
+            sv.grade = playerProfile.grade;
+            sv.deptCode = playerProfile.deptCode;
+            sv.entryYear = playerProfile.entryYear;
             sv.ig = playerProfile.ig;
             saveIdentity(sv);
             closeProfileModal();
+
+            const hubAv = document.getElementById('hub-avatar');
+            const hubNk = document.getElementById('hub-nick');
+            const hubDp = document.getElementById('hub-dept');
+            const hubRole = document.getElementById('hub-role-tag');
+            if (hubAv) hubAv.innerText = playerProfile.avatar;
+            if (hubNk) hubNk.innerText = playerProfile.nickname;
+            if (hubDp) hubDp.innerText = playerProfile.department + ' · 國立中興大學';
+            if (hubRole) {
+                if (playerProfile.sidPrefix && playerProfile.sidPrefix !== 'GUEST') {
+                    hubRole.innerText = '🍃 正式島民';
+                    hubRole.style.background = '#e8f5e9';
+                    hubRole.style.color = '#2e7d32';
+                } else {
+                    hubRole.innerText = '👟 訪客';
+                    hubRole.style.background = '#e2d1b3';
+                    hubRole.style.color = '#6b5239';
+                }
+            }
+
             if (playerProfile.playerId) {
                 postSigned({
                     act: 'updateProfile', playerId: playerProfile.playerId, avatar: playerProfile.avatar,
                     nickname: playerProfile.nickname, department: playerProfile.department,
-                    ig: playerProfile.ig || ''
+                    ig: playerProfile.ig || '', sidPrefix: playerProfile.sidPrefix
                 }).then(r => {
                     if (r) {
                         if (r.err === 'UNAUTHORIZED') {
@@ -575,7 +733,11 @@ function apiGet(qs) {
                     }
                 });
             }
-            toast('⚙️ 個人設定已儲存', '繼續中興湖特訓！');
+            if (isUpgrading) {
+                toast('🎓 恭喜完成學生認證！', playerProfile.department + ' · 戰績已同步');
+            } else {
+                toast('⚙️ 個人設定已儲存', '繼續中興湖特訓！');
+            }
         }
 
         /* ═══════ 音效偏好 ═══════ */
@@ -763,3 +925,12 @@ function apiGet(qs) {
             timers.push(id); return id;
         }
         function clearTimers() { timers.forEach(clearTimeout); timers = []; }
+
+        if (typeof window !== 'undefined') {
+            window.openProfileModal = openProfileModal;
+            window.closeProfileModal = closeProfileModal;
+            window.saveProfile = saveProfile;
+            window.reopenLoginOverlay = reopenLoginOverlay;
+            window.onEditSidInput = onEditSidInput;
+            window.onEditDeptSelect = onEditDeptSelect;
+        }

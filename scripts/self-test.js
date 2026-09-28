@@ -318,6 +318,8 @@ try {
     const configSrc = fs.readFileSync(path.resolve(__dirname, "../js/config.js"), "utf8");
     const codeGs = fs.readFileSync(path.resolve(__dirname, "../backend/Code.gs"), "utf8");
     const workerSrc = fs.readFileSync(path.resolve(__dirname, "../backend/cloudflare-worker.js"), "utf8");
+    const motionSrc = fs.readFileSync(path.resolve(__dirname, "../js/motion.js"), "utf8");
+    const refereeSrc = fs.readFileSync(path.resolve(__dirname, "../js/referee.js"), "utf8");
 
     // 1. 動森 NookPhone 與頂部動態藥丸島
     assert(v14Src.includes('id="nook-fab"') && v14Src.includes('id="nook-phone-modal"') && v14Src.includes('id="dynamic-stage-pill"'),
@@ -389,8 +391,16 @@ try {
     // 9. NookPhone 難度選擇器與匹克球學習社群 Hero 實裝檢測
     assert(v14Src.includes('id="diff-picker-modal"') && uiSrc.includes("openDiffPicker") && uiSrc.includes("selectDiffLevel"),
         "實裝動森風格對手難度直選面板 (#diff-picker-modal) 與控制器");
-    assert(v14Src.includes('id="community-modal"') && v14Src.includes('class="hub-community-card"'),
+    assert(v14Src.includes('id="community-modal"') && (v14Src.includes('class="hub-community-card"') || v14Src.includes('hub-unified-hero')),
         "大廳融入中興大學匹克球學習社群專屬看板與彈窗 (#community-modal)");
+    assert(v14Src.includes("hub-unified-hero") && v14Src.includes("hub-hero-topbar"),
+        "遊戲大廳頂部控制與社群看板完美合併為單一連貫清新 Hero 主卡片 (.hub-unified-hero)");
+    assert(motionSrc.includes("closeModeHub") && motionSrc.includes("closeRulesModal"),
+        "旋球教學點擊時主動關閉模式大廳與規則手冊，教學視窗立即跳出球場中央");
+    assert(v14Src.includes('id="rtab-pane-fly"') && v14Src.includes('id="rtab-btn-fly"') && refereeSrc.includes("fly"),
+        "普林斯頓 FlyWire 2024 果蠅大腦全腦連接組與 LIF-A 神經文獻獨立為專屬手冊頁籤");
+    assert(v14Src.includes('id="edit-sid"') && v14Src.includes('id="edit-dept-sel"') && configSrc.includes("reopenLoginOverlay"),
+        "個人設定彈窗升級支援 7 碼學號智能辨識、系所下拉選單、訪客正式註冊與開局畫面重開");
     assert(v14Src.includes("https://line.me/R/ti/p/@490hjerg") && v14Src.includes("nchupickleball_lab1.0"),
         "包含官方 LINE 與 Instagram 社群社群連結按鈕");
     assert(fs.existsSync(path.join(ROOT, "images", "pickleball_lab_logo.jpg")) && fs.existsSync(path.join(ROOT, "images", "pickleball_action.jpg")),

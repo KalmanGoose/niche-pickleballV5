@@ -885,6 +885,8 @@
         }
 
         function showFingerTutorial(stepMode) {
+            if (typeof closeModeHub === 'function') closeModeHub();
+            if (typeof closeRulesModal === 'function') closeRulesModal();
             fingerTutActive = true;
             if (typeof stepMode === 'number') fingerAnimStep = stepMode;
             fingerAnimProgress = 0;
@@ -893,6 +895,8 @@
             if (!fingerAnimTimer) runFingerAnimation();
         }
         function triggerFingerDemoSwipe(mode) {
+            if (typeof closeModeHub === 'function') closeModeHub();
+            if (typeof closeRulesModal === 'function') closeRulesModal();
             fingerTutActive = true;
             if (typeof mode === 'number') fingerAnimStep = mode;
             fingerAnimProgress = 0.55;

@@ -1313,9 +1313,22 @@ function cycleTeachLevelQuick() {
             const av = document.getElementById('hub-avatar');
             const nk = document.getElementById('hub-nick');
             const dp = document.getElementById('hub-dept');
+            const role = document.getElementById('hub-role-tag');
             if (av) av.innerText = (typeof playerProfile !== 'undefined' && playerProfile.avatar) ? playerProfile.avatar : '🧢';
             if (nk) nk.innerText = (typeof playerProfile !== 'undefined' && playerProfile.nickname) ? playerProfile.nickname : '興大球神';
             if (dp) dp.innerText = (typeof playerProfile !== 'undefined' && playerProfile.department) ? (playerProfile.department + ' · 國立中興大學') : '國立中興大學匹克球社群';
+            if (role) {
+                const isGuest = (typeof playerProfile !== 'undefined' && (playerProfile.sidPrefix === 'GUEST' || !playerProfile.sidPrefix || playerProfile.isGuest));
+                if (isGuest) {
+                    role.innerText = '👟 訪客 (點擊轉正)';
+                    role.style.background = '#e2d1b3';
+                    role.style.color = '#6b5239';
+                } else {
+                    role.innerText = '🍃 正式島民';
+                    role.style.background = '#e8f5e9';
+                    role.style.color = '#2e7d32';
+                }
+            }
             const camBtn = document.getElementById('hub-webcam-btn');
             if (camBtn) camBtn.innerText = '📷 體感: ' + (typeof webcamActive !== 'undefined' && webcamActive ? '開' : '關');
             hub.style.display = 'flex';

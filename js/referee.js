@@ -223,24 +223,43 @@
             if (m) m.style.display = 'none';
         }
         function switchRulesModalTab(tab) {
+            const isRules = (tab === 'rules' || !tab);
             const isPhysics = (tab === 'physics');
+            const isFly = (tab === 'fly');
+
             const btnRules = document.getElementById('rtab-btn-rules');
             const btnPhys = document.getElementById('rtab-btn-physics');
+            const btnFly = document.getElementById('rtab-btn-fly');
+
             const paneRules = document.getElementById('rtab-pane-rules');
             const panePhys = document.getElementById('rtab-pane-physics');
+            const paneFly = document.getElementById('rtab-pane-fly');
+
             const titleEl = document.getElementById('rules-modal-main-title');
             const srcLink = document.getElementById('rules-modal-source-link');
 
-            if (btnRules) btnRules.classList.toggle('on', !isPhysics);
+            if (btnRules) btnRules.classList.toggle('on', isRules);
             if (btnPhys) btnPhys.classList.toggle('on', isPhysics);
-            if (paneRules) paneRules.style.display = isPhysics ? 'none' : 'block';
+            if (btnFly) btnFly.classList.toggle('on', isFly);
+
+            if (paneRules) paneRules.style.display = isRules ? 'block' : 'none';
             if (panePhys) panePhys.style.display = isPhysics ? 'block' : 'none';
+            if (paneFly) paneFly.style.display = isFly ? 'block' : 'none';
 
             if (titleEl) {
-                titleEl.innerHTML = isPhysics ? '🌪️ 匹克球流體力學與馬格努斯效應科普' : '📖 2026 USA PICKLEBALL 官方競賽手冊';
+                if (isFly) {
+                    titleEl.innerHTML = '🪰 普林斯頓 FlyWire 果蠅神經大腦文獻 (Nature 2024)';
+                } else if (isPhysics) {
+                    titleEl.innerHTML = '🌪️ 匹克球流體力學與馬格努斯效應科普';
+                } else {
+                    titleEl.innerHTML = '📖 2026 USA PICKLEBALL 官方競賽手冊';
+                }
             }
             if (srcLink) {
-                if (isPhysics) {
+                if (isFly) {
+                    srcLink.href = 'https://flywire.ai/';
+                    srcLink.innerHTML = '🌐 查閱 Princeton FlyWire Nature 2024 全腦連接組 ↗';
+                } else if (isPhysics) {
                     srcLink.href = 'https://www.grc.nasa.gov/www/k-12/airplane/beach.html';
                     srcLink.innerHTML = '🌐 查閱 NASA 空氣動力學教育庫 (Magnus Effect) ↗';
                 } else {

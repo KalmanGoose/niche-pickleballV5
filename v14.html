@@ -108,33 +108,76 @@
     </div>
 
     <!-- ══════ 球員設定 ══════ -->
+    <!-- ══════ 🍃 島民 / 球員個人設定與學號綁定 ══════ -->
     <div id="profile-modal" class="modal-overlay" style="display:none;">
         <div class="modal-card">
-            <h2>😎 個人球員設定</h2>
-            <p>修改後將同步更新英雄榜資訊。</p>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+                <h2 style="margin:0;font-size:18px;">😎 個人球員設定</h2>
+                <button type="button" class="btn" onclick="closeProfileModal()" style="padding:2px 8px;font-size:14px;">×</button>
+            </div>
+            <p style="font-size:12px;color:var(--dim);margin-bottom:12px;">修改後將同步更新動森護照名片與校園英雄榜。</p>
+
+            <!-- 訪客轉正提示橫幅 -->
+            <div id="edit-guest-banner" class="profile-guest-notice" style="display:none;">
+                <span class="profile-guest-badge">👟 訪客快速試玩中</span>
+                <div>您目前是以訪客身分進行遊玩！請在下方輸入中興學號前 7 碼並選擇系所，即可<strong>一鍵升級為正式學生帳號</strong>，登錄全校系級排行！</div>
+            </div>
+
             <div style="margin-bottom:12px;">
-                <label
-                    style="display:block;font-size:10px;font-weight:700;color:var(--dim);margin-bottom:6px;text-transform:uppercase;">代表頭像</label>
+                <label style="display:block;font-size:10px;font-weight:700;color:var(--dim);margin-bottom:6px;text-transform:uppercase;">代表頭像</label>
                 <div class="avatar-grid" id="edit-avatar-grid"></div>
             </div>
+
+            <!-- 學號前 7 碼輸入框 -->
             <div class="input-group">
-                <label>系級</label>
-                <input type="text" id="edit-dept">
+                <label>中興學號前 7 碼 (學制 + 入學學年 + 系所)</label>
+                <input type="text" id="edit-sid" inputmode="numeric" maxlength="7" placeholder="例如: 4112044" oninput="onEditSidInput(this.value)">
+                <div id="edit-sid-msg" class="sid-msg">輸入 7 碼學號自動判定系所與年級</div>
             </div>
+
+            <!-- 系所選擇下拉 -->
+            <div class="input-group">
+                <label>系所</label>
+                <select id="edit-dept-sel" onchange="onEditDeptSelect()"></select>
+                <input type="text" id="edit-dept-manual" placeholder="請填寫系所名稱" style="display:none;margin-top:8px;">
+            </div>
+
+            <!-- 年級選擇下拉 -->
+            <div class="input-group">
+                <label>年級</label>
+                <select id="edit-grade-sel">
+                    <option>大一</option>
+                    <option>大二</option>
+                    <option>大三</option>
+                    <option>大四</option>
+                    <option>延修生</option>
+                    <option>碩一</option>
+                    <option>碩二</option>
+                    <option>博士班</option>
+                </select>
+            </div>
+
+            <!-- 備用自訂系級顯示 (非必填) -->
+            <input type="hidden" id="edit-dept">
+
             <div class="input-group">
                 <label>遊戲暱稱</label>
-                <input type="text" id="edit-nick">
+                <input type="text" id="edit-nick" placeholder="自訂您的球場暱稱">
             </div>
+
             <div class="input-group">
                 <label>Instagram 帳號 (選填)</label>
                 <input type="text" id="edit-ig" placeholder="例如: nchu_pickle">
             </div>
+
             <div class="id-badge" id="edit-id-badge">—</div>
+
             <div style="display:flex;gap:10px;margin-top:14px;">
-                <button class="btn-main" style="background:rgba(255,255,255,.1);margin-top:0;"
-                    onclick="closeProfileModal()">取消</button>
-                <button class="btn-main" style="margin-top:0;" onclick="saveProfile()">保存修改</button>
+                <button type="button" class="btn-main" style="background:rgba(255,255,255,.1);margin-top:0;flex:1;" onclick="closeProfileModal()">取消</button>
+                <button type="button" class="btn-main" id="edit-save-btn" style="margin-top:0;flex:2;" onclick="saveProfile()">💾 保存修改</button>
             </div>
+
+            <button type="button" class="btn-reopen-login" onclick="reopenLoginOverlay()">🔄 重新進入登入開局畫面</button>
         </div>
     </div>
 
@@ -407,7 +450,8 @@
             <!-- 分類頁籤按鈕 (Tabs) -->
             <div class="tabs" style="margin-bottom:16px;width:100%;">
                 <button type="button" class="tab on" id="rtab-btn-rules" onclick="switchRulesModalTab('rules')">📖 2026 官方競賽手冊</button>
-                <button type="button" class="tab" id="rtab-btn-physics" onclick="switchRulesModalTab('physics')">🌪️ 流體力學與旋球科普 (文獻參考)</button>
+                <button type="button" class="tab" id="rtab-btn-physics" onclick="switchRulesModalTab('physics')">🌪️ 流體力學與旋球科普</button>
+                <button type="button" class="tab" id="rtab-btn-fly" onclick="switchRulesModalTab('fly')">🪰 普林斯頓果蠅大腦 (Nature 2024)</button>
             </div>
 
             <!-- 頁籤 1: 官方競賽規則 -->
@@ -760,6 +804,120 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
                 </div>
             </div>
 
+            <!-- 頁籤 3: 普林斯頓果蠅大腦文獻 (FlyWire SNN & Nature 2024) -->
+            <div id="rtab-pane-fly" class="rules-tab-pane" style="display:none;">
+                <div class="rules-grid">
+                    <!-- 文獻卡 1: FlyWire 全腦連接組介紹 -->
+                    <div class="rule-card">
+                        <div class="rule-card-top">
+                            <span class="rule-num" style="background:var(--accent);color:#0f172a;">文獻 01</span>
+                            <h4 class="rule-title">🧠 普林斯頓 FlyWire 全腦連接組 (Nature 2024)</h4>
+                        </div>
+                        <p class="rule-desc">
+                            2024 年 10 月，《Nature》期刊以封面專題重磅發表了人類科學史上首個完整的成年動物全腦連接組——普林斯頓大學 FlyWire 聯盟歷時數年重建的黑腹果蠅（<i>Drosophila melanogaster</i>）全腦神經圖譜。
+                        </p>
+                        <div class="physics-analogy">
+                            🔬 <b>世界頂尖神經圖譜規格：</b><br>
+                            全腦完整包含 <b>139,255 顆神經元</b> 與超過 <b>5,450 萬個突觸連接</b>，測繪長度達 150 公尺的神經纖維！本遊戲將此真實突觸權重架構精煉為輕量級生物擬真神經元網絡（Spiking Neural Network, SNN），驅動對手 AI 的毫秒級動態神經決策。
+                        </div>
+                    </div>
+
+                    <!-- 文獻卡 2: 巨大纖維逃逸系統 (GFS) -->
+                    <div class="rule-card">
+                        <div class="rule-card-top">
+                            <span class="rule-num" style="background:var(--accent);color:#0f172a;">文獻 02</span>
+                            <h4 class="rule-title">⚡ 巨大纖維逃逸系統 (Giant Fiber System, GFS)</h4>
+                        </div>
+                        <p class="rule-desc">
+                            當獵食者逼近或匹克球高速朝果蠅飛來時，果蠅複眼中的視覺神經元（LC4、LPLC2）會以光學逼近角擴張率 <b>dθ/dt</b> 偵測危險，並在極短時間內將訊號匯聚至大腦中央一對直徑巨大的神經元——<b>巨大纖維 (Giant Fiber, GF)</b>。
+                        </p>
+                        <div class="physics-analogy">
+                            ⚡ <b>雙突觸超極速跳躍反射：</b><br>
+                            GF 軸突直徑粗大、傳導阻抗極低，且與中胸部肌腱運動神經元（TTMn）之間同時具有<b>化學突觸</b>與<b>電突觸 (Gap Junctions)</b> 協同傳導，神經潛伏期僅 <b>2 ~ 5 毫秒</b>！使對手能對玩家的重砲殺球做出不可思議的本能救球反應。
+                        </div>
+                    </div>
+
+                    <!-- 文獻卡 3: LIF-A 膜電位與突觸囊泡抑制 -->
+                    <div class="rule-card">
+                        <div class="rule-card-top">
+                            <span class="rule-num" style="background:var(--cool);color:#0f172a;">數學 03</span>
+                            <h4 class="rule-title">📐 LIF-A 膜電位微分方程與 Tsodyks-Markram 短時抑制</h4>
+                        </div>
+                        <p class="rule-desc">
+                            本遊戲 AI 的神經決策層以半隱式 Euler 數值求解自適應漏電整合發放方程（LIF with Spike-Frequency Adaptation）與突觸囊泡耗竭動力學：
+                        </p>
+                        <div class="physics-formula">【LIF-A 膜電位與適應電流方程】
+τ_m · (dV/dt) = -(V - V_rest) - R_m · w + I_syn(t)
+τ_w · (dw/dt) = -w + b · Σ δ(t - t_spike)
+
+【Tsodyks-Markram 突觸囊泡池消耗動力學 (STD)】
+dx/dt = (1 - x) / τ_D - u · x · δ(t - t_spike)
+I_syn(t) = w_syn · x · u · (dθ/dt)</div>
+                        <div class="physics-analogy" style="margin-top:8px;">
+                            💡 <b>球場微距過載眩暈機制 (STUNNED)：</b><br>
+                            當玩家連續打出高頻、極限角度的調球時，AI 的神經囊泡釋放池 <i>x</i> 耗盡，突觸傳導效率瞬間暴跌，觸發短暫的神經疲勞「眩暈 (STUNNED)」狀態，為玩家創造致勝一擊的絕佳空檔！
+                        </div>
+                    </div>
+
+                    <!-- 文獻卡 4: 6 大果蠅性格預設 -->
+                    <div class="rule-card" style="grid-column:1/-1;">
+                        <div class="rule-card-top">
+                            <span class="rule-num" style="background:var(--ok);color:#0f172a;">預設 04</span>
+                            <h4 class="rule-title">🧠 6 大神經性格型態矩陣 (FlyBrain Neural Presets)</h4>
+                        </div>
+                        <p class="rule-desc">可在球場上的「FLY-SNN 示波器」隨時點擊切換以下 6 種神經性格特徵：</p>
+                        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(240px, 1fr));gap:10px;margin-top:8px;">
+                            <div style="background:rgba(15,23,42,0.6);border:1px solid rgba(56,189,248,0.25);border-radius:10px;padding:10px;">
+                                <div style="font-weight:900;color:#38bdf8;font-size:13px;">⚡ 敏捷截擊獵手 (Agile Interceptor)</div>
+                                <div style="font-size:11.5px;color:#cbd5e1;margin-top:4px;">高興奮性、短膜時間常數 (τ_m=12ms)，對光學逼近角極度敏感，擅長網前廚房區凌空截擊。</div>
+                            </div>
+                            <div style="background:rgba(15,23,42,0.6);border:1px solid rgba(246,196,69,0.25);border-radius:10px;padding:10px;">
+                                <div style="font-weight:900;color:#f6c445;font-size:13px;">🌀 神經混沌假動作 (Chaotic Deceiver)</div>
+                                <div style="font-size:11.5px;color:#cbd5e1;margin-top:4px;">自發神經噪聲高，擊球落點具備高度混沌隨機性，常打出意想不到的反向抽球與假動作。</div>
+                            </div>
+                            <div style="background:rgba(15,23,42,0.6);border:1px solid rgba(239,68,68,0.25);border-radius:10px;padding:10px;">
+                                <div style="font-weight:900;color:#f87171;font-size:13px;">🦅 高空滑翔重砲 (Gliding Smasher)</div>
+                                <div style="font-size:11.5px;color:#cbd5e1;margin-top:4px;">下行飛行神經元（PSIm）強權重輸出，專注於底線深球大力抽擊與高壓扣殺。</div>
+                            </div>
+                            <div style="background:rgba(15,23,42,0.6);border:1px solid rgba(34,197,94,0.25);border-radius:10px;padding:10px;">
+                                <div style="font-weight:900;color:#4ade80;font-size:13px;">🛡️ 磐石戰術家 (Steadfast Tactician)</div>
+                                <div style="font-size:11.5px;color:#cbd5e1;margin-top:4px;">高膜電位適應性 (b=4.5)，不易被虛晃或高頻節奏擾亂，極度耐打且失誤率接近於零。</div>
+                            </div>
+                            <div style="background:rgba(15,23,42,0.6);border:1px solid rgba(168,85,247,0.25);border-radius:10px;padding:10px;">
+                                <div style="font-weight:900;color:#c084fc;font-size:13px;">🧬 自適應學習體 (Adaptive Learner)</div>
+                                <div style="font-size:11.5px;color:#cbd5e1;margin-top:4px;">具備突觸可塑性 (STDP)，會隨著來回抽球記住玩家的慣用擊球路線並提前預判走位！</div>
+                            </div>
+                            <div style="background:rgba(15,23,42,0.6);border:1px solid rgba(251,146,60,0.25);border-radius:10px;padding:10px;">
+                                <div style="font-weight:900;color:#fb923c;font-size:13px;">🦢 中興神鵝仿生 (Cyber-Goose)</div>
+                                <div style="font-size:11.5px;color:#cbd5e1;margin-top:4px;">融合中興湖黑天鵝水陸兩棲領域性本能，具備最強大的全場覆蓋力與怒吼狂暴攻擊！</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 文獻卡 5: 參考文獻清單 -->
+                    <div class="rule-card" style="grid-column:1/-1;">
+                        <div class="rule-card-top">
+                            <span class="rule-num" style="background:var(--dim);color:#0f172a;">引註 05</span>
+                            <h4 class="rule-title">📚 權威神經圖譜與電生理文獻列表</h4>
+                        </div>
+                        <div class="citations-list">
+                            <div class="citation-item">
+                                <b>[1] Dorkenwald, S., Matsliah, A., Sterling, P., Schlegel, P., ... & Seung, H. S. (2024).</b> <i>Neuronal wiring diagram of an adult brain.</i> Nature, 634(8032), 124–138. <span style="color:var(--dim);">（FlyWire 全腦連接組旗艦論文）</span>
+                            </div>
+                            <div class="citation-item">
+                                <b>[2] Schlegel, P., Yin, Y., Bates, A. S., Dorkenwald, S., ... & Jefferis, G. S. (2024).</b> <i>Whole-brain annotation and multi-connectome marker analysis of the Drosophila brain.</i> Nature, 634(8032), 139–152. <span style="color:var(--dim);">（全腦神經元型態與神經傳導物質功能標註）</span>
+                            </div>
+                            <div class="citation-item">
+                                <b>[3] von Reyn, C. R., Breads, P., Peek, M. Y., ... & Card, G. M. (2014).</b> <i>A spike-timing mechanism for action selection in a descending visual circuit for escape.</i> Neuron, 84(6), 1157–1173. <span style="color:var(--dim);">（巨大纖維逃逸迴路之脈衝時序激發機制）</span>
+                            </div>
+                            <div class="citation-item">
+                                <b>[4] Tsodyks, M. V., & Markram, H. (1997).</b> <i>The neural code between neocortical pyramidal neurons depends on neurotransmitter release probability.</i> PNAS, 94(2), 719–723. <span style="color:var(--dim);">（短時突觸抑制與神經遞質釋放動力學）</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div class="rules-footer-bar">
                 <a id="rules-modal-source-link" href="https://usapickleball.org/rules/" target="_blank" rel="noopener noreferrer" class="rules-source-link">
                     🌐 閱讀 USA Pickleball 官方完整競賽手冊 ↗
@@ -936,47 +1094,55 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
 
     <!-- ══════ 🍃 《動物森友會》島嶼清新風格模式大廳 (Animal Crossing Mode Hub) ══════ -->
     <div id="mode-hub-overlay" style="display:none;">
-        <div class="mode-hub-header">
-            <div class="mode-hub-profile" onclick="openProfileModal()" title="點擊檢視/修改島民護照頭像與暱稱">
-                <span id="hub-avatar" style="font-size:24px;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.15));">🧢</span>
-                <div>
-                    <div style="display:flex;align-items:center;gap:4px;">
-                        <span id="hub-nick" style="font-size:13px;font-weight:900;color:#3d2b1f;line-height:1.2;">叫獸aka愛叫的野獸</span>
-                        <span style="font-size:9px;background:#e2d1b3;color:#6b5239;padding:1px 5px;border-radius:6px;font-weight:800;">島民</span>
+        <!-- ══════ 🍃 統一連貫動森 Hero 主卡片 (.hub-unified-hero) ══════ -->
+        <div class="hub-unified-hero hub-community-card">
+            <!-- 頂部島民名片與控制列 -->
+            <div class="hub-hero-topbar">
+                <div class="mode-hub-profile" onclick="openProfileModal()" title="點擊檢視/修改島民護照、頭像或綁定學號">
+                    <span id="hub-avatar" style="font-size:24px;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.15));">🧢</span>
+                    <div>
+                        <div style="display:flex;align-items:center;gap:4px;">
+                            <span id="hub-nick" style="font-size:13px;font-weight:900;color:#3d2b1f;line-height:1.2;">叫獸aka愛叫的野獸</span>
+                            <span id="hub-role-tag" style="font-size:9px;background:#e2d1b3;color:#6b5239;padding:1px 5px;border-radius:6px;font-weight:800;">島民</span>
+                        </div>
+                        <div id="hub-dept" style="font-size:10px;color:#85694f;font-weight:700;">國立中興大學 · 資訊工程</div>
                     </div>
-                    <div id="hub-dept" style="font-size:10px;color:#85694f;font-weight:700;">國立中興大學 · 資訊工程</div>
+                    <span style="font-size:11px;color:#85694f;">✏️</span>
                 </div>
-                <span style="font-size:11px;color:#85694f;">✏️</span>
+                <div class="mode-hub-brand">
+                    <h1 class="mode-hub-title">🍃 中興湖動森匹克島</h1>
+                    <div class="mode-hub-subtitle">ZHONGXING LAKE ISLAND RESORT · PICKLEBALL ARENA</div>
+                </div>
+                <div class="mode-hub-controls">
+                    <button type="button" class="mode-hub-btn-icon" onclick="openAudioModal()" title="廣播音效設定">🎶 音效</button>
+                    <button type="button" class="mode-hub-btn-icon" id="hub-webcam-btn" onclick="toggleWebcamAI()" title="切換鏡頭體感模式">📷 體感: 關</button>
+                    <button type="button" class="mode-hub-btn-icon mode-hub-btn-go" onclick="closeModeHub()" title="關閉大廳直接踏上球場">🎾 踏上球場</button>
+                </div>
             </div>
-            <div class="mode-hub-brand">
-                <h1 class="mode-hub-title">🍃 中興湖動森匹克島</h1>
-                <div class="mode-hub-subtitle">ZHONGXING LAKE ISLAND RESORT · PICKLEBALL ARENA</div>
-            </div>
-            <div class="mode-hub-controls">
-                <button type="button" class="mode-hub-btn-icon" onclick="openAudioModal()" title="廣播音效設定">🎶 音效</button>
-                <button type="button" class="mode-hub-btn-icon" id="hub-webcam-btn" onclick="toggleWebcamAI()" title="切換鏡頭體感模式">📷 體感: 關</button>
-                <button type="button" class="mode-hub-btn-icon mode-hub-btn-go" onclick="closeModeHub()" title="關閉大廳直接踏上球場">🎾 踏上球場</button>
-            </div>
-        </div>
 
-        <!-- 🏓 中興大學匹克球學習社群專屬看板 (Community Spotlight Hero) -->
-        <div class="hub-community-card">
-            <div class="hub-community-top">
-                <img src="images/pickleball_lab_logo.jpg" alt="NCHU Pickleball Lab 1.0" class="hub-community-logo"
-                     onerror="this.outerHTML='<div class=&quot;hub-community-logo&quot; style=&quot;display:flex;align-items:center;justify-content:center;font-size:36px;background:#f2f7fb;&quot;>🏓</div>';">
-                <div class="hub-community-meta">
-                    <span class="hub-community-tag">🏓 匹克球學習社群</span>
-                    <div class="hub-community-sub">中興大學 - 匹克球學習社群</div>
-                    <div class="hub-community-h1">NCHU_PICKLEBALL_LAB <span style="color:#2e7d32;">1.0</span></div>
-                    <div style="font-size:11px;color:#786048;font-weight:700;">從零開始的校園推廣實驗室 🏓</div>
+            <!-- 中部匹克球學習社群推廣與跨域團隊介紹 -->
+            <div class="hub-community-main">
+                <div class="hub-community-top">
+                    <img src="images/pickleball_lab_logo.jpg" alt="NCHU Pickleball Lab 1.0" class="hub-community-logo"
+                         onerror="this.outerHTML='<div class=&quot;hub-community-logo&quot; style=&quot;display:flex;align-items:center;justify-content:center;font-size:36px;background:#f2f7fb;&quot;>🏓</div>';">
+                    <div class="hub-community-meta">
+                        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+                            <span class="hub-community-tag">🏓 匹克球學習社群</span>
+                            <span class="hub-community-sub">中興大學 - 匹克球學習社群</span>
+                        </div>
+                        <div class="hub-community-h1">NCHU_PICKLEBALL_LAB <span style="color:#2e7d32;">1.0</span></div>
+                        <div style="font-size:11px;color:#786048;font-weight:700;">從零開始的校園推廣實驗室 🏓</div>
+                    </div>
+                </div>
+                <div class="hub-community-body">
+                    通過<b>教務處學生學習社群計畫</b>，從 114-2 開始從零打造的中興匹克球推廣組織！我們正在做的事：📣 <b>校園推廣</b>、🏸 <b>器材請購 (買球拍讓大家免費體驗)</b>、📏 <b>球場劃線</b>、📊 <b>校園風氣觀測</b>，還有專為新手設計的<b>遊戲化教學</b>——完全零基礎也能邊玩邊學會！
+                    <br><br>
+                    團隊由來自<b>跨管、理、工三院</b>的夥伴組成——結合<b>物理系、化學系、土木工程系、企業管理系、運動與健康管理研究所</b>，多方位技能觸手(鬚鬚)就此誕生🦑！目前也逐步導入 <b>OpenCV</b> 影像分析與 <b>AI 姿態運算</b>，讓匹克球在興大不只是運動，還是一場跨域實驗！
                 </div>
             </div>
-            <div class="hub-community-body">
-                通過<b>教務處學生學習社群計畫</b>，從 114-2 開始從零打造的中興匹克球推廣組織！我們正在做的事：📣 <b>校園推廣</b>、🏸 <b>器材請購 (買球拍讓大家免費體驗)</b>、📏 <b>球場劃線</b>、📊 <b>校園風氣觀測</b>，還有專為新手設計的<b>遊戲化教學</b>——完全零基礎也能邊玩邊學會！
-                <br><br>
-                團隊由來自<b>跨管、理、工三院</b>的夥伴組成——結合<b>物理系、化學系、土木工程系、企業管理系、運動與健康管理研究所</b>，多方位技能觸手(鬚鬚)就此誕生🦑！目前也逐步導入 <b>OpenCV</b> 影像分析與 <b>AI 姿態運算</b>，讓匹克球在興大不只是運動，還是一場跨域實驗！
-            </div>
-            <div>
+
+            <!-- 實戰相片與社群按鈕 -->
+            <div class="hub-community-media">
                 <img src="images/pickleball_action.jpg" alt="匹克球實戰" class="hub-community-banner"
                      onerror="this.outerHTML='<div class=&quot;hub-community-banner&quot; style=&quot;display:flex;align-items:center;justify-content:center;font-size:36px;background:#f2f7fb;&quot;>🥅</div>';">
             </div>
@@ -1046,12 +1212,13 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
                     <span class="mode-card-badge badge-science">🌪️ 流體力學 · USA 官方手冊</span>
                     <div class="mode-card-icon">🌪️</div>
                     <h2 class="mode-card-title">科普與競賽手冊</h2>
-                    <p class="mode-card-desc">探索 NASA 馬格努斯效應 (Magnus Effect) 旋球微積分流體力學，與 2026 USA Pickleball 官方完整競賽手冊。</p>
+                    <p class="mode-card-desc">探索 NASA 馬格努斯效應 (Magnus Effect) 旋球流體力學，與 2026 USA Pickleball 官方完整競賽手冊。</p>
                 </div>
                 <div style="display:flex;flex-direction:column;gap:6px;">
                     <button type="button" class="mode-card-btn btn-science" onclick="openRulesModal('physics')">🌪️ 馬格努斯流體力學</button>
                     <div style="display:flex;gap:6px;">
-                        <button type="button" class="mode-card-subbtn" style="flex:1;" onclick="openRulesModal('rules')">📖 競賽規則</button>
+                        <button type="button" class="mode-card-subbtn" style="flex:1;" onclick="openRulesModal('rules')">📖 規則手冊</button>
+                        <button type="button" class="mode-card-subbtn" style="flex:1;color:#b45309;" onclick="openRulesModal('fly')">🪰 果蠅文獻</button>
                         <button type="button" class="mode-card-subbtn" style="flex:1;color:#2b6cb0;" onclick="showFingerTutorial(0)">👆 旋球教學</button>
                     </div>
                 </div>
@@ -1118,6 +1285,14 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
                     <button class="nook-app" onclick="toggleNookPhone(false); openCommunityModal();">
                         <div class="nook-app-icon" style="background:#e8f5e9;">🏓</div>
                         <span class="nook-app-label">匹克社群</span>
+                    </button>
+                    <button class="nook-app" onclick="toggleNookPhone(false); openProfileModal();">
+                        <div class="nook-app-icon" style="background:#fef3c7;">👤</div>
+                        <span class="nook-app-label">個人設定</span>
+                    </button>
+                    <button class="nook-app" onclick="toggleNookPhone(false); openRulesModal('rules');">
+                        <div class="nook-app-icon" style="background:#e0f2fe;">📖</div>
+                        <span class="nook-app-label">規則文獻</span>
                     </button>
                     <button class="nook-app" onclick="toggleNookPhone(false); openAudioModal();">
                         <div class="nook-app-icon app-settings">⚙️</div>
