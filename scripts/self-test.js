@@ -388,13 +388,23 @@ try {
     assert(benchOut.includes("基準測試完成！所有預設 10,000 幀物理與神經步進皆順利通過！"),
         "10,000 幀極限效能基準測試全數通過，單幀耗時 < 0.5ms，零記憶體洩漏");
 
-    // 9. NookPhone 難度選擇器與匹克球學習社群 Hero 實裝檢測
+    // 9. NookPhone 難度選擇器、2.5D 動森中興湖大地圖導覽沙盤與小碼頭實裝檢測
     assert(v14Src.includes('id="diff-picker-modal"') && uiSrc.includes("openDiffPicker") && uiSrc.includes("selectDiffLevel"),
         "實裝動森風格對手難度直選面板 (#diff-picker-modal) 與控制器");
-    assert(v14Src.includes('id="community-modal"') && (v14Src.includes('class="hub-community-card"') || v14Src.includes('hub-unified-hero')),
-        "大廳融入中興大學匹克球學習社群專屬看板與彈窗 (#community-modal)");
-    assert(v14Src.includes("hub-unified-hero") && v14Src.includes("hub-hero-topbar"),
-        "遊戲大廳頂部控制與社群看板完美合併為單一連貫清新 Hero 主卡片 (.hub-unified-hero)");
+    assert(v14Src.includes('class="hub-map-stage"') && v14Src.includes('id="hub-map-viewport"'),
+        "大廳升級為 2.5D 動森中興湖大地圖導覽沙盤 (.hub-map-stage) 與專屬視口");
+    assert(v14Src.includes('images/nchu_map_2.5d.jpg') && fs.existsSync(path.join(ROOT, "images", "nchu_map_2.5d.jpg")),
+        "包含高解析度 2.5D 中興湖導覽底圖資產 (images/nchu_map_2.5d.jpg)");
+    assert(v14Src.includes('id="pin-admin"') && v14Src.includes('id="pin-social-building"') &&
+           v14Src.includes('id="pin-lifescience"') && v14Src.includes('id="pin-agri-env"') &&
+           v14Src.includes('id="pin-library"') && v14Src.includes('id="pin-dock"'),
+        "大地圖嚴格對齊校園實景方位：行政大樓(北)、圖書館(南)、社管大樓(西)、生科與農環雙塔(東)及水上小碼頭(中央)");
+    assert(v14Src.includes('id="pin-wall"') && v14Src.includes('id="pin-chaos"') && v14Src.includes('id="pin-community"'),
+        "大地圖包含湖邊練習木牆、幸運盲盒與匹克球學習社群推廣野餐亭熱區");
+    assert(v14Src.includes('id="dock-picker-drawer"') && uiSrc.includes("openDockPicker") && uiSrc.includes("selectDockStage"),
+        "實裝水上小碼頭 5 大歷險關卡彈出抽屜 (#dock-picker-drawer) 與控制器");
+    assert(v14Src.includes('id="community-modal"') && uiSrc.includes("openCommunityModal"),
+        "大廳融入中興大學匹克球學習社群專屬彈窗 (#community-modal)");
     assert(motionSrc.includes("closeModeHub") && motionSrc.includes("closeRulesModal"),
         "旋球教學點擊時主動關閉模式大廳與規則手冊，教學視窗立即跳出球場中央");
     assert(v14Src.includes('id="rtab-pane-fly"') && v14Src.includes('id="rtab-btn-fly"') && refereeSrc.includes("fly"),

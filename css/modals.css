@@ -1306,6 +1306,255 @@
             color: #4a3728;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Rounded Mplus 1c", sans-serif;
         }
+        /* ═══════ 🍃 2.5D 動森中興湖大地圖大廳 (.hub-map-stage) ═══════ */
+        .hub-map-stage {
+            width: min(96vw, 450px);
+            height: min(95vh, 880px);
+            background: #ffffff;
+            border: 3.5px solid #d8c4a5;
+            border-radius: 32px;
+            box-shadow: 0 20px 50px rgba(60, 40, 20, 0.28);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+            box-sizing: border-box;
+            animation: popHub 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        @keyframes popHub {
+            from { transform: scale(0.92); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+        .hub-map-topbar {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            padding: 10px 14px;
+            background: #fffef9;
+            border-bottom: 2px dashed #eddac2;
+            z-index: 15;
+            flex-shrink: 0;
+        }
+        .hub-map-top-ctrls {
+            display: flex;
+            gap: 6px;
+        }
+        .hub-map-icon-btn {
+            background: #ffffff;
+            border: 2px solid #ecd8b8;
+            color: #5d4634;
+            border-radius: 12px;
+            padding: 6px 10px;
+            font-size: 11.5px;
+            font-weight: 800;
+            cursor: pointer;
+            box-shadow: 0 2.5px 0 #d9c49f;
+            transition: all 0.15s ease;
+        }
+        .hub-map-icon-btn:hover { background: #faf4e8; transform: translateY(-1px); }
+        .hub-map-icon-btn:active { transform: translateY(2px); box-shadow: 0 0 0 #d9c49f; }
+        .hub-map-close-btn {
+            background: #2d6a4f !important;
+            border-color: #1b4332 !important;
+            color: #ffffff !important;
+            box-shadow: 0 3px 0 #1b4332 !important;
+        }
+        .hub-map-viewport {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+            background: #b7d59b;
+        }
+        .hub-map-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+            pointer-events: none;
+        }
+        /* 2.5D 地圖互動點標 (Map Pins) */
+        .map-pin {
+            position: absolute;
+            transform: translate(-50%, -50%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            cursor: pointer;
+            z-index: 10;
+            transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .map-pin:hover, .map-pin:active {
+            transform: translate(-50%, -50%) scale(1.15);
+            z-index: 25;
+        }
+        .map-pin-pill {
+            background: #ffffff;
+            border: 2px solid #5a4230;
+            color: #3d2b1f;
+            font-size: 11px;
+            font-weight: 900;
+            padding: 3px 8px;
+            border-radius: 99px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.22), 0 2px 0 #5a4230;
+            white-space: nowrap;
+            letter-spacing: 0.2px;
+            transition: all 0.15s ease;
+        }
+        .pill-dock {
+            background: #fff7ed;
+            border-color: #c2410c;
+            color: #9a3412;
+            box-shadow: 0 4px 12px rgba(194, 65, 12, 0.3), 0 2.5px 0 #c2410c;
+            font-size: 11.5px;
+            padding: 4px 10px;
+        }
+        .pill-chaos { background: #fef2f2; border-color: #b91c1c; color: #991b1b; }
+        .pill-wall { background: #fffbe6; border-color: #b45309; color: #92400e; }
+        .pill-community { background: #f0fdf4; border-color: #15803d; color: #166534; }
+        .map-pin-glow {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(255,255,255,0.7) 0%, rgba(255,255,255,0) 70%);
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            animation: pulsePinGlow 2.2s infinite ease-in-out;
+        }
+        @keyframes pulsePinGlow {
+            0%, 100% { transform: translate(-50%, -50%) scale(0.9); opacity: 0.35; }
+            50% { transform: translate(-50%, -50%) scale(1.35); opacity: 0.85; }
+        }
+        @keyframes floatSwan {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-4px) rotate(3deg); }
+        }
+
+        /* 小碼頭關卡選擇抽屜 (Dock Level Picker Drawer) */
+        .dock-picker-drawer {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: #fffef9;
+            border-top: 3px solid #ebd9c0;
+            border-radius: 26px 26px 0 0;
+            padding: 14px 18px 18px 18px;
+            box-shadow: 0 -8px 30px rgba(60, 40, 20, 0.22);
+            z-index: 40;
+            animation: slideUpDrawer 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        @keyframes slideUpDrawer {
+            from { transform: translateY(100%); }
+            to { transform: translateY(0); }
+        }
+        .dp-handle {
+            width: 40px;
+            height: 4px;
+            background: #d8c4a5;
+            border-radius: 99px;
+            margin: 0 auto 10px auto;
+            cursor: pointer;
+        }
+        .dp-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 4px;
+        }
+        .dp-title {
+            font-size: 15px;
+            font-weight: 900;
+            color: #c2410c;
+        }
+        .dp-close-btn {
+            background: #f4ecdc;
+            border: none;
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            font-weight: 900;
+            color: #634d3b;
+            cursor: pointer;
+        }
+        .dp-desc {
+            font-size: 11.5px;
+            color: #786048;
+            line-height: 1.4;
+            margin-bottom: 10px;
+        }
+        .dp-pills {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 12px;
+            overflow-x: auto;
+            padding-bottom: 4px;
+        }
+        .dp-pill {
+            flex: 1;
+            min-width: 58px;
+            background: #f4ecdc;
+            border: 1.5px solid #dec8a7;
+            color: #634d3b;
+            padding: 6px 4px;
+            border-radius: 12px;
+            font-size: 11.5px;
+            font-weight: 800;
+            cursor: pointer;
+            box-shadow: 0 2px 0 #dec8a7;
+            text-align: center;
+            transition: all 0.15s ease;
+        }
+        .dp-pill.on, .dp-pill:hover {
+            background: #2d6a4f;
+            color: #ffffff;
+            border-color: #1b4332;
+            box-shadow: 0 2px 0 #1b4332;
+        }
+        .dp-actions {
+            display: flex;
+            gap: 8px;
+        }
+        .dp-btn-start {
+            flex: 2;
+            background: #2d6a4f;
+            color: #ffffff;
+            border: none;
+            padding: 10px;
+            border-radius: 14px;
+            font-size: 13.5px;
+            font-weight: 900;
+            cursor: pointer;
+            box-shadow: 0 3px 0 #1b4332;
+        }
+        .dp-btn-start:active { transform: translateY(2px); box-shadow: none; }
+        .dp-btn-spin {
+            flex: 1;
+            background: #f7efe2;
+            border: 1.5px solid #ecd8b8;
+            color: #2b6cb0;
+            padding: 10px;
+            border-radius: 14px;
+            font-size: 12px;
+            font-weight: 800;
+            cursor: pointer;
+            box-shadow: 0 2px 0 #d9c49f;
+        }
+        .hub-map-footer {
+            padding: 6px 10px;
+            font-size: 9.5px;
+            font-weight: 700;
+            color: #8c725d;
+            text-align: center;
+            background: #fffef9;
+            border-top: 1.5px dashed #eddac2;
+            flex-shrink: 0;
+        }
+
         /* ═══════ 動森大廳 統一連貫清新 Hero 主卡片 (.hub-unified-hero) ═══════ */
         .hub-unified-hero {
             width: 100%;
@@ -1782,7 +2031,19 @@
         /* ═══════ 手機直立螢幕端響應式 (@media) ═══════ */
         @media (max-width: 680px) {
             #mode-hub-overlay {
-                padding: 12px 10px 30px 10px;
+                padding: 0;
+                justify-content: center;
+            }
+            .hub-map-stage {
+                width: 100vw;
+                height: 100%;
+                max-height: 100dvh;
+                border-radius: 0;
+                border: none;
+            }
+            .map-pin-pill {
+                font-size: 10px;
+                padding: 2.5px 7px;
             }
             .hub-unified-hero {
                 padding: 14px 12px;

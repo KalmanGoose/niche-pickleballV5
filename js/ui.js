@@ -1338,23 +1338,66 @@ function cycleTeachLevelQuick() {
         function closeModeHub() {
             const hub = document.getElementById('mode-hub-overlay');
             if (hub) hub.style.display = 'none';
+            closeDockPicker();
         }
 
-        function selectHubStage(n) {
+        /* 🍃 水上小碼頭 5 大關卡歷險抽屜控制器 (Dock Level Picker Drawer) */
+        function openDockPicker() {
+            const drawer = document.getElementById('dock-picker-drawer');
+            if (drawer) {
+                drawer.style.display = 'block';
+                if (typeof S !== 'undefined' && S.swap) S.swap();
+            }
+        }
+
+        function closeDockPicker() {
+            const drawer = document.getElementById('dock-picker-drawer');
+            if (drawer) {
+                drawer.style.display = 'none';
+                if (typeof S !== 'undefined' && S.pop) S.pop(0.3);
+            }
+        }
+
+        const DOCK_STAGE_DESCS = [
+            "",
+            "【第 1 關 · 發球進區】掌握對角有效落點，避開無效短球，累積 5 次完美發球！",
+            "【第 2 關 · 雙彈跳特訓】接發球方與發球方各讓球落地一次後方能截擊，建立防守節奏！",
+            "【第 3 關 · 廚房區短打】不可在廚房區凌空截擊！精準控球放短，壓制網前鵝鵝！",
+            "【第 4 關 · 決戰神鵝】中興湖傳奇神鵝親自過招！速度與旋轉全面升級！",
+            "【第 5 關 · 終極冠軍賽】頂尖對決！結合馬格努斯旋球與動力鏈發力奪得島嶼冠軍！"
+        ];
+
+        function selectDockStage(n) {
             hubSelectedStage = n;
-            document.querySelectorAll('.mode-level-pill').forEach((btn, idx) => {
-                btn.classList.toggle('on', (idx + 1) === n);
-            });
+            for (let i = 1; i <= 5; i++) {
+                const btn = document.getElementById(`dock-stage-btn-${i}`);
+                if (btn) btn.classList.toggle('on', i === n);
+            }
+            const descEl = document.getElementById('dock-picker-desc');
+            if (descEl && DOCK_STAGE_DESCS[n]) {
+                descEl.innerText = DOCK_STAGE_DESCS[n];
+            }
+            if (typeof S !== 'undefined' && S.point) S.point();
         }
 
-        function startHubQuest() {
+        function startDockQuest() {
+            closeDockPicker();
             closeModeHub();
             if (typeof switchStage === 'function') {
                 switchStage(hubSelectedStage || 1);
             }
         }
 
+        function selectHubStage(n) {
+            selectDockStage(n);
+        }
+
+        function startHubQuest() {
+            startDockQuest();
+        }
+
         function startHubChaos() {
+            closeDockPicker();
             closeModeHub();
             if (typeof switchStage === 'function') {
                 switchStage(6);
@@ -1467,3 +1510,7 @@ function cycleTeachLevelQuick() {
         window.selectDiffLevel = selectDiffLevel;
         window.openCommunityModal = openCommunityModal;
         window.closeCommunityModal = closeCommunityModal;
+        window.openDockPicker = openDockPicker;
+        window.closeDockPicker = closeDockPicker;
+        window.selectDockStage = selectDockStage;
+        window.startDockQuest = startDockQuest;

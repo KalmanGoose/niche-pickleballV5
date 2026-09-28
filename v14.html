@@ -1093,154 +1093,125 @@ I_syn(t) = w_syn · x · u · (dθ/dt)</div>
     </div>
 
     <!-- ══════ 🍃 《動物森友會》島嶼清新風格模式大廳 (Animal Crossing Mode Hub) ══════ -->
-    <div id="mode-hub-overlay" style="display:none;">
-        <!-- ══════ 🍃 統一連貫動森 Hero 主卡片 (.hub-unified-hero) ══════ -->
-        <div class="hub-unified-hero hub-community-card">
-            <!-- 頂部島民名片與控制列 -->
-            <div class="hub-hero-topbar">
+    <div id="mode-hub-overlay" style="display:none;" onclick="if(event.target===this)closeModeHub()">
+        <!-- ══════ 🍃 2.5D 動森中興湖大地圖導覽沙盤 (.hub-map-stage) ══════ -->
+        <div class="hub-map-stage">
+            <!-- 頂部島民護照條 (Top Island Passport Bar) -->
+            <div class="hub-map-topbar">
                 <div class="mode-hub-profile" onclick="openProfileModal()" title="點擊檢視/修改島民護照、頭像或綁定學號">
-                    <span id="hub-avatar" style="font-size:24px;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.15));">🧢</span>
+                    <span id="hub-avatar" style="font-size:22px;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.15));">🧢</span>
                     <div>
                         <div style="display:flex;align-items:center;gap:4px;">
-                            <span id="hub-nick" style="font-size:13px;font-weight:900;color:#3d2b1f;line-height:1.2;">叫獸aka愛叫的野獸</span>
+                            <span id="hub-nick" style="font-size:12.5px;font-weight:900;color:#3d2b1f;line-height:1.2;">興大球神</span>
                             <span id="hub-role-tag" style="font-size:9px;background:#e2d1b3;color:#6b5239;padding:1px 5px;border-radius:6px;font-weight:800;">島民</span>
                         </div>
-                        <div id="hub-dept" style="font-size:10px;color:#85694f;font-weight:700;">國立中興大學 · 資訊工程</div>
+                        <div id="hub-dept" style="font-size:9.5px;color:#85694f;font-weight:700;">國立中興大學 · 匹克球社群</div>
                     </div>
                     <span style="font-size:11px;color:#85694f;">✏️</span>
                 </div>
-                <div class="mode-hub-brand">
-                    <h1 class="mode-hub-title">🍃 中興湖動森匹克島</h1>
-                    <div class="mode-hub-subtitle">ZHONGXING LAKE ISLAND RESORT · PICKLEBALL ARENA</div>
-                </div>
-                <div class="mode-hub-controls">
-                    <button type="button" class="mode-hub-btn-icon" onclick="openAudioModal()" title="廣播音效設定">🎶 音效</button>
-                    <button type="button" class="mode-hub-btn-icon" id="hub-webcam-btn" onclick="toggleWebcamAI()" title="切換鏡頭體感模式">📷 體感: 關</button>
-                    <button type="button" class="mode-hub-btn-icon mode-hub-btn-go" onclick="closeModeHub()" title="關閉大廳直接踏上球場">🎾 踏上球場</button>
+                <div class="hub-map-top-ctrls">
+                    <button type="button" class="hub-map-icon-btn" onclick="openAudioModal()" title="廣播音效設定">🎶 音效</button>
+                    <button type="button" class="hub-map-icon-btn" id="hub-webcam-btn" onclick="toggleWebcamAI()" title="切換鏡頭體感模式">📷 體感: 關</button>
+                    <button type="button" class="hub-map-icon-btn hub-map-close-btn" onclick="closeModeHub()" title="踏上中興湖球場">🎾 踏上球場</button>
                 </div>
             </div>
 
-            <!-- 中部匹克球學習社群推廣與跨域團隊介紹 -->
-            <div class="hub-community-main">
-                <div class="hub-community-top">
-                    <img src="images/pickleball_lab_logo.jpg" alt="NCHU Pickleball Lab 1.0" class="hub-community-logo"
-                         onerror="this.outerHTML='<div class=&quot;hub-community-logo&quot; style=&quot;display:flex;align-items:center;justify-content:center;font-size:36px;background:#f2f7fb;&quot;>🏓</div>';">
-                    <div class="hub-community-meta">
-                        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
-                            <span class="hub-community-tag">🏓 匹克球學習社群</span>
-                            <span class="hub-community-sub">中興大學 - 匹克球學習社群</span>
-                        </div>
-                        <div class="hub-community-h1">NCHU_PICKLEBALL_LAB <span style="color:#2e7d32;">1.0</span></div>
-                        <div style="font-size:11px;color:#786048;font-weight:700;">從零開始的校園推廣實驗室 🏓</div>
-                    </div>
+            <!-- 2.5D 校園大地圖沙盤視口 (.hub-map-viewport) -->
+            <div class="hub-map-viewport" id="hub-map-viewport">
+                <img src="images/nchu_map_2.5d.jpg" alt="國立中興大學中興湖 2.5D 校園導覽沙盤" class="hub-map-img" id="hub-map-bg-img"
+                     onerror="this.src='images/pickleball_action.jpg';">
+
+                <!-- 🗺️ 互動點標 Pins (依據中興湖實景嚴格方位) -->
+                <!-- 1. 北側（上方）：行政大樓 (紅瓦中式宮殿屋頂) -->
+                <div class="map-pin" id="pin-admin" style="top:11%; left:50%;" onclick="openProfileModal()" title="行政大樓 · 島民中心與學號綁定">
+                    <span class="map-pin-glow"></span>
+                    <div class="map-pin-pill">🏛️ 行政大樓 · 個人設定</div>
                 </div>
-                <div class="hub-community-body">
-                    通過<b>教務處學生學習社群計畫</b>，從 114-2 開始從零打造的中興匹克球推廣組織！我們正在做的事：📣 <b>校園推廣</b>、🏸 <b>器材請購 (買球拍讓大家免費體驗)</b>、📏 <b>球場劃線</b>、📊 <b>校園風氣觀測</b>，還有專為新手設計的<b>遊戲化教學</b>——完全零基礎也能邊玩邊學會！
-                    <br><br>
-                    團隊由來自<b>跨管、理、工三院</b>的夥伴組成——結合<b>物理系、化學系、土木工程系、企業管理系、運動與健康管理研究所</b>，多方位技能觸手(鬚鬚)就此誕生🦑！目前也逐步導入 <b>OpenCV</b> 影像分析與 <b>AI 姿態運算</b>，讓匹克球在興大不只是運動，還是一場跨域實驗！
+
+                <!-- 2. 西側（左方）：社管大樓 (黃白立面與垂直電梯井) -->
+                <div class="map-pin" id="pin-social-building" style="top:44%; left:17%;" onclick="openSocial()" title="社管大樓 · 英雄名人堂與動力鏈">
+                    <span class="map-pin-glow"></span>
+                    <div class="map-pin-pill">💼 社管大樓 · 英雄榜</div>
+                </div>
+
+                <!-- 3. 東側（右方上方）：生命科學大樓 (挑空方孔穿堂) -->
+                <div class="map-pin" id="pin-lifescience" style="top:35%; left:83%;" onclick="openRulesModal('fly')" title="生科大樓 · 果蠅神經大腦連接組">
+                    <span class="map-pin-glow"></span>
+                    <div class="map-pin-pill">🔬 生科大樓 · 果蠅大腦</div>
+                </div>
+
+                <!-- 4. 東側（右方下方）：農環大樓 (凹字型雙塔) -->
+                <div class="map-pin" id="pin-agri-env" style="top:59%; left:84%;" onclick="openAuditModal()" title="農環大樓 · 姿態運算與動力鏈日誌">
+                    <span class="map-pin-glow"></span>
+                    <div class="map-pin-pill">🌱 農環大樓 · 體感姿態</div>
+                </div>
+
+                <!-- 5. 南側（下方）：圖書館 (灰色橫條玻璃帷幕) -->
+                <div class="map-pin" id="pin-library" style="top:88%; left:50%;" onclick="openRulesModal('rules')" title="圖書館 · USA Pickleball 官方手冊與流體力學">
+                    <span class="map-pin-glow"></span>
+                    <div class="map-pin-pill">📚 圖書館 · 規則文獻</div>
+                </div>
+
+                <!-- 6. 湖心設施: 水上小碼頭 (浮島球場闖關 Stage 1~5) -->
+                <div class="map-pin" id="pin-dock" style="top:50%; left:50%;" onclick="openDockPicker()" title="水上匹克小碼頭 · 5 大關卡闖關歷險">
+                    <span class="map-pin-glow" style="width:58px;height:58px;background:radial-gradient(circle, rgba(249,115,22,0.65) 0%, rgba(249,115,22,0) 70%);"></span>
+                    <div class="map-pin-pill pill-dock">🎾 水上小碼頭 · 闖關歷險</div>
+                </div>
+
+                <!-- 7. 湖邊設施: 對牆練習木牆 -->
+                <div class="map-pin" id="pin-wall" style="top:67%; left:31%;" onclick="startWallPractice()" title="湖畔對牆特訓 · 彈跳連擊賽">
+                    <span class="map-pin-glow"></span>
+                    <div class="map-pin-pill pill-wall">🧱 對牆特訓 · 連擊賽</div>
+                </div>
+
+                <!-- 8. 湖邊設施: 幸運盲盒 (道具大亂鬥 Stage 6) -->
+                <div class="map-pin" id="pin-chaos" style="top:67%; left:69%;" onclick="startHubChaos()" title="幸運盲盒 · 瘋狂道具大亂鬥">
+                    <span class="map-pin-glow"></span>
+                    <div class="map-pin-pill pill-chaos">🍄 幸運盲盒 · 道具戰</div>
+                </div>
+
+                <!-- 9. 湖邊設施: 匹克球學習社群推廣野餐亭 -->
+                <div class="map-pin" id="pin-community" style="top:31%; left:33%;" onclick="openCommunityModal()" title="中興大學匹克球學習社群 1.0">
+                    <span class="map-pin-glow"></span>
+                    <div class="map-pin-pill pill-community">🏓 湖畔推廣亭 · 社群</div>
+                </div>
+
+                <!-- 🦆 中興湖野生禽鳥生態 (紅嘴黑天鵝、白天鵝與小鴨家族) -->
+                <div class="map-pin" style="top:41%; left:62%; pointer-events:none;" title="中興湖紅嘴黑天鵝 🦢">
+                    <div style="font-size:18px;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.3));animation:floatSwan 3s ease-in-out infinite;">🦢</div>
+                </div>
+                <div class="map-pin" style="top:58%; left:46%; pointer-events:none;" title="中興湖純白天鵝與綠頭小鴨家族 🦆">
+                    <div style="font-size:15px;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.3));animation:floatSwan 3.5s ease-in-out infinite 0.5s;">🦆</div>
                 </div>
             </div>
 
-            <!-- 實戰相片與社群按鈕 -->
-            <div class="hub-community-media">
-                <img src="images/pickleball_action.jpg" alt="匹克球實戰" class="hub-community-banner"
-                     onerror="this.outerHTML='<div class=&quot;hub-community-banner&quot; style=&quot;display:flex;align-items:center;justify-content:center;font-size:36px;background:#f2f7fb;&quot;>🥅</div>';">
-            </div>
-            <div class="hub-social-row">
-                <a href="https://line.me/R/ti/p/@490hjerg" target="_blank" rel="noopener" class="hub-social-btn hub-btn-line">
-                    💬 官方 LINE 社群
-                </a>
-                <a href="https://www.instagram.com/nchupickleball_lab1.0?igsi=MW5hN3Z5dzF2MDI3Nw%3D%3D" target="_blank" rel="noopener" class="hub-social-btn hub-btn-ig">
-                    📸 Instagram (介紹最完整)
-                </a>
-                <button type="button" class="hub-social-btn hub-btn-court" onclick="closeModeHub()">
-                    🎾 踏上中興湖球場
-                </button>
-            </div>
-        </div>
-
-        <div class="mode-hub-grid">
-            <!-- 模式卡 1: 關卡闖關歷險 -->
-            <div class="mode-card">
-                <div>
-                    <span class="mode-card-badge badge-quest">🍃 新手必練 · 5 大關卡</span>
-                    <div class="mode-card-icon">🎯</div>
-                    <h2 class="mode-card-title">關卡闖關歷險</h2>
-                    <p class="mode-card-desc">循序漸進掌握匹克球核心規則：對角發球進區、雙彈跳、廚房區短打，一路晉級挑戰中興湖村長鵝！</p>
-                    <div class="mode-level-pills">
-                        <button type="button" class="mode-level-pill on" onclick="selectHubStage(1)">1 發球</button>
-                        <button type="button" class="mode-level-pill" onclick="selectHubStage(2)">2 雙彈跳</button>
-                        <button type="button" class="mode-level-pill" onclick="selectHubStage(3)">3 廚房區</button>
-                        <button type="button" class="mode-level-pill" onclick="selectHubStage(4)">4 對決</button>
-                        <button type="button" class="mode-level-pill" onclick="selectHubStage(5)">5 冠軍賽</button>
-                    </div>
+            <!-- 🍃 小碼頭關卡選擇抽屜 (#dock-picker-drawer, 點擊水上小碼頭滑出) -->
+            <div class="dock-picker-drawer" id="dock-picker-drawer" style="display:none;">
+                <div class="dp-handle" onclick="closeDockPicker()"></div>
+                <div class="dp-header">
+                    <div class="dp-title">🎾 水上小碼頭 · 5 大歷險關卡</div>
+                    <button type="button" class="dp-close-btn" onclick="closeDockPicker()">✕</button>
                 </div>
-                <button type="button" class="mode-card-btn btn-quest" onclick="startHubQuest()">▶ 開始闖關歷險</button>
-            </div>
-
-            <!-- 模式卡 2: 🧱 中興湖對牆擊球連擊挑戰 (NEW!) -->
-            <div class="mode-card">
-                <div>
-                    <span class="mode-card-badge badge-wall">🧱 控球特訓 · 彈跳連擊</span>
-                    <div class="mode-card-icon">🧱</div>
-                    <h2 class="mode-card-title">對牆擊球挑戰</h2>
-                    <p class="mode-card-desc">專業匹克球必備對牆抽球練習！球場前方立起回彈練習木牆，瞄準網高標線與靶心，挑戰最高連擊次數！</p>
+                <div class="dp-desc" id="dock-picker-desc">
+                    循序漸進掌握匹克球核心技術：對角發球進區、雙彈跳規則、廚房區截擊心理戰，一路晉級打敗村長鵝！
                 </div>
-                <div style="display:flex;flex-direction:column;gap:6px;">
-                    <button type="button" class="mode-card-btn btn-wall" onclick="startWallPractice()">🧱 開始對牆連擊賽</button>
-                    <div style="font-size:11px;color:#8c725d;text-align:center;font-weight:700;">連續反彈命中 · 觸發 Streak Combo 加成</div>
+                <div class="dp-pills">
+                    <button type="button" class="dp-pill on" id="dock-stage-btn-1" onclick="selectDockStage(1)">1 發球進區</button>
+                    <button type="button" class="dp-pill" id="dock-stage-btn-2" onclick="selectDockStage(2)">2 雙彈跳</button>
+                    <button type="button" class="dp-pill" id="dock-stage-btn-3" onclick="selectDockStage(3)">3 廚房截擊</button>
+                    <button type="button" class="dp-pill" id="dock-stage-btn-4" onclick="selectDockStage(4)">4 決戰神鵝</button>
+                    <button type="button" class="dp-pill" id="dock-stage-btn-5" onclick="selectDockStage(5)">5 終極冠軍</button>
+                </div>
+                <div class="dp-actions">
+                    <button type="button" class="dp-btn-start" onclick="startDockQuest()">▶ 啟航踏上球場</button>
+                    <button type="button" class="dp-btn-spin" onclick="closeDockPicker();showFingerTutorial(0)">👆 旋球教學</button>
                 </div>
             </div>
 
-            <!-- 模式卡 3: 瘋狂道具大亂鬥 -->
-            <div class="mode-card">
-                <div>
-                    <span class="mode-card-badge badge-chaos">🍄 歡樂派對 · 盲盒神裝</span>
-                    <div class="mode-card-icon">🍄</div>
-                    <h2 class="mode-card-title">瘋狂道具大亂鬥</h2>
-                    <p class="mode-card-desc">拾取場上隨機空投盲盒！召喚巨型千斤鐵球、大火球、手持電蚊拍大戰生化仿生蒼蠅！</p>
-                </div>
-                <div style="display:flex;flex-direction:column;gap:6px;">
-                    <button type="button" class="mode-card-btn btn-chaos" onclick="startHubChaos()">🍄 立即開打 (Stage 6)</button>
-                    <button type="button" class="mode-card-subbtn" onclick="openItemCardsModal()">🃏 查看道具圖鑑</button>
-                </div>
+            <!-- 大地圖底部資訊條 -->
+            <div class="hub-map-footer">
+                🍃 國立中興大學中興湖 · 2.5D 動森導覽沙盤 · 零個資隱私安全運算
             </div>
-
-            <!-- 模式卡 4: 旋球物理與競賽手冊 -->
-            <div class="mode-card">
-                <div>
-                    <span class="mode-card-badge badge-science">🌪️ 流體力學 · USA 官方手冊</span>
-                    <div class="mode-card-icon">🌪️</div>
-                    <h2 class="mode-card-title">科普與競賽手冊</h2>
-                    <p class="mode-card-desc">探索 NASA 馬格努斯效應 (Magnus Effect) 旋球流體力學，與 2026 USA Pickleball 官方完整競賽手冊。</p>
-                </div>
-                <div style="display:flex;flex-direction:column;gap:6px;">
-                    <button type="button" class="mode-card-btn btn-science" onclick="openRulesModal('physics')">🌪️ 馬格努斯流體力學</button>
-                    <div style="display:flex;gap:6px;">
-                        <button type="button" class="mode-card-subbtn" style="flex:1;" onclick="openRulesModal('rules')">📖 規則手冊</button>
-                        <button type="button" class="mode-card-subbtn" style="flex:1;color:#b45309;" onclick="openRulesModal('fly')">🪰 果蠅文獻</button>
-                        <button type="button" class="mode-card-subbtn" style="flex:1;color:#2b6cb0;" onclick="showFingerTutorial(0)">👆 旋球教學</button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 模式卡 5: 島嶼榮譽與 AI 教練 -->
-            <div class="mode-card">
-                <div>
-                    <span class="mode-card-badge badge-social">🏆 全校爭霸 · AI 教練</span>
-                    <div class="mode-card-icon">🏆</div>
-                    <h2 class="mode-card-title">榮譽榜與 AI 教練</h2>
-                    <p class="mode-card-desc">檢視全校系級即時戰績排行、個人擊球動力鏈日誌，以及 AI 虛擬教練發力處方箋！</p>
-                </div>
-                <div style="display:flex;flex-direction:column;gap:6px;">
-                    <button type="button" class="mode-card-btn btn-social" onclick="openSocial()">🏆 查閱校園排行榜</button>
-                    <button type="button" class="mode-card-subbtn" onclick="openAuditModal()">📋 體感動力鏈日誌</button>
-                </div>
-            </div>
-        </div>
-
-        <div class="mode-hub-footer">
-            🍃 國立中興大學匹克球學習社群 · 運動科技推廣中心 · 姿態運算全程於本機端執行 · 零個資隱私承諾
         </div>
     </div>
 
