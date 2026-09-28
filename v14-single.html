@@ -4511,16 +4511,34 @@ body.layout-nook #nav-wrapper {
             display: flex;
             align-items: center;
             gap: 10px;
-            background: #fbf5eb;
-            padding: 6px 14px;
+            background: #fff9f0;
+            padding: 4px 14px 4px 6px;
             border-radius: 99px;
-            border: 2px solid #e5d3b6;
+            border: 2px solid #ecd8b8;
             cursor: pointer;
+            box-shadow: 0 2.5px 0 #d9c49f;
             transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
         }
         .mode-hub-profile:hover {
-            background: #f2e3cb;
-            transform: scale(1.02);
+            background: #faefe0;
+            transform: scale(1.03);
+        }
+        .hub-avatar-circle {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: #fffaee;
+            border: 2.5px solid #d4a373;
+            box-shadow: 0 2px 6px rgba(100, 60, 20, 0.18);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            flex-shrink: 0;
+            transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .mode-hub-profile:hover .hub-avatar-circle {
+            transform: rotate(-8deg) scale(1.1);
         }
         .mode-hub-brand {
             text-align: center;
@@ -6105,8 +6123,10 @@ I_syn(t) = w_syn · x · u · (dθ/dt)</div>
         <div class="hub-map-stage">
             <!-- 頂部島民護照條 (Top Island Passport Bar) -->
             <div class="hub-map-topbar">
-                <div class="mode-hub-profile" onclick="openProfileModal()" title="點擊檢視/修改島民護照、頭像或綁定學號">
-                    <span id="hub-avatar" style="font-size:22px;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.15));">🧢</span>
+                <div class="mode-hub-profile" onclick="openProfileModal()" title="點擊檢視/修改島民護照、自訂頭像或綁定學號">
+                    <div class="hub-avatar-circle">
+                        <span id="hub-avatar">🧢</span>
+                    </div>
                     <div>
                         <div style="display:flex;align-items:center;gap:4px;">
                             <span id="hub-nick" style="font-size:12.5px;font-weight:900;color:#3d2b1f;line-height:1.2;">興大球神</span>
@@ -6130,55 +6150,55 @@ I_syn(t) = w_syn · x · u · (dθ/dt)</div>
 
                 <!-- 🗺️ 互動點標 Pins (依據中興湖實景嚴格方位) -->
                 <!-- 1. 北側（上方）：行政大樓 (紅瓦中式宮殿屋頂) -->
-                <div class="map-pin" id="pin-admin" style="top:11%; left:50%;" onclick="openProfileModal()" title="行政大樓 · 島民中心與學號綁定">
+                <div class="map-pin" id="pin-admin" style="top:24%; left:50%;" onclick="openProfileModal()" title="行政大樓 · 島民中心與學號綁定">
                     <span class="map-pin-glow"></span>
                     <div class="map-pin-pill">🏛️ 行政大樓 · 個人設定</div>
                 </div>
 
                 <!-- 2. 西側（左方）：社管大樓 (黃白立面與垂直電梯井) -->
-                <div class="map-pin" id="pin-social-building" style="top:44%; left:17%;" onclick="openSocial()" title="社管大樓 · 英雄名人堂與動力鏈">
+                <div class="map-pin" id="pin-social-building" style="top:41%; left:12%;" onclick="openSocial()" title="社管大樓 · 英雄名人堂與動力鏈">
                     <span class="map-pin-glow"></span>
                     <div class="map-pin-pill">💼 社管大樓 · 英雄榜</div>
                 </div>
 
                 <!-- 3. 東側（右方上方）：生命科學大樓 (挑空方孔穿堂) -->
-                <div class="map-pin" id="pin-lifescience" style="top:35%; left:83%;" onclick="openRulesModal('fly')" title="生科大樓 · 果蠅神經大腦連接組">
+                <div class="map-pin" id="pin-lifescience" style="top:41%; left:88%;" onclick="openRulesModal('fly')" title="生科大樓 · 果蠅神經大腦連接組">
                     <span class="map-pin-glow"></span>
                     <div class="map-pin-pill">🔬 生科大樓 · 果蠅大腦</div>
                 </div>
 
                 <!-- 4. 東側（右方下方）：農環大樓 (凹字型雙塔) -->
-                <div class="map-pin" id="pin-agri-env" style="top:59%; left:84%;" onclick="openAuditModal()" title="農環大樓 · 姿態運算與動力鏈日誌">
+                <div class="map-pin" id="pin-agri-env" style="top:57%; left:89%;" onclick="openAuditModal()" title="農環大樓 · 姿態運算與動力鏈日誌">
                     <span class="map-pin-glow"></span>
                     <div class="map-pin-pill">🌱 農環大樓 · 體感姿態</div>
                 </div>
 
                 <!-- 5. 南側（下方）：圖書館 (灰色橫條玻璃帷幕) -->
-                <div class="map-pin" id="pin-library" style="top:88%; left:50%;" onclick="openRulesModal('rules')" title="圖書館 · USA Pickleball 官方手冊與流體力學">
+                <div class="map-pin" id="pin-library" style="top:86%; left:50%;" onclick="openRulesModal('rules')" title="圖書館 · USA Pickleball 官方手冊與流體力學">
                     <span class="map-pin-glow"></span>
                     <div class="map-pin-pill">📚 圖書館 · 規則文獻</div>
                 </div>
 
                 <!-- 6. 湖心設施: 水上小碼頭 (浮島球場闖關 Stage 1~5) -->
-                <div class="map-pin" id="pin-dock" style="top:50%; left:50%;" onclick="openDockPicker()" title="水上匹克小碼頭 · 5 大關卡闖關歷險">
+                <div class="map-pin" id="pin-dock" style="top:52%; left:50%;" onclick="openDockPicker()" title="水上匹克小碼頭 · 5 大關卡闖關歷險">
                     <span class="map-pin-glow" style="width:58px;height:58px;background:radial-gradient(circle, rgba(249,115,22,0.65) 0%, rgba(249,115,22,0) 70%);"></span>
                     <div class="map-pin-pill pill-dock">🎾 水上小碼頭 · 闖關歷險</div>
                 </div>
 
                 <!-- 7. 湖邊設施: 對牆練習木牆 -->
-                <div class="map-pin" id="pin-wall" style="top:67%; left:31%;" onclick="startWallPractice()" title="湖畔對牆特訓 · 彈跳連擊賽">
+                <div class="map-pin" id="pin-wall" style="top:32%; left:37%;" onclick="startWallPractice()" title="湖畔對牆特訓 · 彈跳連擊賽">
                     <span class="map-pin-glow"></span>
                     <div class="map-pin-pill pill-wall">🧱 對牆特訓 · 連擊賽</div>
                 </div>
 
                 <!-- 8. 湖邊設施: 幸運盲盒 (道具大亂鬥 Stage 6) -->
-                <div class="map-pin" id="pin-chaos" style="top:67%; left:69%;" onclick="startHubChaos()" title="幸運盲盒 · 瘋狂道具大亂鬥">
+                <div class="map-pin" id="pin-chaos" style="top:67%; left:74%;" onclick="startHubChaos()" title="幸運盲盒 · 瘋狂道具大亂鬥">
                     <span class="map-pin-glow"></span>
                     <div class="map-pin-pill pill-chaos">🍄 幸運盲盒 · 道具戰</div>
                 </div>
 
                 <!-- 9. 湖邊設施: 匹克球學習社群推廣野餐亭 -->
-                <div class="map-pin" id="pin-community" style="top:31%; left:33%;" onclick="openCommunityModal()" title="中興大學匹克球學習社群 1.0">
+                <div class="map-pin" id="pin-community" style="top:30%; left:66%;" onclick="openCommunityModal()" title="中興大學匹克球學習社群 1.0">
                     <span class="map-pin-glow"></span>
                     <div class="map-pin-pill pill-community">🏓 湖畔推廣亭 · 社群</div>
                 </div>
@@ -6960,7 +6980,7 @@ function apiGet(qs) {
         }
 
         /* ═══════ 頭像:單一資料源,登入與設定共用 ═══════ */
-        const AVATARS = ['🪿', '🧢', '🏸', '🧋', '⚡', '🐮', '🍎', '🥩', '🪳'];
+        const AVATARS = ['🪿', '🧢', '🏸', '🧋', '⚡', '🐮', '🍎', '🥩', '🪳', '🦊', '🐻', '🐱', '🐶', '🐰', '🐼', '🎾'];
         function buildAvatarGrid(id, onPick) {
             const box = document.getElementById(id);
             if (!box) return;

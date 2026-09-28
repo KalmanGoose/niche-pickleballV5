@@ -201,7 +201,7 @@ function apiGet(qs) {
         }
 
         /* ═══════ 頭像:單一資料源,登入與設定共用 ═══════ */
-        const AVATARS = ['🪿', '🧢', '🏸', '🧋', '⚡', '🐮', '🍎', '🥩', '🪳'];
+        const AVATARS = ['🪿', '🧢', '🏸', '🧋', '⚡', '🐮', '🍎', '🥩', '🪳', '🦊', '🐻', '🐱', '🐶', '🐰', '🐼', '🎾'];
         function buildAvatarGrid(id, onPick) {
             const box = document.getElementById(id);
             if (!box) return;
