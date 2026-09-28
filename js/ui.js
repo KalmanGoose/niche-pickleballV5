@@ -1333,12 +1333,18 @@ function cycleTeachLevelQuick() {
             if (camBtn) camBtn.innerText = '📷 體感: ' + (typeof webcamActive !== 'undefined' && webcamActive ? '開' : '關');
             hub.style.display = 'flex';
             if (typeof closePanel === 'function') closePanel();
+            if (typeof HubSandbox !== 'undefined' && HubSandbox.start) {
+                HubSandbox.start();
+            }
         }
 
         function closeModeHub() {
             const hub = document.getElementById('mode-hub-overlay');
             if (hub) hub.style.display = 'none';
             closeDockPicker();
+            if (typeof HubSandbox !== 'undefined' && HubSandbox.stop) {
+                HubSandbox.stop();
+            }
         }
 
         /* 🍃 水上小碼頭 5 大關卡歷險抽屜控制器 (Dock Level Picker Drawer) */
