@@ -169,7 +169,14 @@
             announceReferee(main, sub, isFault);
         }
         function updateScore() {
-            updatePlayerWhoLabel(); D.pv.innerText = pScore; D.av.innerText = aScore; updateScore3D(); }
+            updatePlayerWhoLabel();
+            D.pv.innerText = pScore;
+            D.av.innerText = aScore;
+            updateScore3D();
+            if (typeof updateDynamicStagePill === 'function') {
+                updateDynamicStagePill(stage, (typeof isWallPractice !== 'undefined' && isWallPractice) ? pScore : pScore, (typeof isWallPractice !== 'undefined' && isWallPractice) ? wallCombo : aScore);
+            }
+        }
         function updateGoal() {
             const goal = STAGES[stage].goal;
             let cur;

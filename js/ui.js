@@ -1348,8 +1348,66 @@ function cycleTeachLevelQuick() {
             }
         }
 
+        /* ═══════════════════════════════════════════════════════════
+           🍃 動森 NookPhone 與動態藥丸島控制器 (NookPhone & Dynamic HUD)
+           ═══════════════════════════════════════════════════════════ */
+        function toggleNookPhone(open) {
+            const m = document.getElementById('nook-phone-modal');
+            if (!m) return;
+            const want = (typeof open === 'boolean') ? open : !m.classList.contains('open');
+            m.classList.toggle('open', want);
+            if (want) {
+                if (typeof S !== 'undefined' && S.swap) S.swap();
+            } else {
+                if (typeof S !== 'undefined' && S.pop) S.pop(0.5);
+            }
+        }
+
+        function updateDynamicStagePill(stageNum, pScore, gScore) {
+            const sTxt = document.getElementById('dsp-stage');
+            const scTxt = document.getElementById('dsp-score');
+            if (sTxt && typeof STAGES !== 'undefined' && STAGES[stageNum]) {
+                sTxt.innerText = `第 ${stageNum} 關 · ${STAGES[stageNum].name || ''}`;
+            }
+            if (scTxt) {
+                const ps = (typeof pScore === 'number') ? pScore : (typeof score !== 'undefined' ? score : 0);
+                const gs = (typeof gScore === 'number') ? gScore : (typeof gooseScore !== 'undefined' ? gooseScore : 0);
+                scTxt.innerText = `${ps} - ${gs}`;
+            }
+        }
+
+        function startWallPractice() {
+            closeModeHub();
+            toggleNookPhone(false);
+            if (typeof initWallPractice === 'function') {
+                initWallPractice();
+            } else {
+                if (typeof toast === 'function') toast('🧱 對牆特訓', '已就緒！向練習牆推球練習連擊！');
+            }
+        }
+
+        function toggleMenuLayoutMode() {
+            const isNook = document.body.classList.toggle('layout-nook');
+            try { localStorage.setItem('nchu_menu_layout', isNook ? 'nook' : 'classic'); } catch (e) {}
+            if (typeof toast === 'function') {
+                toast('選單排法已切換', isNook ? '🍃 NookPhone 懸浮小葉子 (動森極簡無遮擋)' : '📐 經典頂部橫條');
+            }
+        }
+
+        // 預設啟用動森 NookPhone 懸浮選單（徹底擺脫工業監控橫條）
+        try {
+            const savedLayout = localStorage.getItem('nchu_menu_layout') || 'nook';
+            if (savedLayout === 'nook') {
+                document.body.classList.add('layout-nook');
+            }
+        } catch (e) {}
+
         window.openModeHub = openModeHub;
         window.closeModeHub = closeModeHub;
         window.selectHubStage = selectHubStage;
         window.startHubQuest = startHubQuest;
         window.startHubChaos = startHubChaos;
+        window.toggleNookPhone = toggleNookPhone;
+        window.updateDynamicStagePill = updateDynamicStagePill;
+        window.startWallPractice = startWallPractice;
+        window.toggleMenuLayoutMode = toggleMenuLayoutMode;

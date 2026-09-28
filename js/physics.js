@@ -129,7 +129,7 @@ class Physics {
         ballGlow.material.opacity = 0.16 + Math.min(0.26, spd * 0.02);
         const hasCurve = Math.abs(this.spin) >= 0.12;
         if (hasCurve) {
-            ballGlow.material.color.set(this.spin > 0 ? 0xc084fc : 0x38bdf8);
+            ballGlow.material.color.set(this.spin > 0 ? 0xf6c445 : 0x2d6a4f);
             ballGlow.material.opacity = 0.52;
         } else {
             ballGlow.material.color.set(0xdcff6a);
@@ -143,7 +143,7 @@ class Physics {
             const sc = BALL_R * (hasCurve ? 5.2 : 3.8) * f;
             tr.spr.scale.set(sc, sc, 1);
             if (hasCurve) {
-                tr.spr.material.color.set(this.spin > 0 ? 0xc084fc : 0x38bdf8);
+                tr.spr.material.color.set(this.spin > 0 ? 0xf6c445 : 0x2d6a4f);
                 tr.spr.material.opacity = on ? (0.48 * f) : 0;
             } else {
                 tr.spr.material.color.set(0xdcff6a);
@@ -187,7 +187,17 @@ class Physics {
         }
         this.pos.addScaledVector(this.vel, h);
 
-        if (crossesNet(pz, this.pos.z, this.pos.y, this.pos.x)) {
+        // ★ 對牆擊球特訓模式 (Wall Rebound Practice): 撞擊練習木牆真實反彈
+        if (typeof isWallPractice !== 'undefined' && isWallPractice) {
+            if (pz > 0.05 && this.pos.z <= 0.05 && this.vel.z < 0) {
+                this.pos.z = 0.06;
+                this.vel.z = Math.abs(this.vel.z) * 0.88;
+                this.vel.y = Math.max(1.6, this.vel.y * 0.86 + 1.1);
+                this.vel.x = -this.vel.x * 0.72 + (Math.random() - 0.5) * 0.6;
+                if (typeof onWallHit === 'function') onWallHit(this.pos.x, this.pos.y);
+                return true;
+            }
+        } else if (crossesNet(pz, this.pos.z, this.pos.y, this.pos.x)) {
             this.pos.z = 0; this.vel.set(0, 0, 0);
             S.net(); addShake(0.1);
             popRing(this.pos.x, 0.05, 2, 0xff5555);

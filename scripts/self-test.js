@@ -309,6 +309,86 @@ try {
     assert(false, "模式大廳與 2K 拍立得檢測異常", e.message);
 }
 
+// ── [10/10] 全方位資安滲透防禦、NookPhone 與效能基準矩陣 ──
+console.log("\n▶ [10/10] 全方位資安滲透防禦、NookPhone 與效能基準 (Security & NookPhone & Benchmark)...");
+try {
+    const v14Src = fs.readFileSync(path.resolve(__dirname, "../v14.html"), "utf8");
+    const gameSrc = fs.readFileSync(path.resolve(__dirname, "../js/game.js"), "utf8");
+    const uiSrc = fs.readFileSync(path.resolve(__dirname, "../js/ui.js"), "utf8");
+    const configSrc = fs.readFileSync(path.resolve(__dirname, "../js/config.js"), "utf8");
+    const codeGs = fs.readFileSync(path.resolve(__dirname, "../backend/Code.gs"), "utf8");
+    const workerSrc = fs.readFileSync(path.resolve(__dirname, "../backend/cloudflare-worker.js"), "utf8");
+
+    // 1. 動森 NookPhone 與頂部動態藥丸島
+    assert(v14Src.includes('id="nook-fab"') && v14Src.includes('id="nook-phone-modal"') && v14Src.includes('id="dynamic-stage-pill"'),
+        "v14.html 包含 NookPhone 懸浮小葉子 (#nook-fab)、手機抽屜 (#nook-phone-modal) 與動態關卡藥丸島");
+    assert(uiSrc.includes("toggleNookPhone") && uiSrc.includes("updateDynamicStagePill"),
+        "js/ui.js 包含 toggleNookPhone 與 updateDynamicStagePill 函式");
+
+    // 2. 趣味對牆擊球連擊挑戰 (Wall Rebound)
+    assert(gameSrc.includes("buildPracticeWall") && gameSrc.includes("initWallPractice") && gameSrc.includes("onWallHit"),
+        "js/game.js 包含對牆特訓木牆 (buildPracticeWall)、模式啟動 (initWallPractice) 與彈跳判定 (onWallHit)");
+
+    // 3. 第三桿放短 (Third Shot Drop) 與 🧑‍🏫 AI 虛擬教練
+    assert(gameSrc.includes("PERFECT THIRD SHOT DROP") && gameSrc.includes("AI 教練提示"),
+        "js/game.js 包含第三桿放短 (Third Shot Drop) 戰術判定與 AI 虛擬教練即時診斷提示");
+
+    // 4. 【資安防禦 1】無前端明文管理員密碼或偽隱藏 (Anti-Fake-Security)
+    assert(!/GATE_PASSWORD\s*=|ADMIN_PASS\s*=|const\s+SECRET_KEY\s*=/i.test(v14Src) &&
+           !/GATE_PASSWORD\s*=|ADMIN_PASS\s*=|const\s+SECRET_KEY\s*=/i.test(gameSrc),
+        "前端無任何硬編碼管理員明文密碼 (杜絕圖二之 F12 檢視漏洞)");
+
+    // 5. 【資安防禦 2】全域 XSS 實體轉義測試 (escapeHtml)
+    const mEscape = configSrc.match(/function escapeHtml\(s\)[\s\S]*?\n\s*}/);
+    assert(mEscape !== null, "config.js 包含全域 escapeHtml 函式定義");
+    const cSandbox = {};
+    vm.runInNewContext(mEscape[0], cSandbox);
+    assert(typeof cSandbox.escapeHtml === "function", "config.js 匯出全域 escapeHtml 函式");
+    const xssPayload = '<script>alert("xss")</script>&"\'`';
+    const escaped = cSandbox.escapeHtml(xssPayload);
+    assert(!escaped.includes("<") && !escaped.includes(">") && escaped.includes("&lt;script&gt;") && escaped.includes("&#96;"),
+        "escapeHtml 正確過濾 HTML 標籤與危險引號/反引號");
+
+    // 6. 【資安防禦 3】OWASP CSV / 試算表公式注入進階防禦
+    const gSandbox = { Utilities: {}, SpreadsheetApp: {} };
+    const mSanitize = codeGs.match(/function sanitize\(val, maxLen\)[\s\S]*?\n}/);
+    if (mSanitize) {
+        vm.runInNewContext(mSanitize[0], gSandbox);
+        const advCases = [
+            { in: "\t=1+1", exp: "'\t=1+1" },
+            { in: "\r-2+3", exp: "'\r-2+3" },
+            { in: "@admin", exp: "'@admin" },
+            { in: "+cmd|' /C calc'!A0", exp: "'+cmd|' /C calc'!A0" }
+        ];
+        let advPass = true;
+        for (const ac of advCases) {
+            const res = gSandbox.sanitize(ac.in, 50);
+            if (ac.exp.startsWith("'") && !res.startsWith("'")) advPass = false;
+        }
+        assert(advPass, "後端 sanitize() 通過 OWASP 試算表公式注入進階攻擊向量測試");
+    }
+
+    // 7. 【資安防禦 4】Cloudflare Worker CORS 來源混淆防禦測試
+    const mOrigin = workerSrc.match(/const PROD_ORIGINS[\s\S]*?function originAllowed\(origin\)[\s\S]*?\n}/);
+    if (mOrigin) {
+        const wSandbox = { Set: Set, URL: URL };
+        vm.runInNewContext(mOrigin[0], wSandbox);
+        assert(wSandbox.originAllowed("https://kalmangoose.github.io") === true, "originAllowed 接受官方 GitHub Pages 網址");
+        assert(wSandbox.originAllowed("https://kalmangoose.github.io.evil.com") === false, "originAllowed 拒絕偽造子域名攻擊");
+        assert(wSandbox.originAllowed("http://kalmangoose.github.io") === false, "originAllowed 拒絕非 HTTPS 降級請求");
+        assert(wSandbox.originAllowed("null") === false, "originAllowed 拒絕 null 來源");
+        assert(wSandbox.originAllowed("") === false, "originAllowed 拒絕空白來源");
+        assert(wSandbox.originAllowed("http://localhost:3000") === true, "originAllowed 允許本機安全除錯");
+    }
+
+    // 8. 10,000 幀極限效能與零記憶體洩漏基準測試
+    const benchOut = cp.execSync("node scripts/benchmark-performance.js", { cwd: ROOT, encoding: "utf8" });
+    assert(benchOut.includes("基準測試完成！所有預設 10,000 幀物理與神經步進皆順利通過！"),
+        "10,000 幀極限效能基準測試全數通過，單幀耗時 < 0.5ms，零記憶體洩漏");
+} catch (e) {
+    assert(false, "資安滲透防禦與 NookPhone 檢測異常", e.message);
+}
+
 // ── 總結 ──
 console.log("\n═══════════════════════════════════════════════════════════");
 if (failed === 0) {

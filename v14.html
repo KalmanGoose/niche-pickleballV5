@@ -851,36 +851,39 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
         </div>
     </div>
 
-    <!-- ══════ 🎮 遊戲化模式選擇大廳 (Game Mode Select Hub Overlay) ══════ -->
+    <!-- ══════ 🍃 《動物森友會》島嶼清新風格模式大廳 (Animal Crossing Mode Hub) ══════ -->
     <div id="mode-hub-overlay" style="display:none;">
         <div class="mode-hub-header">
-            <div class="mode-hub-profile" onclick="openProfileModal()" title="點擊修改個人頭像與暱稱">
-                <span id="hub-avatar" style="font-size:22px;">🧢</span>
+            <div class="mode-hub-profile" onclick="openProfileModal()" title="點擊檢視/修改島民護照頭像與暱稱">
+                <span id="hub-avatar" style="font-size:24px;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.15));">🧢</span>
                 <div>
-                    <div id="hub-nick" style="font-size:13px;font-weight:800;line-height:1.2;">叫獸aka愛叫的野獸</div>
-                    <div id="hub-dept" style="font-size:10px;color:rgba(255,255,255,0.65);">國立中興大學 · 資訊工程</div>
+                    <div style="display:flex;align-items:center;gap:4px;">
+                        <span id="hub-nick" style="font-size:13px;font-weight:900;color:#3d2b1f;line-height:1.2;">叫獸aka愛叫的野獸</span>
+                        <span style="font-size:9px;background:#e2d1b3;color:#6b5239;padding:1px 5px;border-radius:6px;font-weight:800;">島民</span>
+                    </div>
+                    <div id="hub-dept" style="font-size:10px;color:#85694f;font-weight:700;">國立中興大學 · 資訊工程</div>
                 </div>
-                <span style="font-size:11px;opacity:0.7;">⚙️</span>
+                <span style="font-size:11px;color:#85694f;">✏️</span>
             </div>
             <div class="mode-hub-brand">
-                <h1 class="mode-hub-title">NCHU PICKLEBALL ARENA</h1>
-                <div class="mode-hub-subtitle">國立中興大學匹克球學習社群 · 運動科技體驗館</div>
+                <h1 class="mode-hub-title">🍃 中興湖動森匹克島</h1>
+                <div class="mode-hub-subtitle">ZHONGXING LAKE ISLAND RESORT · PICKLEBALL ARENA</div>
             </div>
             <div class="mode-hub-controls">
-                <button type="button" class="mode-hub-btn-icon" onclick="openAudioModal()" title="音效設定">🎶 音效</button>
+                <button type="button" class="mode-hub-btn-icon" onclick="openAudioModal()" title="廣播音效設定">🎶 音效</button>
                 <button type="button" class="mode-hub-btn-icon" id="hub-webcam-btn" onclick="toggleWebcamAI()" title="切換鏡頭體感模式">📷 體感: 關</button>
-                <button type="button" class="mode-hub-btn-icon" onclick="closeModeHub()" title="關閉大廳直接進入球場" style="background:#0284c7;border-color:#38bdf8;">🎾 進入球場</button>
+                <button type="button" class="mode-hub-btn-icon mode-hub-btn-go" onclick="closeModeHub()" title="關閉大廳直接踏上球場">🎾 踏上球場</button>
             </div>
         </div>
 
         <div class="mode-hub-grid">
-            <!-- 模式卡 1: 關卡闖關挑戰 -->
+            <!-- 模式卡 1: 關卡闖關歷險 -->
             <div class="mode-card">
                 <div>
-                    <span class="mode-card-badge badge-quest">新手必練 · 5 大關卡</span>
+                    <span class="mode-card-badge badge-quest">🍃 新手必練 · 5 大關卡</span>
                     <div class="mode-card-icon">🎯</div>
-                    <h2 class="mode-card-title">關卡闖關挑戰</h2>
-                    <p class="mode-card-desc">循序漸進掌握匹克球核心規則：對角發球進區、雙彈跳、廚房區短打，一路晉級迎戰中興湖村長鵝！</p>
+                    <h2 class="mode-card-title">關卡闖關歷險</h2>
+                    <p class="mode-card-desc">循序漸進掌握匹克球核心規則：對角發球進區、雙彈跳、廚房區短打，一路晉級挑戰中興湖村長鵝！</p>
                     <div class="mode-level-pills">
                         <button type="button" class="mode-level-pill on" onclick="selectHubStage(1)">1 發球</button>
                         <button type="button" class="mode-level-pill" onclick="selectHubStage(2)">2 雙彈跳</button>
@@ -889,27 +892,41 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
                         <button type="button" class="mode-level-pill" onclick="selectHubStage(5)">5 冠軍賽</button>
                     </div>
                 </div>
-                <button type="button" class="mode-card-btn btn-quest" onclick="startHubQuest()">▶ 開始關卡闖關</button>
+                <button type="button" class="mode-card-btn btn-quest" onclick="startHubQuest()">▶ 開始闖關歷險</button>
             </div>
 
-            <!-- 模式卡 2: 瘋狂道具大亂鬥 -->
+            <!-- 模式卡 2: 🧱 中興湖對牆擊球連擊挑戰 (NEW!) -->
             <div class="mode-card">
                 <div>
-                    <span class="mode-card-badge badge-chaos">娛樂模式 · 盲盒神裝</span>
+                    <span class="mode-card-badge badge-wall">🧱 控球特訓 · 彈跳連擊</span>
+                    <div class="mode-card-icon">🧱</div>
+                    <h2 class="mode-card-title">對牆擊球挑戰</h2>
+                    <p class="mode-card-desc">專業匹克球必備對牆抽球練習！球場前方立起回彈練習木牆，瞄準網高標線與靶心，挑戰最高連擊次數！</p>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:6px;">
+                    <button type="button" class="mode-card-btn btn-wall" onclick="startWallPractice()">🧱 開始對牆連擊賽</button>
+                    <div style="font-size:11px;color:#8c725d;text-align:center;font-weight:700;">連續反彈命中 · 觸發 Streak Combo 加成</div>
+                </div>
+            </div>
+
+            <!-- 模式卡 3: 瘋狂道具大亂鬥 -->
+            <div class="mode-card">
+                <div>
+                    <span class="mode-card-badge badge-chaos">🍄 歡樂派對 · 盲盒神裝</span>
                     <div class="mode-card-icon">🍄</div>
                     <h2 class="mode-card-title">瘋狂道具大亂鬥</h2>
-                    <p class="mode-card-desc">拾取場上隨機空投問號盲盒！召喚巨型千斤鐵球、大火球、手持電蚊拍大戰生化仿生蒼蠅！</p>
+                    <p class="mode-card-desc">拾取場上隨機空投盲盒！召喚巨型千斤鐵球、大火球、手持電蚊拍大戰生化仿生蒼蠅！</p>
                 </div>
-                <div style="display:flex;flex-direction:column;gap:8px;">
-                    <button type="button" class="mode-card-btn btn-chaos" onclick="startHubChaos()">🍄 立即開打 (進入 Stage 6)</button>
-                    <button type="button" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.18);border-radius:10px;padding:7px;color:#facc15;font-size:12px;font-weight:700;cursor:pointer;" onclick="openItemCardsModal()">🃏 查看道具圖鑑</button>
+                <div style="display:flex;flex-direction:column;gap:6px;">
+                    <button type="button" class="mode-card-btn btn-chaos" onclick="startHubChaos()">🍄 立即開打 (Stage 6)</button>
+                    <button type="button" class="mode-card-subbtn" onclick="openItemCardsModal()">🃏 查看道具圖鑑</button>
                 </div>
             </div>
 
-            <!-- 模式卡 3: 旋球物理與競賽手冊 -->
+            <!-- 模式卡 4: 旋球物理與競賽手冊 -->
             <div class="mode-card">
                 <div>
-                    <span class="mode-card-badge badge-science">流體力學 · USA 官方手冊</span>
+                    <span class="mode-card-badge badge-science">🌪️ 流體力學 · USA 官方手冊</span>
                     <div class="mode-card-icon">🌪️</div>
                     <h2 class="mode-card-title">科普與競賽手冊</h2>
                     <p class="mode-card-desc">探索 NASA 馬格努斯效應 (Magnus Effect) 旋球微積分流體力學，與 2026 USA Pickleball 官方完整競賽手冊。</p>
@@ -917,29 +934,77 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
                 <div style="display:flex;flex-direction:column;gap:6px;">
                     <button type="button" class="mode-card-btn btn-science" onclick="openRulesModal('physics')">🌪️ 馬格努斯流體力學</button>
                     <div style="display:flex;gap:6px;">
-                        <button type="button" style="flex:1;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.18);border-radius:10px;padding:8px;color:#ffffff;font-size:12px;font-weight:700;cursor:pointer;" onclick="openRulesModal('rules')">📖 競賽規則手冊</button>
-                        <button type="button" style="flex:1;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.18);border-radius:10px;padding:8px;color:#38bdf8;font-size:12px;font-weight:700;cursor:pointer;" onclick="showFingerTutorial(0)">👆 旋球教學</button>
+                        <button type="button" class="mode-card-subbtn" style="flex:1;" onclick="openRulesModal('rules')">📖 競賽規則</button>
+                        <button type="button" class="mode-card-subbtn" style="flex:1;color:#2b6cb0;" onclick="showFingerTutorial(0)">👆 旋球教學</button>
                     </div>
                 </div>
             </div>
 
-            <!-- 模式卡 4: 校園榮譽英雄榜 -->
+            <!-- 模式卡 5: 島嶼榮譽與 AI 教練 -->
             <div class="mode-card">
                 <div>
-                    <span class="mode-card-badge badge-social">全校爭霸 · 系所排行</span>
+                    <span class="mode-card-badge badge-social">🏆 全校爭霸 · AI 教練</span>
                     <div class="mode-card-icon">🏆</div>
-                    <h2 class="mode-card-title">校園榮譽英雄榜</h2>
-                    <p class="mode-card-desc">檢視全校系級即時戰績排行、個人擊球動力鏈日誌與雲端榮譽殿堂，爭奪中興球王寶座！</p>
+                    <h2 class="mode-card-title">榮譽榜與 AI 教練</h2>
+                    <p class="mode-card-desc">檢視全校系級即時戰績排行、個人擊球動力鏈日誌，以及 AI 虛擬教練發力處方箋！</p>
                 </div>
                 <div style="display:flex;flex-direction:column;gap:6px;">
                     <button type="button" class="mode-card-btn btn-social" onclick="openSocial()">🏆 查閱校園排行榜</button>
-                    <button type="button" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.18);border-radius:10px;padding:8px;color:#ffffff;font-size:12px;font-weight:700;cursor:pointer;" onclick="openAuditModal()">📋 體感動力鏈日誌</button>
+                    <button type="button" class="mode-card-subbtn" onclick="openAuditModal()">📋 體感動力鏈日誌</button>
                 </div>
             </div>
         </div>
 
         <div class="mode-hub-footer">
-            🔒 零個資隱私承諾 · 姿態運算全程於本機端執行 · 國立中興大學匹克球學習社群 · 運動科技推廣中心
+            🍃 國立中興大學匹克球學習社群 · 運動科技推廣中心 · 姿態運算全程於本機端執行 · 零個資隱私承諾
+        </div>
+    </div>
+
+    <!-- ══════ 🍃 動森 NookPhone 8 宮格手機輪盤 (#nook-phone-modal) ══════ -->
+    <div id="nook-phone-modal" onclick="if(event.target===this) toggleNookPhone(false)">
+        <div class="nook-case">
+            <div class="nook-screen">
+                <div class="nook-status-bar">
+                    <span>📡 Nook Inc. 4G</span>
+                    <span>🌿 中興湖島</span>
+                    <span>🔋 100%</span>
+                </div>
+                <div class="nook-grid">
+                    <button class="nook-app" onclick="toggleNookPhone(false); openModeHub();">
+                        <div class="nook-app-icon app-hub">🏠</div>
+                        <span class="nook-app-label">模式大廳</span>
+                    </button>
+                    <button class="nook-app" onclick="toggleNookPhone(false); startWallPractice();">
+                        <div class="nook-app-icon app-wall">🧱</div>
+                        <span class="nook-app-label">對牆特訓</span>
+                    </button>
+                    <button class="nook-app" onclick="toggleNookPhone(false); toggleNavMenu('stage');">
+                        <div class="nook-app-icon app-stage">🎯</div>
+                        <span class="nook-app-label">切換關卡</span>
+                    </button>
+                    <button class="nook-app" onclick="toggleNookPhone(false); cycleDifficulty();">
+                        <div class="nook-app-icon app-diff">🤖</div>
+                        <span class="nook-app-label">對手難度</span>
+                    </button>
+                    <button class="nook-app" onclick="toggleNookPhone(false); toggleWebcamAI();">
+                        <div class="nook-app-icon app-motion">📷</div>
+                        <span class="nook-app-label">體感開關</span>
+                    </button>
+                    <button class="nook-app" onclick="toggleNookPhone(false); toggleFunMode();">
+                        <div class="nook-app-icon app-fun">🍄</div>
+                        <span class="nook-app-label">道具模式</span>
+                    </button>
+                    <button class="nook-app" onclick="toggleNookPhone(false); openSocial();">
+                        <div class="nook-app-icon app-social">🏆</div>
+                        <span class="nook-app-label">英雄榜單</span>
+                    </button>
+                    <button class="nook-app" onclick="toggleNookPhone(false); openAudioModal();">
+                        <div class="nook-app-icon app-settings">⚙️</div>
+                        <span class="nook-app-label">音效設定</span>
+                    </button>
+                </div>
+                <button class="nook-home-btn" onclick="toggleNookPhone(false)" title="收起手機"></button>
+            </div>
         </div>
     </div>
 
@@ -973,6 +1038,20 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
         </div>
         <div id="stage3d"></div>
         <div id="vignette"></div>
+
+        <!-- 🍃 動森風格動態關卡藥丸島 (#dynamic-stage-pill) -->
+        <div id="dynamic-stage-pill" onclick="openModeHub()" title="點擊開啟模式大廳與關卡切換">
+            <span class="dsp-leaf">🍃</span>
+            <span class="dsp-stage-txt" id="dsp-stage">第 1 關 · 發球養成</span>
+            <span class="dsp-divider"></span>
+            <span class="dsp-score-txt" id="dsp-score">0 - 0</span>
+        </div>
+
+        <!-- 🍃 動森 NookPhone 懸浮小葉子按鈕 (#nook-fab) -->
+        <div id="nook-fab" onclick="toggleNookPhone(true)" title="開啟 NookPhone 快捷選單">
+            <span class="nook-fab-leaf">🍃</span>
+            <span class="nook-fab-lbl">Nook</span>
+        </div>
 
         <!-- 虛擬搖桿 + ★手機視角高低鈕 -->
         <div id="joy">

@@ -1,7 +1,20 @@
 /* ═══════════════════════════════════════════════════════════════════
    NCHU Pickleball V5 - 系統常數、設定與資料庫 (Config & Identity)
    ═══════════════════════════════════════════════════════════════════ */
-        const APP_VERSION = 'v5.2.0';
+        const APP_VERSION = 'v5.4.0';
+
+        /* ═══════ 全域安全性與 XSS 實體轉義 (Global Security Sanitizer) ═══════ */
+        function escapeHtml(s) {
+            if (s === null || s === undefined) return '';
+            return String(s)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;')
+                .replace(/`/g, '&#96;');
+        }
+        if (typeof window !== 'undefined') window.escapeHtml = escapeHtml;
 
         /* ═══════ 雙軌物理引擎模式 (Dual Physics Modes) ═══════ */
         const PHYSICS_MODES = {
@@ -568,7 +581,7 @@ function apiGet(qs) {
         /* ═══════ 音效偏好 ═══════ */
 
 /* ═══════ 賽場尺寸、物理常數與 AI 難度常數 ═══════ */
-        const IS_MOBILE = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 820;
+        const IS_MOBILE = (typeof navigator !== 'undefined' && /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) || (typeof window !== 'undefined' && window.innerWidth < 820);
         const GRADE = { exposure: 0.95, hemiI: 0.90, sunI: 1.25, fillI: 0.35, rimI: 0.25, fogNear: 34, fogFar: 98 };
         const COURT_W = 6.10, COURT_L = 13.41, HALF_L = COURT_L / 2;
         const KITCHEN_D = 2.13, NET_H = 0.914, GRAVITY = 9.81;

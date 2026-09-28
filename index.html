@@ -2361,6 +2361,208 @@
     opacity: 0.45;
 }
 
+/* ═══════════════════════════════════════════════════════════
+   🍃 動森 NookPhone 懸浮小葉子輪盤與動態藥丸島 (ACNH NookPhone HUD)
+   ═══════════════════════════════════════════════════════════ */
+body.layout-nook #nav-wrapper {
+    display: none !important;
+}
+
+/* 頂部中央動態關卡藥丸島 */
+#dynamic-stage-pill {
+    position: fixed;
+    top: calc(10px + env(safe-area-inset-top));
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 105;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(253, 250, 242, 0.94);
+    border: 2px solid #ecd8b8;
+    border-radius: 99px;
+    padding: 6px 16px;
+    box-shadow: 0 4px 16px rgba(90, 60, 30, 0.12), 0 2px 0 #ebd8bc;
+    cursor: pointer;
+    user-select: none;
+    transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+    backdrop-filter: blur(10px);
+}
+#dynamic-stage-pill:hover {
+    background: #ffffff;
+    transform: translateX(-50%) translateY(-2px);
+    box-shadow: 0 6px 20px rgba(90, 60, 30, 0.18), 0 3px 0 #ecd8b8;
+}
+#dynamic-stage-pill:active {
+    transform: translateX(-50%) translateY(1px);
+    box-shadow: 0 1px 4px rgba(90, 60, 30, 0.12);
+}
+.dsp-leaf { font-size: 14px; animation: floatLeaf 3s ease-in-out infinite; }
+@keyframes floatLeaf { 0%, 100% { transform: rotate(0deg); } 50% { transform: rotate(12deg) scale(1.1); } }
+.dsp-stage-txt { font-size: 13px; font-weight: 900; color: #2d6a4f; }
+.dsp-divider { width: 1px; height: 12px; background: #ecd8b8; }
+.dsp-score-txt { font-size: 13px; font-weight: 900; color: #c86446; letter-spacing: 0.5px; }
+
+/* 右側動森小葉子懸浮按鈕 (NookPhone FAB) */
+#nook-fab {
+    position: fixed;
+    top: calc(10px + env(safe-area-inset-top));
+    right: 12px;
+    z-index: 110;
+    width: 44px;
+    height: 44px;
+    border-radius: 99px;
+    background: #2d6a4f;
+    border: 2.5px solid #ecd8b8;
+    box-shadow: 0 4px 14px rgba(45, 106, 79, 0.45), 0 3px 0 #1b4332;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    user-select: none;
+    transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+#nook-fab:hover {
+    transform: scale(1.08) translateY(-2px);
+    box-shadow: 0 6px 18px rgba(45, 106, 79, 0.55), 0 4px 0 #1b4332;
+    background: #357d5e;
+}
+#nook-fab:active {
+    transform: scale(0.96) translateY(3px);
+    box-shadow: 0 0 0 transparent;
+}
+.nook-fab-leaf { font-size: 20px; line-height: 1; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.2)); }
+.nook-fab-lbl { font-size: 8px; font-weight: 900; color: #fcfbf7; letter-spacing: -0.2px; margin-top: 1px; }
+
+/* NookPhone 手機輪盤 Modal (#nook-phone-modal) */
+#nook-phone-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(40, 25, 15, 0.45);
+    backdrop-filter: blur(8px);
+    padding: 20px;
+    box-sizing: border-box;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.22s ease;
+}
+#nook-phone-modal.open {
+    opacity: 1;
+    pointer-events: auto;
+}
+.nook-case {
+    width: 100%;
+    max-width: 340px;
+    background: #2b3d36;
+    border: 6px solid #e8decb;
+    border-radius: 40px;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.4), inset 0 2px 6px rgba(255, 255, 255, 0.15);
+    padding: 16px 14px 20px 14px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    transform: scale(0.85);
+    transition: transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+#nook-phone-modal.open .nook-case {
+    transform: scale(1);
+}
+.nook-screen {
+    width: 100%;
+    background: #fdfaf2;
+    border-radius: 28px;
+    padding: 16px 12px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    border: 2px solid #dfcca9;
+    box-shadow: inset 0 2px 6px rgba(100, 70, 40, 0.08);
+}
+.nook-status-bar {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 11px;
+    font-weight: 800;
+    color: #8b6b4d;
+    padding-bottom: 8px;
+    border-bottom: 1.5px dashed #eddcc6;
+    margin-bottom: 14px;
+}
+.nook-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px 8px;
+    width: 100%;
+    justify-items: center;
+}
+.nook-app {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    cursor: pointer;
+    background: none;
+    border: none;
+    padding: 0;
+    width: 100%;
+    transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.nook-app:hover {
+    transform: scale(1.1);
+}
+.nook-app:active {
+    transform: scale(0.92);
+}
+.nook-app-icon {
+    width: 52px;
+    height: 52px;
+    border-radius: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 26px;
+    box-shadow: 0 4px 10px rgba(100, 70, 40, 0.15), 0 3px 0 var(--app-shadow, #bbb);
+    border: 2px solid rgba(255, 255, 255, 0.6);
+}
+.nook-app-label {
+    font-size: 11px;
+    font-weight: 800;
+    color: #4a3728;
+    text-align: center;
+    white-space: nowrap;
+}
+.app-hub { background: #60a5fa; --app-shadow: #2563eb; }
+.app-wall { background: #fb923c; --app-shadow: #c2410c; }
+.app-stage { background: #4ade80; --app-shadow: #16a34a; }
+.app-diff { background: #f472b6; --app-shadow: #db2777; }
+.app-motion { background: #2dd4bf; --app-shadow: #0f766e; }
+.app-fun { background: #facc15; --app-shadow: #ca8a04; }
+.app-social { background: #fbbf24; --app-shadow: #b45309; }
+.app-settings { background: #a78bfa; --app-shadow: #7c3aed; }
+
+.nook-home-btn {
+    margin-top: 14px;
+    width: 48px;
+    height: 14px;
+    border-radius: 99px;
+    background: #dfcca9;
+    border: 1.5px solid #c9b48f;
+    cursor: pointer;
+    box-shadow: 0 2px 0 #bfa881;
+    transition: all 0.15s;
+}
+.nook-home-btn:hover { background: #ecd8b8; }
+.nook-home-btn:active { transform: translateY(2px); box-shadow: 0 0 0 transparent; }
+
 /* ─── nav.css ─── */
 /* ═══════════════════════════════════════════════════════════════════
    NCHU Pickleball V5 - 導覽列與活動式選單 (Navigation & Draggable Menu)
@@ -4011,12 +4213,15 @@
         }
 
         /* ═══════════════════════════════════════════════════════════
-           🎮 遊戲化模式選擇大廳 (Game Mode Select Hub Overlay)
+           🍃 《動物森友會》島嶼清新風格模式大廳 (Animal Crossing Mode Hub)
            ═══════════════════════════════════════════════════════════ */
         #mode-hub-overlay {
             position: fixed;
             inset: 0;
-            background: radial-gradient(circle at 50% 30%, #162a22 0%, #0a1410 100%);
+            background: #fbf8f0;
+            background-image: radial-gradient(#ebd8ba 1.5px, transparent 1.5px), radial-gradient(#ebd8ba 1.5px, #fbf8f0 1.5px);
+            background-size: 28px 28px;
+            background-position: 0 0, 14px 14px;
             z-index: 9998;
             display: flex;
             flex-direction: column;
@@ -4025,53 +4230,54 @@
             padding: 16px 20px;
             box-sizing: border-box;
             overflow-y: auto;
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            color: #ffffff;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            color: #4a3728;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Rounded Mplus 1c", sans-serif;
         }
         .mode-hub-header {
             width: 100%;
-            max-width: 1080px;
+            max-width: 1120px;
             display: flex;
             align-items: center;
             justify-content: space-between;
             gap: 12px;
-            padding-bottom: 12px;
-            border-bottom: 1px solid rgba(246, 196, 69, 0.18);
+            padding: 10px 16px;
+            background: #ffffff;
+            border: 2.5px solid #ecd8b8;
+            border-radius: 24px;
+            box-shadow: 0 6px 16px rgba(110, 75, 45, 0.08);
+            margin-bottom: 8px;
         }
         .mode-hub-profile {
             display: flex;
             align-items: center;
             gap: 10px;
-            background: rgba(255, 255, 255, 0.08);
+            background: #f6efe1;
             padding: 6px 14px;
             border-radius: 99px;
-            border: 1px solid rgba(246, 196, 69, 0.25);
+            border: 2px solid #dfcca9;
             cursor: pointer;
-            transition: all 0.2s ease;
+            transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
         }
         .mode-hub-profile:hover {
-            background: rgba(255, 255, 255, 0.16);
-            transform: translateY(-1px);
+            background: #edd8b5;
+            transform: scale(1.03);
         }
         .mode-hub-brand {
             text-align: center;
         }
         .mode-hub-title {
-            font-family: "Barlow Condensed", system-ui, sans-serif;
-            font-size: 24px;
-            font-weight: 800;
-            letter-spacing: 1px;
-            background: linear-gradient(135deg, #fef08a, #f6c445, #d97706);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+            font-size: 22px;
+            font-weight: 900;
+            letter-spacing: 0.5px;
+            color: #2d6a4f;
             margin: 0;
             line-height: 1.1;
+            text-shadow: 0 1px 0 rgba(255,255,255,0.8);
         }
         .mode-hub-subtitle {
             font-size: 11px;
-            color: rgba(248, 250, 252, 0.75);
+            font-weight: 700;
+            color: #8b6b4d;
             margin-top: 2px;
             letter-spacing: 0.5px;
         }
@@ -4080,130 +4286,190 @@
             gap: 8px;
         }
         .mode-hub-btn-icon {
-            background: rgba(255, 255, 255, 0.08);
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            color: #ffffff;
-            border-radius: 10px;
-            padding: 7px 12px;
-            font-size: 13px;
-            font-weight: 700;
+            background: #ffffff;
+            border: 2px solid #ecd8b8;
+            color: #5d4634;
+            border-radius: 14px;
+            padding: 7px 13px;
+            font-size: 12.5px;
+            font-weight: 800;
             cursor: pointer;
-            transition: all 0.2s ease;
+            box-shadow: 0 3px 0 #d9c49f;
+            transition: all 0.15s ease;
         }
         .mode-hub-btn-icon:hover {
-            background: rgba(255, 255, 255, 0.18);
+            background: #faf4e8;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 0 #d9c49f;
         }
+        .mode-hub-btn-icon:active {
+            transform: translateY(3px);
+            box-shadow: 0 0 0 #d9c49f;
+        }
+        .mode-hub-btn-go {
+            background: #2d6a4f !important;
+            border-color: #1b4332 !important;
+            color: #ffffff !important;
+            box-shadow: 0 4px 0 #1b4332 !important;
+        }
+        .mode-hub-btn-go:hover {
+            background: #357d5e !important;
+        }
+        .mode-hub-btn-go:active {
+            transform: translateY(4px);
+            box-shadow: 0 0 0 #1b4332 !important;
+        }
+
         .mode-hub-grid {
             width: 100%;
-            max-width: 1080px;
+            max-width: 1120px;
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
             gap: 16px;
-            margin: 16px 0;
+            margin: 12px 0 16px 0;
         }
         .mode-card {
-            background: rgba(22, 42, 34, 0.82);
-            border: 1.5px solid rgba(246, 196, 69, 0.22);
-            border-radius: 20px;
-            padding: 20px;
+            background: #ffffff;
+            border: 2.5px solid #eddcc6;
+            border-radius: 26px;
+            padding: 18px;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
             position: relative;
             overflow: hidden;
-            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.45);
-            transition: all 0.28s cubic-bezier(0.16, 1, 0.3, 1);
-            backdrop-filter: blur(12px);
+            box-shadow: 0 8px 20px rgba(110, 75, 45, 0.07), 0 3px 0 #ebd8bc;
+            transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
         }
         .mode-card:hover {
             transform: translateY(-5px);
-            border-color: rgba(246, 196, 69, 0.6);
-            box-shadow: 0 20px 40px rgba(45, 106, 79, 0.35);
+            border-color: #dfcaa7;
+            box-shadow: 0 14px 28px rgba(110, 75, 45, 0.13), 0 4px 0 #d8c29d;
         }
         .mode-card-badge {
             align-self: flex-start;
             font-size: 11px;
             font-weight: 800;
-            padding: 3px 10px;
+            padding: 4px 10px;
             border-radius: 99px;
-            margin-bottom: 12px;
-            letter-spacing: 0.5px;
+            margin-bottom: 10px;
+            letter-spacing: 0.3px;
+            border: 1.5px solid transparent;
         }
-        .badge-quest { background: rgba(46, 131, 82, 0.25); color: #86efac; border: 1px solid rgba(46, 131, 82, 0.5); }
-        .badge-chaos { background: rgba(200, 100, 70, 0.25); color: #fdba74; border: 1px solid rgba(200, 100, 70, 0.5); }
-        .badge-science { background: rgba(30, 64, 175, 0.25); color: #93c5fd; border: 1px solid rgba(30, 64, 175, 0.5); }
-        .badge-social { background: rgba(217, 119, 6, 0.25); color: #fde047; border: 1px solid rgba(217, 119, 6, 0.5); }
+        .badge-quest { background: #e8f5e9; color: #2e7d32; border-color: #c8e6c9; }
+        .badge-wall { background: #fff3e0; color: #e65100; border-color: #ffe0b2; }
+        .badge-chaos { background: #fbe9e7; color: #d84315; border-color: #ffccbc; }
+        .badge-science { background: #e3f2fd; color: #1565c0; border-color: #bbdefb; }
+        .badge-social { background: #fffde7; color: #f57f17; border-color: #fff9c4; }
 
         .mode-card-icon {
-            font-size: 42px;
-            margin-bottom: 10px;
-            filter: drop-shadow(0 4px 10px rgba(0,0,0,0.3));
+            font-size: 40px;
+            margin-bottom: 8px;
+            filter: drop-shadow(0 3px 6px rgba(110, 75, 45, 0.15));
+            transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .mode-card:hover .mode-card-icon {
+            transform: scale(1.12) rotate(4deg);
         }
         .mode-card-title {
-            font-family: "Barlow Condensed", system-ui, sans-serif;
-            font-size: 22px;
-            font-weight: 800;
-            color: #f8fafc;
+            font-size: 20px;
+            font-weight: 900;
+            color: #3e2d1d;
             margin: 0 0 6px 0;
-            letter-spacing: 0.5px;
+            letter-spacing: 0.3px;
         }
         .mode-card-desc {
-            font-size: 12.5px;
-            color: #cbd5e1;
+            font-size: 12px;
+            color: #6b5543;
             line-height: 1.5;
-            margin-bottom: 16px;
+            margin-bottom: 14px;
             flex: 1;
         }
         .mode-card-btn {
             width: 100%;
-            padding: 12px 16px;
-            border-radius: 12px;
+            padding: 11px 14px;
+            border-radius: 16px;
             border: none;
-            font-size: 14px;
-            font-weight: 800;
+            font-size: 13.5px;
+            font-weight: 900;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
             gap: 6px;
-            transition: all 0.2s ease;
+            color: #ffffff;
+            transition: all 0.15s ease;
         }
-        .btn-quest { background: linear-gradient(135deg, #2d6a4f, #1b4332); color: #fcfbf7; box-shadow: 0 4px 14px rgba(27, 67, 50, 0.4); border: 1px solid rgba(134, 239, 172, 0.3); }
-        .btn-chaos { background: linear-gradient(135deg, #c86446, #9c4127); color: #fcfbf7; box-shadow: 0 4px 14px rgba(156, 65, 39, 0.4); border: 1px solid rgba(253, 186, 116, 0.3); }
-        .btn-science { background: linear-gradient(135deg, #1e3a5f, #0f2438); color: #fcfbf7; box-shadow: 0 4px 14px rgba(15, 36, 56, 0.4); border: 1px solid rgba(147, 197, 253, 0.3); }
-        .btn-social { background: linear-gradient(135deg, #d97706, #92400e); color: #fcfbf7; box-shadow: 0 4px 14px rgba(146, 64, 14, 0.4); border: 1px solid rgba(254, 240, 138, 0.3); }
-        .mode-card-btn:hover { transform: scale(1.02); filter: brightness(1.1); }
+        .btn-quest { background: #2d6a4f; box-shadow: 0 4px 0 #1b4332; }
+        .btn-quest:hover { background: #357d5e; }
+        .btn-quest:active { transform: translateY(4px); box-shadow: 0 0 0 #1b4332; }
+
+        .btn-wall { background: #c86446; box-shadow: 0 4px 0 #9c4127; }
+        .btn-wall:hover { background: #d77355; }
+        .btn-wall:active { transform: translateY(4px); box-shadow: 0 0 0 #9c4127; }
+
+        .btn-chaos { background: #e05638; box-shadow: 0 4px 0 #aa341b; }
+        .btn-chaos:hover { background: #ea6447; }
+        .btn-chaos:active { transform: translateY(4px); box-shadow: 0 0 0 #aa341b; }
+
+        .btn-science { background: #2b6cb0; box-shadow: 0 4px 0 #1a426f; }
+        .btn-science:hover { background: #397dc5; }
+        .btn-science:active { transform: translateY(4px); box-shadow: 0 0 0 #1a426f; }
+
+        .btn-social { background: #d97706; box-shadow: 0 4px 0 #92400e; }
+        .btn-social:hover { background: #ed8b18; }
+        .btn-social:active { transform: translateY(4px); box-shadow: 0 0 0 #92400e; }
+
+        .mode-card-subbtn {
+            background: #f7efe2;
+            border: 1.5px solid #ecd8b8;
+            border-radius: 12px;
+            padding: 8px;
+            color: #5d4634;
+            font-size: 11.5px;
+            font-weight: 800;
+            cursor: pointer;
+            box-shadow: 0 2px 0 #d9c49f;
+            transition: all 0.15s ease;
+        }
+        .mode-card-subbtn:hover { background: #edd8b5; }
+        .mode-card-subbtn:active { transform: translateY(2px); box-shadow: 0 0 0 #d9c49f; }
 
         .mode-level-pills {
             display: flex;
             gap: 4px;
             flex-wrap: wrap;
-            margin-bottom: 12px;
+            margin-bottom: 10px;
         }
         .mode-level-pill {
-            background: rgba(255, 255, 255, 0.08);
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            color: #cbd5e1;
+            background: #f4ecdc;
+            border: 1.5px solid #dec8a7;
+            color: #634d3b;
             padding: 3px 8px;
-            border-radius: 6px;
+            border-radius: 8px;
             font-size: 11px;
-            font-weight: 700;
+            font-weight: 800;
             cursor: pointer;
+            box-shadow: 0 2px 0 #dec8a7;
             transition: all 0.15s;
         }
         .mode-level-pill:hover, .mode-level-pill.on {
             background: #2d6a4f;
             color: #ffffff;
-            border-color: #86efac;
+            border-color: #1b4332;
+            box-shadow: 0 2px 0 #1b4332;
         }
+        .mode-level-pill:active { transform: translateY(2px); box-shadow: 0 0 0 transparent; }
+
         .mode-hub-footer {
             font-size: 11px;
-            color: rgba(255, 255, 255, 0.55);
+            font-weight: 700;
+            color: #8c725d;
             text-align: center;
-            padding-top: 8px;
-            border-top: 1px solid rgba(246, 196, 69, 0.15);
+            padding: 10px;
+            border-top: 2px dashed #ecd8b8;
             width: 100%;
-            max-width: 1080px;
+            max-width: 1120px;
         }
 
 
@@ -5038,36 +5304,39 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
         </div>
     </div>
 
-    <!-- ══════ 🎮 遊戲化模式選擇大廳 (Game Mode Select Hub Overlay) ══════ -->
+    <!-- ══════ 🍃 《動物森友會》島嶼清新風格模式大廳 (Animal Crossing Mode Hub) ══════ -->
     <div id="mode-hub-overlay" style="display:none;">
         <div class="mode-hub-header">
-            <div class="mode-hub-profile" onclick="openProfileModal()" title="點擊修改個人頭像與暱稱">
-                <span id="hub-avatar" style="font-size:22px;">🧢</span>
+            <div class="mode-hub-profile" onclick="openProfileModal()" title="點擊檢視/修改島民護照頭像與暱稱">
+                <span id="hub-avatar" style="font-size:24px;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.15));">🧢</span>
                 <div>
-                    <div id="hub-nick" style="font-size:13px;font-weight:800;line-height:1.2;">叫獸aka愛叫的野獸</div>
-                    <div id="hub-dept" style="font-size:10px;color:rgba(255,255,255,0.65);">國立中興大學 · 資訊工程</div>
+                    <div style="display:flex;align-items:center;gap:4px;">
+                        <span id="hub-nick" style="font-size:13px;font-weight:900;color:#3d2b1f;line-height:1.2;">叫獸aka愛叫的野獸</span>
+                        <span style="font-size:9px;background:#e2d1b3;color:#6b5239;padding:1px 5px;border-radius:6px;font-weight:800;">島民</span>
+                    </div>
+                    <div id="hub-dept" style="font-size:10px;color:#85694f;font-weight:700;">國立中興大學 · 資訊工程</div>
                 </div>
-                <span style="font-size:11px;opacity:0.7;">⚙️</span>
+                <span style="font-size:11px;color:#85694f;">✏️</span>
             </div>
             <div class="mode-hub-brand">
-                <h1 class="mode-hub-title">NCHU PICKLEBALL ARENA</h1>
-                <div class="mode-hub-subtitle">國立中興大學匹克球學習社群 · 運動科技體驗館</div>
+                <h1 class="mode-hub-title">🍃 中興湖動森匹克島</h1>
+                <div class="mode-hub-subtitle">ZHONGXING LAKE ISLAND RESORT · PICKLEBALL ARENA</div>
             </div>
             <div class="mode-hub-controls">
-                <button type="button" class="mode-hub-btn-icon" onclick="openAudioModal()" title="音效設定">🎶 音效</button>
+                <button type="button" class="mode-hub-btn-icon" onclick="openAudioModal()" title="廣播音效設定">🎶 音效</button>
                 <button type="button" class="mode-hub-btn-icon" id="hub-webcam-btn" onclick="toggleWebcamAI()" title="切換鏡頭體感模式">📷 體感: 關</button>
-                <button type="button" class="mode-hub-btn-icon" onclick="closeModeHub()" title="關閉大廳直接進入球場" style="background:#0284c7;border-color:#38bdf8;">🎾 進入球場</button>
+                <button type="button" class="mode-hub-btn-icon mode-hub-btn-go" onclick="closeModeHub()" title="關閉大廳直接踏上球場">🎾 踏上球場</button>
             </div>
         </div>
 
         <div class="mode-hub-grid">
-            <!-- 模式卡 1: 關卡闖關挑戰 -->
+            <!-- 模式卡 1: 關卡闖關歷險 -->
             <div class="mode-card">
                 <div>
-                    <span class="mode-card-badge badge-quest">新手必練 · 5 大關卡</span>
+                    <span class="mode-card-badge badge-quest">🍃 新手必練 · 5 大關卡</span>
                     <div class="mode-card-icon">🎯</div>
-                    <h2 class="mode-card-title">關卡闖關挑戰</h2>
-                    <p class="mode-card-desc">循序漸進掌握匹克球核心規則：對角發球進區、雙彈跳、廚房區短打，一路晉級迎戰中興湖村長鵝！</p>
+                    <h2 class="mode-card-title">關卡闖關歷險</h2>
+                    <p class="mode-card-desc">循序漸進掌握匹克球核心規則：對角發球進區、雙彈跳、廚房區短打，一路晉級挑戰中興湖村長鵝！</p>
                     <div class="mode-level-pills">
                         <button type="button" class="mode-level-pill on" onclick="selectHubStage(1)">1 發球</button>
                         <button type="button" class="mode-level-pill" onclick="selectHubStage(2)">2 雙彈跳</button>
@@ -5076,27 +5345,41 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
                         <button type="button" class="mode-level-pill" onclick="selectHubStage(5)">5 冠軍賽</button>
                     </div>
                 </div>
-                <button type="button" class="mode-card-btn btn-quest" onclick="startHubQuest()">▶ 開始關卡闖關</button>
+                <button type="button" class="mode-card-btn btn-quest" onclick="startHubQuest()">▶ 開始闖關歷險</button>
             </div>
 
-            <!-- 模式卡 2: 瘋狂道具大亂鬥 -->
+            <!-- 模式卡 2: 🧱 中興湖對牆擊球連擊挑戰 (NEW!) -->
             <div class="mode-card">
                 <div>
-                    <span class="mode-card-badge badge-chaos">娛樂模式 · 盲盒神裝</span>
+                    <span class="mode-card-badge badge-wall">🧱 控球特訓 · 彈跳連擊</span>
+                    <div class="mode-card-icon">🧱</div>
+                    <h2 class="mode-card-title">對牆擊球挑戰</h2>
+                    <p class="mode-card-desc">專業匹克球必備對牆抽球練習！球場前方立起回彈練習木牆，瞄準網高標線與靶心，挑戰最高連擊次數！</p>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:6px;">
+                    <button type="button" class="mode-card-btn btn-wall" onclick="startWallPractice()">🧱 開始對牆連擊賽</button>
+                    <div style="font-size:11px;color:#8c725d;text-align:center;font-weight:700;">連續反彈命中 · 觸發 Streak Combo 加成</div>
+                </div>
+            </div>
+
+            <!-- 模式卡 3: 瘋狂道具大亂鬥 -->
+            <div class="mode-card">
+                <div>
+                    <span class="mode-card-badge badge-chaos">🍄 歡樂派對 · 盲盒神裝</span>
                     <div class="mode-card-icon">🍄</div>
                     <h2 class="mode-card-title">瘋狂道具大亂鬥</h2>
-                    <p class="mode-card-desc">拾取場上隨機空投問號盲盒！召喚巨型千斤鐵球、大火球、手持電蚊拍大戰生化仿生蒼蠅！</p>
+                    <p class="mode-card-desc">拾取場上隨機空投盲盒！召喚巨型千斤鐵球、大火球、手持電蚊拍大戰生化仿生蒼蠅！</p>
                 </div>
-                <div style="display:flex;flex-direction:column;gap:8px;">
-                    <button type="button" class="mode-card-btn btn-chaos" onclick="startHubChaos()">🍄 立即開打 (進入 Stage 6)</button>
-                    <button type="button" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.18);border-radius:10px;padding:7px;color:#facc15;font-size:12px;font-weight:700;cursor:pointer;" onclick="openItemCardsModal()">🃏 查看道具圖鑑</button>
+                <div style="display:flex;flex-direction:column;gap:6px;">
+                    <button type="button" class="mode-card-btn btn-chaos" onclick="startHubChaos()">🍄 立即開打 (Stage 6)</button>
+                    <button type="button" class="mode-card-subbtn" onclick="openItemCardsModal()">🃏 查看道具圖鑑</button>
                 </div>
             </div>
 
-            <!-- 模式卡 3: 旋球物理與競賽手冊 -->
+            <!-- 模式卡 4: 旋球物理與競賽手冊 -->
             <div class="mode-card">
                 <div>
-                    <span class="mode-card-badge badge-science">流體力學 · USA 官方手冊</span>
+                    <span class="mode-card-badge badge-science">🌪️ 流體力學 · USA 官方手冊</span>
                     <div class="mode-card-icon">🌪️</div>
                     <h2 class="mode-card-title">科普與競賽手冊</h2>
                     <p class="mode-card-desc">探索 NASA 馬格努斯效應 (Magnus Effect) 旋球微積分流體力學，與 2026 USA Pickleball 官方完整競賽手冊。</p>
@@ -5104,29 +5387,77 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
                 <div style="display:flex;flex-direction:column;gap:6px;">
                     <button type="button" class="mode-card-btn btn-science" onclick="openRulesModal('physics')">🌪️ 馬格努斯流體力學</button>
                     <div style="display:flex;gap:6px;">
-                        <button type="button" style="flex:1;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.18);border-radius:10px;padding:8px;color:#ffffff;font-size:12px;font-weight:700;cursor:pointer;" onclick="openRulesModal('rules')">📖 競賽規則手冊</button>
-                        <button type="button" style="flex:1;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.18);border-radius:10px;padding:8px;color:#38bdf8;font-size:12px;font-weight:700;cursor:pointer;" onclick="showFingerTutorial(0)">👆 旋球教學</button>
+                        <button type="button" class="mode-card-subbtn" style="flex:1;" onclick="openRulesModal('rules')">📖 競賽規則</button>
+                        <button type="button" class="mode-card-subbtn" style="flex:1;color:#2b6cb0;" onclick="showFingerTutorial(0)">👆 旋球教學</button>
                     </div>
                 </div>
             </div>
 
-            <!-- 模式卡 4: 校園榮譽英雄榜 -->
+            <!-- 模式卡 5: 島嶼榮譽與 AI 教練 -->
             <div class="mode-card">
                 <div>
-                    <span class="mode-card-badge badge-social">全校爭霸 · 系所排行</span>
+                    <span class="mode-card-badge badge-social">🏆 全校爭霸 · AI 教練</span>
                     <div class="mode-card-icon">🏆</div>
-                    <h2 class="mode-card-title">校園榮譽英雄榜</h2>
-                    <p class="mode-card-desc">檢視全校系級即時戰績排行、個人擊球動力鏈日誌與雲端榮譽殿堂，爭奪中興球王寶座！</p>
+                    <h2 class="mode-card-title">榮譽榜與 AI 教練</h2>
+                    <p class="mode-card-desc">檢視全校系級即時戰績排行、個人擊球動力鏈日誌，以及 AI 虛擬教練發力處方箋！</p>
                 </div>
                 <div style="display:flex;flex-direction:column;gap:6px;">
                     <button type="button" class="mode-card-btn btn-social" onclick="openSocial()">🏆 查閱校園排行榜</button>
-                    <button type="button" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.18);border-radius:10px;padding:8px;color:#ffffff;font-size:12px;font-weight:700;cursor:pointer;" onclick="openAuditModal()">📋 體感動力鏈日誌</button>
+                    <button type="button" class="mode-card-subbtn" onclick="openAuditModal()">📋 體感動力鏈日誌</button>
                 </div>
             </div>
         </div>
 
         <div class="mode-hub-footer">
-            🔒 零個資隱私承諾 · 姿態運算全程於本機端執行 · 國立中興大學匹克球學習社群 · 運動科技推廣中心
+            🍃 國立中興大學匹克球學習社群 · 運動科技推廣中心 · 姿態運算全程於本機端執行 · 零個資隱私承諾
+        </div>
+    </div>
+
+    <!-- ══════ 🍃 動森 NookPhone 8 宮格手機輪盤 (#nook-phone-modal) ══════ -->
+    <div id="nook-phone-modal" onclick="if(event.target===this) toggleNookPhone(false)">
+        <div class="nook-case">
+            <div class="nook-screen">
+                <div class="nook-status-bar">
+                    <span>📡 Nook Inc. 4G</span>
+                    <span>🌿 中興湖島</span>
+                    <span>🔋 100%</span>
+                </div>
+                <div class="nook-grid">
+                    <button class="nook-app" onclick="toggleNookPhone(false); openModeHub();">
+                        <div class="nook-app-icon app-hub">🏠</div>
+                        <span class="nook-app-label">模式大廳</span>
+                    </button>
+                    <button class="nook-app" onclick="toggleNookPhone(false); startWallPractice();">
+                        <div class="nook-app-icon app-wall">🧱</div>
+                        <span class="nook-app-label">對牆特訓</span>
+                    </button>
+                    <button class="nook-app" onclick="toggleNookPhone(false); toggleNavMenu('stage');">
+                        <div class="nook-app-icon app-stage">🎯</div>
+                        <span class="nook-app-label">切換關卡</span>
+                    </button>
+                    <button class="nook-app" onclick="toggleNookPhone(false); cycleDifficulty();">
+                        <div class="nook-app-icon app-diff">🤖</div>
+                        <span class="nook-app-label">對手難度</span>
+                    </button>
+                    <button class="nook-app" onclick="toggleNookPhone(false); toggleWebcamAI();">
+                        <div class="nook-app-icon app-motion">📷</div>
+                        <span class="nook-app-label">體感開關</span>
+                    </button>
+                    <button class="nook-app" onclick="toggleNookPhone(false); toggleFunMode();">
+                        <div class="nook-app-icon app-fun">🍄</div>
+                        <span class="nook-app-label">道具模式</span>
+                    </button>
+                    <button class="nook-app" onclick="toggleNookPhone(false); openSocial();">
+                        <div class="nook-app-icon app-social">🏆</div>
+                        <span class="nook-app-label">英雄榜單</span>
+                    </button>
+                    <button class="nook-app" onclick="toggleNookPhone(false); openAudioModal();">
+                        <div class="nook-app-icon app-settings">⚙️</div>
+                        <span class="nook-app-label">音效設定</span>
+                    </button>
+                </div>
+                <button class="nook-home-btn" onclick="toggleNookPhone(false)" title="收起手機"></button>
+            </div>
         </div>
     </div>
 
@@ -5160,6 +5491,20 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
         </div>
         <div id="stage3d"></div>
         <div id="vignette"></div>
+
+        <!-- 🍃 動森風格動態關卡藥丸島 (#dynamic-stage-pill) -->
+        <div id="dynamic-stage-pill" onclick="openModeHub()" title="點擊開啟模式大廳與關卡切換">
+            <span class="dsp-leaf">🍃</span>
+            <span class="dsp-stage-txt" id="dsp-stage">第 1 關 · 發球養成</span>
+            <span class="dsp-divider"></span>
+            <span class="dsp-score-txt" id="dsp-score">0 - 0</span>
+        </div>
+
+        <!-- 🍃 動森 NookPhone 懸浮小葉子按鈕 (#nook-fab) -->
+        <div id="nook-fab" onclick="toggleNookPhone(true)" title="開啟 NookPhone 快捷選單">
+            <span class="nook-fab-leaf">🍃</span>
+            <span class="nook-fab-lbl">Nook</span>
+        </div>
 
         <!-- 虛擬搖桿 + ★手機視角高低鈕 -->
         <div id="joy">
@@ -5594,7 +5939,20 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
 /* ═══════════════════════════════════════════════════════════════════
    NCHU Pickleball V5 - 系統常數、設定與資料庫 (Config & Identity)
    ═══════════════════════════════════════════════════════════════════ */
-        const APP_VERSION = 'v5.2.0';
+        const APP_VERSION = 'v5.4.0';
+
+        /* ═══════ 全域安全性與 XSS 實體轉義 (Global Security Sanitizer) ═══════ */
+        function escapeHtml(s) {
+            if (s === null || s === undefined) return '';
+            return String(s)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;')
+                .replace(/`/g, '&#96;');
+        }
+        if (typeof window !== 'undefined') window.escapeHtml = escapeHtml;
 
         /* ═══════ 雙軌物理引擎模式 (Dual Physics Modes) ═══════ */
         const PHYSICS_MODES = {
@@ -6161,7 +6519,7 @@ function apiGet(qs) {
         /* ═══════ 音效偏好 ═══════ */
 
 /* ═══════ 賽場尺寸、物理常數與 AI 難度常數 ═══════ */
-        const IS_MOBILE = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 820;
+        const IS_MOBILE = (typeof navigator !== 'undefined' && /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) || (typeof window !== 'undefined' && window.innerWidth < 820);
         const GRADE = { exposure: 0.95, hemiI: 0.90, sunI: 1.25, fillI: 0.35, rimI: 0.25, fogNear: 34, fogFar: 98 };
         const COURT_W = 6.10, COURT_L = 13.41, HALF_L = COURT_L / 2;
         const KITCHEN_D = 2.13, NET_H = 0.914, GRAVITY = 9.81;
@@ -6390,7 +6748,7 @@ function apiGet(qs) {
                 if (!this.ctx) { const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return; this.ctx = new AC(); }
                 if (this.ctx.state === 'suspended') this.ctx.resume();
             }
-            tone(type, f0, f1, dur, vol) {
+            tone(type, f0, f1, dur, vol, pan = 0) {
                 if (!AUDIO_PREFS.sfxOn || AUDIO_PREFS.master <= 0) return;
                 this.init(); if (!this.ctx) return;
                 const t = this.ctx.currentTime;
@@ -6400,15 +6758,24 @@ function apiGet(qs) {
                 o.frequency.exponentialRampToValueAtTime(Math.max(f1, 1), t + dur);
                 g.gain.setValueAtTime(Math.max(0.0009, vol * AUDIO_PREFS.master), t);
                 g.gain.exponentialRampToValueAtTime(0.0008, t + dur);
-                o.connect(g); g.connect(this.ctx.destination);
+                o.connect(g);
+                if (this.ctx.createStereoPanner && typeof pan === 'number' && pan !== 0) {
+                    const panner = this.ctx.createStereoPanner();
+                    panner.pan.setValueAtTime(Math.max(-1, Math.min(1, pan)), t);
+                    g.connect(panner);
+                    panner.connect(this.ctx.destination);
+                } else {
+                    g.connect(this.ctx.destination);
+                }
                 o.start(t); o.stop(t + dur);
             }
-            pop(p = 0.5) {
+            pop(p = 0.5, pan = 0) {
                 // 原木球拍清脆打擊聲 (Crisp Wood Paddle Pop)
-                this.tone('sine', 220 + p * 180, 55, 0.042, 0.65);
-                this.tone('triangle', 950 + p * 450, 320, 0.035, 0.18);
+                this.tone('sine', 220 + p * 180, 55, 0.042, 0.65, pan);
+                this.tone('triangle', 950 + p * 450, 320, 0.035, 0.18, pan);
             }
-            thump(p = 1) { this.tone('sine', 108, 30, 0.075, 0.30 * Math.min(1, p)); }
+            thump(p = 1, pan = 0) { this.tone('sine', 108, 30, 0.075, 0.30 * Math.min(1, p), pan); }
+            coach() { this.tone('triangle', 523.25, 659.25, 0.10, 0.22); }
             net() { this.tone('triangle', 250, 85, 0.13, 0.34); }
             fault() {
                 // 溫和抱歉的小失誤聲，非刺耳噪音
@@ -6587,7 +6954,7 @@ class Physics {
         ballGlow.material.opacity = 0.16 + Math.min(0.26, spd * 0.02);
         const hasCurve = Math.abs(this.spin) >= 0.12;
         if (hasCurve) {
-            ballGlow.material.color.set(this.spin > 0 ? 0xc084fc : 0x38bdf8);
+            ballGlow.material.color.set(this.spin > 0 ? 0xf6c445 : 0x2d6a4f);
             ballGlow.material.opacity = 0.52;
         } else {
             ballGlow.material.color.set(0xdcff6a);
@@ -6601,7 +6968,7 @@ class Physics {
             const sc = BALL_R * (hasCurve ? 5.2 : 3.8) * f;
             tr.spr.scale.set(sc, sc, 1);
             if (hasCurve) {
-                tr.spr.material.color.set(this.spin > 0 ? 0xc084fc : 0x38bdf8);
+                tr.spr.material.color.set(this.spin > 0 ? 0xf6c445 : 0x2d6a4f);
                 tr.spr.material.opacity = on ? (0.48 * f) : 0;
             } else {
                 tr.spr.material.color.set(0xdcff6a);
@@ -6645,7 +7012,17 @@ class Physics {
         }
         this.pos.addScaledVector(this.vel, h);
 
-        if (crossesNet(pz, this.pos.z, this.pos.y, this.pos.x)) {
+        // ★ 對牆擊球特訓模式 (Wall Rebound Practice): 撞擊練習木牆真實反彈
+        if (typeof isWallPractice !== 'undefined' && isWallPractice) {
+            if (pz > 0.05 && this.pos.z <= 0.05 && this.vel.z < 0) {
+                this.pos.z = 0.06;
+                this.vel.z = Math.abs(this.vel.z) * 0.88;
+                this.vel.y = Math.max(1.6, this.vel.y * 0.86 + 1.1);
+                this.vel.x = -this.vel.x * 0.72 + (Math.random() - 0.5) * 0.6;
+                if (typeof onWallHit === 'function') onWallHit(this.pos.x, this.pos.y);
+                return true;
+            }
+        } else if (crossesNet(pz, this.pos.z, this.pos.y, this.pos.x)) {
             this.pos.z = 0; this.vel.set(0, 0, 0);
             S.net(); addShake(0.1);
             popRing(this.pos.x, 0.05, 2, 0xff5555);
@@ -7055,7 +7432,14 @@ function syncPhysicsModeUI() {
             announceReferee(main, sub, isFault);
         }
         function updateScore() {
-            updatePlayerWhoLabel(); D.pv.innerText = pScore; D.av.innerText = aScore; updateScore3D(); }
+            updatePlayerWhoLabel();
+            D.pv.innerText = pScore;
+            D.av.innerText = aScore;
+            updateScore3D();
+            if (typeof updateDynamicStagePill === 'function') {
+                updateDynamicStagePill(stage, (typeof isWallPractice !== 'undefined' && isWallPractice) ? pScore : pScore, (typeof isWallPractice !== 'undefined' && isWallPractice) ? wallCombo : aScore);
+            }
+        }
         function updateGoal() {
             const goal = STAGES[stage].goal;
             let cur;
@@ -9540,11 +9924,69 @@ function cycleTeachLevelQuick() {
             }
         }
 
+        /* ═══════════════════════════════════════════════════════════
+           🍃 動森 NookPhone 與動態藥丸島控制器 (NookPhone & Dynamic HUD)
+           ═══════════════════════════════════════════════════════════ */
+        function toggleNookPhone(open) {
+            const m = document.getElementById('nook-phone-modal');
+            if (!m) return;
+            const want = (typeof open === 'boolean') ? open : !m.classList.contains('open');
+            m.classList.toggle('open', want);
+            if (want) {
+                if (typeof S !== 'undefined' && S.swap) S.swap();
+            } else {
+                if (typeof S !== 'undefined' && S.pop) S.pop(0.5);
+            }
+        }
+
+        function updateDynamicStagePill(stageNum, pScore, gScore) {
+            const sTxt = document.getElementById('dsp-stage');
+            const scTxt = document.getElementById('dsp-score');
+            if (sTxt && typeof STAGES !== 'undefined' && STAGES[stageNum]) {
+                sTxt.innerText = `第 ${stageNum} 關 · ${STAGES[stageNum].name || ''}`;
+            }
+            if (scTxt) {
+                const ps = (typeof pScore === 'number') ? pScore : (typeof score !== 'undefined' ? score : 0);
+                const gs = (typeof gScore === 'number') ? gScore : (typeof gooseScore !== 'undefined' ? gooseScore : 0);
+                scTxt.innerText = `${ps} - ${gs}`;
+            }
+        }
+
+        function startWallPractice() {
+            closeModeHub();
+            toggleNookPhone(false);
+            if (typeof initWallPractice === 'function') {
+                initWallPractice();
+            } else {
+                if (typeof toast === 'function') toast('🧱 對牆特訓', '已就緒！向練習牆推球練習連擊！');
+            }
+        }
+
+        function toggleMenuLayoutMode() {
+            const isNook = document.body.classList.toggle('layout-nook');
+            try { localStorage.setItem('nchu_menu_layout', isNook ? 'nook' : 'classic'); } catch (e) {}
+            if (typeof toast === 'function') {
+                toast('選單排法已切換', isNook ? '🍃 NookPhone 懸浮小葉子 (動森極簡無遮擋)' : '📐 經典頂部橫條');
+            }
+        }
+
+        // 預設啟用動森 NookPhone 懸浮選單（徹底擺脫工業監控橫條）
+        try {
+            const savedLayout = localStorage.getItem('nchu_menu_layout') || 'nook';
+            if (savedLayout === 'nook') {
+                document.body.classList.add('layout-nook');
+            }
+        } catch (e) {}
+
         window.openModeHub = openModeHub;
         window.closeModeHub = closeModeHub;
         window.selectHubStage = selectHubStage;
         window.startHubQuest = startHubQuest;
         window.startHubChaos = startHubChaos;
+        window.toggleNookPhone = toggleNookPhone;
+        window.updateDynamicStagePill = updateDynamicStagePill;
+        window.startWallPractice = startWallPractice;
+        window.toggleMenuLayoutMode = toggleMenuLayoutMode;
 
 
 /* ─── social.js ─── */
@@ -12465,6 +12907,8 @@ function cycleTeachLevelQuick() {
             }
         }
         let zoneServe, arc, ringLand, ringSpot, warnKitchen, rings = [];
+        let practiceWallMesh = null, isWallPractice = false, wallCombo = 0;
+        window.isWallPractice = false;
 
 /* ═══════ Three.js 場景、燈光、球場與材質初始化 ═══════ */
         const padW = new THREE.Vector3(), gPadW = new THREE.Vector3();
@@ -12678,7 +13122,7 @@ function cycleTeachLevelQuick() {
             ray = new THREE.Raycaster();
             aimPlane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
             TEX_GLOW = glowTex(); TEX_BLOB = softBlobTex();
-            buildLights(); buildEnvironment(); buildCourt(); buildNet();
+            buildLights(); buildEnvironment(); buildCourt(); buildNet(); buildPracticeWall();
             buildBall(); buildSteve(); buildCreeper(); buildGuides();
             buildAimZones(); buildRingPool();
             if (typeof FunMode !== 'undefined' && FunMode.init) FunMode.init();
@@ -13017,6 +13461,93 @@ function cycleTeachLevelQuick() {
             // 5. 對手底線後方大看板 (正對鏡頭)：中興大學匹克鵝官方錦標賽 (沉穩深邃林木綠搭配暖金字)
             buildCourtSign(6.2, 0.68, 'NCHU PICKLEBALL · 中興大學匹克鵝打秋', 'LEARNING COMMUNITY · CAMPUS LEADERBOARD ARENA', '🪿', '#142823', '#1b3a30', 0, -(HALF_L + 2.1), 0);
         }
+
+        /* ═══════ 🧱 中興湖對牆擊球特訓木牆 (Wall Rebound Practice) ═══════ */
+        function buildPracticeWall() {
+            if (practiceWallMesh) return;
+            const c = document.createElement('canvas'); c.width = 1024; c.height = 512;
+            const ctx = c.getContext('2d');
+            ctx.fillStyle = '#eddcc6'; ctx.fillRect(0, 0, 1024, 512);
+            // 木紋板條
+            ctx.strokeStyle = '#d8c4a9'; ctx.lineWidth = 4;
+            for (let y = 0; y < 512; y += 64) {
+                ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(1024, y); ctx.stroke();
+            }
+            // 0.91m 官方標準網高紅線
+            const netY = Math.round(512 * (1 - 0.91 / 3.2));
+            ctx.fillStyle = '#ef4444'; ctx.fillRect(0, netY - 6, 1024, 12);
+            ctx.fillStyle = '#ffffff'; ctx.font = 'bold 20px sans-serif'; ctx.textAlign = 'center';
+            ctx.fillText('▲ 0.91m 官方標準網高線 (NET HEIGHT) ▲', 512, netY - 10);
+
+            // 靶心甜區
+            const targetY = Math.round(512 * (1 - 1.45 / 3.2));
+            ctx.strokeStyle = '#2d6a4f'; ctx.lineWidth = 8;
+            ctx.beginPath(); ctx.arc(512, targetY, 80, 0, Math.PI * 2); ctx.stroke();
+            ctx.fillStyle = 'rgba(45, 106, 79, 0.12)'; ctx.fill();
+            ctx.strokeStyle = '#c86446'; ctx.lineWidth = 6;
+            ctx.beginPath(); ctx.arc(512, targetY, 40, 0, Math.PI * 2); ctx.stroke();
+            ctx.fillStyle = '#c86446'; ctx.beginPath(); ctx.arc(512, targetY, 15, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = '#2d6a4f'; ctx.font = 'bold 24px sans-serif';
+            ctx.fillText('⭐ 靶心甜區 (SWEET SPOT) +2分', 512, targetY + 115);
+
+            const tex = new THREE.CanvasTexture(c);
+            const wallGeo = new THREE.BoxGeometry(COURT_W + 0.6, 3.2, 0.12);
+            const wallMat = new THREE.MeshStandardMaterial({ map: tex, roughness: 0.85, metalness: 0.05 });
+            practiceWallMesh = new THREE.Mesh(wallGeo, wallMat);
+            practiceWallMesh.position.set(0, 1.6, 0);
+            practiceWallMesh.visible = false;
+            practiceWallMesh.castShadow = true;
+            practiceWallMesh.receiveShadow = true;
+            scene.add(practiceWallMesh);
+        }
+
+        function initWallPractice() {
+            isWallPractice = true;
+            window.isWallPractice = true;
+            wallCombo = 0;
+            pScore = 0; aScore = 0;
+            if (practiceWallMesh) practiceWallMesh.visible = true;
+            if (gGrp) gGrp.visible = false;
+            if (typeof updateDynamicStagePill === 'function') {
+                updateDynamicStagePill(1, 0, 0);
+                const sTxt = document.getElementById('dsp-stage');
+                if (sTxt) sTxt.innerText = '🧱 對牆特訓 · 連擊挑戰';
+            }
+            toast('🧱 對牆特訓開始！', '瞄準練習牆紅線以上反覆推球抽球！');
+            announceReferee('🧱 對牆特訓模式！', '向練習牆發球開始！', true);
+            resetServe();
+        }
+
+        function onWallHit(x, y) {
+            if (y < 0.91) {
+                S.net(); addShake(0.08);
+                popRing(x, 0.05, 1.8, 0xff5555);
+                if (wallCombo > 0) {
+                    announceReferee('⚠️ 低於網高！', `連擊中斷 (最高連擊: ${wallCombo})`, false);
+                }
+                wallCombo = 0;
+            } else {
+                wallCombo++;
+                const isBullseye = Math.abs(x) < 0.8 && Math.abs(y - 1.45) < 0.45;
+                if (isBullseye) {
+                    S.point(); addShake(0.12);
+                    popRing(x, y, 2.4, 0xf6c445);
+                    pScore += 2;
+                    announceReferee(`🎯 靶心命中！連擊 x${wallCombo}`, '得分 +2！手感極佳！', true);
+                } else {
+                    S.pop(1.0);
+                    popRing(x, y, 1.8, 0x48bb78);
+                    pScore += 1;
+                    announceReferee(`🧱 命中！連擊 x${wallCombo}`, '連續控球中！', false);
+                }
+                if (typeof updateDynamicStagePill === 'function') {
+                    updateDynamicStagePill(1, pScore, wallCombo);
+                }
+            }
+        }
+        window.initWallPractice = initWallPractice;
+        window.onWallHit = onWallHit;
+
         function buildNet() {
             netGrp = new THREE.Group();
             const nc = document.createElement('canvas'); nc.width = nc.height = 32;
@@ -13627,12 +14158,16 @@ function solveArc(fx, fy, fz, tx, tz, out, speedScale) {
             document.body.classList.remove('demo-mode-active');
             if (typeof dismissFingerTutorial === 'function') dismissFingerTutorial(true);
             stage = n;
+            isWallPractice = false;
+            window.isWallPractice = false;
+            if (practiceWallMesh) practiceWallMesh.visible = false;
             document.querySelectorAll('[data-stage]').forEach(b => b.classList.toggle('on', +b.dataset.stage === n));
             closePanel();
             D.chip.innerText = 'STAGE ' + n;
             D.name.innerText = STAGES[n].name; D.sub.innerText = STAGES[n].sub; D.desc.innerText = STAGES[n].desc;
             pScore = 0; aScore = 0; legalServes = 0; twoBounceDone = 0; serveSide = 1; server = 'PLAYER'; secondServe = false; locked = false;
             updateScore(); updateGoal();
+            if (typeof updateDynamicStagePill === 'function') updateDynamicStagePill(n, pScore, aScore);
             if (gGrp) {
                 gGrp.visible = true;
                 gGrp.position.set(0, 0, -HALF_L - 0.5);
@@ -14020,7 +14555,7 @@ function solveArc(fx, fy, fz, tx, tz, out, speedScale) {
                 }
             }
 
-            // ★ 動力鏈評分
+            // ★ 動力鏈評分與 🧑‍🏫 AI 虛擬教練即時診斷
             let chainRes = null;
             if (webcamActive) {
                 const g = gradeChain();
@@ -14028,8 +14563,20 @@ function solveArc(fx, fy, fz, tx, tz, out, speedScale) {
                     chainRes = g;
                     motionStatsAdd(g);
                     later(() => showChainFeedback(g), 1200);
+                    if (g.ordered === false && g.pElbow > 55) {
+                        if (typeof S !== 'undefined' && S.coach) S.coach();
+                        toast('🧑‍🏫 AI 教練提示', '手臂代償發力過重！試著先轉動腰髖帶動揮拍，球速更強！');
+                    } else if (g.ordered === true) {
+                        if (typeof S !== 'undefined' && S.coach) S.coach();
+                        toast('🧑‍🏫 AI 教練讚賞', '極佳！標準人體動力鏈發力時序（腰➔肩➔肘）！');
+                    }
                 }
                 kcReset();
+            }
+
+            // ★ 手機觸覺震動反饋 (Haptic Vibration)
+            if (typeof navigator !== 'undefined' && navigator.vibrate) {
+                try { navigator.vibrate(25); } catch (_) {}
             }
 
             // ★ v5.0.14: 擊球力道四級階梯 (依手指揮動幅度/位移/速度精準判斷: 0動=被動擋球/掛網, 微動=廚房Dink, 中推=過渡深球, 大揮=抽殺)
@@ -14065,6 +14612,29 @@ function solveArc(fx, fy, fz, tx, tz, out, speedScale) {
                 ch = 0.55 + t * 0.45; // 0.55 ~ 1.0 (重砲抽殺)
             }
             swingT = 0;
+
+            // ★ 🧱 對牆擊球特訓模式 (Wall Rebound Practice): 朝木牆瞄準發射
+            if (isWallPractice) {
+                const tz = 0.05;
+                const tx = THREE.MathUtils.clamp((sw.distX || 0) * 0.02, -1.8, 1.8);
+                const spdScale = Math.min(1.4, Math.max(0.7, ch * 1.6));
+                solveArc(b.x, b.y, b.z, tx, tz, PH.vel, spdScale);
+                S.pop(0.85);
+                return;
+            }
+
+            // ★ 🌟 第三桿放短 (Third Shot Drop) 戰術判定：發球後第 3 桿自後場打出柔和下墜球落入廚房區
+            const isThirdShot = (rallyHits === 1);
+            if (isThirdShot && b.z > 3.6 && ch <= 0.28 && !isPassiveBlock) {
+                const tz = -1.2; // 精準落入對手廚房區
+                const tx = THREE.MathUtils.clamp(padX * 0.6, -1.5, 1.5);
+                solveArc(b.x, b.y, b.z, tx, tz, PH.vel, 0.76);
+                toast('🌟 完美第三桿放短！', 'PERFECT THIRD SHOT DROP · 成功瓦解對手網前壓迫！');
+                announceReferee('🌟 完美第三桿放短！', '精準落入廚房區！', true);
+                popRing(b.x, b.z, 2.2, 0xf6c445);
+                S.point();
+                return;
+            }
 
             // ★ 簡化直覺落點與自旋 (寶可夢 GO 曲球機制)
             let tx = 0, spin = 0;
@@ -15191,11 +15761,7 @@ function updateGuides(dt) {
         function safePid(s) { return String(s == null ? '' : s).replace(/[^A-Za-z0-9_\-]/g, ''); }
         function safeNum(v) { const n = Number(v); return isFinite(n) ? n : 0; }
 
-        function escapeHtml(s) {
-            if (!s) return '';
-            return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-                .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-        }
+        /* escapeHtml 已於 config.js 全域宣告 (含完整 XSS 與反引號 &#96; 防禦) */
         let socialTab = 'lb';
         function openSocial() {
             closePanel();

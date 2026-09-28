@@ -37,6 +37,8 @@
             }
         }
         let zoneServe, arc, ringLand, ringSpot, warnKitchen, rings = [];
+        let practiceWallMesh = null, isWallPractice = false, wallCombo = 0;
+        window.isWallPractice = false;
 
 /* ═══════ Three.js 場景、燈光、球場與材質初始化 ═══════ */
         const padW = new THREE.Vector3(), gPadW = new THREE.Vector3();
@@ -250,7 +252,7 @@
             ray = new THREE.Raycaster();
             aimPlane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
             TEX_GLOW = glowTex(); TEX_BLOB = softBlobTex();
-            buildLights(); buildEnvironment(); buildCourt(); buildNet();
+            buildLights(); buildEnvironment(); buildCourt(); buildNet(); buildPracticeWall();
             buildBall(); buildSteve(); buildCreeper(); buildGuides();
             buildAimZones(); buildRingPool();
             if (typeof FunMode !== 'undefined' && FunMode.init) FunMode.init();
@@ -589,6 +591,93 @@
             // 5. 對手底線後方大看板 (正對鏡頭)：中興大學匹克鵝官方錦標賽 (沉穩深邃林木綠搭配暖金字)
             buildCourtSign(6.2, 0.68, 'NCHU PICKLEBALL · 中興大學匹克鵝打秋', 'LEARNING COMMUNITY · CAMPUS LEADERBOARD ARENA', '🪿', '#142823', '#1b3a30', 0, -(HALF_L + 2.1), 0);
         }
+
+        /* ═══════ 🧱 中興湖對牆擊球特訓木牆 (Wall Rebound Practice) ═══════ */
+        function buildPracticeWall() {
+            if (practiceWallMesh) return;
+            const c = document.createElement('canvas'); c.width = 1024; c.height = 512;
+            const ctx = c.getContext('2d');
+            ctx.fillStyle = '#eddcc6'; ctx.fillRect(0, 0, 1024, 512);
+            // 木紋板條
+            ctx.strokeStyle = '#d8c4a9'; ctx.lineWidth = 4;
+            for (let y = 0; y < 512; y += 64) {
+                ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(1024, y); ctx.stroke();
+            }
+            // 0.91m 官方標準網高紅線
+            const netY = Math.round(512 * (1 - 0.91 / 3.2));
+            ctx.fillStyle = '#ef4444'; ctx.fillRect(0, netY - 6, 1024, 12);
+            ctx.fillStyle = '#ffffff'; ctx.font = 'bold 20px sans-serif'; ctx.textAlign = 'center';
+            ctx.fillText('▲ 0.91m 官方標準網高線 (NET HEIGHT) ▲', 512, netY - 10);
+
+            // 靶心甜區
+            const targetY = Math.round(512 * (1 - 1.45 / 3.2));
+            ctx.strokeStyle = '#2d6a4f'; ctx.lineWidth = 8;
+            ctx.beginPath(); ctx.arc(512, targetY, 80, 0, Math.PI * 2); ctx.stroke();
+            ctx.fillStyle = 'rgba(45, 106, 79, 0.12)'; ctx.fill();
+            ctx.strokeStyle = '#c86446'; ctx.lineWidth = 6;
+            ctx.beginPath(); ctx.arc(512, targetY, 40, 0, Math.PI * 2); ctx.stroke();
+            ctx.fillStyle = '#c86446'; ctx.beginPath(); ctx.arc(512, targetY, 15, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = '#2d6a4f'; ctx.font = 'bold 24px sans-serif';
+            ctx.fillText('⭐ 靶心甜區 (SWEET SPOT) +2分', 512, targetY + 115);
+
+            const tex = new THREE.CanvasTexture(c);
+            const wallGeo = new THREE.BoxGeometry(COURT_W + 0.6, 3.2, 0.12);
+            const wallMat = new THREE.MeshStandardMaterial({ map: tex, roughness: 0.85, metalness: 0.05 });
+            practiceWallMesh = new THREE.Mesh(wallGeo, wallMat);
+            practiceWallMesh.position.set(0, 1.6, 0);
+            practiceWallMesh.visible = false;
+            practiceWallMesh.castShadow = true;
+            practiceWallMesh.receiveShadow = true;
+            scene.add(practiceWallMesh);
+        }
+
+        function initWallPractice() {
+            isWallPractice = true;
+            window.isWallPractice = true;
+            wallCombo = 0;
+            pScore = 0; aScore = 0;
+            if (practiceWallMesh) practiceWallMesh.visible = true;
+            if (gGrp) gGrp.visible = false;
+            if (typeof updateDynamicStagePill === 'function') {
+                updateDynamicStagePill(1, 0, 0);
+                const sTxt = document.getElementById('dsp-stage');
+                if (sTxt) sTxt.innerText = '🧱 對牆特訓 · 連擊挑戰';
+            }
+            toast('🧱 對牆特訓開始！', '瞄準練習牆紅線以上反覆推球抽球！');
+            announceReferee('🧱 對牆特訓模式！', '向練習牆發球開始！', true);
+            resetServe();
+        }
+
+        function onWallHit(x, y) {
+            if (y < 0.91) {
+                S.net(); addShake(0.08);
+                popRing(x, 0.05, 1.8, 0xff5555);
+                if (wallCombo > 0) {
+                    announceReferee('⚠️ 低於網高！', `連擊中斷 (最高連擊: ${wallCombo})`, false);
+                }
+                wallCombo = 0;
+            } else {
+                wallCombo++;
+                const isBullseye = Math.abs(x) < 0.8 && Math.abs(y - 1.45) < 0.45;
+                if (isBullseye) {
+                    S.point(); addShake(0.12);
+                    popRing(x, y, 2.4, 0xf6c445);
+                    pScore += 2;
+                    announceReferee(`🎯 靶心命中！連擊 x${wallCombo}`, '得分 +2！手感極佳！', true);
+                } else {
+                    S.pop(1.0);
+                    popRing(x, y, 1.8, 0x48bb78);
+                    pScore += 1;
+                    announceReferee(`🧱 命中！連擊 x${wallCombo}`, '連續控球中！', false);
+                }
+                if (typeof updateDynamicStagePill === 'function') {
+                    updateDynamicStagePill(1, pScore, wallCombo);
+                }
+            }
+        }
+        window.initWallPractice = initWallPractice;
+        window.onWallHit = onWallHit;
+
         function buildNet() {
             netGrp = new THREE.Group();
             const nc = document.createElement('canvas'); nc.width = nc.height = 32;
@@ -1199,12 +1288,16 @@ function solveArc(fx, fy, fz, tx, tz, out, speedScale) {
             document.body.classList.remove('demo-mode-active');
             if (typeof dismissFingerTutorial === 'function') dismissFingerTutorial(true);
             stage = n;
+            isWallPractice = false;
+            window.isWallPractice = false;
+            if (practiceWallMesh) practiceWallMesh.visible = false;
             document.querySelectorAll('[data-stage]').forEach(b => b.classList.toggle('on', +b.dataset.stage === n));
             closePanel();
             D.chip.innerText = 'STAGE ' + n;
             D.name.innerText = STAGES[n].name; D.sub.innerText = STAGES[n].sub; D.desc.innerText = STAGES[n].desc;
             pScore = 0; aScore = 0; legalServes = 0; twoBounceDone = 0; serveSide = 1; server = 'PLAYER'; secondServe = false; locked = false;
             updateScore(); updateGoal();
+            if (typeof updateDynamicStagePill === 'function') updateDynamicStagePill(n, pScore, aScore);
             if (gGrp) {
                 gGrp.visible = true;
                 gGrp.position.set(0, 0, -HALF_L - 0.5);
@@ -1592,7 +1685,7 @@ function solveArc(fx, fy, fz, tx, tz, out, speedScale) {
                 }
             }
 
-            // ★ 動力鏈評分
+            // ★ 動力鏈評分與 🧑‍🏫 AI 虛擬教練即時診斷
             let chainRes = null;
             if (webcamActive) {
                 const g = gradeChain();
@@ -1600,8 +1693,20 @@ function solveArc(fx, fy, fz, tx, tz, out, speedScale) {
                     chainRes = g;
                     motionStatsAdd(g);
                     later(() => showChainFeedback(g), 1200);
+                    if (g.ordered === false && g.pElbow > 55) {
+                        if (typeof S !== 'undefined' && S.coach) S.coach();
+                        toast('🧑‍🏫 AI 教練提示', '手臂代償發力過重！試著先轉動腰髖帶動揮拍，球速更強！');
+                    } else if (g.ordered === true) {
+                        if (typeof S !== 'undefined' && S.coach) S.coach();
+                        toast('🧑‍🏫 AI 教練讚賞', '極佳！標準人體動力鏈發力時序（腰➔肩➔肘）！');
+                    }
                 }
                 kcReset();
+            }
+
+            // ★ 手機觸覺震動反饋 (Haptic Vibration)
+            if (typeof navigator !== 'undefined' && navigator.vibrate) {
+                try { navigator.vibrate(25); } catch (_) {}
             }
 
             // ★ v5.0.14: 擊球力道四級階梯 (依手指揮動幅度/位移/速度精準判斷: 0動=被動擋球/掛網, 微動=廚房Dink, 中推=過渡深球, 大揮=抽殺)
@@ -1637,6 +1742,29 @@ function solveArc(fx, fy, fz, tx, tz, out, speedScale) {
                 ch = 0.55 + t * 0.45; // 0.55 ~ 1.0 (重砲抽殺)
             }
             swingT = 0;
+
+            // ★ 🧱 對牆擊球特訓模式 (Wall Rebound Practice): 朝木牆瞄準發射
+            if (isWallPractice) {
+                const tz = 0.05;
+                const tx = THREE.MathUtils.clamp((sw.distX || 0) * 0.02, -1.8, 1.8);
+                const spdScale = Math.min(1.4, Math.max(0.7, ch * 1.6));
+                solveArc(b.x, b.y, b.z, tx, tz, PH.vel, spdScale);
+                S.pop(0.85);
+                return;
+            }
+
+            // ★ 🌟 第三桿放短 (Third Shot Drop) 戰術判定：發球後第 3 桿自後場打出柔和下墜球落入廚房區
+            const isThirdShot = (rallyHits === 1);
+            if (isThirdShot && b.z > 3.6 && ch <= 0.28 && !isPassiveBlock) {
+                const tz = -1.2; // 精準落入對手廚房區
+                const tx = THREE.MathUtils.clamp(padX * 0.6, -1.5, 1.5);
+                solveArc(b.x, b.y, b.z, tx, tz, PH.vel, 0.76);
+                toast('🌟 完美第三桿放短！', 'PERFECT THIRD SHOT DROP · 成功瓦解對手網前壓迫！');
+                announceReferee('🌟 完美第三桿放短！', '精準落入廚房區！', true);
+                popRing(b.x, b.z, 2.2, 0xf6c445);
+                S.point();
+                return;
+            }
 
             // ★ 簡化直覺落點與自旋 (寶可夢 GO 曲球機制)
             let tx = 0, spin = 0;
@@ -2763,11 +2891,7 @@ function updateGuides(dt) {
         function safePid(s) { return String(s == null ? '' : s).replace(/[^A-Za-z0-9_\-]/g, ''); }
         function safeNum(v) { const n = Number(v); return isFinite(n) ? n : 0; }
 
-        function escapeHtml(s) {
-            if (!s) return '';
-            return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-                .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-        }
+        /* escapeHtml 已於 config.js 全域宣告 (含完整 XSS 與反引號 &#96; 防禦) */
         let socialTab = 'lb';
         function openSocial() {
             closePanel();

@@ -2188,3 +2188,205 @@
     color: #94a3b8;
     opacity: 0.45;
 }
+
+/* ═══════════════════════════════════════════════════════════
+   🍃 動森 NookPhone 懸浮小葉子輪盤與動態藥丸島 (ACNH NookPhone HUD)
+   ═══════════════════════════════════════════════════════════ */
+body.layout-nook #nav-wrapper {
+    display: none !important;
+}
+
+/* 頂部中央動態關卡藥丸島 */
+#dynamic-stage-pill {
+    position: fixed;
+    top: calc(10px + env(safe-area-inset-top));
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 105;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(253, 250, 242, 0.94);
+    border: 2px solid #ecd8b8;
+    border-radius: 99px;
+    padding: 6px 16px;
+    box-shadow: 0 4px 16px rgba(90, 60, 30, 0.12), 0 2px 0 #ebd8bc;
+    cursor: pointer;
+    user-select: none;
+    transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+    backdrop-filter: blur(10px);
+}
+#dynamic-stage-pill:hover {
+    background: #ffffff;
+    transform: translateX(-50%) translateY(-2px);
+    box-shadow: 0 6px 20px rgba(90, 60, 30, 0.18), 0 3px 0 #ecd8b8;
+}
+#dynamic-stage-pill:active {
+    transform: translateX(-50%) translateY(1px);
+    box-shadow: 0 1px 4px rgba(90, 60, 30, 0.12);
+}
+.dsp-leaf { font-size: 14px; animation: floatLeaf 3s ease-in-out infinite; }
+@keyframes floatLeaf { 0%, 100% { transform: rotate(0deg); } 50% { transform: rotate(12deg) scale(1.1); } }
+.dsp-stage-txt { font-size: 13px; font-weight: 900; color: #2d6a4f; }
+.dsp-divider { width: 1px; height: 12px; background: #ecd8b8; }
+.dsp-score-txt { font-size: 13px; font-weight: 900; color: #c86446; letter-spacing: 0.5px; }
+
+/* 右側動森小葉子懸浮按鈕 (NookPhone FAB) */
+#nook-fab {
+    position: fixed;
+    top: calc(10px + env(safe-area-inset-top));
+    right: 12px;
+    z-index: 110;
+    width: 44px;
+    height: 44px;
+    border-radius: 99px;
+    background: #2d6a4f;
+    border: 2.5px solid #ecd8b8;
+    box-shadow: 0 4px 14px rgba(45, 106, 79, 0.45), 0 3px 0 #1b4332;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    user-select: none;
+    transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+#nook-fab:hover {
+    transform: scale(1.08) translateY(-2px);
+    box-shadow: 0 6px 18px rgba(45, 106, 79, 0.55), 0 4px 0 #1b4332;
+    background: #357d5e;
+}
+#nook-fab:active {
+    transform: scale(0.96) translateY(3px);
+    box-shadow: 0 0 0 transparent;
+}
+.nook-fab-leaf { font-size: 20px; line-height: 1; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.2)); }
+.nook-fab-lbl { font-size: 8px; font-weight: 900; color: #fcfbf7; letter-spacing: -0.2px; margin-top: 1px; }
+
+/* NookPhone 手機輪盤 Modal (#nook-phone-modal) */
+#nook-phone-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(40, 25, 15, 0.45);
+    backdrop-filter: blur(8px);
+    padding: 20px;
+    box-sizing: border-box;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.22s ease;
+}
+#nook-phone-modal.open {
+    opacity: 1;
+    pointer-events: auto;
+}
+.nook-case {
+    width: 100%;
+    max-width: 340px;
+    background: #2b3d36;
+    border: 6px solid #e8decb;
+    border-radius: 40px;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.4), inset 0 2px 6px rgba(255, 255, 255, 0.15);
+    padding: 16px 14px 20px 14px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    transform: scale(0.85);
+    transition: transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+#nook-phone-modal.open .nook-case {
+    transform: scale(1);
+}
+.nook-screen {
+    width: 100%;
+    background: #fdfaf2;
+    border-radius: 28px;
+    padding: 16px 12px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    border: 2px solid #dfcca9;
+    box-shadow: inset 0 2px 6px rgba(100, 70, 40, 0.08);
+}
+.nook-status-bar {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 11px;
+    font-weight: 800;
+    color: #8b6b4d;
+    padding-bottom: 8px;
+    border-bottom: 1.5px dashed #eddcc6;
+    margin-bottom: 14px;
+}
+.nook-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px 8px;
+    width: 100%;
+    justify-items: center;
+}
+.nook-app {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    cursor: pointer;
+    background: none;
+    border: none;
+    padding: 0;
+    width: 100%;
+    transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.nook-app:hover {
+    transform: scale(1.1);
+}
+.nook-app:active {
+    transform: scale(0.92);
+}
+.nook-app-icon {
+    width: 52px;
+    height: 52px;
+    border-radius: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 26px;
+    box-shadow: 0 4px 10px rgba(100, 70, 40, 0.15), 0 3px 0 var(--app-shadow, #bbb);
+    border: 2px solid rgba(255, 255, 255, 0.6);
+}
+.nook-app-label {
+    font-size: 11px;
+    font-weight: 800;
+    color: #4a3728;
+    text-align: center;
+    white-space: nowrap;
+}
+.app-hub { background: #60a5fa; --app-shadow: #2563eb; }
+.app-wall { background: #fb923c; --app-shadow: #c2410c; }
+.app-stage { background: #4ade80; --app-shadow: #16a34a; }
+.app-diff { background: #f472b6; --app-shadow: #db2777; }
+.app-motion { background: #2dd4bf; --app-shadow: #0f766e; }
+.app-fun { background: #facc15; --app-shadow: #ca8a04; }
+.app-social { background: #fbbf24; --app-shadow: #b45309; }
+.app-settings { background: #a78bfa; --app-shadow: #7c3aed; }
+
+.nook-home-btn {
+    margin-top: 14px;
+    width: 48px;
+    height: 14px;
+    border-radius: 99px;
+    background: #dfcca9;
+    border: 1.5px solid #c9b48f;
+    cursor: pointer;
+    box-shadow: 0 2px 0 #bfa881;
+    transition: all 0.15s;
+}
+.nook-home-btn:hover { background: #ecd8b8; }
+.nook-home-btn:active { transform: translateY(2px); box-shadow: 0 0 0 transparent; }

@@ -42,7 +42,7 @@
                 if (!this.ctx) { const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return; this.ctx = new AC(); }
                 if (this.ctx.state === 'suspended') this.ctx.resume();
             }
-            tone(type, f0, f1, dur, vol) {
+            tone(type, f0, f1, dur, vol, pan = 0) {
                 if (!AUDIO_PREFS.sfxOn || AUDIO_PREFS.master <= 0) return;
                 this.init(); if (!this.ctx) return;
                 const t = this.ctx.currentTime;
@@ -52,15 +52,24 @@
                 o.frequency.exponentialRampToValueAtTime(Math.max(f1, 1), t + dur);
                 g.gain.setValueAtTime(Math.max(0.0009, vol * AUDIO_PREFS.master), t);
                 g.gain.exponentialRampToValueAtTime(0.0008, t + dur);
-                o.connect(g); g.connect(this.ctx.destination);
+                o.connect(g);
+                if (this.ctx.createStereoPanner && typeof pan === 'number' && pan !== 0) {
+                    const panner = this.ctx.createStereoPanner();
+                    panner.pan.setValueAtTime(Math.max(-1, Math.min(1, pan)), t);
+                    g.connect(panner);
+                    panner.connect(this.ctx.destination);
+                } else {
+                    g.connect(this.ctx.destination);
+                }
                 o.start(t); o.stop(t + dur);
             }
-            pop(p = 0.5) {
+            pop(p = 0.5, pan = 0) {
                 // 原木球拍清脆打擊聲 (Crisp Wood Paddle Pop)
-                this.tone('sine', 220 + p * 180, 55, 0.042, 0.65);
-                this.tone('triangle', 950 + p * 450, 320, 0.035, 0.18);
+                this.tone('sine', 220 + p * 180, 55, 0.042, 0.65, pan);
+                this.tone('triangle', 950 + p * 450, 320, 0.035, 0.18, pan);
             }
-            thump(p = 1) { this.tone('sine', 108, 30, 0.075, 0.30 * Math.min(1, p)); }
+            thump(p = 1, pan = 0) { this.tone('sine', 108, 30, 0.075, 0.30 * Math.min(1, p), pan); }
+            coach() { this.tone('triangle', 523.25, 659.25, 0.10, 0.22); }
             net() { this.tone('triangle', 250, 85, 0.13, 0.34); }
             fault() {
                 // 溫和抱歉的小失誤聲，非刺耳噪音
