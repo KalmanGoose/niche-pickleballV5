@@ -6199,424 +6199,66 @@ I_syn(t) = w_syn · x · u · (dθ/dt)</div>
                 </div>
             </div>
 
-            <!-- 2.5D 校園大地圖純代碼活沙盤視口 (.hub-map-viewport) -->
+            <!-- 2.5D 校園大地圖沙盤視口 (.hub-map-viewport) -->
             <div class="hub-map-viewport" id="hub-map-viewport">
-                <!-- 🌊 [底層] Canvas 2.5D 動態活水、波光水斑、黑天鵝巡航與水上浮島小碼頭 -->
-                <canvas id="hub-water-canvas"></canvas>
+                <!-- 🍃 100% 正宗動森手繪中興湖校園大地圖 (無雜字純淨超高解析底圖) -->
+                <img src="images/nchu_map_2.5d.jpg" alt="國立中興大學中興湖 2.5D 動森校園導覽沙盤" class="hub-map-img" id="hub-map-bg-img"
+                     onerror="this.src='images/pickleball_action.jpg';">
 
-                <!-- 🏛️ [中層] 純代碼 SVG 動森中興湖地景、五大實景建築群與校園設施 (帶湖面鏤空遮罩) -->
-                <svg id="hub-svg-scenery" viewBox="0 0 450 800" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
-                    <defs>
-                        <!-- 天空漸層 -->
-                        <linearGradient id="sky-grad" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stop-color="#bae6fd" stop-opacity="0.85" />
-                            <stop offset="60%" stop-color="#e0f2fe" stop-opacity="0.5" />
-                            <stop offset="100%" stop-color="#f0fdf4" stop-opacity="0" />
-                        </linearGradient>
-
-                        <!-- 動森草皮大地漸層 -->
-                        <linearGradient id="grass-grad" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stop-color="#95d5b2" />
-                            <stop offset="35%" stop-color="#74c69d" />
-                            <stop offset="100%" stop-color="#52b788" />
-                        </linearGradient>
-
-                        <!-- 行政大樓紅瓦屋頂漸層 -->
-                        <linearGradient id="roof-admin" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stop-color="#dc2626" />
-                            <stop offset="100%" stop-color="#991b1b" />
-                        </linearGradient>
-                        <linearGradient id="roof-admin-ridge" x1="0" y1="0" x2="1" y2="0">
-                            <stop offset="0%" stop-color="#f59e0b" />
-                            <stop offset="50%" stop-color="#fbbf24" />
-                            <stop offset="100%" stop-color="#d97706" />
-                        </linearGradient>
-
-                        <!-- 社管大樓立面漸層 -->
-                        <linearGradient id="facade-social" x1="0" y1="0" x2="1" y2="0">
-                            <stop offset="0%" stop-color="#fef08a" />
-                            <stop offset="70%" stop-color="#fef9c3" />
-                            <stop offset="100%" stop-color="#fde047" />
-                        </linearGradient>
-
-                        <!-- 生科大樓立面漸層 -->
-                        <linearGradient id="facade-lifesci" x1="0" y1="0" x2="1" y2="0">
-                            <stop offset="0%" stop-color="#f1f5f9" />
-                            <stop offset="100%" stop-color="#cbd5e1" />
-                        </linearGradient>
-
-                        <!-- 農環大樓紅磚漸層 -->
-                        <linearGradient id="facade-agri" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stop-color="#ea580c" />
-                            <stop offset="100%" stop-color="#9a3412" />
-                        </linearGradient>
-
-                        <!-- 圖書館玻璃帷幕漸層 -->
-                        <linearGradient id="facade-lib-glass" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stop-color="#38bdf8" />
-                            <stop offset="50%" stop-color="#0284c7" />
-                            <stop offset="100%" stop-color="#0369a1" />
-                        </linearGradient>
-
-                        <!-- 柔和陰影與發光濾鏡 -->
-                        <filter id="soft-shadow" x="-10%" y="-10%" width="125%" height="130%">
-                            <feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#1b4332" flood-opacity="0.18" />
-                        </filter>
-                        <filter id="bldg-shadow" x="-15%" y="-10%" width="135%" height="130%">
-                            <feDropShadow dx="2" dy="5" stdDeviation="5" flood-color="#143622" flood-opacity="0.25" />
-                        </filter>
-                        <filter id="glow-gold" x="-20%" y="-20%" width="140%" height="140%">
-                            <feGaussianBlur stdDeviation="3" result="blur" />
-                            <feComposite in="SourceGraphic" in2="blur" operator="over" />
-                        </filter>
-
-                        <!-- 中興湖鏤空遮罩 (Mask): 挖空秋海棠湖水區域，讓 Canvas 活水 100% 露出來 -->
-                        <mask id="lake-cutout">
-                            <rect x="0" y="0" width="450" height="800" fill="#ffffff" />
-                            <path d="M 110 410 C 90 480 160 560 250 545 C 340 530 375 470 360 400 C 350 340 290 310 225 320 C 170 330 125 360 110 410 Z" fill="#000000" />
-                        </mask>
-                    </defs>
-
-                    <!-- 1. 天空背景與動森浮雲 -->
-                    <rect x="0" y="0" width="450" height="200" fill="url(#sky-grad)" />
-                    <circle cx="65" cy="45" r="18" fill="#fef08a" opacity="0.85" filter="url(#glow-gold)" />
-                    <g class="anim-cloud-1" opacity="0.85">
-                        <path d="M 20 50 Q 30 35 48 40 Q 62 25 82 35 Q 98 40 98 55 Q 98 68 80 68 L 30 68 Q 18 68 20 50 Z" fill="#ffffff" filter="url(#soft-shadow)" />
-                    </g>
-                    <g class="anim-cloud-2" opacity="0.75">
-                        <path d="M 10 95 Q 22 82 40 85 Q 52 70 70 80 Q 85 85 85 100 L 20 100 Q 8 100 10 95 Z" fill="#ffffff" filter="url(#soft-shadow)" />
-                    </g>
-
-                    <!-- 2. 動森草皮大地 (套用中興湖鏤空遮罩) -->
-                    <rect x="0" y="0" width="450" height="800" fill="url(#grass-grad)" mask="url(#lake-cutout)" />
-
-                    <!-- 草皮自然層次紋理 -->
-                    <g opacity="0.35" mask="url(#lake-cutout)">
-                        <ellipse cx="60" cy="180" rx="45" ry="25" fill="#40916c" />
-                        <ellipse cx="380" cy="180" rx="50" ry="28" fill="#40916c" />
-                        <ellipse cx="70" cy="580" rx="55" ry="30" fill="#40916c" />
-                        <ellipse cx="390" cy="620" rx="45" ry="25" fill="#40916c" />
-                        <ellipse cx="225" cy="760" rx="140" ry="35" fill="#2d6a4f" />
-                    </g>
-
-                    <!-- 3. 校園環湖步道系統與棧道 -->
-                    <g stroke="#f5ecd5" stroke-linecap="round" stroke-linejoin="round" opacity="0.95">
-                        <!-- 湖畔砂石環湖步道 -->
-                        <path d="M 105 408 C 84 482 155 566 250 552 C 346 536 382 472 366 396 C 354 332 292 302 225 312 C 166 322 120 355 105 408 Z" 
-                              fill="none" stroke="#faedcd" stroke-width="22" />
-                        <path d="M 105 408 C 84 482 155 566 250 552 C 346 536 382 472 366 396 C 354 332 292 302 225 312 C 166 322 120 355 105 408 Z" 
-                              fill="none" stroke="#d4a373" stroke-width="3" stroke-dasharray="6,8" />
-
-                        <!-- 北-南中軸步道 (行政大樓 - 中興湖 - 圖書館) -->
-                        <path d="M 225 180 L 225 315" fill="none" stroke="#faedcd" stroke-width="14" />
-                        <path d="M 225 550 L 225 640" fill="none" stroke="#faedcd" stroke-width="16" />
-
-                        <!-- 西側步道 (社管大樓方向) -->
-                        <path d="M 85 340 C 110 340 120 370 135 385" fill="none" stroke="#faedcd" stroke-width="12" />
-
-                        <!-- 東側步道 (生科大樓、農環大樓方向) -->
-                        <path d="M 365 340 C 345 340 338 360 330 375" fill="none" stroke="#faedcd" stroke-width="12" />
-                        <path d="M 365 480 C 340 480 330 460 325 445" fill="none" stroke="#faedcd" stroke-width="12" />
-                    </g>
-
-                    <!-- 湖畔木質棧道通往水上小碼頭 -->
-                    <g filter="url(#soft-shadow)">
-                        <path d="M 140 435 L 170 460" stroke="#b45309" stroke-width="9" stroke-linecap="round" />
-                        <path d="M 140 435 L 170 460" stroke="#fde68a" stroke-width="7" stroke-dasharray="3,2" stroke-linecap="butt" />
-                    </g>
-
-                    <!-- 4. 中興大學 5 大實景建築 (2.5D 手繪動森風格) -->
-
-                    <!-- 🏛️ [北側] 行政大樓 (NCHU Administration Building) -->
-                    <!-- 經典中式雙重歇山廡殿紅瓦宮殿屋頂 + 漢白玉台基 + 朱紅廊柱 + 金黃脊飾 -->
-                    <g id="bldg-admin-svg" filter="url(#bldg-shadow)">
-                        <polygon points="150,195 225,185 300,195 225,205" fill="#e2e8f0" stroke="#cbd5e1" stroke-width="1.5" />
-                        <polygon points="155,190 225,182 295,190 225,198" fill="#f8fafc" />
-                        <polygon points="215,187 235,187 230,203 220,203" fill="#b91c1c" />
-
-                        <!-- 下層宮殿本體 (米白色牆面 + 朱紅立柱) -->
-                        <rect x="168" y="152" width="114" height="32" rx="3" fill="#fdfbf7" stroke="#d1d5db" stroke-width="1.5" />
-                        <line x1="176" y1="154" x2="176" y2="184" stroke="#b91c1c" stroke-width="3" stroke-linecap="round" />
-                        <line x1="195" y1="154" x2="195" y2="184" stroke="#b91c1c" stroke-width="3" stroke-linecap="round" />
-                        <line x1="214" y1="154" x2="214" y2="184" stroke="#b91c1c" stroke-width="3" stroke-linecap="round" />
-                        <line x1="236" y1="154" x2="236" y2="184" stroke="#b91c1c" stroke-width="3" stroke-linecap="round" />
-                        <line x1="255" y1="154" x2="255" y2="184" stroke="#b91c1c" stroke-width="3" stroke-linecap="round" />
-                        <line x1="274" y1="154" x2="274" y2="184" stroke="#b91c1c" stroke-width="3" stroke-linecap="round" />
-                        <rect x="216" y="164" width="18" height="20" rx="1.5" fill="#78350f" />
-                        <rect x="212" y="154" width="26" height="7" rx="1" fill="#1e3a8a" stroke="#fbbf24" stroke-width="0.8" />
-                        <text x="225" y="159" font-size="4.2" font-weight="900" fill="#fbbf24" text-anchor="middle" font-family="sans-serif">中興大學</text>
-
-                        <!-- 下層飛簷屋頂 (朱紅歇山頂) -->
-                        <path d="M 158 152 Q 225 146 292 152 L 285 144 Q 225 140 165 144 Z" fill="url(#roof-admin)" stroke="#7f1d1d" stroke-width="1.2" />
-                        <line x1="156" y1="152" x2="294" y2="152" stroke="#fbbf24" stroke-width="1.8" stroke-linecap="round" />
-
-                        <!-- 上層主殿閣樓 -->
-                        <rect x="182" y="126" width="86" height="20" rx="2" fill="#fffefb" stroke="#cbd5e1" stroke-width="1.2" />
-                        <rect x="190" y="130" width="14" height="12" rx="1" fill="#0284c7" opacity="0.75" />
-                        <rect x="218" y="130" width="14" height="12" rx="1" fill="#0284c7" opacity="0.75" />
-                        <rect x="246" y="130" width="14" height="12" rx="1" fill="#0284c7" opacity="0.75" />
-
-                        <!-- 上層大宮殿歇山屋頂 (四角起翹飛簷) -->
-                        <path d="M 160 128 C 175 125, 200 112, 225 110 C 250 112, 275 125, 290 128 L 278 116 C 258 107, 238 104, 225 104 C 212 104, 192 107, 172 116 Z" 
-                              fill="url(#roof-admin)" stroke="#7f1d1d" stroke-width="1.5" />
-                        <path d="M 186 112 Q 225 103 264 112" fill="none" stroke="url(#roof-admin-ridge)" stroke-width="3" stroke-linecap="round" />
-                        <circle cx="225" cy="103" r="3.2" fill="#f59e0b" stroke="#ffffff" stroke-width="0.8" filter="url(#glow-gold)" />
-                    </g>
-
-                    <!-- 💼 [西側] 社管大樓 (College of Social Sciences & Management) -->
-                    <!-- 黃白立面 + 垂直景觀透明電梯井 + 遮陽飾條 -->
-                    <g id="bldg-social-svg" filter="url(#bldg-shadow)">
-                        <polygon points="18,348 88,348 100,336 30,336" fill="#143622" opacity="0.2" />
-                        <rect x="22" y="278" width="62" height="66" rx="4" fill="url(#facade-social)" stroke="#ca8a04" stroke-width="1.5" />
-                        <g fill="#0284c7" opacity="0.8">
-                            <rect x="28" y="286" width="18" height="8" rx="1" />
-                            <rect x="28" y="300" width="18" height="8" rx="1" />
-                            <rect x="28" y="314" width="18" height="8" rx="1" />
-                            <rect x="28" y="328" width="18" height="8" rx="1" />
-                        </g>
-                        <line x1="24" y1="296" x2="52" y2="296" stroke="#ffffff" stroke-width="1.5" />
-                        <line x1="24" y1="310" x2="52" y2="310" stroke="#ffffff" stroke-width="1.5" />
-                        <line x1="24" y1="324" x2="52" y2="324" stroke="#ffffff" stroke-width="1.5" />
-
-                        <!-- 🌟 標誌特徵：垂直深褐色透明景觀電梯井 -->
-                        <rect x="52" y="266" width="26" height="78" rx="3" fill="#451a03" stroke="#291205" stroke-width="1.5" />
-                        <rect x="56" y="272" width="18" height="66" rx="2" fill="#0f172a" />
-                        <line x1="65" y1="272" x2="65" y2="338" stroke="#38bdf8" stroke-width="1.2" opacity="0.8" />
-                        <!-- 亮黃電梯車廂 -->
-                        <rect x="58" y="292" width="14" height="14" rx="1.5" fill="#fde047" opacity="0.9" />
-                        <rect x="60" y="295" width="10" height="8" fill="#1e293b" />
-                        <rect x="50" y="262" width="30" height="6" rx="1.5" fill="#78350f" stroke="#451a03" stroke-width="1" />
-                    </g>
-
-                    <!-- 🔬 [東側上方] 生命科學大樓 (Life Science Building) -->
-                    <!-- 俐落幾何立方體 + 標誌性超大挑空中空方孔穿堂 + 屋頂綠色研究室 -->
-                    <g id="bldg-lifesci-svg" filter="url(#bldg-shadow)">
-                        <polygon points="352,346 422,346 434,334 364,334" fill="#143622" opacity="0.2" />
-                        <rect x="356" y="272" width="68" height="70" rx="4" fill="url(#facade-lifesci)" stroke="#94a3b8" stroke-width="1.5" />
-                        
-                        <!-- 🌟 標誌特徵：超大挑空中空方孔穿堂 (穿透露出後方天空景深) -->
-                        <rect x="372" y="290" width="36" height="26" rx="2.5" fill="#0f172a" stroke="#64748b" stroke-width="1.2" />
-                        <rect x="375" y="293" width="30" height="20" rx="1.5" fill="#e2e8f0" opacity="0.95" />
-                        <line x1="384" y1="293" x2="384" y2="313" stroke="#cbd5e1" stroke-width="1.5" />
-                        <line x1="396" y1="293" x2="396" y2="313" stroke="#cbd5e1" stroke-width="1.5" />
-
-                        <!-- 兩側研究實驗室窗帶 -->
-                        <rect x="360" y="280" width="8" height="54" rx="1" fill="#38bdf8" opacity="0.75" />
-                        <rect x="412" y="280" width="8" height="54" rx="1" fill="#38bdf8" opacity="0.75" />
-
-                        <!-- 屋頂綠能溫室 -->
-                        <rect x="362" y="264" width="28" height="9" rx="2" fill="#22c55e" opacity="0.85" stroke="#15803d" stroke-width="0.8" />
-                        <rect x="394" y="266" width="26" height="7" rx="1.5" fill="#1e3a8a" stroke="#3b82f6" stroke-width="0.8" />
-                    </g>
-
-                    <!-- 🌱 [東側下方] 農環大樓 (Agriculture & Environmental Science Building) -->
-                    <!-- 標誌性「凹」字型雙塔結構 + 陶土紅磚質感 + 空中連接廊道 -->
-                    <g id="bldg-agri-svg" filter="url(#bldg-shadow)">
-                        <polygon points="352,532 426,532 436,520 362,520" fill="#143622" opacity="0.2" />
-
-                        <!-- 🌟 標誌特徵：凹字型雙塔 (左塔 + 右塔) -->
-                        <rect x="356" y="442" width="28" height="84" rx="3" fill="url(#facade-agri)" stroke="#7c2d12" stroke-width="1.5" />
-                        <rect x="396" y="442" width="28" height="84" rx="3" fill="url(#facade-agri)" stroke="#7c2d12" stroke-width="1.5" />
-
-                        <!-- 中央退縮空中連接廊道 (形成 凹 字型凹槽) -->
-                        <rect x="382" y="470" width="16" height="28" rx="2" fill="#fffbeb" stroke="#d97706" stroke-width="1.2" />
-                        <rect x="384" y="475" width="12" height="18" rx="1" fill="#0284c7" opacity="0.8" />
-
-                        <!-- 雙塔紅磚橫向線條裝飾 -->
-                        <g stroke="#fef3c7" stroke-width="1.2" opacity="0.85">
-                            <line x1="358" y1="458" x2="382" y2="458" />
-                            <line x1="358" y1="482" x2="382" y2="482" />
-                            <line x1="358" y1="506" x2="382" y2="506" />
-                            <line x1="398" y1="458" x2="422" y2="458" />
-                            <line x1="398" y1="482" x2="422" y2="482" />
-                            <line x1="398" y1="506" x2="422" y2="506" />
-                        </g>
-
-                        <!-- 雙塔頂部農業綠化試驗植栽槽 -->
-                        <rect x="358" y="437" width="24" height="6" rx="1.5" fill="#40916c" stroke="#1b4332" stroke-width="0.8" />
-                        <rect x="398" y="437" width="24" height="6" rx="1.5" fill="#40916c" stroke="#1b4332" stroke-width="0.8" />
-                    </g>
-
-                    <!-- 📚 [南側] 圖書館 (NCHU Library) -->
-                    <!-- 現代水平條紋玻璃帷幕 + 層疊階梯式平台 + 頂部空中花園平台 -->
-                    <g id="bldg-library-svg" filter="url(#bldg-shadow)">
-                        <polygon points="140,735 225,720 310,735 225,750" fill="#e2e8f0" stroke="#cbd5e1" stroke-width="1.5" />
-                        <polygon points="146,730 225,717 304,730 225,743" fill="#f8fafc" />
-
-                        <!-- 圖書館第一層 -->
-                        <rect x="150" y="682" width="150" height="42" rx="4" fill="#f1f5f9" stroke="#94a3b8" stroke-width="1.5" />
-                        <rect x="156" y="690" width="138" height="12" rx="2" fill="url(#facade-lib-glass)" />
-                        <line x1="156" y1="696" x2="294" y2="696" stroke="#ffffff" stroke-width="1" opacity="0.6" />
-                        <rect x="214" y="706" width="22" height="18" rx="2" fill="#0284c7" opacity="0.9" stroke="#0369a1" stroke-width="1" />
-                        <rect x="223" y="707" width="4" height="16" fill="#bae6fd" />
-
-                        <!-- 圖書館第二層 -->
-                        <rect x="162" y="650" width="126" height="34" rx="3" fill="#e2e8f0" stroke="#94a3b8" stroke-width="1.2" />
-                        <rect x="168" y="656" width="114" height="14" rx="2" fill="url(#facade-lib-glass)" />
-                        <rect x="152" y="680" width="146" height="4" rx="2" fill="#40916c" />
-
-                        <!-- 圖書館第三層 -->
-                        <rect x="178" y="630" width="94" height="22" rx="3" fill="#cbd5e1" stroke="#64748b" stroke-width="1.2" />
-                        <rect x="184" y="634" width="82" height="8" rx="1.5" fill="url(#facade-lib-glass)" />
-                        <polygon points="172,630 225,622 278,630" fill="#0284c7" stroke="#0369a1" stroke-width="1" />
-                        <circle cx="225" cy="626" r="2.8" fill="#fbbf24" filter="url(#glow-gold)" />
-                    </g>
-
-                    <!-- 5. 湖畔特色設施 (木牆、野餐亭、幸運盲盒) -->
-
-                    <!-- 🧱 湖畔對牆特訓木牆 (pin-wall) -->
-                    <g id="facility-wall" filter="url(#soft-shadow)">
-                        <polygon points="120,256 168,256 160,250 112,250" fill="#143622" opacity="0.2" />
-                        <rect x="118" y="222" width="48" height="32" rx="2.5" fill="#f5deb3" stroke="#b45309" stroke-width="2" />
-                        <line x1="118" y1="230" x2="166" y2="230" stroke="#d97706" stroke-width="1.2" />
-                        <line x1="118" y1="238" x2="166" y2="238" stroke="#d97706" stroke-width="1.2" />
-                        <line x1="118" y1="246" x2="166" y2="246" stroke="#d97706" stroke-width="1.2" />
-                        <line x1="118" y1="236" x2="166" y2="236" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" />
-                        <line x1="168" y1="238" x2="163" y2="254" stroke="#0284c7" stroke-width="3" stroke-linecap="round" />
-                        <circle cx="169" cy="254" r="2.8" fill="#eab308" />
-                    </g>
-
-                    <!-- 🏓 湖畔推廣野餐亭 (pin-community) -->
-                    <g id="facility-community" filter="url(#soft-shadow)">
-                        <rect x="296" y="244" width="34" height="12" rx="2" fill="#d97706" stroke="#78350f" stroke-width="1.2" />
-                        <path d="M 288 232 L 338 232 L 342 220 L 284 220 Z" fill="#ef4444" stroke="#b91c1c" stroke-width="1.2" />
-                        <polygon points="296,232 304,232 302,220 294,220" fill="#ffffff" />
-                        <polygon points="314,232 322,232 320,220 312,220" fill="#ffffff" />
-                        <polygon points="332,232 338,232 338,220 330,220" fill="#ffffff" />
-                        <line x1="290" y1="232" x2="290" y2="252" stroke="#78350f" stroke-width="2" stroke-linecap="round" />
-                        <line x1="336" y1="232" x2="336" y2="252" stroke="#78350f" stroke-width="2" stroke-linecap="round" />
-                        <path d="M 288 222 Q 313 227 338 222" fill="none" stroke="#60a5fa" stroke-width="0.8" />
-                    </g>
-
-                    <!-- 🍄 幸運盲盒 (pin-chaos) -->
-                    <g id="facility-chaos" class="anim-box" filter="url(#glow-gold)">
-                        <rect x="314" y="534" width="24" height="24" rx="4" fill="#f59e0b" stroke="#78350f" stroke-width="2" />
-                        <rect x="316" y="536" width="20" height="20" rx="3" fill="#fbbf24" />
-                        <circle cx="318" cy="538" r="1.2" fill="#78350f" />
-                        <circle cx="334" cy="538" r="1.2" fill="#78350f" />
-                        <circle cx="318" cy="554" r="1.2" fill="#78350f" />
-                        <circle cx="334" cy="554" r="1.2" fill="#78350f" />
-                        <text x="326" y="551" font-size="14" font-weight="900" fill="#ffffff" text-anchor="middle" font-family="'Fredoka', sans-serif">?</text>
-                    </g>
-
-                    <!-- 6. 動森島嶼自然植栽 (動森蘋果樹、櫻花樹、長椅) -->
-                    <g class="anim-tree" transform="translate(112, 185)" filter="url(#soft-shadow)">
-                        <rect x="-3" y="0" width="6" height="14" fill="#78350f" rx="1.5" />
-                        <ellipse cx="0" cy="-8" rx="18" ry="16" fill="#f472b6" />
-                        <ellipse cx="-6" cy="-12" rx="12" ry="11" fill="#fbcfe8" />
-                        <circle cx="4" cy="-5" r="2.2" fill="#ffffff" opacity="0.8" />
-                    </g>
-                    <g class="anim-tree" transform="translate(335, 185)" filter="url(#soft-shadow)">
-                        <rect x="-3" y="0" width="6" height="14" fill="#78350f" rx="1.5" />
-                        <ellipse cx="0" cy="-8" rx="18" ry="16" fill="#2d6a4f" />
-                        <ellipse cx="5" cy="-12" rx="13" ry="11" fill="#52b788" />
-                        <circle cx="-5" cy="-7" r="2.8" fill="#ef4444" />
-                        <circle cx="6" cy="-4" r="2.8" fill="#ef4444" />
-                        <circle cx="0" cy="-14" r="2.8" fill="#ef4444" />
-                    </g>
-                    <g class="anim-tree" transform="translate(48, 420)" filter="url(#soft-shadow)">
-                        <rect x="-3" y="0" width="6" height="14" fill="#78350f" rx="1.5" />
-                        <ellipse cx="0" cy="-8" rx="19" ry="17" fill="#40916c" />
-                        <ellipse cx="-4" cy="-12" rx="14" ry="12" fill="#74c69d" />
-                        <circle cx="5" cy="-6" r="2.5" fill="#ef4444" />
-                    </g>
-                    <g class="anim-tree" transform="translate(90, 580)" filter="url(#soft-shadow)">
-                        <rect x="-4" y="0" width="8" height="16" fill="#78350f" rx="2" />
-                        <ellipse cx="0" cy="-10" rx="22" ry="18" fill="#1b4332" />
-                        <ellipse cx="6" cy="-14" rx="16" ry="13" fill="#40916c" />
-                    </g>
-                    <g class="anim-tree" transform="translate(365, 595)" filter="url(#soft-shadow)">
-                        <rect x="-3" y="0" width="6" height="14" fill="#78350f" rx="1.5" />
-                        <ellipse cx="0" cy="-8" rx="18" ry="15" fill="#ea580c" />
-                        <ellipse cx="-4" cy="-12" rx="13" ry="11" fill="#f97316" />
-                    </g>
-                    <g class="anim-tree" transform="translate(120, 680)" filter="url(#soft-shadow)">
-                        <rect x="-3" y="0" width="6" height="14" fill="#78350f" rx="1.5" />
-                        <ellipse cx="0" cy="-8" rx="16" ry="14" fill="#2d6a4f" />
-                        <ellipse cx="4" cy="-10" rx="11" ry="10" fill="#52b788" />
-                    </g>
-                    <g class="anim-tree" transform="translate(330, 680)" filter="url(#soft-shadow)">
-                        <rect x="-3" y="0" width="6" height="14" fill="#78350f" rx="1.5" />
-                        <ellipse cx="0" cy="-8" rx="16" ry="14" fill="#2d6a4f" />
-                        <ellipse cx="-4" cy="-10" rx="11" ry="10" fill="#52b788" />
-                    </g>
-
-                    <!-- 湖畔木長椅 -->
-                    <g filter="url(#soft-shadow)">
-                        <rect x="212" y="324" width="26" height="6" rx="1.5" fill="#b45309" stroke="#78350f" stroke-width="0.8" />
-                        <rect x="214" y="320" width="22" height="4" rx="1" fill="#d97706" />
-                        <rect x="250" y="562" width="26" height="6" rx="1.5" fill="#b45309" stroke="#78350f" stroke-width="0.8" />
-                        <rect x="252" y="558" width="22" height="4" rx="1" fill="#d97706" />
-                    </g>
-
-                    <!-- 散落小花朵 -->
-                    <g>
-                        <circle cx="108" cy="270" r="2.2" fill="#ef4444" />
-                        <circle cx="114" cy="274" r="1.8" fill="#fef08a" />
-                        <circle cx="104" cy="275" r="1.8" fill="#ffffff" />
-                        <circle cx="340" cy="270" r="2" fill="#ec4899" />
-                        <circle cx="345" cy="275" r="1.8" fill="#fef08a" />
-                        <circle cx="100" cy="510" r="2.2" fill="#fef08a" />
-                        <circle cx="106" cy="513" r="1.8" fill="#ef4444" />
-                        <circle cx="320" cy="620" r="2.2" fill="#ffffff" />
-                        <circle cx="326" cy="624" r="1.8" fill="#ec4899" />
-                    </g>
-                </svg>
-
-                <!-- 🍃 [頂層粒子] Canvas 動森落櫻花瓣與飄逸夏葉 -->
+                <!-- 🍃 動森微風落櫻花瓣與飄逸夏葉動態粒子層 -->
                 <canvas id="hub-particle-canvas"></canvas>
 
                 <!-- 🗺️ 互動點標 Pins (依據中興湖實景嚴格方位) -->
                 <!-- 1. 北側（上方）：行政大樓 (紅瓦中式宮殿屋頂) -->
-                <div class="map-pin" id="pin-admin" style="top:17%; left:50%;" onclick="openProfileModal()" title="行政大樓 · 島民中心與學號綁定">
+                <div class="map-pin" id="pin-admin" style="top:15%; left:50%;" onclick="openProfileModal()" title="行政大樓 · 島民中心與學號綁定">
                     <span class="map-pin-glow"></span>
                     <div class="map-pin-pill">🏛️ 行政大樓 · 個人設定</div>
                 </div>
 
                 <!-- 2. 西側（左方）：社管大樓 (黃白立面與垂直電梯井) -->
-                <div class="map-pin" id="pin-social-building" style="top:38.5%; left:16%;" onclick="openSocial()" title="社管大樓 · 英雄名人堂與動力鏈">
+                <div class="map-pin" id="pin-social-building" style="top:33%; left:14%;" onclick="openSocial()" title="社管大樓 · 英雄名人堂與動力鏈">
                     <span class="map-pin-glow"></span>
                     <div class="map-pin-pill">💼 社管大樓 · 英雄榜</div>
                 </div>
 
                 <!-- 3. 東側（右方上方）：生命科學大樓 (挑空方孔穿堂) -->
-                <div class="map-pin" id="pin-lifescience" style="top:38.5%; left:84%;" onclick="openRulesModal('fly')" title="生科大樓 · 果蠅神經大腦連接組">
+                <div class="map-pin" id="pin-lifescience" style="top:33%; left:86%;" onclick="openRulesModal('fly')" title="生科大樓 · 果蠅神經大腦連接組">
                     <span class="map-pin-glow"></span>
                     <div class="map-pin-pill">🔬 生科大樓 · 果蠅大腦</div>
                 </div>
 
                 <!-- 4. 東側（右方下方）：農環大樓 (凹字型雙塔) -->
-                <div class="map-pin" id="pin-agri-env" style="top:61%; left:84%;" onclick="openAuditModal()" title="農環大樓 · 姿態運算與動力鏈日誌">
+                <div class="map-pin" id="pin-agri-env" style="top:57%; left:87%;" onclick="openAuditModal()" title="農環大樓 · 姿態運算與動力鏈日誌">
                     <span class="map-pin-glow"></span>
                     <div class="map-pin-pill">🌱 農環大樓 · 體感姿態</div>
                 </div>
 
                 <!-- 5. 南側（下方）：圖書館 (灰色橫條玻璃帷幕) -->
-                <div class="map-pin" id="pin-library" style="top:85%; left:50%;" onclick="openRulesModal('rules')" title="圖書館 · USA Pickleball 官方手冊與流體力學">
+                <div class="map-pin" id="pin-library" style="top:80%; left:50%;" onclick="openRulesModal('rules')" title="圖書館 · USA Pickleball 官方手冊與流體力學">
                     <span class="map-pin-glow"></span>
                     <div class="map-pin-pill">📚 圖書館 · 規則文獻</div>
                 </div>
 
                 <!-- 6. 湖心設施: 水上小碼頭 (浮島球場闖關 Stage 1~5) -->
-                <div class="map-pin" id="pin-dock" style="top:56%; left:45%;" onclick="openDockPicker()" title="水上匹克小碼頭 · 5 大關卡闖關歷險">
+                <div class="map-pin" id="pin-dock" style="top:48%; left:60%;" onclick="openDockPicker()" title="水上匹克小碼頭 · 5 大關卡闖關歷險">
                     <span class="map-pin-glow" style="width:58px;height:58px;background:radial-gradient(circle, rgba(249,115,22,0.65) 0%, rgba(249,115,22,0) 70%);"></span>
                     <div class="map-pin-pill pill-dock">🎾 水上小碼頭 · 闖關歷險</div>
                 </div>
 
                 <!-- 7. 湖邊設施: 對牆練習木牆 -->
-                <div class="map-pin" id="pin-wall" style="top:29.5%; left:32%;" onclick="startWallPractice()" title="湖畔對牆特訓 · 彈跳連擊賽">
+                <div class="map-pin" id="pin-wall" style="top:31%; left:36%;" onclick="startWallPractice()" title="湖畔對牆特訓 · 彈跳連擊賽">
                     <span class="map-pin-glow"></span>
                     <div class="map-pin-pill pill-wall">🧱 對牆特訓 · 連擊賽</div>
                 </div>
 
                 <!-- 8. 湖邊設施: 幸運盲盒 (道具大亂鬥 Stage 6) -->
-                <div class="map-pin" id="pin-chaos" style="top:68.5%; left:73%;" onclick="startHubChaos()" title="幸運盲盒 · 瘋狂道具大亂鬥">
+                <div class="map-pin" id="pin-chaos" style="top:64%; left:75%;" onclick="startHubChaos()" title="幸運盲盒 · 瘋狂道具大亂鬥">
                     <span class="map-pin-glow"></span>
                     <div class="map-pin-pill pill-chaos">🍄 幸運盲盒 · 道具戰</div>
                 </div>
 
                 <!-- 9. 湖邊設施: 匹克球學習社群推廣野餐亭 -->
-                <div class="map-pin" id="pin-community" style="top:29.5%; left:70%;" onclick="openCommunityModal()" title="中興大學匹克球學習社群 1.0">
+                <div class="map-pin" id="pin-community" style="top:31%; left:66%;" onclick="openCommunityModal()" title="中興大學匹克球學習社群 1.0">
                     <span class="map-pin-glow"></span>
                     <div class="map-pin-pill pill-community">🏓 湖畔推廣亭 · 社群</div>
                 </div>
@@ -10398,16 +10040,21 @@ function syncPhysicsModeUI() {
 
     // 視窗調整大小
     function resizeCanvas() {
-        if (!canvas) return;
-        const rect = canvas.parentElement ? canvas.parentElement.getBoundingClientRect() : null;
+        const target = pCanvas || canvas;
+        if (!target) return;
+        const rect = target.parentElement ? target.parentElement.getBoundingClientRect() : null;
         if (rect && rect.width > 0 && rect.height > 0) {
-            canvas.width = Math.round(rect.width);
-            canvas.height = Math.round(rect.height);
-            if (pCanvas) {
-                pCanvas.width = canvas.width;
-                pCanvas.height = canvas.height;
+            const w = Math.round(rect.width);
+            const h = Math.round(rect.height);
+            if (canvas) {
+                canvas.width = w;
+                canvas.height = h;
             }
-            initParticles(canvas.width, canvas.height);
+            if (pCanvas) {
+                pCanvas.width = w;
+                pCanvas.height = h;
+            }
+            initParticles(w, h);
         }
     }
 
@@ -10415,10 +10062,10 @@ function syncPhysicsModeUI() {
     function start() {
         if (isRunning) return;
         canvas = document.getElementById('hub-water-canvas');
-        if (!canvas) return;
-        ctx = canvas.getContext('2d');
+        ctx = canvas ? canvas.getContext('2d') : null;
         pCanvas = document.getElementById('hub-particle-canvas');
         pCtx = pCanvas ? pCanvas.getContext('2d') : null;
+        if (!canvas && !pCanvas) return;
 
         resizeCanvas();
         window.addEventListener('resize', resizeCanvas);
@@ -10446,11 +10093,14 @@ function syncPhysicsModeUI() {
     }
 
     function onPointerMove(e) {
-        if (!canvas) return;
         const cx = window.innerWidth / 2;
         const cy = window.innerHeight / 2;
         targetParallaxX = ((e.clientX - cx) / cx) * 6;
         targetParallaxY = ((e.clientY - cy) / cy) * 6;
+        const bgImg = document.getElementById('hub-map-bg-img');
+        if (bgImg) {
+            bgImg.style.transform = `scale(1.03) translate(${targetParallaxX * 0.35}px, ${targetParallaxY * 0.35}px)`;
+        }
     }
 
     // 匯出全域介面

@@ -356,16 +356,21 @@
 
     // 視窗調整大小
     function resizeCanvas() {
-        if (!canvas) return;
-        const rect = canvas.parentElement ? canvas.parentElement.getBoundingClientRect() : null;
+        const target = pCanvas || canvas;
+        if (!target) return;
+        const rect = target.parentElement ? target.parentElement.getBoundingClientRect() : null;
         if (rect && rect.width > 0 && rect.height > 0) {
-            canvas.width = Math.round(rect.width);
-            canvas.height = Math.round(rect.height);
-            if (pCanvas) {
-                pCanvas.width = canvas.width;
-                pCanvas.height = canvas.height;
+            const w = Math.round(rect.width);
+            const h = Math.round(rect.height);
+            if (canvas) {
+                canvas.width = w;
+                canvas.height = h;
             }
-            initParticles(canvas.width, canvas.height);
+            if (pCanvas) {
+                pCanvas.width = w;
+                pCanvas.height = h;
+            }
+            initParticles(w, h);
         }
     }
 
@@ -373,10 +378,10 @@
     function start() {
         if (isRunning) return;
         canvas = document.getElementById('hub-water-canvas');
-        if (!canvas) return;
-        ctx = canvas.getContext('2d');
+        ctx = canvas ? canvas.getContext('2d') : null;
         pCanvas = document.getElementById('hub-particle-canvas');
         pCtx = pCanvas ? pCanvas.getContext('2d') : null;
+        if (!canvas && !pCanvas) return;
 
         resizeCanvas();
         window.addEventListener('resize', resizeCanvas);
@@ -404,11 +409,14 @@
     }
 
     function onPointerMove(e) {
-        if (!canvas) return;
         const cx = window.innerWidth / 2;
         const cy = window.innerHeight / 2;
         targetParallaxX = ((e.clientX - cx) / cx) * 6;
         targetParallaxY = ((e.clientY - cy) / cy) * 6;
+        const bgImg = document.getElementById('hub-map-bg-img');
+        if (bgImg) {
+            bgImg.style.transform = `scale(1.03) translate(${targetParallaxX * 0.35}px, ${targetParallaxY * 0.35}px)`;
+        }
     }
 
     // 匯出全域介面

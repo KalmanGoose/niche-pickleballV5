@@ -393,9 +393,9 @@ try {
         "實裝動森風格對手難度直選面板 (#diff-picker-modal) 與控制器");
     assert(v14Src.includes('class="hub-map-stage"') && v14Src.includes('id="hub-map-viewport"'),
         "大廳升級為 2.5D 動森中興湖大地圖導覽沙盤 (.hub-map-stage) 與專屬視口");
-    assert(v14Src.includes('id="hub-water-canvas"') && v14Src.includes('id="hub-svg-scenery"') &&
+    assert(v14Src.includes('images/nchu_map_2.5d.jpg') && fs.existsSync(path.join(ROOT, "images", "nchu_map_2.5d.jpg")) &&
            v14Src.includes('id="hub-particle-canvas"') && fs.existsSync(path.join(ROOT, "js", "hub_sandbox.js")),
-        "大廳升級為純代碼 2.5D 動態活沙盤 (#hub-water-canvas + #hub-svg-scenery + #hub-particle-canvas)，徹底淘汰靜態點陣圖");
+        "大廳升級為 100% 正宗動森手繪無雜字超清沙盤底圖 (images/nchu_map_2.5d.jpg) 與動態粒子微視差層 (#hub-particle-canvas)");
     assert(v14Src.includes('id="pin-admin"') && v14Src.includes('id="pin-social-building"') &&
            v14Src.includes('id="pin-lifescience"') && v14Src.includes('id="pin-agri-env"') &&
            v14Src.includes('id="pin-library"') && v14Src.includes('id="pin-dock"'),
