@@ -385,6 +385,20 @@ try {
     const benchOut = cp.execSync("node scripts/benchmark-performance.js", { cwd: ROOT, encoding: "utf8" });
     assert(benchOut.includes("基準測試完成！所有預設 10,000 幀物理與神經步進皆順利通過！"),
         "10,000 幀極限效能基準測試全數通過，單幀耗時 < 0.5ms，零記憶體洩漏");
+
+    // 9. NookPhone 難度選擇器與匹克球學習社群 Hero 實裝檢測
+    assert(v14Src.includes('id="diff-picker-modal"') && uiSrc.includes("openDiffPicker") && uiSrc.includes("selectDiffLevel"),
+        "實裝動森風格對手難度直選面板 (#diff-picker-modal) 與控制器");
+    assert(v14Src.includes('id="community-modal"') && v14Src.includes('class="hub-community-card"'),
+        "大廳融入中興大學匹克球學習社群專屬看板與彈窗 (#community-modal)");
+    assert(v14Src.includes("https://line.me/R/ti/p/@490hjerg") && v14Src.includes("nchupickleball_lab1.0"),
+        "包含官方 LINE 與 Instagram 社群社群連結按鈕");
+    assert(fs.existsSync(path.join(ROOT, "images", "pickleball_lab_logo.jpg")) && fs.existsSync(path.join(ROOT, "images", "pickleball_action.jpg")),
+        "包含社群 Lab 標誌與實戰照片本地資產檔");
+    assert(gameSrc.includes("lastSouvenirSnapshotCanvas"),
+        "拍立得 2K 完賽紀念卡具備等比例 Cover 裁切與無損快照快取防變形機制");
+    assert(gameSrc.includes("server = 'PLAYER';") && gameSrc.includes("FunMode.clearAll();"),
+        "對牆特訓徹底隔絕蒼蠅/匹克鵝發球定時器與道具空投干擾");
 } catch (e) {
     assert(false, "資安滲透防禦與 NookPhone 檢測異常", e.message);
 }

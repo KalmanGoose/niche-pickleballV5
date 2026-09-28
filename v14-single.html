@@ -2932,7 +2932,7 @@ body.layout-nook #nav-wrapper {
         .modal-overlay {
             position: fixed;
             inset: 0;
-            z-index: 200;
+            z-index: 10010;
             background: rgba(2, 6, 23, .85);
             backdrop-filter: blur(16px);
             display: flex;
@@ -4472,6 +4472,191 @@ body.layout-nook #nav-wrapper {
             max-width: 1120px;
         }
 
+        /* ═══════ 動森風格 對手難度直選彈窗 (Difficulty Picker Modal) ═══════ */
+        #diff-picker-modal .modal-card {
+            background: #fffef9;
+            border: 3px solid #e8d7be;
+            border-radius: 28px;
+            box-shadow: 0 16px 36px rgba(60, 40, 20, 0.22);
+            width: min(94vw, 420px);
+            padding: 22px;
+            text-align: left;
+        }
+        .diff-opt-card {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: #fbf8f0;
+            border: 2px solid #eadecb;
+            border-radius: 18px;
+            padding: 12px 14px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.18s ease;
+            box-shadow: 0 3px 0 #dfcfb8;
+        }
+        .diff-opt-card:hover {
+            transform: translateY(-2px);
+            background: #ffffff;
+            border-color: #2d6a4f;
+            box-shadow: 0 5px 0 #2d6a4f;
+        }
+        .diff-opt-card.on {
+            background: #f0fdf4;
+            border: 2.5px solid #2d6a4f;
+            box-shadow: 0 4px 0 #1b4332;
+        }
+        .diff-opt-icon {
+            font-size: 28px;
+            width: 44px;
+            height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #ffffff;
+            border: 1.5px solid #e5d4bc;
+            border-radius: 12px;
+            flex-shrink: 0;
+        }
+        .diff-opt-info { flex: 1; min-width: 0; }
+        .diff-opt-title { font-size: 15px; font-weight: 900; color: #3d2b1f; display: flex; align-items: center; justify-content: space-between; }
+        .diff-opt-desc { font-size: 11.5px; color: #786048; margin-top: 3px; line-height: 1.4; }
+        .diff-opt-check {
+            font-size: 16px;
+            font-weight: 900;
+            color: #2d6a4f;
+            opacity: 0;
+            transform: scale(0.6);
+            transition: all 0.18s ease;
+        }
+        .diff-opt-card.on .diff-opt-check {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        /* ═══════ 動森大廳 匹克球學習社群專屬看板 (Community Hero Section) ═══════ */
+        .hub-community-card {
+            width: 100%;
+            max-width: 1120px;
+            background: #ffffff;
+            border: 3px solid #edd9bf;
+            border-radius: 26px;
+            padding: 16px 20px;
+            box-shadow: 0 8px 24px rgba(110, 75, 45, 0.08);
+            margin-bottom: 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            box-sizing: border-box;
+        }
+        .hub-community-top {
+            display: flex;
+            gap: 14px;
+            align-items: center;
+        }
+        .hub-community-logo {
+            flex: 0 0 92px;
+            width: 92px;
+            height: 92px;
+            aspect-ratio: 1 / 1;
+            object-fit: cover;
+            border-radius: 18px;
+            border: 2px solid #ecd8b8;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.06);
+            background: #fdfaf5;
+        }
+        .hub-community-meta {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        .hub-community-tag {
+            align-self: flex-start;
+            background: #e8f5e9;
+            color: #2e7d32;
+            font-size: 11px;
+            font-weight: 900;
+            padding: 2px 8px;
+            border-radius: 12px;
+            border: 1px solid #c8e6c9;
+            margin-bottom: 3px;
+        }
+        .hub-community-h1 {
+            font-size: 18px;
+            font-weight: 900;
+            color: #1e3a5f;
+            line-height: 1.25;
+            letter-spacing: 0.5px;
+            margin: 2px 0;
+        }
+        .hub-community-sub {
+            font-size: 11.5px;
+            color: #718096;
+            font-weight: 700;
+        }
+        .hub-community-body {
+            font-size: 12.5px;
+            line-height: 1.75;
+            color: #4a3728;
+            background: #faf6ef;
+            padding: 12px 14px;
+            border-radius: 14px;
+            border: 1.5px solid #ebd8bf;
+        }
+        .hub-community-banner {
+            width: 100%;
+            aspect-ratio: 16 / 7;
+            max-height: 220px;
+            object-fit: cover;
+            border-radius: 16px;
+            border: 2px solid #edd9bf;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            display: block;
+        }
+        .hub-social-row {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 4px;
+        }
+        .hub-social-btn {
+            flex: 1;
+            min-width: 130px;
+            text-align: center;
+            text-decoration: none;
+            font-weight: 900;
+            font-size: 12.5px;
+            padding: 10px 12px;
+            border-radius: 16px;
+            box-shadow: 0 3px 0 rgba(0, 0, 0, 0.2);
+            transition: all 0.15s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            cursor: pointer;
+            border: none;
+        }
+        .hub-social-btn:hover { transform: translateY(-2px); filter: brightness(1.05); }
+        .hub-social-btn:active { transform: translateY(2px); box-shadow: 0 1px 0 rgba(0,0,0,0.2); }
+        .hub-btn-line {
+            background: linear-gradient(135deg, #06C755, #04a344);
+            color: #ffffff;
+            box-shadow: 0 3px 0 #038035;
+        }
+        .hub-btn-ig {
+            background: linear-gradient(135deg, #833AB4, #E1306C, #F77737);
+            color: #ffffff;
+            box-shadow: 0 3px 0 #93224b;
+        }
+        .hub-btn-court {
+            background: linear-gradient(135deg, #2d6a4f, #1b4332);
+            color: #ffffff;
+            box-shadow: 0 3px 0 #143024;
+        }
+
 
 
 
@@ -5304,6 +5489,89 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
         </div>
     </div>
 
+    <!-- ══════ 🤖 動森風格 對手難度直選彈窗 (#diff-picker-modal) ══════ -->
+    <div id="diff-picker-modal" class="modal-overlay" style="display:none;" onclick="if(event.target===this)closeDiffPicker()">
+        <div class="modal-card">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+                <div>
+                    <h3 style="margin:0;font-size:18px;font-weight:900;color:#3d2b1f;">🤖 選擇對手 AI 難度</h3>
+                    <div style="font-size:11.5px;color:#85694f;font-weight:700;">依照個人手感挑選合適的對手與戰術風格</div>
+                </div>
+                <button type="button" class="ac-btn-sub" style="padding:4px 10px;font-size:12px;" onclick="closeDiffPicker()">✕</button>
+            </div>
+            <div class="diff-opt-card" id="diff-card-easy" onclick="selectDiffLevel('easy')">
+                <div class="diff-opt-icon">🐣</div>
+                <div class="diff-opt-info">
+                    <div class="diff-opt-title"><span>初階練習 (Easy)</span><span class="diff-opt-check">✓</span></div>
+                    <div class="diff-opt-desc">溫和回球、失誤容忍度高，適合發球練習與新手手感養成。</div>
+                </div>
+            </div>
+            <div class="diff-opt-card" id="diff-card-medium" onclick="selectDiffLevel('medium')">
+                <div class="diff-opt-icon">🪿</div>
+                <div class="diff-opt-info">
+                    <div class="diff-opt-title"><span>標準對抗 (Medium)</span><span class="diff-opt-check">✓</span></div>
+                    <div class="diff-opt-desc">村長匹克鵝標準打法，底線穩定來回拉鋸，球速適中。</div>
+                </div>
+            </div>
+            <div class="diff-opt-card" id="diff-card-hard" onclick="selectDiffLevel('hard')">
+                <div class="diff-opt-icon">⚡</div>
+                <div class="diff-opt-info">
+                    <div class="diff-opt-title"><span>菁英挑戰 (Hard)</span><span class="diff-opt-check">✓</span></div>
+                    <div class="diff-opt-desc">移位迅捷、底線重砲壓迫與角隅變線，考驗預判與反應。</div>
+                </div>
+            </div>
+            <div class="diff-opt-card" id="diff-card-fly" onclick="selectDiffLevel('fly')">
+                <div class="diff-opt-icon">🪰</div>
+                <div class="diff-opt-info">
+                    <div class="diff-opt-title"><span>普林斯頓果蠅大腦 (FlyWire SNN)</span><span class="diff-opt-check">✓</span></div>
+                    <div class="diff-opt-desc">神經生物物理連接組，具備巨纖維逃逸反射與 6 大戰術性格。</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══════ 🏓 匹克球學習社群彈窗 (#community-modal) ══════ -->
+    <div id="community-modal" class="modal-overlay" style="display:none;" onclick="if(event.target===this)closeCommunityModal()">
+        <div class="modal-card" style="width:min(94vw, 460px);padding:20px;text-align:left;">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;">
+                <div style="display:flex;gap:12px;align-items:center;">
+                    <img src="images/pickleball_lab_logo.jpg" alt="NCHU Pickleball Lab 1.0"
+                         style="width:72px;height:72px;aspect-ratio:1/1;object-fit:cover;border-radius:14px;border:1.5px solid #ecd8b8;"
+                         onerror="this.outerHTML='<div style=&quot;width:72px;height:72px;aspect-ratio:1/1;display:flex;align-items:center;justify-content:center;font-size:32px;background:#f2f7fb;border-radius:14px;&quot;>🏓</div>';">
+                    <div>
+                        <span class="hub-community-tag">🏓 匹克球學習社群</span>
+                        <div style="font-size:11px;color:#85694f;font-weight:700;">中興大學-匹克球學習社群</div>
+                        <div style="font-size:16px;font-weight:900;color:#1e3a5f;">NCHU_PICKLEBALL_LAB <span style="color:#2e7d32;">1.0</span></div>
+                        <div style="font-size:11px;color:#85694f;">從零開始的校園推廣實驗室 🏓</div>
+                    </div>
+                </div>
+                <button type="button" class="ac-btn-sub" style="padding:4px 8px;font-size:12px;" onclick="closeCommunityModal()">✕</button>
+            </div>
+            <p style="font-size:13px;line-height:1.8;color:#4a3728;margin:10px 0;">
+                通過<b>教務處學生學習社群計畫</b>，從 114-2 開始從零打造的中興匹克球推廣組織！我們正在做的事：📣 校園推廣、🏸 <b>器材請購(買球拍讓大家免費體驗)</b>、📏 球場劃線、📊 校園風氣觀測，還有專為新手設計的<b>遊戲化教學</b>——完全零基礎也能邊玩邊學會！
+            </p>
+            <p style="font-size:13px;line-height:1.8;color:#4a3728;margin:10px 0;">
+                團隊由來自<b>跨管、理、工三院</b>的合作夥伴組成——結合<b>物理系、化學系、土木工程系、企業管理系、運動與健康管理研究所</b>，多方位技能觸手(鬚鬚)就此誕生🦑！目前也逐步導入 <b>OpenCV</b> 影像分析，並持續研究更多 <b>AI 應用</b>，讓匹克球在興大不只是運動，還是一場跨域實驗！
+            </p>
+            <div style="margin:12px 0;">
+                <img src="images/pickleball_action.jpg" alt="匹克球實戰"
+                     style="width:100%;aspect-ratio:16/9;height:auto;object-fit:cover;border-radius:14px;border:1.5px solid #ecd8b8;display:block;"
+                     onerror="this.outerHTML='<div style=&quot;width:100%;aspect-ratio:16/9;display:flex;align-items:center;justify-content:center;font-size:40px;background:#f2f7fb;border-radius:14px;&quot;>🥅</div>';">
+            </div>
+            <div class="hub-social-row">
+                <a href="https://line.me/R/ti/p/@490hjerg" target="_blank" rel="noopener" class="hub-social-btn hub-btn-line">
+                    💬 官方 LINE
+                </a>
+                <a href="https://www.instagram.com/nchupickleball_lab1.0?igsi=MW5hN3Z5dzF2MDI3Nw%3D%3D" target="_blank" rel="noopener" class="hub-social-btn hub-btn-ig">
+                    📸 Instagram(介紹最完整)
+                </a>
+                <button type="button" class="hub-social-btn hub-btn-court" onclick="closeCommunityModal()">
+                    🎾 進入遊戲
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- ══════ 🍃 《動物森友會》島嶼清新風格模式大廳 (Animal Crossing Mode Hub) ══════ -->
     <div id="mode-hub-overlay" style="display:none;">
         <div class="mode-hub-header">
@@ -5326,6 +5594,40 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
                 <button type="button" class="mode-hub-btn-icon" onclick="openAudioModal()" title="廣播音效設定">🎶 音效</button>
                 <button type="button" class="mode-hub-btn-icon" id="hub-webcam-btn" onclick="toggleWebcamAI()" title="切換鏡頭體感模式">📷 體感: 關</button>
                 <button type="button" class="mode-hub-btn-icon mode-hub-btn-go" onclick="closeModeHub()" title="關閉大廳直接踏上球場">🎾 踏上球場</button>
+            </div>
+        </div>
+
+        <!-- 🏓 中興大學匹克球學習社群專屬看板 (Community Spotlight Hero) -->
+        <div class="hub-community-card">
+            <div class="hub-community-top">
+                <img src="images/pickleball_lab_logo.jpg" alt="NCHU Pickleball Lab 1.0" class="hub-community-logo"
+                     onerror="this.outerHTML='<div class=&quot;hub-community-logo&quot; style=&quot;display:flex;align-items:center;justify-content:center;font-size:36px;background:#f2f7fb;&quot;>🏓</div>';">
+                <div class="hub-community-meta">
+                    <span class="hub-community-tag">🏓 匹克球學習社群</span>
+                    <div class="hub-community-sub">中興大學 - 匹克球學習社群</div>
+                    <div class="hub-community-h1">NCHU_PICKLEBALL_LAB <span style="color:#2e7d32;">1.0</span></div>
+                    <div style="font-size:11px;color:#786048;font-weight:700;">從零開始的校園推廣實驗室 🏓</div>
+                </div>
+            </div>
+            <div class="hub-community-body">
+                通過<b>教務處學生學習社群計畫</b>，從 114-2 開始從零打造的中興匹克球推廣組織！我們正在做的事：📣 <b>校園推廣</b>、🏸 <b>器材請購 (買球拍讓大家免費體驗)</b>、📏 <b>球場劃線</b>、📊 <b>校園風氣觀測</b>，還有專為新手設計的<b>遊戲化教學</b>——完全零基礎也能邊玩邊學會！
+                <br><br>
+                團隊由來自<b>跨管、理、工三院</b>的夥伴組成——結合<b>物理系、化學系、土木工程系、企業管理系、運動與健康管理研究所</b>，多方位技能觸手(鬚鬚)就此誕生🦑！目前也逐步導入 <b>OpenCV</b> 影像分析與 <b>AI 姿態運算</b>，讓匹克球在興大不只是運動，還是一場跨域實驗！
+            </div>
+            <div>
+                <img src="images/pickleball_action.jpg" alt="匹克球實戰" class="hub-community-banner"
+                     onerror="this.outerHTML='<div class=&quot;hub-community-banner&quot; style=&quot;display:flex;align-items:center;justify-content:center;font-size:36px;background:#f2f7fb;&quot;>🥅</div>';">
+            </div>
+            <div class="hub-social-row">
+                <a href="https://line.me/R/ti/p/@490hjerg" target="_blank" rel="noopener" class="hub-social-btn hub-btn-line">
+                    💬 官方 LINE 社群
+                </a>
+                <a href="https://www.instagram.com/nchupickleball_lab1.0?igsi=MW5hN3Z5dzF2MDI3Nw%3D%3D" target="_blank" rel="noopener" class="hub-social-btn hub-btn-ig">
+                    📸 Instagram (介紹最完整)
+                </a>
+                <button type="button" class="hub-social-btn hub-btn-court" onclick="closeModeHub()">
+                    🎾 踏上中興湖球場
+                </button>
             </div>
         </div>
 
@@ -5435,7 +5737,7 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
                         <div class="nook-app-icon app-stage">🎯</div>
                         <span class="nook-app-label">切換關卡</span>
                     </button>
-                    <button class="nook-app" onclick="toggleNookPhone(false); cycleDifficulty();">
+                    <button class="nook-app" onclick="toggleNookPhone(false); openDiffPicker();">
                         <div class="nook-app-icon app-diff">🤖</div>
                         <span class="nook-app-label">對手難度</span>
                     </button>
@@ -5450,6 +5752,10 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
                     <button class="nook-app" onclick="toggleNookPhone(false); openSocial();">
                         <div class="nook-app-icon app-social">🏆</div>
                         <span class="nook-app-label">英雄榜單</span>
+                    </button>
+                    <button class="nook-app" onclick="toggleNookPhone(false); openCommunityModal();">
+                        <div class="nook-app-icon" style="background:#e8f5e9;">🏓</div>
+                        <span class="nook-app-label">匹克社群</span>
                     </button>
                     <button class="nook-app" onclick="toggleNookPhone(false); openAudioModal();">
                         <div class="nook-app-icon app-settings">⚙️</div>
@@ -7284,6 +7590,15 @@ function syncPhysicsModeUI() {
         function endRally(scorer, msg, sub) {
             if (locked || demoOn || state === 'CLEARED') return;
             if (state === 'FAULT' || state === 'OVER') return;
+            // ★ 🧱 對牆特訓模式：不計失分或勝負，僅重置連擊並重新發球
+            if (typeof isWallPractice !== 'undefined' && isWallPractice) {
+                state = 'FAULT'; freeze();
+                if (typeof S !== 'undefined' && S.fault) S.fault();
+                if (wallCombo > 0) toast('🧱 連擊中斷', '最高連擊: ' + wallCombo + ' · 重新推球開始');
+                wallCombo = 0;
+                later(resetServe, 800);
+                return;
+            }
             // ★ 🍄 瘋狂道具戰：電蚊拍追殺模式下，球落地/掛網完全不結算！必須衝過去電到蒼蠅才算贏！
             if (typeof FunMode !== 'undefined' && FunMode.activeBuff === 'ELECTRIC_SWATTER') return;
             updateLastAuditOutcome(msg, sub);
@@ -7348,10 +7663,11 @@ function syncPhysicsModeUI() {
                     state = 'OVER'; clearTimers();
                     const opp = (typeof diffLevel !== 'undefined' && diffLevel === 'fly') ? '🪰 仿生蒼蠅' : '🪿 匹克鵝';
                     const loseMsg = stage === 5 ? '魔王匹克鵝獲勝!' : (stage === 6 ? '🍄 道具戰 ' + opp + ' 獲勝!' : (opp + '先得 ' + goal + ' 分'));
-                    toast(loseMsg, '3 秒後重新挑戰');
+                    toast(loseMsg, '比賽結束，點擊檢視紀念卡');
                     if (typeof updateGooseEmote === 'function') updateGooseEmote('🏆');
                     if (typeof showPolaroidSouvenir === 'function') showPolaroidSouvenir(false, pScore, aScore);
-                    later(() => switchStage(stage), 3500); return;
+                    // ★ 拍立得展示期間暫停自動倒數換關，等待玩家點擊「繼續遊戲」再重置
+                    return;
                 }
             }
             later(resetServe, 2200);
@@ -7359,6 +7675,15 @@ function syncPhysicsModeUI() {
         function fail(msg, sub) {
             if (locked || demoOn || state === 'CLEARED') return;
             if (state === 'FAULT' || state === 'OVER') return;
+            // ★ 🧱 對牆特訓模式：不計失敗，僅重置連擊
+            if (typeof isWallPractice !== 'undefined' && isWallPractice) {
+                state = 'FAULT'; freeze();
+                if (typeof S !== 'undefined' && S.fault) S.fault();
+                if (wallCombo > 0) toast('🧱 連擊中斷', '最高連擊: ' + wallCombo + ' · 重新推球開始');
+                wallCombo = 0;
+                later(resetServe, 800);
+                return;
+            }
             // ★ 🍄 瘋狂道具戰：電蚊拍追殺模式下，不判練習關失敗
             if (typeof FunMode !== 'undefined' && FunMode.activeBuff === 'ELECTRIC_SWATTER') return;
             updateLastAuditOutcome(msg, sub);
@@ -7378,6 +7703,8 @@ function syncPhysicsModeUI() {
             if (typeof updateGooseEmote === 'function') updateGooseEmote('👏');
             if (typeof showPolaroidSouvenir === 'function' && stage >= 4) {
                 showPolaroidSouvenir(true, pScore, aScore);
+                // ★ 正式關卡通關拍立得彈出時，等待玩家點擊 [繼續遊戲] 再推進關卡！
+                return;
             }
             if (stageAdvanceTimer) {
                 clearTimeout(stageAdvanceTimer);
@@ -9978,6 +10305,44 @@ function cycleTeachLevelQuick() {
             }
         } catch (e) {}
 
+        function openDiffPicker() {
+            const m = document.getElementById('diff-picker-modal');
+            if (!m) return;
+            m.style.display = 'flex';
+            const cur = (typeof diffLevel !== 'undefined') ? diffLevel : 'easy';
+            ['easy', 'medium', 'hard', 'fly'].forEach(k => {
+                const card = document.getElementById('diff-card-' + k);
+                if (card) card.classList.toggle('on', k === cur);
+            });
+            if (typeof S !== 'undefined' && S.swap) S.swap();
+        }
+
+        function closeDiffPicker() {
+            const m = document.getElementById('diff-picker-modal');
+            if (m) m.style.display = 'none';
+        }
+
+        function selectDiffLevel(level) {
+            if (typeof setDifficulty === 'function') {
+                setDifficulty(level);
+            }
+            if (typeof S !== 'undefined' && S.point) S.point();
+            closeDiffPicker();
+        }
+
+        function openCommunityModal() {
+            const m = document.getElementById('community-modal');
+            if (m) {
+                m.style.display = 'flex';
+                if (typeof S !== 'undefined' && S.swap) S.swap();
+            }
+        }
+
+        function closeCommunityModal() {
+            const m = document.getElementById('community-modal');
+            if (m) m.style.display = 'none';
+        }
+
         window.openModeHub = openModeHub;
         window.closeModeHub = closeModeHub;
         window.selectHubStage = selectHubStage;
@@ -9987,6 +10352,11 @@ function cycleTeachLevelQuick() {
         window.updateDynamicStagePill = updateDynamicStagePill;
         window.startWallPractice = startWallPractice;
         window.toggleMenuLayoutMode = toggleMenuLayoutMode;
+        window.openDiffPicker = openDiffPicker;
+        window.closeDiffPicker = closeDiffPicker;
+        window.selectDiffLevel = selectDiffLevel;
+        window.openCommunityModal = openCommunityModal;
+        window.closeCommunityModal = closeCommunityModal;
 
 
 /* ─── social.js ─── */
@@ -13506,8 +13876,19 @@ function cycleTeachLevelQuick() {
             window.isWallPractice = true;
             wallCombo = 0;
             pScore = 0; aScore = 0;
+            server = 'PLAYER';
+            if (gooseServeTimer) { clearTimeout(gooseServeTimer); gooseServeTimer = null; }
+            if (typeof FunMode !== 'undefined') {
+                FunMode.clearAll();
+                FunMode.enabled = false;
+                FunMode.syncUI();
+            }
             if (practiceWallMesh) practiceWallMesh.visible = true;
             if (gGrp) gGrp.visible = false;
+            if (flyMesh) flyMesh.visible = false;
+            if (gooseMesh) gooseMesh.visible = false;
+            if (gArm) gArm.visible = false;
+            if (flyDizzy) flyDizzy.visible = false;
             if (typeof updateDynamicStagePill === 'function') {
                 updateDynamicStagePill(1, 0, 0);
                 const sTxt = document.getElementById('dsp-stage');
@@ -14284,7 +14665,7 @@ function solveArc(fx, fy, fz, tx, tz, out, speedScale) {
         }
 
         function gooseDoServe() {
-            if (state !== 'SERVE_READY' || server !== 'GOOSE' || demoOn) return;
+            if (isWallPractice || state !== 'SERVE_READY' || server !== 'GOOSE' || demoOn) return;
             const isFly = (typeof diffLevel !== 'undefined' && diffLevel === 'fly');
             PH.setPos(gGrp.position.x, 0.80, gGrp.position.z + 0.30);
             state = 'SERVE_AIR'; lastHitter = 'GOOSE';
@@ -15118,7 +15499,7 @@ function gooseForceNet(b) {
     PH.vel.set((xn - b.x) / T, (0.45 - b.y + 0.5 * GRAVITY * T * T) / T, -b.z / T);
 }
         function updateGoose(dt) {
-            if (demoOn || !gGrp.visible) return;
+            if (demoOn || (typeof isWallPractice !== 'undefined' && isWallPractice) || !gGrp || !gGrp.visible) return;
             const isFly = (typeof diffLevel !== 'undefined' && diffLevel === 'fly');
 
             const active = (state === 'RALLY' || state === 'SERVE_AIR');
@@ -16118,6 +16499,7 @@ function updateGuides(dt) {
 
         /* ═══════════ 動物森友會 拍立得完賽紀念卡 (Polaroid Souvenir) ═══════════ */
         let lastSouvenirWon = true, lastSouvenirP = 3, lastSouvenirA = 1;
+        let lastSouvenirSnapshotCanvas = null;
 
         function showPolaroidSouvenir(won, pScore, aScore) {
             lastSouvenirWon = !!won;
@@ -16131,11 +16513,39 @@ function updateGuides(dt) {
             const cw = canvas.width = 600;
             const ch = canvas.height = 420;
 
-            // 1. 擷取 WebGL 3D 畫面 (Capture 3D WebGL screen)
+            // 1. 擷取 WebGL 3D 畫面 (Aspect-Ratio Cover 裁切，杜絕直式手機橫向擠壓變形)
             try {
                 if (ren && ren.domElement) {
                     ren.render(scene, cam);
-                    ctx.drawImage(ren.domElement, 0, 0, cw, ch);
+                    const sw = ren.domElement.width, sh = ren.domElement.height;
+                    const tar = cw / ch, sar = sw / sh;
+                    let sx = 0, sy = 0, scw = sw, sch = sh;
+                    if (sar > tar) {
+                        scw = sh * tar;
+                        sx = (sw - scw) / 2;
+                    } else {
+                        sch = sw / tar;
+                        sy = Math.max(0, (sh - sch) * 0.40);
+                    }
+                    ctx.drawImage(ren.domElement, sx, sy, scw, sch, 0, 0, cw, ch);
+
+                    // ★ 同步產生 2K 高解析度快照離線畫布 (1440 x 860) 供下載時無損重現
+                    const snapCanvas = document.createElement('canvas');
+                    snapCanvas.width = 1440; snapCanvas.height = 860;
+                    const scx = snapCanvas.getContext('2d');
+                    scx.imageSmoothingEnabled = true;
+                    scx.imageSmoothingQuality = 'high';
+                    const star = 1440 / 860;
+                    let ssx = 0, ssy = 0, sscw = sw, ssch = sh;
+                    if (sar > star) {
+                        sscw = sh * star;
+                        ssx = (sw - sscw) / 2;
+                    } else {
+                        ssch = sw / star;
+                        ssy = Math.max(0, (sh - ssch) * 0.40);
+                    }
+                    scx.drawImage(ren.domElement, ssx, ssy, sscw, ssch, 0, 0, 1440, 860);
+                    lastSouvenirSnapshotCanvas = snapCanvas;
                 }
             } catch (e) {
                 console.warn('3D screen capture failed, using gradient fallback', e);
@@ -16233,6 +16643,18 @@ function updateGuides(dt) {
         function closePolaroidModal() {
             const modal = document.getElementById('polaroid-modal');
             if (modal) modal.style.display = 'none';
+            if (state === 'CLEARED') {
+                if (stage < 5) {
+                    switchStage(stage + 1, { fromClear: true });
+                } else if (stage === 5) {
+                    if (typeof submitScoreToCloud === 'function') submitScoreToCloud(pScore);
+                    switchStage(6, { fromClear: true });
+                } else {
+                    resetServe();
+                }
+            } else if (state === 'OVER') {
+                switchStage(stage);
+            }
         }
 
         function downloadPolaroid() {
@@ -16279,11 +16701,22 @@ function updateGuides(dt) {
                 fx.roundRect(px, py, pw, ph, 20);
                 fx.clip();
 
-                // 擷取 3D WebGL 畫面
-                if (ren && ren.domElement) {
+                // 擷取 3D WebGL 畫面 (優先使用結算當下等比例無變形快照)
+                if (lastSouvenirSnapshotCanvas) {
+                    fx.drawImage(lastSouvenirSnapshotCanvas, px, py, pw, ph);
+                } else if (ren && ren.domElement) {
                     try {
-                        ren.render(scene, cam);
-                        fx.drawImage(ren.domElement, px, py, pw, ph);
+                        const sw = ren.domElement.width, sh = ren.domElement.height;
+                        const star = pw / ph, sar = sw / sh;
+                        let ssx = 0, ssy = 0, sscw = sw, ssch = sh;
+                        if (sar > star) {
+                            sscw = sh * star;
+                            ssx = (sw - sscw) / 2;
+                        } else {
+                            ssch = sw / star;
+                            ssy = Math.max(0, (sh - ssch) * 0.40);
+                        }
+                        fx.drawImage(ren.domElement, ssx, ssy, sscw, ssch, px, py, pw, ph);
                     } catch(e) {
                         const fallbackGrad = fx.createLinearGradient(px, py, px, py + ph);
                         fallbackGrad.addColorStop(0, '#0284c7');

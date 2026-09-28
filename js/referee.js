@@ -21,6 +21,15 @@
         function endRally(scorer, msg, sub) {
             if (locked || demoOn || state === 'CLEARED') return;
             if (state === 'FAULT' || state === 'OVER') return;
+            // ★ 🧱 對牆特訓模式：不計失分或勝負，僅重置連擊並重新發球
+            if (typeof isWallPractice !== 'undefined' && isWallPractice) {
+                state = 'FAULT'; freeze();
+                if (typeof S !== 'undefined' && S.fault) S.fault();
+                if (wallCombo > 0) toast('🧱 連擊中斷', '最高連擊: ' + wallCombo + ' · 重新推球開始');
+                wallCombo = 0;
+                later(resetServe, 800);
+                return;
+            }
             // ★ 🍄 瘋狂道具戰：電蚊拍追殺模式下，球落地/掛網完全不結算！必須衝過去電到蒼蠅才算贏！
             if (typeof FunMode !== 'undefined' && FunMode.activeBuff === 'ELECTRIC_SWATTER') return;
             updateLastAuditOutcome(msg, sub);
@@ -85,10 +94,11 @@
                     state = 'OVER'; clearTimers();
                     const opp = (typeof diffLevel !== 'undefined' && diffLevel === 'fly') ? '🪰 仿生蒼蠅' : '🪿 匹克鵝';
                     const loseMsg = stage === 5 ? '魔王匹克鵝獲勝!' : (stage === 6 ? '🍄 道具戰 ' + opp + ' 獲勝!' : (opp + '先得 ' + goal + ' 分'));
-                    toast(loseMsg, '3 秒後重新挑戰');
+                    toast(loseMsg, '比賽結束，點擊檢視紀念卡');
                     if (typeof updateGooseEmote === 'function') updateGooseEmote('🏆');
                     if (typeof showPolaroidSouvenir === 'function') showPolaroidSouvenir(false, pScore, aScore);
-                    later(() => switchStage(stage), 3500); return;
+                    // ★ 拍立得展示期間暫停自動倒數換關，等待玩家點擊「繼續遊戲」再重置
+                    return;
                 }
             }
             later(resetServe, 2200);
@@ -96,6 +106,15 @@
         function fail(msg, sub) {
             if (locked || demoOn || state === 'CLEARED') return;
             if (state === 'FAULT' || state === 'OVER') return;
+            // ★ 🧱 對牆特訓模式：不計失敗，僅重置連擊
+            if (typeof isWallPractice !== 'undefined' && isWallPractice) {
+                state = 'FAULT'; freeze();
+                if (typeof S !== 'undefined' && S.fault) S.fault();
+                if (wallCombo > 0) toast('🧱 連擊中斷', '最高連擊: ' + wallCombo + ' · 重新推球開始');
+                wallCombo = 0;
+                later(resetServe, 800);
+                return;
+            }
             // ★ 🍄 瘋狂道具戰：電蚊拍追殺模式下，不判練習關失敗
             if (typeof FunMode !== 'undefined' && FunMode.activeBuff === 'ELECTRIC_SWATTER') return;
             updateLastAuditOutcome(msg, sub);
@@ -115,6 +134,8 @@
             if (typeof updateGooseEmote === 'function') updateGooseEmote('👏');
             if (typeof showPolaroidSouvenir === 'function' && stage >= 4) {
                 showPolaroidSouvenir(true, pScore, aScore);
+                // ★ 正式關卡通關拍立得彈出時，等待玩家點擊 [繼續遊戲] 再推進關卡！
+                return;
             }
             if (stageAdvanceTimer) {
                 clearTimeout(stageAdvanceTimer);

@@ -1402,6 +1402,44 @@ function cycleTeachLevelQuick() {
             }
         } catch (e) {}
 
+        function openDiffPicker() {
+            const m = document.getElementById('diff-picker-modal');
+            if (!m) return;
+            m.style.display = 'flex';
+            const cur = (typeof diffLevel !== 'undefined') ? diffLevel : 'easy';
+            ['easy', 'medium', 'hard', 'fly'].forEach(k => {
+                const card = document.getElementById('diff-card-' + k);
+                if (card) card.classList.toggle('on', k === cur);
+            });
+            if (typeof S !== 'undefined' && S.swap) S.swap();
+        }
+
+        function closeDiffPicker() {
+            const m = document.getElementById('diff-picker-modal');
+            if (m) m.style.display = 'none';
+        }
+
+        function selectDiffLevel(level) {
+            if (typeof setDifficulty === 'function') {
+                setDifficulty(level);
+            }
+            if (typeof S !== 'undefined' && S.point) S.point();
+            closeDiffPicker();
+        }
+
+        function openCommunityModal() {
+            const m = document.getElementById('community-modal');
+            if (m) {
+                m.style.display = 'flex';
+                if (typeof S !== 'undefined' && S.swap) S.swap();
+            }
+        }
+
+        function closeCommunityModal() {
+            const m = document.getElementById('community-modal');
+            if (m) m.style.display = 'none';
+        }
+
         window.openModeHub = openModeHub;
         window.closeModeHub = closeModeHub;
         window.selectHubStage = selectHubStage;
@@ -1411,3 +1449,8 @@ function cycleTeachLevelQuick() {
         window.updateDynamicStagePill = updateDynamicStagePill;
         window.startWallPractice = startWallPractice;
         window.toggleMenuLayoutMode = toggleMenuLayoutMode;
+        window.openDiffPicker = openDiffPicker;
+        window.closeDiffPicker = closeDiffPicker;
+        window.selectDiffLevel = selectDiffLevel;
+        window.openCommunityModal = openCommunityModal;
+        window.closeCommunityModal = closeCommunityModal;

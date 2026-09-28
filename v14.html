@@ -851,6 +851,89 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
         </div>
     </div>
 
+    <!-- ══════ 🤖 動森風格 對手難度直選彈窗 (#diff-picker-modal) ══════ -->
+    <div id="diff-picker-modal" class="modal-overlay" style="display:none;" onclick="if(event.target===this)closeDiffPicker()">
+        <div class="modal-card">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+                <div>
+                    <h3 style="margin:0;font-size:18px;font-weight:900;color:#3d2b1f;">🤖 選擇對手 AI 難度</h3>
+                    <div style="font-size:11.5px;color:#85694f;font-weight:700;">依照個人手感挑選合適的對手與戰術風格</div>
+                </div>
+                <button type="button" class="ac-btn-sub" style="padding:4px 10px;font-size:12px;" onclick="closeDiffPicker()">✕</button>
+            </div>
+            <div class="diff-opt-card" id="diff-card-easy" onclick="selectDiffLevel('easy')">
+                <div class="diff-opt-icon">🐣</div>
+                <div class="diff-opt-info">
+                    <div class="diff-opt-title"><span>初階練習 (Easy)</span><span class="diff-opt-check">✓</span></div>
+                    <div class="diff-opt-desc">溫和回球、失誤容忍度高，適合發球練習與新手手感養成。</div>
+                </div>
+            </div>
+            <div class="diff-opt-card" id="diff-card-medium" onclick="selectDiffLevel('medium')">
+                <div class="diff-opt-icon">🪿</div>
+                <div class="diff-opt-info">
+                    <div class="diff-opt-title"><span>標準對抗 (Medium)</span><span class="diff-opt-check">✓</span></div>
+                    <div class="diff-opt-desc">村長匹克鵝標準打法，底線穩定來回拉鋸，球速適中。</div>
+                </div>
+            </div>
+            <div class="diff-opt-card" id="diff-card-hard" onclick="selectDiffLevel('hard')">
+                <div class="diff-opt-icon">⚡</div>
+                <div class="diff-opt-info">
+                    <div class="diff-opt-title"><span>菁英挑戰 (Hard)</span><span class="diff-opt-check">✓</span></div>
+                    <div class="diff-opt-desc">移位迅捷、底線重砲壓迫與角隅變線，考驗預判與反應。</div>
+                </div>
+            </div>
+            <div class="diff-opt-card" id="diff-card-fly" onclick="selectDiffLevel('fly')">
+                <div class="diff-opt-icon">🪰</div>
+                <div class="diff-opt-info">
+                    <div class="diff-opt-title"><span>普林斯頓果蠅大腦 (FlyWire SNN)</span><span class="diff-opt-check">✓</span></div>
+                    <div class="diff-opt-desc">神經生物物理連接組，具備巨纖維逃逸反射與 6 大戰術性格。</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══════ 🏓 匹克球學習社群彈窗 (#community-modal) ══════ -->
+    <div id="community-modal" class="modal-overlay" style="display:none;" onclick="if(event.target===this)closeCommunityModal()">
+        <div class="modal-card" style="width:min(94vw, 460px);padding:20px;text-align:left;">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;">
+                <div style="display:flex;gap:12px;align-items:center;">
+                    <img src="images/pickleball_lab_logo.jpg" alt="NCHU Pickleball Lab 1.0"
+                         style="width:72px;height:72px;aspect-ratio:1/1;object-fit:cover;border-radius:14px;border:1.5px solid #ecd8b8;"
+                         onerror="this.outerHTML='<div style=&quot;width:72px;height:72px;aspect-ratio:1/1;display:flex;align-items:center;justify-content:center;font-size:32px;background:#f2f7fb;border-radius:14px;&quot;>🏓</div>';">
+                    <div>
+                        <span class="hub-community-tag">🏓 匹克球學習社群</span>
+                        <div style="font-size:11px;color:#85694f;font-weight:700;">中興大學-匹克球學習社群</div>
+                        <div style="font-size:16px;font-weight:900;color:#1e3a5f;">NCHU_PICKLEBALL_LAB <span style="color:#2e7d32;">1.0</span></div>
+                        <div style="font-size:11px;color:#85694f;">從零開始的校園推廣實驗室 🏓</div>
+                    </div>
+                </div>
+                <button type="button" class="ac-btn-sub" style="padding:4px 8px;font-size:12px;" onclick="closeCommunityModal()">✕</button>
+            </div>
+            <p style="font-size:13px;line-height:1.8;color:#4a3728;margin:10px 0;">
+                通過<b>教務處學生學習社群計畫</b>，從 114-2 開始從零打造的中興匹克球推廣組織！我們正在做的事：📣 校園推廣、🏸 <b>器材請購(買球拍讓大家免費體驗)</b>、📏 球場劃線、📊 校園風氣觀測，還有專為新手設計的<b>遊戲化教學</b>——完全零基礎也能邊玩邊學會！
+            </p>
+            <p style="font-size:13px;line-height:1.8;color:#4a3728;margin:10px 0;">
+                團隊由來自<b>跨管、理、工三院</b>的合作夥伴組成——結合<b>物理系、化學系、土木工程系、企業管理系、運動與健康管理研究所</b>，多方位技能觸手(鬚鬚)就此誕生🦑！目前也逐步導入 <b>OpenCV</b> 影像分析，並持續研究更多 <b>AI 應用</b>，讓匹克球在興大不只是運動，還是一場跨域實驗！
+            </p>
+            <div style="margin:12px 0;">
+                <img src="images/pickleball_action.jpg" alt="匹克球實戰"
+                     style="width:100%;aspect-ratio:16/9;height:auto;object-fit:cover;border-radius:14px;border:1.5px solid #ecd8b8;display:block;"
+                     onerror="this.outerHTML='<div style=&quot;width:100%;aspect-ratio:16/9;display:flex;align-items:center;justify-content:center;font-size:40px;background:#f2f7fb;border-radius:14px;&quot;>🥅</div>';">
+            </div>
+            <div class="hub-social-row">
+                <a href="https://line.me/R/ti/p/@490hjerg" target="_blank" rel="noopener" class="hub-social-btn hub-btn-line">
+                    💬 官方 LINE
+                </a>
+                <a href="https://www.instagram.com/nchupickleball_lab1.0?igsi=MW5hN3Z5dzF2MDI3Nw%3D%3D" target="_blank" rel="noopener" class="hub-social-btn hub-btn-ig">
+                    📸 Instagram(介紹最完整)
+                </a>
+                <button type="button" class="hub-social-btn hub-btn-court" onclick="closeCommunityModal()">
+                    🎾 進入遊戲
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- ══════ 🍃 《動物森友會》島嶼清新風格模式大廳 (Animal Crossing Mode Hub) ══════ -->
     <div id="mode-hub-overlay" style="display:none;">
         <div class="mode-hub-header">
@@ -873,6 +956,40 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
                 <button type="button" class="mode-hub-btn-icon" onclick="openAudioModal()" title="廣播音效設定">🎶 音效</button>
                 <button type="button" class="mode-hub-btn-icon" id="hub-webcam-btn" onclick="toggleWebcamAI()" title="切換鏡頭體感模式">📷 體感: 關</button>
                 <button type="button" class="mode-hub-btn-icon mode-hub-btn-go" onclick="closeModeHub()" title="關閉大廳直接踏上球場">🎾 踏上球場</button>
+            </div>
+        </div>
+
+        <!-- 🏓 中興大學匹克球學習社群專屬看板 (Community Spotlight Hero) -->
+        <div class="hub-community-card">
+            <div class="hub-community-top">
+                <img src="images/pickleball_lab_logo.jpg" alt="NCHU Pickleball Lab 1.0" class="hub-community-logo"
+                     onerror="this.outerHTML='<div class=&quot;hub-community-logo&quot; style=&quot;display:flex;align-items:center;justify-content:center;font-size:36px;background:#f2f7fb;&quot;>🏓</div>';">
+                <div class="hub-community-meta">
+                    <span class="hub-community-tag">🏓 匹克球學習社群</span>
+                    <div class="hub-community-sub">中興大學 - 匹克球學習社群</div>
+                    <div class="hub-community-h1">NCHU_PICKLEBALL_LAB <span style="color:#2e7d32;">1.0</span></div>
+                    <div style="font-size:11px;color:#786048;font-weight:700;">從零開始的校園推廣實驗室 🏓</div>
+                </div>
+            </div>
+            <div class="hub-community-body">
+                通過<b>教務處學生學習社群計畫</b>，從 114-2 開始從零打造的中興匹克球推廣組織！我們正在做的事：📣 <b>校園推廣</b>、🏸 <b>器材請購 (買球拍讓大家免費體驗)</b>、📏 <b>球場劃線</b>、📊 <b>校園風氣觀測</b>，還有專為新手設計的<b>遊戲化教學</b>——完全零基礎也能邊玩邊學會！
+                <br><br>
+                團隊由來自<b>跨管、理、工三院</b>的夥伴組成——結合<b>物理系、化學系、土木工程系、企業管理系、運動與健康管理研究所</b>，多方位技能觸手(鬚鬚)就此誕生🦑！目前也逐步導入 <b>OpenCV</b> 影像分析與 <b>AI 姿態運算</b>，讓匹克球在興大不只是運動，還是一場跨域實驗！
+            </div>
+            <div>
+                <img src="images/pickleball_action.jpg" alt="匹克球實戰" class="hub-community-banner"
+                     onerror="this.outerHTML='<div class=&quot;hub-community-banner&quot; style=&quot;display:flex;align-items:center;justify-content:center;font-size:36px;background:#f2f7fb;&quot;>🥅</div>';">
+            </div>
+            <div class="hub-social-row">
+                <a href="https://line.me/R/ti/p/@490hjerg" target="_blank" rel="noopener" class="hub-social-btn hub-btn-line">
+                    💬 官方 LINE 社群
+                </a>
+                <a href="https://www.instagram.com/nchupickleball_lab1.0?igsi=MW5hN3Z5dzF2MDI3Nw%3D%3D" target="_blank" rel="noopener" class="hub-social-btn hub-btn-ig">
+                    📸 Instagram (介紹最完整)
+                </a>
+                <button type="button" class="hub-social-btn hub-btn-court" onclick="closeModeHub()">
+                    🎾 踏上中興湖球場
+                </button>
             </div>
         </div>
 
@@ -982,7 +1099,7 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
                         <div class="nook-app-icon app-stage">🎯</div>
                         <span class="nook-app-label">切換關卡</span>
                     </button>
-                    <button class="nook-app" onclick="toggleNookPhone(false); cycleDifficulty();">
+                    <button class="nook-app" onclick="toggleNookPhone(false); openDiffPicker();">
                         <div class="nook-app-icon app-diff">🤖</div>
                         <span class="nook-app-label">對手難度</span>
                     </button>
@@ -997,6 +1114,10 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
                     <button class="nook-app" onclick="toggleNookPhone(false); openSocial();">
                         <div class="nook-app-icon app-social">🏆</div>
                         <span class="nook-app-label">英雄榜單</span>
+                    </button>
+                    <button class="nook-app" onclick="toggleNookPhone(false); openCommunityModal();">
+                        <div class="nook-app-icon" style="background:#e8f5e9;">🏓</div>
+                        <span class="nook-app-label">匹克社群</span>
                     </button>
                     <button class="nook-app" onclick="toggleNookPhone(false); openAudioModal();">
                         <div class="nook-app-icon app-settings">⚙️</div>

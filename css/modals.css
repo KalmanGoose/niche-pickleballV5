@@ -5,7 +5,7 @@
         .modal-overlay {
             position: fixed;
             inset: 0;
-            z-index: 200;
+            z-index: 10010;
             background: rgba(2, 6, 23, .85);
             backdrop-filter: blur(16px);
             display: flex;
@@ -1543,6 +1543,191 @@
             border-top: 2px dashed #ecd8b8;
             width: 100%;
             max-width: 1120px;
+        }
+
+        /* ═══════ 動森風格 對手難度直選彈窗 (Difficulty Picker Modal) ═══════ */
+        #diff-picker-modal .modal-card {
+            background: #fffef9;
+            border: 3px solid #e8d7be;
+            border-radius: 28px;
+            box-shadow: 0 16px 36px rgba(60, 40, 20, 0.22);
+            width: min(94vw, 420px);
+            padding: 22px;
+            text-align: left;
+        }
+        .diff-opt-card {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: #fbf8f0;
+            border: 2px solid #eadecb;
+            border-radius: 18px;
+            padding: 12px 14px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.18s ease;
+            box-shadow: 0 3px 0 #dfcfb8;
+        }
+        .diff-opt-card:hover {
+            transform: translateY(-2px);
+            background: #ffffff;
+            border-color: #2d6a4f;
+            box-shadow: 0 5px 0 #2d6a4f;
+        }
+        .diff-opt-card.on {
+            background: #f0fdf4;
+            border: 2.5px solid #2d6a4f;
+            box-shadow: 0 4px 0 #1b4332;
+        }
+        .diff-opt-icon {
+            font-size: 28px;
+            width: 44px;
+            height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #ffffff;
+            border: 1.5px solid #e5d4bc;
+            border-radius: 12px;
+            flex-shrink: 0;
+        }
+        .diff-opt-info { flex: 1; min-width: 0; }
+        .diff-opt-title { font-size: 15px; font-weight: 900; color: #3d2b1f; display: flex; align-items: center; justify-content: space-between; }
+        .diff-opt-desc { font-size: 11.5px; color: #786048; margin-top: 3px; line-height: 1.4; }
+        .diff-opt-check {
+            font-size: 16px;
+            font-weight: 900;
+            color: #2d6a4f;
+            opacity: 0;
+            transform: scale(0.6);
+            transition: all 0.18s ease;
+        }
+        .diff-opt-card.on .diff-opt-check {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        /* ═══════ 動森大廳 匹克球學習社群專屬看板 (Community Hero Section) ═══════ */
+        .hub-community-card {
+            width: 100%;
+            max-width: 1120px;
+            background: #ffffff;
+            border: 3px solid #edd9bf;
+            border-radius: 26px;
+            padding: 16px 20px;
+            box-shadow: 0 8px 24px rgba(110, 75, 45, 0.08);
+            margin-bottom: 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            box-sizing: border-box;
+        }
+        .hub-community-top {
+            display: flex;
+            gap: 14px;
+            align-items: center;
+        }
+        .hub-community-logo {
+            flex: 0 0 92px;
+            width: 92px;
+            height: 92px;
+            aspect-ratio: 1 / 1;
+            object-fit: cover;
+            border-radius: 18px;
+            border: 2px solid #ecd8b8;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.06);
+            background: #fdfaf5;
+        }
+        .hub-community-meta {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        .hub-community-tag {
+            align-self: flex-start;
+            background: #e8f5e9;
+            color: #2e7d32;
+            font-size: 11px;
+            font-weight: 900;
+            padding: 2px 8px;
+            border-radius: 12px;
+            border: 1px solid #c8e6c9;
+            margin-bottom: 3px;
+        }
+        .hub-community-h1 {
+            font-size: 18px;
+            font-weight: 900;
+            color: #1e3a5f;
+            line-height: 1.25;
+            letter-spacing: 0.5px;
+            margin: 2px 0;
+        }
+        .hub-community-sub {
+            font-size: 11.5px;
+            color: #718096;
+            font-weight: 700;
+        }
+        .hub-community-body {
+            font-size: 12.5px;
+            line-height: 1.75;
+            color: #4a3728;
+            background: #faf6ef;
+            padding: 12px 14px;
+            border-radius: 14px;
+            border: 1.5px solid #ebd8bf;
+        }
+        .hub-community-banner {
+            width: 100%;
+            aspect-ratio: 16 / 7;
+            max-height: 220px;
+            object-fit: cover;
+            border-radius: 16px;
+            border: 2px solid #edd9bf;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            display: block;
+        }
+        .hub-social-row {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 4px;
+        }
+        .hub-social-btn {
+            flex: 1;
+            min-width: 130px;
+            text-align: center;
+            text-decoration: none;
+            font-weight: 900;
+            font-size: 12.5px;
+            padding: 10px 12px;
+            border-radius: 16px;
+            box-shadow: 0 3px 0 rgba(0, 0, 0, 0.2);
+            transition: all 0.15s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            cursor: pointer;
+            border: none;
+        }
+        .hub-social-btn:hover { transform: translateY(-2px); filter: brightness(1.05); }
+        .hub-social-btn:active { transform: translateY(2px); box-shadow: 0 1px 0 rgba(0,0,0,0.2); }
+        .hub-btn-line {
+            background: linear-gradient(135deg, #06C755, #04a344);
+            color: #ffffff;
+            box-shadow: 0 3px 0 #038035;
+        }
+        .hub-btn-ig {
+            background: linear-gradient(135deg, #833AB4, #E1306C, #F77737);
+            color: #ffffff;
+            box-shadow: 0 3px 0 #93224b;
+        }
+        .hub-btn-court {
+            background: linear-gradient(135deg, #2d6a4f, #1b4332);
+            color: #ffffff;
+            box-shadow: 0 3px 0 #143024;
         }
 
 

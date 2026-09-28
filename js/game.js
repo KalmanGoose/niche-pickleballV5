@@ -636,8 +636,19 @@
             window.isWallPractice = true;
             wallCombo = 0;
             pScore = 0; aScore = 0;
+            server = 'PLAYER';
+            if (gooseServeTimer) { clearTimeout(gooseServeTimer); gooseServeTimer = null; }
+            if (typeof FunMode !== 'undefined') {
+                FunMode.clearAll();
+                FunMode.enabled = false;
+                FunMode.syncUI();
+            }
             if (practiceWallMesh) practiceWallMesh.visible = true;
             if (gGrp) gGrp.visible = false;
+            if (flyMesh) flyMesh.visible = false;
+            if (gooseMesh) gooseMesh.visible = false;
+            if (gArm) gArm.visible = false;
+            if (flyDizzy) flyDizzy.visible = false;
             if (typeof updateDynamicStagePill === 'function') {
                 updateDynamicStagePill(1, 0, 0);
                 const sTxt = document.getElementById('dsp-stage');
@@ -1414,7 +1425,7 @@ function solveArc(fx, fy, fz, tx, tz, out, speedScale) {
         }
 
         function gooseDoServe() {
-            if (state !== 'SERVE_READY' || server !== 'GOOSE' || demoOn) return;
+            if (isWallPractice || state !== 'SERVE_READY' || server !== 'GOOSE' || demoOn) return;
             const isFly = (typeof diffLevel !== 'undefined' && diffLevel === 'fly');
             PH.setPos(gGrp.position.x, 0.80, gGrp.position.z + 0.30);
             state = 'SERVE_AIR'; lastHitter = 'GOOSE';
@@ -2248,7 +2259,7 @@ function gooseForceNet(b) {
     PH.vel.set((xn - b.x) / T, (0.45 - b.y + 0.5 * GRAVITY * T * T) / T, -b.z / T);
 }
         function updateGoose(dt) {
-            if (demoOn || !gGrp.visible) return;
+            if (demoOn || (typeof isWallPractice !== 'undefined' && isWallPractice) || !gGrp || !gGrp.visible) return;
             const isFly = (typeof diffLevel !== 'undefined' && diffLevel === 'fly');
 
             const active = (state === 'RALLY' || state === 'SERVE_AIR');
@@ -3248,6 +3259,7 @@ function updateGuides(dt) {
 
         /* ═══════════ 動物森友會 拍立得完賽紀念卡 (Polaroid Souvenir) ═══════════ */
         let lastSouvenirWon = true, lastSouvenirP = 3, lastSouvenirA = 1;
+        let lastSouvenirSnapshotCanvas = null;
 
         function showPolaroidSouvenir(won, pScore, aScore) {
             lastSouvenirWon = !!won;
@@ -3261,11 +3273,39 @@ function updateGuides(dt) {
             const cw = canvas.width = 600;
             const ch = canvas.height = 420;
 
-            // 1. 擷取 WebGL 3D 畫面 (Capture 3D WebGL screen)
+            // 1. 擷取 WebGL 3D 畫面 (Aspect-Ratio Cover 裁切，杜絕直式手機橫向擠壓變形)
             try {
                 if (ren && ren.domElement) {
                     ren.render(scene, cam);
-                    ctx.drawImage(ren.domElement, 0, 0, cw, ch);
+                    const sw = ren.domElement.width, sh = ren.domElement.height;
+                    const tar = cw / ch, sar = sw / sh;
+                    let sx = 0, sy = 0, scw = sw, sch = sh;
+                    if (sar > tar) {
+                        scw = sh * tar;
+                        sx = (sw - scw) / 2;
+                    } else {
+                        sch = sw / tar;
+                        sy = Math.max(0, (sh - sch) * 0.40);
+                    }
+                    ctx.drawImage(ren.domElement, sx, sy, scw, sch, 0, 0, cw, ch);
+
+                    // ★ 同步產生 2K 高解析度快照離線畫布 (1440 x 860) 供下載時無損重現
+                    const snapCanvas = document.createElement('canvas');
+                    snapCanvas.width = 1440; snapCanvas.height = 860;
+                    const scx = snapCanvas.getContext('2d');
+                    scx.imageSmoothingEnabled = true;
+                    scx.imageSmoothingQuality = 'high';
+                    const star = 1440 / 860;
+                    let ssx = 0, ssy = 0, sscw = sw, ssch = sh;
+                    if (sar > star) {
+                        sscw = sh * star;
+                        ssx = (sw - sscw) / 2;
+                    } else {
+                        ssch = sw / star;
+                        ssy = Math.max(0, (sh - ssch) * 0.40);
+                    }
+                    scx.drawImage(ren.domElement, ssx, ssy, sscw, ssch, 0, 0, 1440, 860);
+                    lastSouvenirSnapshotCanvas = snapCanvas;
                 }
             } catch (e) {
                 console.warn('3D screen capture failed, using gradient fallback', e);
@@ -3363,6 +3403,18 @@ function updateGuides(dt) {
         function closePolaroidModal() {
             const modal = document.getElementById('polaroid-modal');
             if (modal) modal.style.display = 'none';
+            if (state === 'CLEARED') {
+                if (stage < 5) {
+                    switchStage(stage + 1, { fromClear: true });
+                } else if (stage === 5) {
+                    if (typeof submitScoreToCloud === 'function') submitScoreToCloud(pScore);
+                    switchStage(6, { fromClear: true });
+                } else {
+                    resetServe();
+                }
+            } else if (state === 'OVER') {
+                switchStage(stage);
+            }
         }
 
         function downloadPolaroid() {
@@ -3409,11 +3461,22 @@ function updateGuides(dt) {
                 fx.roundRect(px, py, pw, ph, 20);
                 fx.clip();
 
-                // 擷取 3D WebGL 畫面
-                if (ren && ren.domElement) {
+                // 擷取 3D WebGL 畫面 (優先使用結算當下等比例無變形快照)
+                if (lastSouvenirSnapshotCanvas) {
+                    fx.drawImage(lastSouvenirSnapshotCanvas, px, py, pw, ph);
+                } else if (ren && ren.domElement) {
                     try {
-                        ren.render(scene, cam);
-                        fx.drawImage(ren.domElement, px, py, pw, ph);
+                        const sw = ren.domElement.width, sh = ren.domElement.height;
+                        const star = pw / ph, sar = sw / sh;
+                        let ssx = 0, ssy = 0, sscw = sw, ssch = sh;
+                        if (sar > star) {
+                            sscw = sh * star;
+                            ssx = (sw - sscw) / 2;
+                        } else {
+                            ssch = sw / star;
+                            ssy = Math.max(0, (sh - ssch) * 0.40);
+                        }
+                        fx.drawImage(ren.domElement, ssx, ssy, sscw, ssch, px, py, pw, ph);
                     } catch(e) {
                         const fallbackGrad = fx.createLinearGradient(px, py, px, py + ph);
                         fallbackGrad.addColorStop(0, '#0284c7');
