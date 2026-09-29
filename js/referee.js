@@ -277,6 +277,17 @@
             if (p) p.style.display = 'none';
         }
 
+        function toggleScienceDrawer(drawerId) {
+            const drawer = document.getElementById(drawerId);
+            if (!drawer) return;
+            const isOpen = drawer.classList.contains('open');
+            drawer.classList.toggle('open', !isOpen);
+            const btn = drawer.querySelector('.drawer-toggle-btn');
+            if (btn) {
+                btn.innerHTML = !isOpen ? '▴ 收合內容' : '▾ 點擊展開';
+            }
+        }
+
         let refT = null;
         let refereeMode = parseInt(localStorage.getItem('nchu_referee_mode') || '1');
         const REFEREE_MODES = {

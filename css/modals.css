@@ -1353,7 +1353,9 @@
         }
         .hub-map-top-ctrls {
             display: flex;
+            align-items: center;
             gap: 6px;
+            flex-shrink: 0;
         }
         .hub-map-icon-btn {
             background: rgba(255, 255, 255, 0.92);
@@ -1368,9 +1370,28 @@
             cursor: pointer;
             box-shadow: 0 2.5px 0 #d9c49f, 0 4px 10px rgba(0,0,0,0.12);
             transition: all 0.15s ease;
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
         }
         .hub-map-icon-btn:hover { background: #faf4e8; transform: translateY(-1px); }
         .hub-map-icon-btn:active { transform: translateY(2px); box-shadow: 0 0 0 #d9c49f; }
+        
+        /* 📱 智慧手機特色膠囊按鈕 (原木象牙底、墨綠金邊、高對比文字) */
+        #hub-phone-btn {
+            background: #fffdfa !important;
+            border: 2px solid #dec8a7 !important;
+            color: #2b3e34 !important;
+            box-shadow: 0 2.5px 0 #dec8a7, 0 3px 8px rgba(43, 62, 52, 0.15) !important;
+        }
+        #hub-phone-btn:hover {
+            background: #fdf6ec !important;
+            border-color: #2e7d32 !important;
+            color: #1b5e20 !important;
+        }
+
         .hub-map-close-btn {
             background: #2d6a4f !important;
             border-color: #1b4332 !important;
@@ -1724,7 +1745,7 @@
             100% { left: 76%; top: 58%; transform: scale(1.05); }
         }
 
-        /* 💬 動態對話氣泡 (Interactive Speech Bubble) */
+        /* 💬 動態對話氣泡 (Interactive Speech Bubble) - 防炸出、自適應縮排與換行 */
         .ac-bubble {
             position: absolute;
             bottom: 100%;
@@ -1732,13 +1753,20 @@
             transform: translateX(-50%) translateY(-6px);
             background: #ffffff;
             border: 2px solid #5a4230;
-            border-radius: 14px;
-            padding: 5px 11px;
+            border-radius: 16px;
+            padding: 8px 13px;
             font-size: 12px;
             font-weight: 800;
-            color: #3d2b1f;
-            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25), 0 2px 0 #5a4230;
-            white-space: nowrap;
+            color: #2b1d14;
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.22), 0 2px 0 #5a4230;
+            white-space: normal;
+            word-break: break-word;
+            text-align: left;
+            line-height: 1.5;
+            max-width: min(220px, 58vw);
+            min-width: 130px;
+            width: max-content;
+            box-sizing: border-box;
             pointer-events: none;
             z-index: 100;
             animation: popBubble 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
@@ -1752,6 +1780,18 @@
             border-width: 6px;
             border-style: solid;
             border-color: #5a4230 transparent transparent transparent;
+        }
+        .ac-bubble.bubble-left {
+            transform: translateX(-18%) translateY(-6px);
+        }
+        .ac-bubble.bubble-left::after {
+            left: 20%;
+        }
+        .ac-bubble.bubble-right {
+            transform: translateX(-82%) translateY(-6px);
+        }
+        .ac-bubble.bubble-right::after {
+            left: 80%;
         }
         @keyframes popBubble {
             from { transform: translateX(-50%) translateY(4px) scale(0.6); opacity: 0; }
@@ -2019,18 +2059,39 @@
         .mode-hub-profile {
             display: flex;
             align-items: center;
-            gap: 10px;
-            background: #fff9f0;
-            padding: 4px 14px 4px 6px;
+            gap: 8px;
+            background: rgba(255, 249, 240, 0.94);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            padding: 4px 12px 4px 6px;
             border-radius: 99px;
             border: 2px solid #ecd8b8;
             cursor: pointer;
-            box-shadow: 0 2.5px 0 #d9c49f;
+            box-shadow: 0 2.5px 0 #d9c49f, 0 4px 10px rgba(0,0,0,0.08);
             transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+            max-width: 48%;
+            box-sizing: border-box;
+            flex-shrink: 1;
+            min-width: 0;
         }
         .mode-hub-profile:hover {
             background: #faefe0;
-            transform: scale(1.03);
+            transform: scale(1.02);
+        }
+        #hub-nick {
+            max-width: 110px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            display: inline-block;
+            vertical-align: middle;
+        }
+        #hub-dept {
+            max-width: 130px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            display: block;
         }
         .hub-avatar-circle {
             width: 36px;
@@ -2722,6 +2783,123 @@
             color: #2b1d14;
         }
 
+        /* ═══════ 📖 科普卡牌抽屜化 (Collapsible Science Drawers) ═══════ */
+        .science-drawer {
+            background: #fbf8f0;
+            border: 2px solid #ecd8b8;
+            border-radius: 20px;
+            margin-bottom: 12px;
+            overflow: hidden;
+            transition: all 0.22s ease;
+            box-shadow: 0 3px 0 #dec8a7;
+        }
+        .science-drawer:hover {
+            border-color: #40916c;
+            box-shadow: 0 4px 8px rgba(46, 125, 50, 0.12);
+        }
+        .science-drawer.open {
+            background: #ffffff;
+            border-color: #2e7d32;
+            box-shadow: 0 4px 14px rgba(46, 125, 50, 0.18), 0 2px 0 #2e7d32;
+        }
+        .drawer-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 16px;
+            cursor: pointer;
+            user-select: none;
+            background: transparent;
+            transition: background 0.15s ease;
+            gap: 12px;
+        }
+        .drawer-header:hover {
+            background: rgba(240, 230, 215, 0.4);
+        }
+        .drawer-header-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex: 1;
+            min-width: 0;
+        }
+        .drawer-badge {
+            font-size: 10.5px;
+            font-weight: 900;
+            padding: 3px 8px;
+            border-radius: 8px;
+            background: #2e7d32;
+            color: #ffffff;
+            flex-shrink: 0;
+            letter-spacing: 0.5px;
+        }
+        .drawer-badge.badge-purple {
+            background: #8b5cf6;
+        }
+        .drawer-badge.badge-blue {
+            background: #0284c7;
+        }
+        .drawer-title-group {
+            flex: 1;
+            min-width: 0;
+            text-align: left;
+        }
+        .drawer-title {
+            font-size: 14.5px;
+            font-weight: 900;
+            color: #2b1d14;
+            margin: 0;
+            line-height: 1.3;
+        }
+        .drawer-sub {
+            font-size: 11.5px;
+            color: #795548;
+            font-weight: 600;
+            margin-top: 3px;
+            line-height: 1.35;
+        }
+        .drawer-toggle-btn {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 11px;
+            font-weight: 800;
+            color: #5d4037;
+            background: #f0e6d6;
+            border: 1px solid #dec8a7;
+            padding: 4px 9px;
+            border-radius: 99px;
+            flex-shrink: 0;
+            transition: all 0.2s ease;
+        }
+        .science-drawer.open .drawer-toggle-btn {
+            background: #e8f5e9;
+            color: #1b5e20;
+            border-color: #81c784;
+        }
+        .drawer-arrow {
+            display: inline-block;
+            transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+            font-size: 11px;
+        }
+        .science-drawer.open .drawer-arrow {
+            transform: rotate(180deg);
+        }
+        .drawer-content {
+            display: none;
+            padding: 0 16px 16px 16px;
+            border-top: 1.5px dashed #ebd8bc;
+            animation: fadeInDrawer 0.25s ease;
+            text-align: left;
+        }
+        .science-drawer.open .drawer-content {
+            display: block;
+        }
+        @keyframes fadeInDrawer {
+            from { opacity: 0; transform: translateY(-4px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
         /* ═══════ 手機直立螢幕端響應式 (@media) ═══════ */
         @media (max-width: 680px) {
             #mode-hub-overlay {
@@ -2735,6 +2913,42 @@
                 aspect-ratio: auto !important;
                 border-radius: 0 !important;
                 border: none !important;
+            }
+            .hub-map-topbar {
+                top: 8px !important;
+                left: 8px !important;
+                right: 8px !important;
+                gap: 5px !important;
+            }
+            .mode-hub-profile {
+                max-width: 44% !important;
+                padding: 3px 8px 3px 4px !important;
+                gap: 5px !important;
+            }
+            .hub-avatar-circle {
+                width: 28px !important;
+                height: 28px !important;
+                font-size: 16px !important;
+            }
+            #hub-nick {
+                max-width: 62px !important;
+                font-size: 11px !important;
+            }
+            #hub-role-tag {
+                font-size: 8px !important;
+                padding: 0 3px !important;
+            }
+            #hub-dept {
+                display: none !important;
+            }
+            .hub-map-top-ctrls {
+                gap: 4px !important;
+                flex-shrink: 0 !important;
+            }
+            .hub-map-icon-btn {
+                padding: 5px 7px !important;
+                font-size: 10.5px !important;
+                border-radius: 10px !important;
             }
             .map-pin-pill {
                 font-size: 10px;

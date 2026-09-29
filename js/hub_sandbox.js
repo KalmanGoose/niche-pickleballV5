@@ -333,23 +333,37 @@
             existingBubble.parentNode.removeChild(existingBubble);
         }
 
-        // 建立新氣泡
+        // 建立新氣泡 (智慧防邊界溢出 Smart Boundary Clamping)
         const bubble = document.createElement('div');
         bubble.className = 'ac-bubble';
+
+        try {
+            const rect = targetActor.getBoundingClientRect();
+            const viewportW = window.innerWidth || document.documentElement.clientWidth || 400;
+            if (rect.left < viewportW * 0.26) {
+                bubble.classList.add('bubble-left');
+            } else if (rect.right > viewportW * 0.74) {
+                bubble.classList.add('bubble-right');
+            }
+        } catch (e) {}
+
         bubble.innerText = text;
         targetActor.appendChild(bubble);
 
-        // 2.5 秒後淡出消失
+        // 2.8 秒後平滑淡出消失
         setTimeout(() => {
             if (bubble.parentNode) {
                 bubble.style.transition = 'opacity 0.2s ease, transform 0.2s ease';
                 bubble.style.opacity = '0';
-                bubble.style.transform = 'translateX(-50%) translateY(4px) scale(0.85)';
+                const isLeft = bubble.classList.contains('bubble-left');
+                const isRight = bubble.classList.contains('bubble-right');
+                const xTrans = isLeft ? '-18%' : (isRight ? '-82%' : '-50%');
+                bubble.style.transform = `translateX(${xTrans}) translateY(4px) scale(0.85)`;
                 setTimeout(() => {
                     if (bubble.parentNode) bubble.parentNode.removeChild(bubble);
                 }, 220);
             }
-        }, 2500);
+        }, 2800);
     }
 
     // 微視差追蹤
