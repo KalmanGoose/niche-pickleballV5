@@ -940,10 +940,42 @@ function apiGet(qs) {
         function clearTimers() { timers.forEach(clearTimeout); timers = []; }
 
         if (typeof window !== 'undefined') {
+            window.handleLogin = handleLogin;
+            window.handleGuestPlay = handleGuestPlay;
+            window.handleQuickStart = handleQuickStart;
+            window.showFullLoginForm = showFullLoginForm;
+            window.setNick = setNick;
+            window.loginErr = loginErr;
+
+            window.__handleLogin = handleLogin;
+            window.__handleGuestPlay = handleGuestPlay;
+            window.__handleQuickStart = handleQuickStart;
+            window.__showFullLoginForm = showFullLoginForm;
+            window.__setNick = setNick;
+
             window.openProfileModal = openProfileModal;
             window.closeProfileModal = closeProfileModal;
             window.saveProfile = saveProfile;
             window.reopenLoginOverlay = reopenLoginOverlay;
             window.onEditSidInput = onEditSidInput;
             window.onEditDeptSelect = onEditDeptSelect;
+
+            window.__openProfileModal = openProfileModal;
+            window.__closeProfileModal = closeProfileModal;
+            window.__saveProfile = saveProfile;
+            window.__reopenLoginOverlay = reopenLoginOverlay;
+            window.__onEditSidInput = onEditSidInput;
+            window.__onEditDeptSelect = onEditDeptSelect;
+
+            // 若使用者在指令碼尚未就緒前曾提前點擊登入/訪客按鈕，載入就緒後自動執行
+            if (window._pendingAction === 'handleLogin') {
+                window._pendingAction = null;
+                handleLogin();
+            } else if (window._pendingAction === 'handleGuestPlay') {
+                window._pendingAction = null;
+                handleGuestPlay();
+            } else if (window._pendingAction === 'handleQuickStart') {
+                window._pendingAction = null;
+                handleQuickStart();
+            }
         }

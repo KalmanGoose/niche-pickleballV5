@@ -18,6 +18,34 @@
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/pose.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils@0.3.1675466124/drawing_utils.js"
         crossorigin="anonymous"></script>
+
+    <!-- ═══════ 早期互動防護存根 (Early-Click Bootstrap Stub) ═══════ -->
+    <script>
+        (function() {
+            var earlyStubNames = [
+                'handleLogin', 'handleGuestPlay', 'handleQuickStart', 'showFullLoginForm',
+                'setNick', 'closeProfileModal', 'saveProfile', 'openProfileModal',
+                'closeRulesModal', 'switchRulesModalTab', 'openAudioModal', 'closeAudioModal',
+                'openModeHub', 'closeModeHub', 'toggleNookPhone', 'testSfx', 'testVibrate',
+                'onSfxToggle', 'onVolInput', 'onVibrateToggle', 'switchAvatarMode'
+            ];
+            window._pendingAction = null;
+            earlyStubNames.forEach(function(name) {
+                if (!window[name]) {
+                    window[name] = function() {
+                        var fn = window['__' + name];
+                        if (typeof fn === 'function') {
+                            return fn.apply(this, arguments);
+                        }
+                        if (name === 'handleLogin' || name === 'handleGuestPlay' || name === 'handleQuickStart') {
+                            window._pendingAction = name;
+                        }
+                    };
+                }
+            });
+        })();
+    </script>
+
     <!-- ═══════ NCHU Pickleball V5 模組化樣式表 ═══════ -->
     <link rel="stylesheet" href="./css/style.css">
     <link rel="stylesheet" href="./css/hud.css">
