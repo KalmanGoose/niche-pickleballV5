@@ -1127,6 +1127,58 @@ I_syn(t) = w_syn · x · u · (dθ/dt)</div>
                 <!-- 🍃 動森微風落櫻花瓣與飄逸夏葉動態粒子層 -->
                 <canvas id="hub-particle-canvas"></canvas>
 
+                <!-- 🐾 動森活體島民與天鵝動態生態演員 (Living AC Actors) -->
+                <!-- 1. 👑 皇冠黑天鵝村長 (在湖中自由游弋巡邏) -->
+                <div class="ac-actor ac-swan" id="actor-swan" onclick="HubSandbox.interactActor('swan', event)" title="中興湖黑天鵝村長 (點擊互動)">
+                    <div class="ac-actor-flip" id="actor-swan-flip">
+                        <div class="ac-swan-inner">
+                            <span class="swan-crown">👑</span>
+                            <span class="swan-body-emoji">🦢</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. 🦆 小水鴨跟班 1 -->
+                <div class="ac-actor ac-duckling" id="actor-duck-1" onclick="HubSandbox.interactActor('duck1', event)" title="巡邏小水鴨 (點擊互動)">
+                    <div class="ac-actor-flip" id="actor-duck-1-flip">
+                        <div class="ac-duckling-inner">🦆</div>
+                    </div>
+                </div>
+
+                <!-- 3. 🐥 小雛鴨跟班 2 -->
+                <div class="ac-actor ac-duckling" id="actor-duck-2" onclick="HubSandbox.interactActor('duck2', event)" title="貪吃小雛鴨 (點擊互動)">
+                    <div class="ac-actor-flip" id="actor-duck-2-flip">
+                        <div class="ac-duckling-inner">🐥</div>
+                    </div>
+                </div>
+
+                <!-- 4. 🎒 背包柴犬 (西側步道巡邏散步) -->
+                <div class="ac-actor ac-walker-shiba" id="actor-shiba" onclick="HubSandbox.interactActor('shiba', event)" title="背包柴柴島民 (點擊互動)">
+                    <div class="ac-actor-flip" id="actor-shiba-flip">
+                        <div class="walker-body">
+                            🐕
+                            <span class="shiba-backpack">🎒</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 5. 🧋 珍奶貓咪 (南側步道散步漫遊) -->
+                <div class="ac-actor ac-walker-cat" id="actor-cat" onclick="HubSandbox.interactActor('cat', event)" title="珍奶貓咪島民 (點擊互動)">
+                    <div class="ac-actor-flip" id="actor-cat-flip">
+                        <div class="cat-body">
+                            🐈
+                            <span class="cat-boba">🧋</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 6. 🏓 水上碼頭小動物對打組 (熊熊 vs 兔兔) -->
+                <div class="ac-dock-duel-group" id="actor-dock-duel" onclick="HubSandbox.interactActor('dock', event)" title="水上對打組：小熊 vs 小兔 (點擊互動)">
+                    <div class="dock-player-p1">🐻</div>
+                    <div class="dock-flying-ball"></div>
+                    <div class="dock-player-p2">🐰</div>
+                </div>
+
                 <!-- 🗺️ 互動點標 Pins (依據中興湖實景嚴格方位) -->
                 <!-- 1. 北側（上方）：行政大樓 (紅瓦中式宮殿屋頂) -->
                 <div class="map-pin" id="pin-admin" style="top:15%; left:50%;" onclick="openProfileModal()" title="行政大樓 · 島民中心與學號綁定">

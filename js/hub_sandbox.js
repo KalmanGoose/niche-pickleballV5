@@ -1,14 +1,12 @@
 /**
  * ═══════════════════════════════════════════════════════════
  * 🍃 中興湖 2.5D 動態活沙盤引擎 (NCHU Lake Living Sandbox)
- * 100% 純代碼生成：Canvas 2.5D 動態水體 + 生態巡邏 + 風吹落葉粒子
+ * 正宗《動物森友會》自然木質風格 + 活體生態巡邏系統 + 互動氣泡
  * ═══════════════════════════════════════════════════════════
  */
 (function(window) {
     'use strict';
 
-    let canvas = null;
-    let ctx = null;
     let pCanvas = null;
     let pCtx = null;
     let animId = null;
@@ -17,33 +15,100 @@
     let timeAcc = 0;
 
     // 視差微動偏移
-    let parallaxX = 0, parallaxY = 0;
     let targetParallaxX = 0, targetParallaxY = 0;
 
     // 櫻花／落葉粒子池
-    const MAX_PARTICLES = 18;
+    const MAX_PARTICLES = 22;
     const particles = [];
 
-    // 黑天鵝與小鴨家族狀態
-    let swanT = 0;
-    const ripples = [];
+    // 湖面黑天鵝與鴨鴨家族狀態
+    let swanAngle = 0;
+    let lastRippleTime = 0;
+    const ripplesPool = [];
 
-    // 湖心水上小碼頭起伏物理
-    let dockBobY = 0;
-    let dockBobRot = 0;
+    // 背包柴犬步道巡邏狀態
+    const shibaWaypoints = [
+        { x: 18.0, y: 38.0 },
+        { x: 22.5, y: 55.0 },
+        { x: 25.5, y: 72.0 }
+    ];
+    let shibaSegment = 0;
+    let shibaDir = 1;
+    let shibaT = 0;
+    let shibaPauseTimer = 0;
+
+    // 珍奶貓咪步道漫步狀態
+    const catWaypoints = [
+        { x: 33.0, y: 83.5 },
+        { x: 50.0, y: 84.0 },
+        { x: 67.0, y: 83.0 }
+    ];
+    let catSegment = 0;
+    let catDir = 1;
+    let catT = 0;
+    let catPauseTimer = 0;
+
+    // DOM 快取
+    let domCache = null;
+    let actorAudioCtx = null;
+
+    // 角色對話台詞庫
+    const actorQuotes = {
+        swan: [
+            "👑 嘎！我是中興湖村長鵝！今天湖面微風，適合打第三桿放短 (Drop)！",
+            "👑 咕咕！誰在偷偷摸本村長的金色皇冠？小心我用雙翅截擊！",
+            "👑 嘎啊！生科大樓的果蠅大腦連接組剛剛算出了 38% 突觸抑制！",
+            "👑 嘎！要進小碼頭闖關嗎？第一關發球記得要過網落在發球區喔！",
+            "👑 嘎～中興湖水色今日特別碧綠，看來是練習對角長抽的好日子！"
+        ],
+        duck1: [
+            "🦆 呱呱！我是鵝老大的第一巡邏副手！隨時保持中興湖航道暢通！",
+            "🦆 呱！剛剛看到水底有一顆 40 孔亮黃色室外匹克球耶！",
+            "🦆 呱呱呱！千萬不要踩進廚房區凌空抽擊，會被裁判抓犯規的！",
+            "🦆 呱！緊跟在村長鵝後面游動，可以吃到最多新鮮水草～"
+        ],
+        duck2: [
+            "🐥 嗶嗶！中興湖的水草真好吃～肚子飽飽才有力氣打球！",
+            "🐥 嗶！小碼頭的小熊跟小兔已經激戰 50 回合啦！加油加油！",
+            "🐥 嗶嗶嗶！按左上角頭貼可以換成動森柴柴或水豚造型喔！",
+            "🐥 嗶～浮台碼頭晃呀晃的，好想跳上去當球僮呀！"
+        ],
+        shiba: [
+            "🐕 汪汪！我的後背包裝滿了匹克球拍跟補給水壺！",
+            "🐕 汪！今天去社管大樓測動力鏈，軀幹發力與轉體得分 98 分！",
+            "🐕 汪嗚～散步去看看名人堂英雄榜，我也要衝上第一名！",
+            "🐕 汪！在後場深球擊球時，記得身體重心向前壓，球才會扎實！",
+            "🐕 汪汪！天氣真好，今天一定要在湖畔連擊賽突破 20 球！"
+        ],
+        cat: [
+            "🐈 喵～圖書館前喝一杯半糖微冰珍珠奶茶，人生一大享受喵～",
+            "🐈 喵嗚～旋球是匹克球的精髓，手指向上滑動刷出漂亮上旋！",
+            "🐈 喵！剛才看到行政大樓的學號綁定，雲端進度隨時同步喵～",
+            "🐈 喵～中興湖的微風好溫柔，躺在草皮上曬太陽最舒服了喵～",
+            "🐈 喵嗚～剛剛社管大樓的柴柴一直盯著我的吸管看，真好笑！"
+        ],
+        dock: [
+            "🐻 熊熊：看我的第三桿放短！漂亮落進廚房區！",
+            "🐰 兔兔：接招！大角度反手推挑底線！",
+            "🏓 雙方激戰中！點擊小碼頭開啟 5 大歷險關卡，來跟我一較高下！",
+            "🐻 熊熊：雙彈跳規則要記熟！發球與接發球都必須落地一次才能擊球！",
+            "🐰 兔兔：看我輕巧放短，再伺機在廚房線前打出追身球！"
+        ]
+    };
+    const quoteIndexMap = { swan: 0, duck1: 0, duck2: 0, shiba: 0, cat: 0, dock: 0 };
 
     // 初始化粒子
     function initParticles(w, h) {
         particles.length = 0;
         for (let i = 0; i < MAX_PARTICLES; i++) {
             particles.push({
-                x: Math.random() * (w || 450),
-                y: Math.random() * (h || 800),
+                x: Math.random() * (w || 600),
+                y: Math.random() * (h || 1000),
                 vx: 0.35 + Math.random() * 0.45,
                 vy: 0.55 + Math.random() * 0.75,
-                size: 3 + Math.random() * 4,
+                size: 3 + Math.random() * 4.5,
                 angle: Math.random() * Math.PI * 2,
-                vRot: (Math.random() - 0.5) * 0.04,
+                vRot: (Math.random() - 0.5) * 0.035,
                 flutter: Math.random() * Math.PI * 2,
                 color: Math.random() > 0.45 
                     ? 'rgba(255, 183, 197, 0.75)'  // 櫻花粉
@@ -52,242 +117,32 @@
         }
     }
 
-    // 產生天鵝水波尾跡
-    function addRipple(x, y) {
-        if (ripples.length > 25) ripples.shift();
-        ripples.push({ x, y, r: 2, alpha: 0.6, maxR: 16 + Math.random() * 8 });
-    }
+    // 動態產生水波漣漪 (DOM 擴散)
+    function spawnWaterRipple(pctX, pctY) {
+        const viewport = domCache ? domCache.viewport : document.getElementById('hub-map-viewport');
+        if (!viewport) return;
 
-    // 繪製秋海棠中興湖動態水面
-    function drawLakeWater(ctx, w, h, t) {
-        // 中興湖在 450x800 基準下的秋海棠外廓 (保持真實比例)
-        const scaleX = w / 450;
-        const scaleY = h / 800;
-
-        ctx.save();
-        ctx.scale(scaleX, scaleY);
-
-        // 湖岸草皮陰影
-        ctx.beginPath();
-        ctx.ellipse(225, 430, 152, 132, 0.08, 0, Math.PI * 2);
-        ctx.fillStyle = 'rgba(46, 125, 50, 0.12)';
-        ctx.fill();
-
-        // 湖底漸層
-        const lakeGrad = ctx.createRadialGradient(225, 420, 20, 225, 425, 140);
-        lakeGrad.addColorStop(0, '#48cae4');
-        lakeGrad.addColorStop(0.5, '#0096c7');
-        lakeGrad.addColorStop(1, '#023e8a');
-
-        ctx.beginPath();
-        // 秋海棠湖泊多段貝茲曲線
-        ctx.moveTo(110, 410);
-        ctx.bezierCurveTo(90, 480, 160, 560, 250, 545);
-        ctx.bezierCurveTo(340, 530, 375, 470, 360, 400);
-        ctx.bezierCurveTo(350, 340, 290, 310, 225, 320);
-        ctx.bezierCurveTo(170, 330, 125, 360, 110, 410);
-        ctx.closePath();
-
-        ctx.fillStyle = lakeGrad;
-        ctx.fill();
-
-        // 湖岸白色波浪滾邊
-        ctx.lineWidth = 3;
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
-        ctx.stroke();
-
-        // 裁剪湖水區域，只在湖面上繪製動態波光水斑 (Caustics)
-        ctx.clip();
-
-        // 繪製動態波光紋理 (Sine / Cosine 疊加流動)
-        ctx.lineWidth = 1.5;
-        const waveCount = 8;
-        for (let i = 0; i < waveCount; i++) {
-            const phase = t * 1.8 + i * 1.1;
-            const baseY = 330 + i * 26;
-            ctx.beginPath();
-            ctx.strokeStyle = `rgba(255, 255, 255, ${0.18 + Math.sin(phase) * 0.12})`;
-            for (let x = 110; x <= 360; x += 12) {
-                const dy = Math.sin(x * 0.045 + phase) * 4.5 + Math.cos(x * 0.08 - phase * 0.7) * 2.5;
-                if (x === 110) ctx.moveTo(x, baseY + dy);
-                else ctx.lineTo(x, baseY + dy);
-            }
-            ctx.stroke();
+        // 控制場上最大漣漪數量
+        if (ripplesPool.length > 7) {
+            const oldRip = ripplesPool.shift();
+            if (oldRip && oldRip.parentNode) oldRip.parentNode.removeChild(oldRip);
         }
 
-        // 湖面水波尾跡 (Ripples)
-        for (let i = ripples.length - 1; i >= 0; i--) {
-            const rip = ripples[i];
-            ctx.beginPath();
-            ctx.ellipse(rip.x, rip.y, rip.r * 1.2, rip.r * 0.6, 0, 0, Math.PI * 2);
-            ctx.strokeStyle = `rgba(255, 255, 255, ${rip.alpha})`;
-            ctx.lineWidth = 1.2;
-            ctx.stroke();
-            rip.r += 0.25;
-            rip.alpha -= 0.008;
-            if (rip.alpha <= 0 || rip.r >= rip.maxR) {
-                ripples.splice(i, 1);
-            }
-        }
+        const rip = document.createElement('div');
+        rip.className = 'ac-water-ripple';
+        rip.style.left = pctX.toFixed(2) + '%';
+        rip.style.top = pctY.toFixed(2) + '%';
+        viewport.appendChild(rip);
+        ripplesPool.push(rip);
 
-        // 湖心綠樹小島 (台灣島形狀)
-        ctx.save();
-        ctx.translate(225, 420);
-        ctx.beginPath();
-        ctx.ellipse(0, 0, 26, 16, -0.2, 0, Math.PI * 2);
-        ctx.fillStyle = '#2d6a4f';
-        ctx.fill();
-        ctx.lineWidth = 2;
-        ctx.strokeStyle = '#ebd8ba';
-        ctx.stroke();
-        // 小島中心茂密大樹
-        ctx.beginPath();
-        ctx.arc(0, -6, 12, 0, Math.PI * 2);
-        ctx.fillStyle = '#40916c';
-        ctx.fill();
-        ctx.beginPath();
-        ctx.arc(6, -4, 9, 0, Math.PI * 2);
-        ctx.fillStyle = '#52b788';
-        ctx.fill();
-        ctx.restore();
-
-        ctx.restore();
+        setTimeout(() => {
+            const idx = ripplesPool.indexOf(rip);
+            if (idx !== -1) ripplesPool.splice(idx, 1);
+            if (rip.parentNode) rip.parentNode.removeChild(rip);
+        }, 2200);
     }
 
-    // 繪製黑天鵝與小鴨家族
-    function drawSwansAndDucks(ctx, w, h, t) {
-        const scaleX = w / 450;
-        const scaleY = h / 800;
-
-        ctx.save();
-        ctx.scale(scaleX, scaleY);
-
-        // 黑天鵝橢圓航線
-        swanT += 0.007;
-        const swanX = 185 + Math.cos(swanT) * 48;
-        const swanY = 380 + Math.sin(swanT * 1.4) * 22;
-        const swanVx = -Math.sin(swanT) * 48;
-
-        if (Math.random() < 0.15) addRipple(swanX, swanY + 3);
-
-        // 畫黑天鵝
-        ctx.save();
-        ctx.translate(swanX, swanY);
-        if (swanVx < 0) ctx.scale(-1, 1);
-
-        // 鵝身
-        ctx.beginPath();
-        ctx.ellipse(0, 0, 9, 5, 0, 0, Math.PI * 2);
-        ctx.fillStyle = '#1c1917';
-        ctx.fill();
-        // 鵝脖子與頭
-        ctx.beginPath();
-        ctx.moveTo(5, 0);
-        ctx.quadraticCurveTo(8, -8, 6, -11);
-        ctx.lineWidth = 2.4;
-        ctx.strokeStyle = '#1c1917';
-        ctx.stroke();
-        // 紅嘴
-        ctx.beginPath();
-        ctx.arc(8, -10, 2, 0, Math.PI * 2);
-        ctx.fillStyle = '#ef4444';
-        ctx.fill();
-        // 金色小皇冠
-        ctx.fillStyle = '#f59e0b';
-        ctx.fillRect(5, -14, 3, 2);
-        ctx.restore();
-
-        // 綠頭鴨家族跟在後方
-        const duckLag = swanT - 0.45;
-        const duckX = 185 + Math.cos(duckLag) * 44;
-        const duckY = 380 + Math.sin(duckLag * 1.4) * 20;
-
-        ctx.save();
-        ctx.translate(duckX, duckY);
-        ctx.beginPath();
-        ctx.arc(0, 0, 4.5, 0, Math.PI * 2);
-        ctx.fillStyle = '#fef08a';
-        ctx.fill();
-        ctx.beginPath();
-        ctx.arc(3, -1, 1.5, 0, Math.PI * 2);
-        ctx.fillStyle = '#f97316';
-        ctx.fill();
-        ctx.restore();
-
-        ctx.restore();
-    }
-
-    // 繪製水上小碼頭 (隨水波起伏)
-    function drawFloatingCourt(ctx, w, h, t) {
-        const scaleX = w / 450;
-        const scaleY = h / 800;
-
-        ctx.save();
-        ctx.scale(scaleX, scaleY);
-
-        // 隨波浪輕微起伏公式
-        dockBobY = Math.sin(t * 2.2) * 2.5;
-        dockBobRot = Math.cos(t * 1.8) * 0.02;
-
-        ctx.translate(170, 465 + dockBobY);
-        ctx.rotate(dockBobRot);
-
-        // 木浮台陰影
-        ctx.beginPath();
-        ctx.roundRect(-42, -18, 84, 46, 6);
-        ctx.fillStyle = 'rgba(2, 62, 138, 0.35)';
-        ctx.fill();
-
-        // 木質平台
-        ctx.beginPath();
-        ctx.roundRect(-42, -22, 84, 44, 6);
-        ctx.fillStyle = '#f5deb3';
-        ctx.fill();
-        ctx.lineWidth = 2;
-        ctx.strokeStyle = '#b45309';
-        ctx.stroke();
-
-        // 平台木板條紋
-        ctx.lineWidth = 1;
-        ctx.strokeStyle = '#d97706';
-        for (let x = -36; x <= 36; x += 9) {
-            ctx.beginPath();
-            ctx.moveTo(x, -22);
-            ctx.lineTo(x, 22);
-            ctx.stroke();
-        }
-
-        // 匹克球微縮球場 (藍綠動森色)
-        ctx.fillStyle = '#0284c7';
-        ctx.fillRect(-32, -16, 64, 32);
-        ctx.fillStyle = '#38bdf8';
-        ctx.fillRect(-12, -16, 24, 32); // 廚房區
-        ctx.lineWidth = 1.2;
-        ctx.strokeStyle = '#ffffff';
-        ctx.strokeRect(-32, -16, 64, 32);
-
-        // 球網
-        ctx.beginPath();
-        ctx.moveTo(0, -18);
-        ctx.lineTo(0, 18);
-        ctx.lineWidth = 2.2;
-        ctx.strokeStyle = '#ffffff';
-        ctx.stroke();
-
-        // 正在打球的小島民
-        ctx.beginPath();
-        ctx.arc(-20, Math.sin(t * 4) * 2, 4, 0, Math.PI * 2);
-        ctx.fillStyle = '#f97316';
-        ctx.fill();
-        ctx.beginPath();
-        ctx.arc(20, -Math.sin(t * 4) * 2, 4, 0, Math.PI * 2);
-        ctx.fillStyle = '#22c55e';
-        ctx.fill();
-
-        ctx.restore();
-    }
-
-    // 繪製動森飄落櫻花瓣與落葉粒子
+    // 繪製飄落花瓣與綠葉粒子
     function drawParticles(ctx, w, h) {
         ctx.save();
         for (let i = 0; i < particles.length; i++) {
@@ -297,9 +152,9 @@
             p.angle += p.vRot;
             p.flutter += 0.035;
 
-            if (p.y > h + 10 || p.x > w + 10) {
-                p.x = Math.random() * (w * 0.7);
-                p.y = -10;
+            if (p.y > h + 15 || p.x > w + 15) {
+                p.x = Math.random() * (w * 0.75);
+                p.y = -12;
             }
 
             ctx.save();
@@ -307,11 +162,176 @@
             ctx.rotate(p.angle);
             ctx.fillStyle = p.color;
             ctx.beginPath();
-            ctx.ellipse(0, 0, p.size, p.size * 0.5, 0, 0, Math.PI * 2);
+            ctx.ellipse(0, 0, p.size, p.size * 0.48, 0, 0, Math.PI * 2);
             ctx.fill();
             ctx.restore();
         }
         ctx.restore();
+    }
+
+    // 快取 DOM 節點
+    function refreshDomCache() {
+        domCache = {
+            viewport: document.getElementById('hub-map-viewport'),
+            bgImg: document.getElementById('hub-map-bg-img'),
+            actorSwan: document.getElementById('actor-swan'),
+            actorSwanFlip: document.getElementById('actor-swan-flip'),
+            actorDuck1: document.getElementById('actor-duck-1'),
+            actorDuck1Flip: document.getElementById('actor-duck-1-flip'),
+            actorDuck2: document.getElementById('actor-duck-2'),
+            actorDuck2Flip: document.getElementById('actor-duck-2-flip'),
+            actorShiba: document.getElementById('actor-shiba'),
+            actorShibaFlip: document.getElementById('actor-shiba-flip'),
+            actorCat: document.getElementById('actor-cat'),
+            actorCatFlip: document.getElementById('actor-cat-flip'),
+            actorDockDuel: document.getElementById('actor-dock-duel')
+        };
+    }
+
+    // 活體演員動態移動運算核心
+    function updateActors(dt) {
+        if (!domCache || !domCache.viewport) refreshDomCache();
+        if (!domCache) return;
+
+        // ════ 1. 👑 黑天鵝與小鴨家族巡游 ════
+        swanAngle += 0.38 * dt;
+        const swanCenterX = 43.5;
+        const swanCenterY = 52.5;
+        const swanRx = 11.5;
+        const swanRy = 6.0;
+
+        const sx = swanCenterX + Math.cos(swanAngle) * swanRx;
+        const sy = swanCenterY + Math.sin(swanAngle) * swanRy;
+        const svx = -Math.sin(swanAngle);
+
+        if (domCache.actorSwan) {
+            domCache.actorSwan.style.left = sx.toFixed(2) + '%';
+            domCache.actorSwan.style.top = sy.toFixed(2) + '%';
+            if (domCache.actorSwanFlip) {
+                // 🦢 預設朝左：svx > 0 向右移動時水平翻轉
+                domCache.actorSwanFlip.style.transform = svx > 0.05 ? 'scaleX(-1)' : 'scaleX(1)';
+            }
+        }
+
+        // 定時產生水波漣漪
+        if (timeAcc - lastRippleTime > 0.85) {
+            spawnWaterRipple(sx, sy + 1.2);
+            lastRippleTime = timeAcc;
+        }
+
+        // 🦆 小水鴨跟班 1
+        const d1Angle = swanAngle - 0.42;
+        const d1x = swanCenterX + Math.cos(d1Angle) * (swanRx - 1.2);
+        const d1y = swanCenterY + Math.sin(d1Angle) * (swanRy - 0.8);
+        const d1vx = -Math.sin(d1Angle);
+        if (domCache.actorDuck1) {
+            domCache.actorDuck1.style.left = d1x.toFixed(2) + '%';
+            domCache.actorDuck1.style.top = d1y.toFixed(2) + '%';
+            if (domCache.actorDuck1Flip) {
+                domCache.actorDuck1Flip.style.transform = d1vx > 0.05 ? 'scaleX(-1)' : 'scaleX(1)';
+            }
+        }
+
+        // 🐥 小雛鴨跟班 2
+        const d2Angle = swanAngle - 0.82;
+        const d2x = swanCenterX + Math.cos(d2Angle) * (swanRx - 2.5);
+        const d2y = swanCenterY + Math.sin(d2Angle) * (swanRy - 1.5);
+        const d2vx = -Math.sin(d2Angle);
+        if (domCache.actorDuck2) {
+            domCache.actorDuck2.style.left = d2x.toFixed(2) + '%';
+            domCache.actorDuck2.style.top = d2y.toFixed(2) + '%';
+            if (domCache.actorDuck2Flip) {
+                domCache.actorDuck2Flip.style.transform = d2vx > 0.05 ? 'scaleX(-1)' : 'scaleX(1)';
+            }
+        }
+
+        // ════ 2. 🎒 背包柴犬步道巡邏 ════
+        if (shibaPauseTimer > 0) {
+            shibaPauseTimer -= dt;
+        } else {
+            const pStart = shibaDir === 1 ? shibaWaypoints[shibaSegment] : shibaWaypoints[shibaSegment + 1];
+            const pEnd = shibaDir === 1 ? shibaWaypoints[shibaSegment + 1] : shibaWaypoints[shibaSegment];
+            const dx = pEnd.x - pStart.x;
+            const dy = pEnd.y - pStart.y;
+            const dist = Math.hypot(dx, dy) || 1;
+            const speed = 4.0; // 百分比 / 秒
+            shibaT += (speed / dist) * dt;
+
+            if (shibaT >= 1) {
+                shibaT = 0;
+                if (shibaDir === 1) {
+                    shibaSegment++;
+                    if (shibaSegment >= shibaWaypoints.length - 1) {
+                        shibaDir = -1;
+                        shibaSegment = shibaWaypoints.length - 2;
+                        shibaPauseTimer = 1.8; // 端點停頓張望
+                    }
+                } else {
+                    shibaSegment--;
+                    if (shibaSegment < 0) {
+                        shibaDir = 1;
+                        shibaSegment = 0;
+                        shibaPauseTimer = 1.8; // 端點停頓張望
+                    }
+                }
+            }
+
+            const clampedT = Math.min(1, Math.max(0, shibaT));
+            const shibaCurX = pStart.x + dx * clampedT;
+            const shibaCurY = pStart.y + dy * clampedT;
+
+            if (domCache.actorShiba) {
+                domCache.actorShiba.style.left = shibaCurX.toFixed(2) + '%';
+                domCache.actorShiba.style.top = shibaCurY.toFixed(2) + '%';
+                if (domCache.actorShibaFlip) {
+                    domCache.actorShibaFlip.style.transform = dx > 0.05 ? 'scaleX(-1)' : 'scaleX(1)';
+                }
+            }
+        }
+
+        // ════ 3. 🧋 珍奶貓咪步道漫遊 ════
+        if (catPauseTimer > 0) {
+            catPauseTimer -= dt;
+        } else {
+            const cpStart = catDir === 1 ? catWaypoints[catSegment] : catWaypoints[catSegment + 1];
+            const cpEnd = catDir === 1 ? catWaypoints[catSegment + 1] : catWaypoints[catSegment];
+            const cdx = cpEnd.x - cpStart.x;
+            const cdy = cpEnd.y - cpStart.y;
+            const cdist = Math.hypot(cdx, cdy) || 1;
+            const cspeed = 3.6; // 百分比 / 秒
+            catT += (cspeed / cdist) * dt;
+
+            if (catT >= 1) {
+                catT = 0;
+                if (catDir === 1) {
+                    catSegment++;
+                    if (catSegment >= catWaypoints.length - 1) {
+                        catDir = -1;
+                        catSegment = catWaypoints.length - 2;
+                        catPauseTimer = 2.2; // 端點停頓喝珍奶
+                    }
+                } else {
+                    catSegment--;
+                    if (catSegment < 0) {
+                        catDir = 1;
+                        catSegment = 0;
+                        catPauseTimer = 2.2; // 端點停頓喝珍奶
+                    }
+                }
+            }
+
+            const cClampedT = Math.min(1, Math.max(0, catT));
+            const catCurX = cpStart.x + cdx * cClampedT;
+            const catCurY = cpStart.y + cdy * cClampedT;
+
+            if (domCache.actorCat) {
+                domCache.actorCat.style.left = catCurX.toFixed(2) + '%';
+                domCache.actorCat.style.top = catCurY.toFixed(2) + '%';
+                if (domCache.actorCatFlip) {
+                    domCache.actorCatFlip.style.transform = cdx > 0.05 ? 'scaleX(-1)' : 'scaleX(1)';
+                }
+            }
+        }
     }
 
     // 主渲染循環
@@ -319,74 +339,131 @@
         if (!isRunning) return;
 
         if (!lastTime) lastTime = now;
-        const dt = (now - lastTime) / 1000;
+        let dt = (now - lastTime) / 1000;
+        if (dt > 0.1) dt = 0.1; // 防止標籤頁切換時步長過大
         lastTime = now;
         timeAcc += dt;
 
-        // 平滑視差微動
-        parallaxX += (targetParallaxX - parallaxX) * 0.08;
-        parallaxY += (targetParallaxY - parallaxY) * 0.08;
-
-        if (ctx && canvas) {
-            const w = canvas.width;
-            const h = canvas.height;
-
-            ctx.clearRect(0, 0, w, h);
-
-            // 1. 繪製秋海棠中興湖動態活水與流動光斑
-            drawLakeWater(ctx, w, h, timeAcc);
-
-            // 2. 繪製游動黑天鵝與小鴨
-            drawSwansAndDucks(ctx, w, h, timeAcc);
-
-            // 3. 繪製浮動小碼頭
-            drawFloatingCourt(ctx, w, h, timeAcc);
-        }
-
-        // 4. 繪製動森飄花瓣與夏日綠葉粒子 (若有專屬粒子層則繪製於粒子層，否則繪製於主水體層)
+        // 1. 繪製微風吹拂櫻花與夏日綠葉
         if (pCtx && pCanvas) {
             pCtx.clearRect(0, 0, pCanvas.width, pCanvas.height);
             drawParticles(pCtx, pCanvas.width, pCanvas.height);
-        } else if (ctx && canvas) {
-            drawParticles(ctx, canvas.width, canvas.height);
         }
+
+        // 2. 更新活體演員走動與水面巡游
+        updateActors(dt);
 
         animId = requestAnimationFrame(render);
     }
 
     // 視窗調整大小
     function resizeCanvas() {
-        const target = pCanvas || canvas;
-        if (!target) return;
-        const rect = target.parentElement ? target.parentElement.getBoundingClientRect() : null;
+        if (!pCanvas) return;
+        const rect = pCanvas.parentElement ? pCanvas.parentElement.getBoundingClientRect() : null;
         if (rect && rect.width > 0 && rect.height > 0) {
             const w = Math.round(rect.width);
             const h = Math.round(rect.height);
-            if (canvas) {
-                canvas.width = w;
-                canvas.height = h;
-            }
-            if (pCanvas) {
-                pCanvas.width = w;
-                pCanvas.height = h;
-            }
+            pCanvas.width = w;
+            pCanvas.height = h;
             initParticles(w, h);
+        }
+    }
+
+    // 播放動森島民可愛語音叫聲 (Web Audio 合成音階)
+    function playAnimaleseChirp(freq) {
+        try {
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            if (!AudioContext) return;
+            if (!actorAudioCtx) actorAudioCtx = new AudioContext();
+            if (actorAudioCtx.state === 'suspended') actorAudioCtx.resume();
+
+            const baseF = freq || 560;
+            const now = actorAudioCtx.currentTime;
+
+            const osc = actorAudioCtx.createOscillator();
+            const gain = actorAudioCtx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(baseF, now);
+            osc.frequency.exponentialRampToValueAtTime(baseF * 1.55, now + 0.12);
+
+            gain.gain.setValueAtTime(0.18, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+
+            osc.connect(gain);
+            gain.connect(actorAudioCtx.destination);
+
+            osc.start(now);
+            osc.stop(now + 0.19);
+        } catch (err) {}
+    }
+
+    // 點擊島民與動物互動彈出氣泡
+    function interactActor(actorId, event) {
+        if (event && event.stopPropagation) event.stopPropagation();
+
+        const quotes = actorQuotes[actorId] || actorQuotes.swan;
+        const idx = quoteIndexMap[actorId] || 0;
+        const text = quotes[idx % quotes.length];
+        quoteIndexMap[actorId] = idx + 1;
+
+        // 叫聲頻率微調
+        const freqMap = { swan: 440, duck1: 620, duck2: 780, shiba: 520, cat: 680, dock: 480 };
+        playAnimaleseChirp(freqMap[actorId] || 560);
+
+        // 尋找目標容器
+        const targetActor = event && event.currentTarget 
+            ? event.currentTarget 
+            : document.getElementById('actor-' + actorId);
+
+        if (!targetActor) return;
+
+        // 移除先前的舊氣泡
+        const existingBubble = targetActor.querySelector('.ac-bubble');
+        if (existingBubble && existingBubble.parentNode) {
+            existingBubble.parentNode.removeChild(existingBubble);
+        }
+
+        // 建立新氣泡
+        const bubble = document.createElement('div');
+        bubble.className = 'ac-bubble';
+        bubble.innerText = text;
+        targetActor.appendChild(bubble);
+
+        // 2.5 秒後淡出消失
+        setTimeout(() => {
+            if (bubble.parentNode) {
+                bubble.style.transition = 'opacity 0.2s ease, transform 0.2s ease';
+                bubble.style.opacity = '0';
+                bubble.style.transform = 'translateX(-50%) translateY(4px) scale(0.85)';
+                setTimeout(() => {
+                    if (bubble.parentNode) bubble.parentNode.removeChild(bubble);
+                }, 220);
+            }
+        }, 2500);
+    }
+
+    // 微視差追蹤
+    function onPointerMove(e) {
+        const cx = window.innerWidth / 2;
+        const cy = window.innerHeight / 2;
+        targetParallaxX = ((e.clientX - cx) / cx) * 5;
+        targetParallaxY = ((e.clientY - cy) / cy) * 5;
+        const bgImg = domCache ? domCache.bgImg : document.getElementById('hub-map-bg-img');
+        if (bgImg) {
+            bgImg.style.transform = `scale(1.025) translate(${targetParallaxX * 0.3}px, ${targetParallaxY * 0.3}px)`;
         }
     }
 
     // 啟動沙盤動態
     function start() {
         if (isRunning) return;
-        canvas = document.getElementById('hub-water-canvas');
-        ctx = canvas ? canvas.getContext('2d') : null;
+        refreshDomCache();
+
         pCanvas = document.getElementById('hub-particle-canvas');
         pCtx = pCanvas ? pCanvas.getContext('2d') : null;
-        if (!canvas && !pCanvas) return;
 
         resizeCanvas();
         window.addEventListener('resize', resizeCanvas);
-
-        // 綁定陀螺儀或手指滑動微視差
         window.addEventListener('pointermove', onPointerMove, { passive: true });
 
         isRunning = true;
@@ -404,26 +481,23 @@
         if (pCtx && pCanvas) {
             pCtx.clearRect(0, 0, pCanvas.width, pCanvas.height);
         }
+        // 清除場上殘留漣漪
+        for (let i = ripplesPool.length - 1; i >= 0; i--) {
+            const rip = ripplesPool[i];
+            if (rip && rip.parentNode) rip.parentNode.removeChild(rip);
+        }
+        ripplesPool.length = 0;
+
         window.removeEventListener('resize', resizeCanvas);
         window.removeEventListener('pointermove', onPointerMove);
-    }
-
-    function onPointerMove(e) {
-        const cx = window.innerWidth / 2;
-        const cy = window.innerHeight / 2;
-        targetParallaxX = ((e.clientX - cx) / cx) * 6;
-        targetParallaxY = ((e.clientY - cy) / cy) * 6;
-        const bgImg = document.getElementById('hub-map-bg-img');
-        if (bgImg) {
-            bgImg.style.transform = `scale(1.03) translate(${targetParallaxX * 0.35}px, ${targetParallaxY * 0.35}px)`;
-        }
     }
 
     // 匯出全域介面
     window.HubSandbox = {
         start: start,
         stop: stop,
-        isRunning: function() { return isRunning; }
+        isRunning: function() { return isRunning; },
+        interactActor: interactActor
     };
 
 })(window);
