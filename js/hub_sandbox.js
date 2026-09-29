@@ -21,10 +21,44 @@
     const MAX_PARTICLES = 22;
     const particles = [];
 
-    // 湖面黑天鵝與鴨鴨家族狀態
-    let swanAngle = 0;
+    // 湖面黑天鵝與鴨鴨家族狀態 (沿中興湖開闊水道巡游，嚴格避開中心島、大樹與兩座球場)
+    const swanWaypoints = [
+        { x: 30.0, y: 45.0 }, // 0: 西北開闊水灣 (避開西南第二球場)
+        { x: 47.0, y: 39.5 }, // 1: 北側無障礙水道 (高過中心島與大樹)
+        { x: 58.0, y: 53.0 }, // 2: 東北中央通道 (避開東北第一球場)
+        { x: 68.0, y: 60.0 }, // 3: 東南碧波水灣 (廣闊無障礙水面)
+        { x: 56.0, y: 65.5 }, // 4: 南側水域 (遠離圖書館與拱橋)
+        { x: 48.0, y: 58.5 }, // 5: 中央南水道 (避開西南第二球場)
+        { x: 42.0, y: 49.0 }  // 6: 中央西水道 (避開西南球場與中心島)
+    ];
+    let swanProgress = 0;
     let lastRippleTime = 0;
     const ripplesPool = [];
+
+    // Catmull-Rom 閉合曲線平滑內插演算法
+    function getCatmullRomPoint(p0, p1, p2, p3, t) {
+        const t2 = t * t;
+        const t3 = t2 * t;
+        const f0 = -0.5 * t3 + t2 - 0.5 * t;
+        const f1 =  1.5 * t3 - 2.5 * t2 + 1.0;
+        const f2 = -1.5 * t3 + 2.0 * t2 + 0.5 * t;
+        const f3 =  0.5 * t3 - 0.5 * t2;
+        return {
+            x: p0.x * f0 + p1.x * f1 + p2.x * f2 + p3.x * f3,
+            y: p0.y * f0 + p1.y * f1 + p2.y * f2 + p3.y * f3
+        };
+    }
+
+    function getCatmullRomLoop(pts, prog) {
+        const n = pts.length;
+        const p = ((prog % n) + n) % n;
+        const idx1 = Math.floor(p);
+        const t = p - idx1;
+        const idx0 = (idx1 - 1 + n) % n;
+        const idx2 = (idx1 + 1) % n;
+        const idx3 = (idx1 + 2) % n;
+        return getCatmullRomPoint(pts[idx0], pts[idx1], pts[idx2], pts[idx3], t);
+    }
 
     // 背包柴犬步道巡邏狀態
     const shibaWaypoints = [
@@ -88,14 +122,20 @@
             "🐈 喵嗚～剛剛社管大樓的柴柴一直盯著我的吸管看，真好笑！"
         ],
         dock: [
-            "🐻 熊熊：看我的第三桿放短！漂亮落進廚房區！",
-            "🐰 兔兔：接招！大角度反手推挑底線！",
-            "🏓 雙方激戰中！點擊小碼頭開啟 5 大歷險關卡，來跟我一較高下！",
-            "🐻 熊熊：雙彈跳規則要記熟！發球與接發球都必須落地一次才能擊球！",
+            "🐻 熊熊：看我的第三桿放短 (Drop Shot)！精準過網落入廚房區！",
+            "🐰 兔兔：接招！大角度反手挑球直攻底線！",
+            "🏓 雙方激戰中！點擊右側碼頭圖標，挑戰水上 5 大歷險關卡！",
+            "🐻 熊熊：雙彈跳規則要記牢！發球與接發球都必須落地一次才能擊球！",
             "🐰 兔兔：看我輕巧放短，再伺機在廚房線前打出追身球！"
+        ],
+        court_sw: [
+            "🦊 狐狸：近網切球 (Dink) 要放鬆手腕，輕輕推過網帶！",
+            "🐧 企鵝：看我的反手提拉！球在廚房線前剛剛好落地！",
+            "🏓 雙方切磋中！第二球場是選手們每天清晨的特訓秘密基地～",
+            "🦊 狐狸：千萬不要著急抽球，耐心等待對手失誤放高！"
         ]
     };
-    const quoteIndexMap = { swan: 0, duck1: 0, duck2: 0, shiba: 0, cat: 0, dock: 0 };
+    const quoteIndexMap = { swan: 0, duck1: 0, duck2: 0, shiba: 0, cat: 0, dock: 0, court_sw: 0 };
 
     // 初始化粒子
     function initParticles(w, h) {
@@ -184,7 +224,8 @@
             actorShibaFlip: document.getElementById('actor-shiba-flip'),
             actorCat: document.getElementById('actor-cat'),
             actorCatFlip: document.getElementById('actor-cat-flip'),
-            actorDockDuel: document.getElementById('actor-dock-duel')
+            courtDuelNE: document.getElementById('court-duel-ne'),
+            courtDuelSW: document.getElementById('court-duel-sw')
         };
     }
 
@@ -193,55 +234,52 @@
         if (!domCache || !domCache.viewport) refreshDomCache();
         if (!domCache) return;
 
-        // ════ 1. 👑 黑天鵝與小鴨家族巡游 ════
-        swanAngle += 0.38 * dt;
-        const swanCenterX = 43.5;
-        const swanCenterY = 52.5;
-        const swanRx = 11.5;
-        const swanRy = 6.0;
+        // ════ 1. 👑 黑天鵝與小鴨家族巡游 (全開闊水道無障礙巡弋) ════
+        const nSwan = swanWaypoints.length;
+        swanProgress = (swanProgress + 0.042 * dt) % nSwan;
 
-        const sx = swanCenterX + Math.cos(swanAngle) * swanRx;
-        const sy = swanCenterY + Math.sin(swanAngle) * swanRy;
-        const svx = -Math.sin(swanAngle);
+        const pSwan = getCatmullRomLoop(swanWaypoints, swanProgress);
+        const pNext = getCatmullRomLoop(swanWaypoints, swanProgress + 0.03);
+        const svx = pNext.x - pSwan.x;
 
         if (domCache.actorSwan) {
-            domCache.actorSwan.style.left = sx.toFixed(2) + '%';
-            domCache.actorSwan.style.top = sy.toFixed(2) + '%';
+            domCache.actorSwan.style.left = pSwan.x.toFixed(2) + '%';
+            domCache.actorSwan.style.top = pSwan.y.toFixed(2) + '%';
             if (domCache.actorSwanFlip) {
                 // 🦢 預設朝左：svx > 0 向右移動時水平翻轉
-                domCache.actorSwanFlip.style.transform = svx > 0.05 ? 'scaleX(-1)' : 'scaleX(1)';
+                domCache.actorSwanFlip.style.transform = svx > 0.005 ? 'scaleX(-1)' : 'scaleX(1)';
             }
         }
 
         // 定時產生水波漣漪
         if (timeAcc - lastRippleTime > 0.85) {
-            spawnWaterRipple(sx, sy + 1.2);
+            spawnWaterRipple(pSwan.x, pSwan.y + 1.2);
             lastRippleTime = timeAcc;
         }
 
         // 🦆 小水鴨跟班 1
-        const d1Angle = swanAngle - 0.42;
-        const d1x = swanCenterX + Math.cos(d1Angle) * (swanRx - 1.2);
-        const d1y = swanCenterY + Math.sin(d1Angle) * (swanRy - 0.8);
-        const d1vx = -Math.sin(d1Angle);
+        const d1Prog = (swanProgress - 0.22 + nSwan) % nSwan;
+        const pDuck1 = getCatmullRomLoop(swanWaypoints, d1Prog);
+        const pD1Next = getCatmullRomLoop(swanWaypoints, d1Prog + 0.03);
+        const d1vx = pD1Next.x - pDuck1.x;
         if (domCache.actorDuck1) {
-            domCache.actorDuck1.style.left = d1x.toFixed(2) + '%';
-            domCache.actorDuck1.style.top = d1y.toFixed(2) + '%';
+            domCache.actorDuck1.style.left = pDuck1.x.toFixed(2) + '%';
+            domCache.actorDuck1.style.top = pDuck1.y.toFixed(2) + '%';
             if (domCache.actorDuck1Flip) {
-                domCache.actorDuck1Flip.style.transform = d1vx > 0.05 ? 'scaleX(-1)' : 'scaleX(1)';
+                domCache.actorDuck1Flip.style.transform = d1vx > 0.005 ? 'scaleX(-1)' : 'scaleX(1)';
             }
         }
 
         // 🐥 小雛鴨跟班 2
-        const d2Angle = swanAngle - 0.82;
-        const d2x = swanCenterX + Math.cos(d2Angle) * (swanRx - 2.5);
-        const d2y = swanCenterY + Math.sin(d2Angle) * (swanRy - 1.5);
-        const d2vx = -Math.sin(d2Angle);
+        const d2Prog = (swanProgress - 0.44 + nSwan) % nSwan;
+        const pDuck2 = getCatmullRomLoop(swanWaypoints, d2Prog);
+        const pD2Next = getCatmullRomLoop(swanWaypoints, d2Prog + 0.03);
+        const d2vx = pD2Next.x - pDuck2.x;
         if (domCache.actorDuck2) {
-            domCache.actorDuck2.style.left = d2x.toFixed(2) + '%';
-            domCache.actorDuck2.style.top = d2y.toFixed(2) + '%';
+            domCache.actorDuck2.style.left = pDuck2.x.toFixed(2) + '%';
+            domCache.actorDuck2.style.top = pDuck2.y.toFixed(2) + '%';
             if (domCache.actorDuck2Flip) {
-                domCache.actorDuck2Flip.style.transform = d2vx > 0.05 ? 'scaleX(-1)' : 'scaleX(1)';
+                domCache.actorDuck2Flip.style.transform = d2vx > 0.005 ? 'scaleX(-1)' : 'scaleX(1)';
             }
         }
 
@@ -407,13 +445,13 @@
         quoteIndexMap[actorId] = idx + 1;
 
         // 叫聲頻率微調
-        const freqMap = { swan: 440, duck1: 620, duck2: 780, shiba: 520, cat: 680, dock: 480 };
+        const freqMap = { swan: 440, duck1: 620, duck2: 780, shiba: 520, cat: 680, dock: 480, court_sw: 560 };
         playAnimaleseChirp(freqMap[actorId] || 560);
 
         // 尋找目標容器
         const targetActor = event && event.currentTarget 
             ? event.currentTarget 
-            : document.getElementById('actor-' + actorId);
+            : (document.getElementById(actorId === 'dock' ? 'court-duel-ne' : (actorId === 'court_sw' ? 'court-duel-sw' : 'actor-' + actorId)));
 
         if (!targetActor) return;
 

@@ -4492,63 +4492,228 @@ body.layout-nook #nav-wrapper {
             font-size: 14px;
         }
 
-        /* 🏓 水上碼頭小動物對打組 (Dock Pickleball Duelists) */
-        .ac-dock-duel-group {
+        /* ═══════ 🏓 湖上 2.5D 原生動森匹克球場對決組 (Court Duelists) ═══════ */
+        .ac-court-duel {
             position: absolute;
-            top: 43.5%;
-            left: 56%;
-            width: 95px;
-            height: 62px;
             pointer-events: auto;
             cursor: pointer;
             z-index: 18;
-            animation: dockFloat 3s ease-in-out infinite;
+            user-select: none;
+            transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
         }
-        @keyframes dockFloat {
-            0%, 100% { transform: translateY(0) rotate(0deg); }
-            50% { transform: translateY(-2.5px) rotate(1deg); }
+        .ac-court-duel:hover {
+            transform: scale(1.1) translateY(-2px);
+            z-index: 40 !important;
         }
-        .dock-player-p1 {
+
+        /* 東北第一球場 (Bear vs Bunny) */
+        #court-duel-ne {
+            left: 54%;
+            top: 42%;
+            width: 17%;
+            height: 9%;
+        }
+        /* 西南第二球場 (Fox vs Penguin) */
+        #court-duel-sw {
+            left: 27%;
+            top: 53.5%;
+            width: 17%;
+            height: 9%;
+        }
+
+        .court-player {
             position: absolute;
-            left: 4px;
-            top: 12px;
-            font-size: 20px;
-            animation: swingP1 1.6s ease-in-out infinite;
-        }
-        .dock-player-p2 {
-            position: absolute;
-            right: 4px;
-            bottom: 6px;
-            font-size: 20px;
-            transform: scaleX(-1);
-            animation: swingP2 1.6s ease-in-out infinite 0.8s;
-        }
-        @keyframes swingP1 {
-            0%, 100% { transform: rotate(0deg) translateY(0); }
-            40% { transform: rotate(-25deg) translateY(-2px); }
-            60% { transform: rotate(35deg) scale(1.15); }
-        }
-        @keyframes swingP2 {
-            0%, 100% { transform: scaleX(-1) rotate(0deg) translateY(0); }
-            40% { transform: scaleX(-1) rotate(-25deg) translateY(-2px); }
-            60% { transform: scaleX(-1) rotate(35deg) scale(1.15); }
-        }
-        .dock-flying-ball {
-            position: absolute;
-            width: 9px;
-            height: 9px;
-            background: #facc15;
-            border-radius: 50%;
-            box-shadow: 0 0 8px #fde047;
-            animation: dockBallArc 1.6s ease-in-out infinite;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
             pointer-events: none;
         }
-        @keyframes dockBallArc {
-            0% { left: 26px; top: 24px; transform: scale(1); }
-            25% { left: 48px; top: 6px; transform: scale(1.3); }
-            50% { left: 70px; top: 32px; transform: scale(1); }
-            75% { left: 48px; top: 8px; transform: scale(1.3); }
-            100% { left: 26px; top: 24px; transform: scale(1); }
+        .player-shadow {
+            position: absolute;
+            bottom: -2px;
+            width: 22px;
+            height: 8px;
+            background: rgba(0, 0, 0, 0.28);
+            border-radius: 50%;
+            filter: blur(1.5px);
+        }
+        .player-body {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .player-avatar {
+            font-size: 24px;
+            filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.25));
+            line-height: 1;
+        }
+        .player-paddle {
+            position: absolute;
+            font-size: 14px;
+            filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3));
+        }
+
+        /* 東北球場站位與揮拍動畫 */
+        #court-duel-ne .player-p1 {
+            right: 8%;
+            bottom: 12%;
+            transform-origin: bottom center;
+            animation: swingDuelNEP1 1.7s ease-in-out infinite;
+        }
+        #court-duel-ne .player-p1 .player-avatar {
+            transform: scaleX(-1);
+        }
+        #court-duel-ne .player-p1 .player-paddle {
+            left: -4px;
+            top: 6px;
+            transform: rotate(-15deg);
+        }
+
+        #court-duel-ne .player-p2 {
+            left: 8%;
+            top: 10%;
+            transform-origin: bottom center;
+            animation: swingDuelNEP2 1.7s ease-in-out infinite;
+        }
+        #court-duel-ne .player-p2 .player-avatar {
+            transform: scaleX(1);
+        }
+        #court-duel-ne .player-p2 .player-paddle {
+            right: -4px;
+            bottom: 2px;
+            transform: rotate(20deg);
+        }
+
+        @keyframes swingDuelNEP1 {
+            0%, 88% { transform: translateY(0) rotate(0); }
+            92% { transform: translateY(-3px) rotate(15deg); }
+            96% { transform: translateY(0) rotate(-28deg) scale(1.12); }
+            100% { transform: translateY(0) rotate(0); }
+        }
+        @keyframes swingDuelNEP2 {
+            0%, 38% { transform: translateY(0) rotate(0); }
+            42% { transform: translateY(-3px) rotate(-15deg); }
+            46% { transform: translateY(0) rotate(28deg) scale(1.12); }
+            50%, 100% { transform: translateY(0) rotate(0); }
+        }
+
+        /* 東北球場飛行動態匹克球 */
+        #court-duel-ne .court-ball {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            pointer-events: none;
+            animation: ballFlightNE 1.7s ease-in-out infinite;
+        }
+        #court-duel-ne .ball-shadow {
+            position: absolute;
+            width: 8px;
+            height: 4px;
+            background: rgba(0, 0, 0, 0.35);
+            border-radius: 50%;
+            filter: blur(1px);
+            bottom: -6px;
+            left: 1px;
+        }
+        #court-duel-ne .ball-body {
+            display: block;
+            width: 9px;
+            height: 9px;
+            background: radial-gradient(circle at 35% 35%, #fef08a, #eab308, #ca8a04);
+            border-radius: 50%;
+            box-shadow: 0 0 6px rgba(250, 204, 21, 0.85);
+        }
+
+        @keyframes ballFlightNE {
+            0% { left: 78%; top: 60%; transform: scale(1); }
+            23% { left: 48%; top: 18%; transform: scale(1.35) translateY(-8px); }
+            46% { left: 18%; top: 36%; transform: scale(0.95); }
+            50% { left: 18%; top: 36%; transform: scale(1.05); }
+            73% { left: 48%; top: 22%; transform: scale(1.35) translateY(-8px); }
+            96% { left: 78%; top: 60%; transform: scale(0.95); }
+            100% { left: 78%; top: 60%; transform: scale(1.05); }
+        }
+
+        /* ═══════ 西南第二球場 (Fox vs Penguin) ═══════ */
+        #court-duel-sw .player-p1 {
+            right: 10%;
+            bottom: 12%;
+            transform-origin: bottom center;
+            animation: swingDuelSWP1 1.5s ease-in-out infinite 0.2s;
+        }
+        #court-duel-sw .player-p1 .player-avatar {
+            transform: scaleX(-1);
+        }
+        #court-duel-sw .player-p1 .player-paddle {
+            left: -4px;
+            top: 6px;
+            transform: rotate(-15deg);
+        }
+
+        #court-duel-sw .player-p2 {
+            left: 10%;
+            top: 10%;
+            transform-origin: bottom center;
+            animation: swingDuelSWP2 1.5s ease-in-out infinite 0.2s;
+        }
+        #court-duel-sw .player-p2 .player-avatar {
+            transform: scaleX(1);
+        }
+        #court-duel-sw .player-p2 .player-paddle {
+            right: -4px;
+            bottom: 2px;
+            transform: rotate(20deg);
+        }
+
+        @keyframes swingDuelSWP1 {
+            0%, 88% { transform: translateY(0) rotate(0); }
+            92% { transform: translateY(-3px) rotate(15deg); }
+            96% { transform: translateY(0) rotate(-28deg) scale(1.12); }
+            100% { transform: translateY(0) rotate(0); }
+        }
+        @keyframes swingDuelSWP2 {
+            0%, 38% { transform: translateY(0) rotate(0); }
+            42% { transform: translateY(-3px) rotate(-15deg); }
+            46% { transform: translateY(0) rotate(28deg) scale(1.12); }
+            50%, 100% { transform: translateY(0) rotate(0); }
+        }
+
+        #court-duel-sw .court-ball {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            pointer-events: none;
+            animation: ballFlightSW 1.5s ease-in-out infinite 0.2s;
+        }
+        #court-duel-sw .ball-shadow {
+            position: absolute;
+            width: 8px;
+            height: 4px;
+            background: rgba(0, 0, 0, 0.35);
+            border-radius: 50%;
+            filter: blur(1px);
+            bottom: -6px;
+            left: 1px;
+        }
+        #court-duel-sw .ball-body {
+            display: block;
+            width: 9px;
+            height: 9px;
+            background: radial-gradient(circle at 35% 35%, #fed7aa, #f97316, #ea580c);
+            border-radius: 50%;
+            box-shadow: 0 0 6px rgba(249, 115, 22, 0.85);
+        }
+
+        @keyframes ballFlightSW {
+            0% { left: 76%; top: 58%; transform: scale(1); }
+            23% { left: 48%; top: 20%; transform: scale(1.35) translateY(-8px); }
+            46% { left: 20%; top: 38%; transform: scale(0.95); }
+            50% { left: 20%; top: 38%; transform: scale(1.05); }
+            73% { left: 48%; top: 24%; transform: scale(1.35) translateY(-8px); }
+            96% { left: 76%; top: 58%; transform: scale(0.95); }
+            100% { left: 76%; top: 58%; transform: scale(1.05); }
         }
 
         /* 💬 動態對話氣泡 (Interactive Speech Bubble) */
@@ -6534,11 +6699,48 @@ I_syn(t) = w_syn · x · u · (dθ/dt)</div>
                     </div>
                 </div>
 
-                <!-- 6. 🏓 水上碼頭小動物對打組 (熊熊 vs 兔兔) -->
-                <div class="ac-dock-duel-group" id="actor-dock-duel" onclick="HubSandbox.interactActor('dock', event)" title="水上對打組：小熊 vs 小兔 (點擊互動)">
-                    <div class="dock-player-p1">🐻</div>
-                    <div class="dock-flying-ball"></div>
-                    <div class="dock-player-p2">🐰</div>
+                <!-- 6. 🏓 湖上東北第一球場：小熊 vs 小兔 隔網對打賽 -->
+                <div class="ac-court-duel" id="court-duel-ne" onclick="HubSandbox.interactActor('dock', event)" title="水上第一球場 · 小熊 vs 小兔 對打 (點擊對話)">
+                    <div class="court-player player-p1" id="duel-ne-p1">
+                        <span class="player-shadow"></span>
+                        <div class="player-body">
+                            <span class="player-avatar">🐻</span>
+                            <span class="player-paddle">🏓</span>
+                        </div>
+                    </div>
+                    <div class="court-ball" id="duel-ne-ball">
+                        <span class="ball-shadow"></span>
+                        <span class="ball-body"></span>
+                    </div>
+                    <div class="court-player player-p2" id="duel-ne-p2">
+                        <span class="player-shadow"></span>
+                        <div class="player-body">
+                            <span class="player-avatar">🐰</span>
+                            <span class="player-paddle">🏓</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 7. 🏓 湖上西南第二球場：小狐狸 vs 企鵝 廚房特訓賽 -->
+                <div class="ac-court-duel" id="court-duel-sw" onclick="HubSandbox.interactActor('court_sw', event)" title="水上第二球場 · 小狐狸 vs 企鵝 特訓 (點擊對話)">
+                    <div class="court-player player-p1" id="duel-sw-p1">
+                        <span class="player-shadow"></span>
+                        <div class="player-body">
+                            <span class="player-avatar">🦊</span>
+                            <span class="player-paddle">🏓</span>
+                        </div>
+                    </div>
+                    <div class="court-ball" id="duel-sw-ball">
+                        <span class="ball-shadow"></span>
+                        <span class="ball-body"></span>
+                    </div>
+                    <div class="court-player player-p2" id="duel-sw-p2">
+                        <span class="player-shadow"></span>
+                        <div class="player-body">
+                            <span class="player-avatar">🐧</span>
+                            <span class="player-paddle">🏓</span>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- 🗺️ 互動點標 Pins (依據中興湖實景嚴格方位) -->
@@ -6572,9 +6774,9 @@ I_syn(t) = w_syn · x · u · (dθ/dt)</div>
                     <div class="map-pin-pill">📚 圖書館 · 規則文獻</div>
                 </div>
 
-                <!-- 6. 湖心設施: 水上小碼頭 (浮島球場闖關 Stage 1~5) -->
-                <div class="map-pin" id="pin-dock" style="top:48%; left:60%;" onclick="openDockPicker()" title="水上匹克小碼頭 · 5 大關卡闖關歷險">
-                    <span class="map-pin-glow" style="width:58px;height:58px;background:radial-gradient(circle, rgba(249,115,22,0.65) 0%, rgba(249,115,22,0) 70%);"></span>
+                <!-- 6. 湖心設施: 水上小碼頭 (棧橋入口，避開球場與選手) -->
+                <div class="map-pin" id="pin-dock" style="top:40.5%; left:73.5%;" onclick="openDockPicker()" title="水上匹克小碼頭 · 5 大關卡闖關歷險">
+                    <span class="map-pin-glow" style="width:48px;height:48px;background:radial-gradient(circle, rgba(249,115,22,0.65) 0%, rgba(249,115,22,0) 70%);"></span>
                     <div class="map-pin-pill pill-dock">🎾 水上小碼頭 · 闖關歷險</div>
                 </div>
 
@@ -10042,10 +10244,44 @@ function syncPhysicsModeUI() {
     const MAX_PARTICLES = 22;
     const particles = [];
 
-    // 湖面黑天鵝與鴨鴨家族狀態
-    let swanAngle = 0;
+    // 湖面黑天鵝與鴨鴨家族狀態 (沿中興湖開闊水道巡游，嚴格避開中心島、大樹與兩座球場)
+    const swanWaypoints = [
+        { x: 30.0, y: 45.0 }, // 0: 西北開闊水灣 (避開西南第二球場)
+        { x: 47.0, y: 39.5 }, // 1: 北側無障礙水道 (高過中心島與大樹)
+        { x: 58.0, y: 53.0 }, // 2: 東北中央通道 (避開東北第一球場)
+        { x: 68.0, y: 60.0 }, // 3: 東南碧波水灣 (廣闊無障礙水面)
+        { x: 56.0, y: 65.5 }, // 4: 南側水域 (遠離圖書館與拱橋)
+        { x: 48.0, y: 58.5 }, // 5: 中央南水道 (避開西南第二球場)
+        { x: 42.0, y: 49.0 }  // 6: 中央西水道 (避開西南球場與中心島)
+    ];
+    let swanProgress = 0;
     let lastRippleTime = 0;
     const ripplesPool = [];
+
+    // Catmull-Rom 閉合曲線平滑內插演算法
+    function getCatmullRomPoint(p0, p1, p2, p3, t) {
+        const t2 = t * t;
+        const t3 = t2 * t;
+        const f0 = -0.5 * t3 + t2 - 0.5 * t;
+        const f1 =  1.5 * t3 - 2.5 * t2 + 1.0;
+        const f2 = -1.5 * t3 + 2.0 * t2 + 0.5 * t;
+        const f3 =  0.5 * t3 - 0.5 * t2;
+        return {
+            x: p0.x * f0 + p1.x * f1 + p2.x * f2 + p3.x * f3,
+            y: p0.y * f0 + p1.y * f1 + p2.y * f2 + p3.y * f3
+        };
+    }
+
+    function getCatmullRomLoop(pts, prog) {
+        const n = pts.length;
+        const p = ((prog % n) + n) % n;
+        const idx1 = Math.floor(p);
+        const t = p - idx1;
+        const idx0 = (idx1 - 1 + n) % n;
+        const idx2 = (idx1 + 1) % n;
+        const idx3 = (idx1 + 2) % n;
+        return getCatmullRomPoint(pts[idx0], pts[idx1], pts[idx2], pts[idx3], t);
+    }
 
     // 背包柴犬步道巡邏狀態
     const shibaWaypoints = [
@@ -10109,14 +10345,20 @@ function syncPhysicsModeUI() {
             "🐈 喵嗚～剛剛社管大樓的柴柴一直盯著我的吸管看，真好笑！"
         ],
         dock: [
-            "🐻 熊熊：看我的第三桿放短！漂亮落進廚房區！",
-            "🐰 兔兔：接招！大角度反手推挑底線！",
-            "🏓 雙方激戰中！點擊小碼頭開啟 5 大歷險關卡，來跟我一較高下！",
-            "🐻 熊熊：雙彈跳規則要記熟！發球與接發球都必須落地一次才能擊球！",
+            "🐻 熊熊：看我的第三桿放短 (Drop Shot)！精準過網落入廚房區！",
+            "🐰 兔兔：接招！大角度反手挑球直攻底線！",
+            "🏓 雙方激戰中！點擊右側碼頭圖標，挑戰水上 5 大歷險關卡！",
+            "🐻 熊熊：雙彈跳規則要記牢！發球與接發球都必須落地一次才能擊球！",
             "🐰 兔兔：看我輕巧放短，再伺機在廚房線前打出追身球！"
+        ],
+        court_sw: [
+            "🦊 狐狸：近網切球 (Dink) 要放鬆手腕，輕輕推過網帶！",
+            "🐧 企鵝：看我的反手提拉！球在廚房線前剛剛好落地！",
+            "🏓 雙方切磋中！第二球場是選手們每天清晨的特訓秘密基地～",
+            "🦊 狐狸：千萬不要著急抽球，耐心等待對手失誤放高！"
         ]
     };
-    const quoteIndexMap = { swan: 0, duck1: 0, duck2: 0, shiba: 0, cat: 0, dock: 0 };
+    const quoteIndexMap = { swan: 0, duck1: 0, duck2: 0, shiba: 0, cat: 0, dock: 0, court_sw: 0 };
 
     // 初始化粒子
     function initParticles(w, h) {
@@ -10205,7 +10447,8 @@ function syncPhysicsModeUI() {
             actorShibaFlip: document.getElementById('actor-shiba-flip'),
             actorCat: document.getElementById('actor-cat'),
             actorCatFlip: document.getElementById('actor-cat-flip'),
-            actorDockDuel: document.getElementById('actor-dock-duel')
+            courtDuelNE: document.getElementById('court-duel-ne'),
+            courtDuelSW: document.getElementById('court-duel-sw')
         };
     }
 
@@ -10214,55 +10457,52 @@ function syncPhysicsModeUI() {
         if (!domCache || !domCache.viewport) refreshDomCache();
         if (!domCache) return;
 
-        // ════ 1. 👑 黑天鵝與小鴨家族巡游 ════
-        swanAngle += 0.38 * dt;
-        const swanCenterX = 43.5;
-        const swanCenterY = 52.5;
-        const swanRx = 11.5;
-        const swanRy = 6.0;
+        // ════ 1. 👑 黑天鵝與小鴨家族巡游 (全開闊水道無障礙巡弋) ════
+        const nSwan = swanWaypoints.length;
+        swanProgress = (swanProgress + 0.042 * dt) % nSwan;
 
-        const sx = swanCenterX + Math.cos(swanAngle) * swanRx;
-        const sy = swanCenterY + Math.sin(swanAngle) * swanRy;
-        const svx = -Math.sin(swanAngle);
+        const pSwan = getCatmullRomLoop(swanWaypoints, swanProgress);
+        const pNext = getCatmullRomLoop(swanWaypoints, swanProgress + 0.03);
+        const svx = pNext.x - pSwan.x;
 
         if (domCache.actorSwan) {
-            domCache.actorSwan.style.left = sx.toFixed(2) + '%';
-            domCache.actorSwan.style.top = sy.toFixed(2) + '%';
+            domCache.actorSwan.style.left = pSwan.x.toFixed(2) + '%';
+            domCache.actorSwan.style.top = pSwan.y.toFixed(2) + '%';
             if (domCache.actorSwanFlip) {
                 // 🦢 預設朝左：svx > 0 向右移動時水平翻轉
-                domCache.actorSwanFlip.style.transform = svx > 0.05 ? 'scaleX(-1)' : 'scaleX(1)';
+                domCache.actorSwanFlip.style.transform = svx > 0.005 ? 'scaleX(-1)' : 'scaleX(1)';
             }
         }
 
         // 定時產生水波漣漪
         if (timeAcc - lastRippleTime > 0.85) {
-            spawnWaterRipple(sx, sy + 1.2);
+            spawnWaterRipple(pSwan.x, pSwan.y + 1.2);
             lastRippleTime = timeAcc;
         }
 
         // 🦆 小水鴨跟班 1
-        const d1Angle = swanAngle - 0.42;
-        const d1x = swanCenterX + Math.cos(d1Angle) * (swanRx - 1.2);
-        const d1y = swanCenterY + Math.sin(d1Angle) * (swanRy - 0.8);
-        const d1vx = -Math.sin(d1Angle);
+        const d1Prog = (swanProgress - 0.22 + nSwan) % nSwan;
+        const pDuck1 = getCatmullRomLoop(swanWaypoints, d1Prog);
+        const pD1Next = getCatmullRomLoop(swanWaypoints, d1Prog + 0.03);
+        const d1vx = pD1Next.x - pDuck1.x;
         if (domCache.actorDuck1) {
-            domCache.actorDuck1.style.left = d1x.toFixed(2) + '%';
-            domCache.actorDuck1.style.top = d1y.toFixed(2) + '%';
+            domCache.actorDuck1.style.left = pDuck1.x.toFixed(2) + '%';
+            domCache.actorDuck1.style.top = pDuck1.y.toFixed(2) + '%';
             if (domCache.actorDuck1Flip) {
-                domCache.actorDuck1Flip.style.transform = d1vx > 0.05 ? 'scaleX(-1)' : 'scaleX(1)';
+                domCache.actorDuck1Flip.style.transform = d1vx > 0.005 ? 'scaleX(-1)' : 'scaleX(1)';
             }
         }
 
         // 🐥 小雛鴨跟班 2
-        const d2Angle = swanAngle - 0.82;
-        const d2x = swanCenterX + Math.cos(d2Angle) * (swanRx - 2.5);
-        const d2y = swanCenterY + Math.sin(d2Angle) * (swanRy - 1.5);
-        const d2vx = -Math.sin(d2Angle);
+        const d2Prog = (swanProgress - 0.44 + nSwan) % nSwan;
+        const pDuck2 = getCatmullRomLoop(swanWaypoints, d2Prog);
+        const pD2Next = getCatmullRomLoop(swanWaypoints, d2Prog + 0.03);
+        const d2vx = pD2Next.x - pDuck2.x;
         if (domCache.actorDuck2) {
-            domCache.actorDuck2.style.left = d2x.toFixed(2) + '%';
-            domCache.actorDuck2.style.top = d2y.toFixed(2) + '%';
+            domCache.actorDuck2.style.left = pDuck2.x.toFixed(2) + '%';
+            domCache.actorDuck2.style.top = pDuck2.y.toFixed(2) + '%';
             if (domCache.actorDuck2Flip) {
-                domCache.actorDuck2Flip.style.transform = d2vx > 0.05 ? 'scaleX(-1)' : 'scaleX(1)';
+                domCache.actorDuck2Flip.style.transform = d2vx > 0.005 ? 'scaleX(-1)' : 'scaleX(1)';
             }
         }
 
@@ -10428,13 +10668,13 @@ function syncPhysicsModeUI() {
         quoteIndexMap[actorId] = idx + 1;
 
         // 叫聲頻率微調
-        const freqMap = { swan: 440, duck1: 620, duck2: 780, shiba: 520, cat: 680, dock: 480 };
+        const freqMap = { swan: 440, duck1: 620, duck2: 780, shiba: 520, cat: 680, dock: 480, court_sw: 560 };
         playAnimaleseChirp(freqMap[actorId] || 560);
 
         // 尋找目標容器
         const targetActor = event && event.currentTarget 
             ? event.currentTarget 
-            : document.getElementById('actor-' + actorId);
+            : (document.getElementById(actorId === 'dock' ? 'court-duel-ne' : (actorId === 'court_sw' ? 'court-duel-sw' : 'actor-' + actorId)));
 
         if (!targetActor) return;
 

@@ -1172,11 +1172,48 @@ I_syn(t) = w_syn · x · u · (dθ/dt)</div>
                     </div>
                 </div>
 
-                <!-- 6. 🏓 水上碼頭小動物對打組 (熊熊 vs 兔兔) -->
-                <div class="ac-dock-duel-group" id="actor-dock-duel" onclick="HubSandbox.interactActor('dock', event)" title="水上對打組：小熊 vs 小兔 (點擊互動)">
-                    <div class="dock-player-p1">🐻</div>
-                    <div class="dock-flying-ball"></div>
-                    <div class="dock-player-p2">🐰</div>
+                <!-- 6. 🏓 湖上東北第一球場：小熊 vs 小兔 隔網對打賽 -->
+                <div class="ac-court-duel" id="court-duel-ne" onclick="HubSandbox.interactActor('dock', event)" title="水上第一球場 · 小熊 vs 小兔 對打 (點擊對話)">
+                    <div class="court-player player-p1" id="duel-ne-p1">
+                        <span class="player-shadow"></span>
+                        <div class="player-body">
+                            <span class="player-avatar">🐻</span>
+                            <span class="player-paddle">🏓</span>
+                        </div>
+                    </div>
+                    <div class="court-ball" id="duel-ne-ball">
+                        <span class="ball-shadow"></span>
+                        <span class="ball-body"></span>
+                    </div>
+                    <div class="court-player player-p2" id="duel-ne-p2">
+                        <span class="player-shadow"></span>
+                        <div class="player-body">
+                            <span class="player-avatar">🐰</span>
+                            <span class="player-paddle">🏓</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 7. 🏓 湖上西南第二球場：小狐狸 vs 企鵝 廚房特訓賽 -->
+                <div class="ac-court-duel" id="court-duel-sw" onclick="HubSandbox.interactActor('court_sw', event)" title="水上第二球場 · 小狐狸 vs 企鵝 特訓 (點擊對話)">
+                    <div class="court-player player-p1" id="duel-sw-p1">
+                        <span class="player-shadow"></span>
+                        <div class="player-body">
+                            <span class="player-avatar">🦊</span>
+                            <span class="player-paddle">🏓</span>
+                        </div>
+                    </div>
+                    <div class="court-ball" id="duel-sw-ball">
+                        <span class="ball-shadow"></span>
+                        <span class="ball-body"></span>
+                    </div>
+                    <div class="court-player player-p2" id="duel-sw-p2">
+                        <span class="player-shadow"></span>
+                        <div class="player-body">
+                            <span class="player-avatar">🐧</span>
+                            <span class="player-paddle">🏓</span>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- 🗺️ 互動點標 Pins (依據中興湖實景嚴格方位) -->
@@ -1210,9 +1247,9 @@ I_syn(t) = w_syn · x · u · (dθ/dt)</div>
                     <div class="map-pin-pill">📚 圖書館 · 規則文獻</div>
                 </div>
 
-                <!-- 6. 湖心設施: 水上小碼頭 (浮島球場闖關 Stage 1~5) -->
-                <div class="map-pin" id="pin-dock" style="top:48%; left:60%;" onclick="openDockPicker()" title="水上匹克小碼頭 · 5 大關卡闖關歷險">
-                    <span class="map-pin-glow" style="width:58px;height:58px;background:radial-gradient(circle, rgba(249,115,22,0.65) 0%, rgba(249,115,22,0) 70%);"></span>
+                <!-- 6. 湖心設施: 水上小碼頭 (棧橋入口，避開球場與選手) -->
+                <div class="map-pin" id="pin-dock" style="top:40.5%; left:73.5%;" onclick="openDockPicker()" title="水上匹克小碼頭 · 5 大關卡闖關歷險">
+                    <span class="map-pin-glow" style="width:48px;height:48px;background:radial-gradient(circle, rgba(249,115,22,0.65) 0%, rgba(249,115,22,0) 70%);"></span>
                     <div class="map-pin-pill pill-dock">🎾 水上小碼頭 · 闖關歷險</div>
                 </div>
 
