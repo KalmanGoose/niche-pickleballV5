@@ -616,10 +616,19 @@ function apiGet(qs) {
                 '　學號前綴 ' + (playerProfile.sidPrefix || '訪客免登入');
             buildAvatarGrid('edit-avatar-grid', selectEditAvatar);
             document.getElementById('profile-modal').style.display = 'flex';
+            if (typeof switchProfileTab === 'function') {
+                switchProfileTab('passport');
+            } else if (typeof renderPassportView === 'function') {
+                renderPassportView();
+            }
             closePanel();
         }
 
-        function closeProfileModal() { document.getElementById('profile-modal').style.display = 'none'; clearKeys(); }
+        function closeProfileModal() {
+            document.getElementById('profile-modal').style.display = 'none';
+            if (typeof suspendProfileAvatar === 'function') suspendProfileAvatar();
+            clearKeys();
+        }
 
         function reopenLoginOverlay() {
             closeProfileModal();

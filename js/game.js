@@ -323,7 +323,7 @@
             ctx.fillStyle = '#fde047';
             ctx.font = 'bold 22px system-ui, sans-serif';
             ctx.textAlign = 'center';
-            ctx.fillText('🏝️ NCHU ANIMAL CROSSING PICKLEBALL 🏝️', 256, 42);
+            ctx.fillText('🏝️ NCHU PICKLEBALL CHAMPIONSHIP 🏝️', 256, 42);
 
             // 關卡資訊
             ctx.fillStyle = '#6ee7b7';
@@ -515,7 +515,7 @@
             const deckH = 0.28;
             const deck = new THREE.Mesh(new THREE.BoxGeometry(deckW, deckH, deckL), deckMat);
             deck.position.set(0, -deckH / 2, 0);
-            deck.receiveShadow = true;
+            deck.receiveShadow = false; // 由上層草皮與球場接收陰影，避免雙重陰影穿透
             deck.castShadow = true;
             scene.add(deck);
 
@@ -545,44 +545,59 @@
             }
 
             // ★ 外圍緩衝草皮裝飾邊框 (草坪綠 0x2e8352 與暖陶土 0xc86446 色彩規範)
-            const courtTurfMat = new THREE.MeshStandardMaterial({ color: 0x2e8352, roughness: 0.88, metalness: 0.02 });
+            const courtTurfMat = new THREE.MeshStandardMaterial({
+                color: 0x2e8352, roughness: 0.88, metalness: 0.02,
+                polygonOffset: true, polygonOffsetFactor: 0.5, polygonOffsetUnits: 0.5
+            });
             const courtApron = new THREE.Mesh(new THREE.PlaneGeometry(COURT_W + 0.36, COURT_L + 0.36), courtTurfMat);
-            courtApron.rotation.x = -Math.PI / 2; courtApron.position.y = 0.0005; courtApron.receiveShadow = true; scene.add(courtApron);
+            courtApron.rotation.x = -Math.PI / 2; courtApron.position.y = 0.002; courtApron.receiveShadow = true; scene.add(courtApron);
 
             // ★ 4. 正式比賽發球區：水上湛藍湖水色 (Clear Lake Blue Service Courts)
-            const courtMat = new THREE.MeshStandardMaterial({ color: 0x0284c7, roughness: 0.82, metalness: 0.02 });
+            const courtMat = new THREE.MeshStandardMaterial({
+                color: 0x0284c7, roughness: 0.82, metalness: 0.02,
+                polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1
+            });
             const court = new THREE.Mesh(new THREE.PlaneGeometry(COURT_W, COURT_L), courtMat);
-            court.rotation.x = -Math.PI / 2; court.position.y = 0.001; court.receiveShadow = true; scene.add(court);
+            court.rotation.x = -Math.PI / 2; court.position.y = 0.004; court.receiveShadow = true; scene.add(court);
 
             // ★ 5. 廚房區 (7 FT NVZ)：清新天青藍 (Fresh Sky Blue Kitchen) 與暖陶土基線
-            const kitMat = new THREE.MeshStandardMaterial({ color: 0x38bdf8, roughness: 0.82, metalness: 0.02 });
+            const kitMat = new THREE.MeshStandardMaterial({
+                color: 0x38bdf8, roughness: 0.82, metalness: 0.02,
+                polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2
+            });
             const kit = new THREE.Mesh(new THREE.PlaneGeometry(COURT_W, KITCHEN_D * 2), kitMat);
-            kit.rotation.x = -Math.PI / 2; kit.position.y = 0.003; kit.receiveShadow = true; scene.add(kit);
+            kit.rotation.x = -Math.PI / 2; kit.position.y = 0.006; kit.receiveShadow = true; scene.add(kit);
             const kitBaseAccent = new THREE.Mesh(new THREE.PlaneGeometry(COURT_W, 0.04),
-                new THREE.MeshBasicMaterial({ color: 0xc86446 }));
-            kitBaseAccent.rotation.x = -Math.PI / 2; kitBaseAccent.position.set(0, 0.0035, 0); scene.add(kitBaseAccent);
+                new THREE.MeshBasicMaterial({ color: 0xc86446, polygonOffset: true, polygonOffsetFactor: -2.5, polygonOffsetUnits: -2.5 }));
+            kitBaseAccent.rotation.x = -Math.PI / 2; kitBaseAccent.position.set(0, 0.007, 0); scene.add(kitBaseAccent);
 
             // ★ 3D 廚房區 (7 FT Non-Volley Zone) 清新木紋白字立體標註
             try {
                 const nvzC = document.createElement('canvas'); nvzC.width = 512; nvzC.height = 128;
                 const nvzX = nvzC.getContext('2d');
-                nvzX.fillStyle = 'rgba(255,255,255,0.40)';
+                nvzX.fillStyle = 'rgba(255,255,255,0.50)';
                 nvzX.font = 'bold 36px "Barlow Condensed", system-ui, sans-serif';
                 nvzX.textAlign = 'center';
                 nvzX.fillText('7 FT · NON-VOLLEY ZONE (KITCHEN)', 256, 75);
                 const nvzTex = new THREE.CanvasTexture(nvzC);
-                const nvzMat = new THREE.MeshBasicMaterial({ map: nvzTex, transparent: true, opacity: 0.85 });
+                const nvzMat = new THREE.MeshBasicMaterial({
+                    map: nvzTex, transparent: true, opacity: 0.85, depthWrite: false,
+                    polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -3
+                });
                 const nvzM1 = new THREE.Mesh(new THREE.PlaneGeometry(COURT_W * 0.82, 0.48), nvzMat);
-                nvzM1.rotation.x = -Math.PI / 2; nvzM1.position.set(0, 0.004, KITCHEN_D * 0.5); scene.add(nvzM1);
+                nvzM1.rotation.x = -Math.PI / 2; nvzM1.position.set(0, 0.008, KITCHEN_D * 0.5); scene.add(nvzM1);
                 const nvzM2 = new THREE.Mesh(new THREE.PlaneGeometry(COURT_W * 0.82, 0.48), nvzMat);
-                nvzM2.rotation.x = -Math.PI / 2; nvzM2.rotation.z = Math.PI; nvzM2.position.set(0, 0.004, -KITCHEN_D * 0.5); scene.add(nvzM2);
+                nvzM2.rotation.x = -Math.PI / 2; nvzM2.rotation.z = Math.PI; nvzM2.position.set(0, 0.008, -KITCHEN_D * 0.5); scene.add(nvzM2);
             } catch(e) { console.warn('NVZ canvas marking init error', e); }
 
             // ★ 柔和白堊粉筆線 (Soft Chalk White Lines)
-            const lm = new THREE.MeshBasicMaterial({ color: 0xf1f5f9 });
+            const lm = new THREE.MeshBasicMaterial({
+                color: 0xf1f5f9,
+                polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4
+            });
             function line(w, h, x, z) {
                 const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), lm);
-                m.rotation.x = -Math.PI / 2; m.position.set(x, 0.005, z); scene.add(m);
+                m.rotation.x = -Math.PI / 2; m.position.set(x, 0.010, z); scene.add(m);
             }
             const lw = 0.06;
             line(COURT_W, lw, 0, HALF_L); line(COURT_W, lw, 0, -HALF_L);

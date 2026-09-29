@@ -111,73 +111,86 @@
     <!-- ══════ 🍃 島民 / 球員個人設定與學號綁定 ══════ -->
     <div id="profile-modal" class="modal-overlay" style="display:none;">
         <div class="modal-card">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
-                <h2 style="margin:0;font-size:19px;">😎 個人球員設定</h2>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+                <h2 style="margin:0;font-size:18px;color:#2b1d14;">😎 個人球員檔案</h2>
                 <button type="button" class="btn-close-profile" onclick="closeProfileModal()">✕</button>
             </div>
-            <p class="profile-subtitle">修改後將同步更新個人名片與校園英雄榜。</p>
 
-            <!-- 訪客轉正提示橫幅 -->
-            <div id="edit-guest-banner" class="profile-guest-notice" style="display:none;">
-                <span class="profile-guest-badge">👟 訪客快速試玩中</span>
-                <div>您目前是以訪客身分進行遊玩！請在下方輸入中興學號前 7 碼並選擇系所，即可<strong>一鍵升級為正式學生帳號</strong>，登錄全校系級排行！</div>
+            <!-- 頂部頁籤導航：選手證 vs 編輯資料 -->
+            <div class="profile-nav-tabs">
+                <button type="button" class="profile-nav-tab on" id="ptab-btn-passport" onclick="switchProfileTab('passport')">🪪 島民選手證 & 成就</button>
+                <button type="button" class="profile-nav-tab" id="ptab-btn-edit" onclick="switchProfileTab('edit')">✏️ 編輯資料 / 學號綁定</button>
             </div>
 
-            <div style="margin-bottom:12px;">
-                <label class="profile-field-label">代表頭像</label>
-                <div class="avatar-grid" id="edit-avatar-grid"></div>
+            <!-- 頁籤 1: 選手證與成就 (預設展開) -->
+            <div id="passport-tab-content" style="display:block;"></div>
+
+            <!-- 頁籤 2: 編輯個人資料與綁定學號 (保留完整 DOM 元素) -->
+            <div id="profile-edit-content" style="display:none;">
+                <p class="profile-subtitle">修改後將同步更新個人名片、選手證與校園英雄榜。</p>
+
+                <!-- 訪客轉正提示橫幅 -->
+                <div id="edit-guest-banner" class="profile-guest-notice" style="display:none;">
+                    <span class="profile-guest-badge">👟 訪客快速試玩中</span>
+                    <div>您目前是以訪客身分進行遊玩！請在下方輸入中興學號前 7 碼並選擇系所，即可<strong>一鍵升級為正式學生帳號</strong>，登錄全校系級排行！</div>
+                </div>
+
+                <div style="margin-bottom:12px;">
+                    <label class="profile-field-label">代表頭像</label>
+                    <div class="avatar-grid" id="edit-avatar-grid"></div>
+                </div>
+
+                <!-- 學號前 7 碼輸入框 -->
+                <div class="input-group">
+                    <label>中興學號前 7 碼 (學制 + 入學學年 + 系所)</label>
+                    <input type="text" id="edit-sid" inputmode="numeric" maxlength="7" placeholder="例如: 4112044" oninput="onEditSidInput(this.value)">
+                    <div id="edit-sid-msg" class="sid-msg">輸入 7 碼學號自動判定系所與年級</div>
+                </div>
+
+                <!-- 系所選擇下拉 -->
+                <div class="input-group">
+                    <label>系所</label>
+                    <select id="edit-dept-sel" onchange="onEditDeptSelect()"></select>
+                    <input type="text" id="edit-dept-manual" placeholder="請填寫系所名稱" style="display:none;margin-top:8px;">
+                </div>
+
+                <!-- 年級選擇下拉 -->
+                <div class="input-group">
+                    <label>年級</label>
+                    <select id="edit-grade-sel">
+                        <option>大一</option>
+                        <option>大二</option>
+                        <option>大三</option>
+                        <option>大四</option>
+                        <option>延修生</option>
+                        <option>碩一</option>
+                        <option>碩二</option>
+                        <option>博士班</option>
+                    </select>
+                </div>
+
+                <!-- 備用自訂系級顯示 (非必填) -->
+                <input type="hidden" id="edit-dept">
+
+                <div class="input-group">
+                    <label>遊戲暱稱</label>
+                    <input type="text" id="edit-nick" placeholder="自訂您的球場暱稱">
+                </div>
+
+                <div class="input-group">
+                    <label>Instagram 帳號 (選填)</label>
+                    <input type="text" id="edit-ig" placeholder="例如: nchu_pickle">
+                </div>
+
+                <div class="id-badge" id="edit-id-badge">—</div>
+
+                <div style="display:flex;gap:10px;margin-top:14px;">
+                    <button type="button" class="btn-cancel" style="margin-top:0;flex:1;" onclick="closeProfileModal()">取消</button>
+                    <button type="button" class="btn-main" id="edit-save-btn" style="margin-top:0;flex:2;" onclick="saveProfile()">💾 保存修改</button>
+                </div>
+
+                <button type="button" class="btn-reopen-login" onclick="reopenLoginOverlay()">🔄 重新進入登入開局畫面</button>
             </div>
-
-            <!-- 學號前 7 碼輸入框 -->
-            <div class="input-group">
-                <label>中興學號前 7 碼 (學制 + 入學學年 + 系所)</label>
-                <input type="text" id="edit-sid" inputmode="numeric" maxlength="7" placeholder="例如: 4112044" oninput="onEditSidInput(this.value)">
-                <div id="edit-sid-msg" class="sid-msg">輸入 7 碼學號自動判定系所與年級</div>
-            </div>
-
-            <!-- 系所選擇下拉 -->
-            <div class="input-group">
-                <label>系所</label>
-                <select id="edit-dept-sel" onchange="onEditDeptSelect()"></select>
-                <input type="text" id="edit-dept-manual" placeholder="請填寫系所名稱" style="display:none;margin-top:8px;">
-            </div>
-
-            <!-- 年級選擇下拉 -->
-            <div class="input-group">
-                <label>年級</label>
-                <select id="edit-grade-sel">
-                    <option>大一</option>
-                    <option>大二</option>
-                    <option>大三</option>
-                    <option>大四</option>
-                    <option>延修生</option>
-                    <option>碩一</option>
-                    <option>碩二</option>
-                    <option>博士班</option>
-                </select>
-            </div>
-
-            <!-- 備用自訂系級顯示 (非必填) -->
-            <input type="hidden" id="edit-dept">
-
-            <div class="input-group">
-                <label>遊戲暱稱</label>
-                <input type="text" id="edit-nick" placeholder="自訂您的球場暱稱">
-            </div>
-
-            <div class="input-group">
-                <label>Instagram 帳號 (選填)</label>
-                <input type="text" id="edit-ig" placeholder="例如: nchu_pickle">
-            </div>
-
-            <div class="id-badge" id="edit-id-badge">—</div>
-
-            <div style="display:flex;gap:10px;margin-top:14px;">
-                <button type="button" class="btn-cancel" style="margin-top:0;flex:1;" onclick="closeProfileModal()">取消</button>
-                <button type="button" class="btn-main" id="edit-save-btn" style="margin-top:0;flex:2;" onclick="saveProfile()">💾 保存修改</button>
-            </div>
-
-            <button type="button" class="btn-reopen-login" onclick="reopenLoginOverlay()">🔄 重新進入登入開局畫面</button>
         </div>
     </div>
 
@@ -626,41 +639,41 @@ dx/dt = v
 dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
 
                             <!-- ★ 雙軌物理模式一鍵切換開關 -->
-                            <div style="margin-top:10px;margin-bottom:6px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;background:rgba(15,23,42,0.7);border:1px solid rgba(56,189,248,0.3);border-radius:8px;padding:8px 12px;">
-                                <span style="font-size:12.5px;color:#e2e8f0;font-weight:700;">🌪️ 物理求解模式即時切換：</span>
-                                <button type="button" id="rtab-mode-toggle-btn" class="tab" style="background:rgba(56,189,248,0.15);border:1px solid #38bdf8;border-radius:6px;padding:5px 12px;color:#38bdf8;font-size:12px;font-weight:700;cursor:pointer;" onclick="togglePhysicsMode()">
+                            <div style="margin-top:10px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;background:#f5efe6;border:1.5px solid #dec8a7;border-radius:10px;padding:8px 12px;">
+                                <span style="font-size:12.5px;color:#2b1d14;font-weight:800;">🌪️ 物理求解模式即時切換：</span>
+                                <button type="button" id="rtab-mode-toggle-btn" class="tab" style="background:#e8f5e9;border:1.5px solid #40916c;border-radius:8px;padding:5px 12px;color:#1b5e20;font-size:12px;font-weight:800;cursor:pointer;" onclick="togglePhysicsMode()">
                                     ⚡ 當前：極速經驗模式 (點擊切換為嚴格學術求解)
                                 </button>
                             </div>
 
                             <div style="margin-top:10px;display:flex;flex-direction:column;gap:10px;">
                                 <!-- 細項 1 -->
-                                <div style="background:rgba(15,23,42,0.6);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:10px 14px;">
-                                    <div style="font-weight:800;color:var(--accent);font-size:13px;margin-bottom:4px;">
+                                <div class="science-box">
+                                    <div style="font-weight:800;color:#1b5e20;font-size:13px;margin-bottom:4px;">
                                         ① m · (dv/dt) ── 慣性與合加速度項 (Inertia & Acceleration)
                                     </div>
-                                    <div style="font-size:12px;line-height:1.65;color:#cbd5e1;">
+                                    <div style="font-size:12px;line-height:1.65;color:#3d2d22;">
                                         • <b>m（球體質量 / Mass）</b>：標準值 <b>26.0 g (0.026 kg)</b>（USA Pickleball 官方規範 22.1 ~ 26.5 g）。質量輕意味著微小的氣動力就能顯著改變飛行軌跡。<br>
                                         • <b>dv/dt = a（瞬時加速度向量 / Acceleration）</b>：單位為 m/s²，代表球體在 X, Y, Z 三維軸向上每秒速度的向量變化量。
                                     </div>
                                 </div>
 
                                 <!-- 細項 2 -->
-                                <div style="background:rgba(15,23,42,0.6);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:10px 14px;">
-                                    <div style="font-weight:800;color:var(--lime);font-size:13px;margin-bottom:4px;">
+                                <div class="science-box">
+                                    <div style="font-weight:800;color:#2e7d32;font-size:13px;margin-bottom:4px;">
                                         ② F_gravity = m · g ── 垂直重力下墜項 (Gravity)
                                     </div>
-                                    <div style="font-size:12px;line-height:1.65;color:#cbd5e1;">
+                                    <div style="font-size:12px;line-height:1.65;color:#3d2d22;">
                                         • <b>g（重力加速度向量）</b>：定義為 <b>(0, -9.81, 0) m/s²</b>，永遠朝向 Y 軸負方向（垂直朝向地心）。若無空氣外力，球體將呈標準古典拋物線運動。
                                     </div>
                                 </div>
 
                                 <!-- 細項 3 -->
-                                <div style="background:rgba(15,23,42,0.6);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:10px 14px;">
-                                    <div style="font-weight:800;color:#f59e0b;font-size:13px;margin-bottom:4px;">
+                                <div class="science-box">
+                                    <div style="font-weight:800;color:#c86446;font-size:13px;margin-bottom:4px;">
                                         ③ F_drag = -½ · Cd · ρ · A · |v| · v ── 二次方空氣阻力項 (Quadratic Drag)
                                     </div>
-                                    <div style="font-size:12px;line-height:1.65;color:#cbd5e1;">
+                                    <div style="font-size:12px;line-height:1.65;color:#3d2d22;">
                                         • <b>負號（-）</b>：阻力方向永遠與前進速度向量 v <b>嚴格相反</b>，專職消耗球體動能。<br>
                                         • <b>Cd（形狀阻力係數 / Drag Coefficient）</b>：基準值 <b>0.58</b>。光滑球體僅約 0.45，但匹克球表面有 <b>26~40 個孔洞</b>，高速運動引發強烈的<b>邊界層紊流脫離 (Turbulent Wake Separation)</b>，形成巨大壓差阻力。<br>
                                         • <b>ρ（空氣密度 / Fluid Density）</b>：取標準大氣條件 <b>1.225 kg/m³</b>。<br>
@@ -670,11 +683,11 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
                                 </div>
 
                                 <!-- 細項 4 -->
-                                <div style="background:rgba(15,23,42,0.6);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:10px 14px;">
-                                    <div style="font-weight:800;color:#ec4899;font-size:13px;margin-bottom:4px;">
+                                <div class="science-box">
+                                    <div style="font-weight:800;color:#854d0e;font-size:13px;margin-bottom:4px;">
                                         ④ F_Magnus = ½ · CL · ρ · A · |v|² · ((ω × v) / |ω × v|) ── 馬格努斯旋轉偏折力項 (Magnus Force)
                                     </div>
-                                    <div style="font-size:12px;line-height:1.65;color:#cbd5e1;">
+                                    <div style="font-size:12px;line-height:1.65;color:#3d2d22;">
                                         • <b>ω（自旋角速度向量 / Angular Velocity）</b>：單位 rad/s，旋轉軸方向依循右手定則。<br>
                                         • <b>ω × v（向量外積 / Cross Product）</b>：外積方向<b>同時垂直於自轉軸與飛行速度</b>！在數學上精確解釋了三大實戰球路：<br>
                                         &nbsp;&nbsp;▸ <b>上旋球 (Topspin)</b>：ω 水平偏左，(ω × v) 指向<b>正下方</b>，球被大氣壓力強力下壓，達成<b>貼網急墜界內</b>！<br>
@@ -685,11 +698,11 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
                                 </div>
 
                                 <!-- 細項 5 -->
-                                <div style="background:rgba(15,23,42,0.6);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:10px 14px;">
-                                    <div style="font-weight:800;color:var(--cool);font-size:13px;margin-bottom:4px;">
+                                <div class="science-box">
+                                    <div style="font-weight:800;color:#2b1d14;font-size:13px;margin-bottom:4px;">
                                         ⑤ dω/dt = -β_perforated · ω ── 多孔角動量自旋阻尼衰減項 (Spin Dissipation)
                                     </div>
-                                    <div style="font-size:12px;line-height:1.65;color:#cbd5e1;">
+                                    <div style="font-size:12px;line-height:1.65;color:#3d2d22;">
                                         • <b>β_perforated（多孔空氣剪切阻尼係數）</b>：取值 <b>0.35 s⁻¹</b>。<br>
                                         • <b>物理意義</b>：空氣高速穿梭貫穿球體的 26~40 個孔洞時，球內腔與外側氣流產生強烈剪切摩擦，使自旋角速度以指數形式衰減 ω(t) = ω₀ · e^(-β·t)。<br>
                                         • <b>運動學效果</b>：使側旋造成的偏折隨時間收斂，不會持續加速偏移。
@@ -697,21 +710,21 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
                                 </div>
 
                                 <!-- 核心答辯對照：理論模型 vs 遊戲引擎真實工程實作 -->
-                                <div style="background:linear-gradient(135deg, rgba(234,179,8,0.12), rgba(15,23,42,0.85));border:1.5px solid rgba(234,179,8,0.4);border-radius:10px;padding:14px 16px;margin-top:6px;">
-                                    <div style="font-weight:900;color:#facc15;font-size:14px;margin-bottom:8px;">⚙️ 理論方程式 vs. 實際程式實作</div>
+                                <div class="science-box-gold">
+                                    <div style="font-weight:900;color:#92400e;font-size:14px;margin-bottom:8px;">⚙️ 理論方程式 vs. 實際程式實作</div>
                                     <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(280px, 1fr));gap:10px;">
-                                        <div style="background:rgba(0,0,0,0.4);border:1px solid rgba(56,189,248,0.3);border-radius:6px;padding:10px;">
-                                            <div style="font-weight:800;color:#38bdf8;font-size:12px;margin-bottom:4px;">⚡ 極速模式 (FAST)</div>
-                                            <div style="font-size:11.5px;color:#cbd5e1;line-height:1.6;">
+                                        <div style="background:#ffffff;border:1.5px solid #dec8a7;border-radius:8px;padding:10px;box-shadow:0 1px 2px rgba(74,55,40,0.06);">
+                                            <div style="font-weight:800;color:#1b5e20;font-size:12px;margin-bottom:4px;">⚡ 極速模式 (FAST)</div>
+                                            <div style="font-size:11.5px;color:#3d2d22;line-height:1.6;">
                                                 • 線性阻尼：<code>v<sub>x,z</sub> ← v<sub>x,z</sub>·(1 − 0.09h)</code><br>
                                                 • 經驗側向加速度：<code>a<sub>x</sub> = 3.6·spin·(0.8 + 0.2·|v<sub>z</sub>|/8)</code><br>
                                                 • 自旋衰減 0.14 s⁻¹<br>
                                                 • 目的：手感穩定、落點容易預測
                                             </div>
                                         </div>
-                                        <div style="background:rgba(0,0,0,0.4);border:1px solid rgba(129,140,248,0.35);border-radius:6px;padding:10px;">
-                                            <div style="font-weight:800;color:#c7d2fe;font-size:12px;margin-bottom:4px;">🔬 學術模式 (ACADEMIC)</div>
-                                            <div style="font-size:11.5px;color:#cbd5e1;line-height:1.6;">
+                                        <div style="background:#ffffff;border:1.5px solid #dec8a7;border-radius:8px;padding:10px;box-shadow:0 1px 2px rgba(74,55,40,0.06);">
+                                            <div style="font-weight:800;color:#2563eb;font-size:12px;margin-bottom:4px;">🔬 學術模式 (ACADEMIC)</div>
+                                            <div style="font-size:11.5px;color:#3d2d22;line-height:1.6;">
                                                 • 二次方阻力 <code>a = −k|v|v</code>，k = ½C<sub>d</sub>ρA/m ≈ 0.0588 m⁻¹；以隱式形式 <code>v ← v/(1+k|v|h)</code> 更新<br>
                                                 • 馬格努斯力 <code>a = ½C<sub>L</sub>ρA|v|²/m</code>，方向為 ω×v；C<sub>L</sub> ≈ 0.8·S（S = Rω/|v|），上限 0.25<br>
                                                 • 自旋指數衰減 β = 0.35 s⁻¹<br>
@@ -719,8 +732,8 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
                                             </div>
                                         </div>
                                     </div>
-                                    <div style="margin-top:10px;background:rgba(15,23,42,0.8);border:1px solid rgba(234,179,8,0.25);border-radius:6px;padding:10px 12px;font-size:11.5px;color:#cbd5e1;line-height:1.6;">
-                                        <b style="color:#fcd34d;">⚠️ 模型限制</b><br>
+                                    <div style="margin-top:10px;background:#fefce8;border:1px solid #fef08a;border-radius:8px;padding:10px 12px;font-size:11.5px;color:#78350f;line-height:1.6;">
+                                        <b style="color:#b45309;">⚠️ 模型限制</b><br>
                                         • 多孔球的 C<sub>L</sub> 與自旋衰減缺乏公開風洞資料；spin = 1 對應 80 rad/s 與 C<sub>L</sub> 斜率皆為假設值，以遊戲手感校正<br>
                                         • 碰撞與視覺使用放大半徑 0.14 m（手機可見度），空氣動力學使用真實半徑 0.037 m<br>
                                         • 落地反彈採經驗恢復係數（垂直 0.55、水平 0.68），未建模球與地面的摩擦及自旋耦合
@@ -734,7 +747,7 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
                     <div class="science-drawer" id="drawer-phys-5" style="grid-column:1/-1;">
                         <div class="drawer-header" onclick="toggleScienceDrawer('drawer-phys-5')">
                             <div class="drawer-header-left">
-                                <span class="drawer-badge" style="background:linear-gradient(135deg,#a855f7,#7c3aed);color:#fff;">神經 05</span>
+                                <span class="drawer-badge" style="background:linear-gradient(135deg,#2e7d32,#1b5e20);color:#fff;">神經 05</span>
                                 <div class="drawer-title-group">
                                     <h4 class="drawer-title">🧠 普林斯頓大學 FlyWire 全腦連接組學與仿生急轉避障神經系統</h4>
                                     <div class="drawer-sub">全腦 13.9 萬神經元接線圖、捷安特巨纖維逃逸中樞 (GFS) 與運動突觸迴路</div>
@@ -743,57 +756,57 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
                             <div class="drawer-toggle-btn">▾ 點擊展開</div>
                         </div>
                         <div class="drawer-content">
-                            <p class="rule-desc" style="color:#e2e8f0;margin-top:4px;">
+                            <p class="rule-desc" style="color:#3d2d22;margin-top:4px;">
                                 本專案之「🪰 仿生蒼蠅 (Fly Opponent)」敵方 AI 依據<b>普林斯頓大學神經科學研究所 (Princeton Neuroscience Institute)</b> 主導之 <b>FlyWire 國際全腦連接組聯盟 (Whole-Brain Drosophila Connectome Consortium)</b> 2024 年發表於國際頂尖期刊《Nature》之最新開源圖譜資料與神經運動突觸迴路建構：
                             </p>
 
                             <div style="margin-top:10px;display:flex;flex-direction:column;gap:10px;">
                                 <!-- 區塊 1: 普林斯頓大學 FlyWire 開源計劃介紹 -->
-                                <div style="background:rgba(15,23,42,0.7);border:1px solid rgba(168,85,247,0.3);border-radius:8px;padding:12px 14px;">
-                                    <div style="font-weight:800;color:#c084fc;font-size:13px;margin-bottom:6px;display:flex;align-items:center;gap:6px;">
+                                <div class="science-box">
+                                    <div style="font-weight:800;color:#1b5e20;font-size:13px;margin-bottom:6px;display:flex;align-items:center;gap:6px;">
                                         <span>🌐</span> 普林斯頓大學 FlyWire 開源計劃與公共神經資料庫 (Princeton FlyWire Consortium)
                                     </div>
-                                    <div style="font-size:12px;line-height:1.7;color:#cbd5e1;">
+                                    <div style="font-size:12px;line-height:1.7;color:#3d2d22;">
                                         • <b>創舉與歷史里程碑</b>：由普林斯頓大學 <b>H. Sebastian Seung 教授</b>（計算神經科學先驅）與 <b>Mala Murthy 教授</b>（神經生物學與聲學行為權威）領銜，聯合英國劍橋大學 MRC-LMB、HHMI Janelia 等全球數十所頂尖機構，於 2024 年 10 月以《Nature》封面特刊正式發布世界首座完整成年黑腹果蠅（<i>Drosophila melanogaster</i>）全腦接線圖（Wiring Diagram）。<br>
                                         • <b>大數據規模與解析度</b>：涵蓋 <b>139,255 個神經元</b>、超過 <b>5,450 萬個化學突觸</b> 與數百萬條微米級神經纖維，解析度精細至奈米級（4nm × 4nm × 40nm 序列切片穿透電子顯微鏡），徹底解密感官輸入至運動輸出的端到端迴路。<br>
-                                        • <b>完全開源資料資產</b>：包含 <b>FlyWire Codex</b>（互動式神經細胞圖鑑與連接體查詢引擎，<a href="https://codex.flywire.ai/" target="_blank" rel="noopener noreferrer" style="color:#38bdf8;text-decoration:underline;">codex.flywire.ai</a>）、Neuroglancer 3D 突觸視覺化、CAVE (Connectome Annotation Versioning Engine) 與全開放神經網絡有向圖資料集，供全球科研與仿生工程免費存取。
+                                        • <b>完全開源資料資產</b>：包含 <b>FlyWire Codex</b>（互動式神經細胞圖鑑與連接體查詢引擎，<a href="https://codex.flywire.ai/" target="_blank" rel="noopener noreferrer" style="color:#2563eb;text-decoration:underline;">codex.flywire.ai</a>）、Neuroglancer 3D 突觸視覺化、CAVE (Connectome Annotation Versioning Engine) 與全開放神經網絡有向圖資料集，供全球科研與仿生工程免費存取。
                                     </div>
                                 </div>
 
                                 <!-- 區塊 2: 神經浮出之各項急轉與逃逸系統解析 -->
-                                <div style="background:rgba(15,23,42,0.7);border:1px solid rgba(56,189,248,0.25);border-radius:8px;padding:12px 14px;">
-                                    <div style="font-weight:800;color:#38bdf8;font-size:13px;margin-bottom:6px;display:flex;align-items:center;gap:6px;">
+                                <div class="science-box">
+                                    <div style="font-weight:800;color:#c86446;font-size:13px;margin-bottom:6px;display:flex;align-items:center;gap:6px;">
                                         <span>⚡</span> 神經浮出之各項急轉、避障與截擊系統迴路解析 (Emergent Neural Circuits)
                                     </div>
-                                    <div style="display:flex;flex-direction:column;gap:8px;font-size:12px;line-height:1.65;color:#cbd5e1;">
+                                    <div style="display:flex;flex-direction:column;gap:8px;font-size:12px;line-height:1.65;color:#3d2d22;">
                                         <div>
-                                            <b style="color:#fcd34d;">① 視覺光學擴張率偵測層 (Optical Looming Detectors: LC4 & LPLC2)</b><br>
+                                            <b style="color:#92400e;">① 視覺光學擴張率偵測層 (Optical Looming Detectors: LC4 & LPLC2)</b><br>
                                             果蠅視葉小葉深層（Lobula）的 <b>LC4</b>（柱狀小葉神經元 4）與 <b>LPLC2</b> 專司威脅逼近感測。其樹突具有極強側向抑制，僅對視野中呈徑向高速擴張（Radial Expansion）之暗點刺激產生動作電位，其放電頻率精準編碼逼近率 $\eta(t) = \frac{\dot{\theta}(t)}{\theta(t)} = \frac{v_{\text{rel}}}{d(t)}$。
                                         </div>
                                         <div>
-                                            <b style="color:#fcd34d;">② 巨大纖維逃逸中樞 (Giant Fiber System, GFS: GF → TTMn / PSI)</b>
-                                            <span style="font-size:11px;color:#f472b6;font-weight:700;margin-left:4px;">🚲 aka 捷安特腳踏車神經（純屬諧音梗開玩笑亂講ㄉ不要寫在期末考卷上）</span><br>
+                                            <b style="color:#92400e;">② 巨大纖維逃逸中樞 (Giant Fiber System, GFS: GF → TTMn / PSI)</b>
+                                            <span style="font-size:11px;color:#c86446;font-weight:800;margin-left:4px;">🚲 aka 捷安特腳踏車神經（純屬諧音梗開玩笑亂講ㄉ不要寫在期末考卷上）</span><br>
                                             直徑達數微米的 <b>GF 下行神經元</b> 是昆蟲神經系統中反應最迅捷的「高速公路」（簡稱神經界的捷安特！）。GF 透過電突觸（Gap Junction）在 5~10ms 內直通胸部腹神經索（VNC），下游直接突觸連接：<br>
                                             - <b>TTMn (大轉子運動神經元)</b>：觸發中足大轉子伸肌爆發性伸展，產生逃逸起跳（Jump Evasion）。<br>
                                             - <b>PSI (外周突觸中間神經元) → DLMs (背縱肌肉)</b>：強制觸發雙翼急速下拍與升翅抑制，形成瞬間破空攔截。
                                         </div>
                                         <div>
-                                            <b style="color:#fcd34d;">③ 下行急轉非對稱轉向神經元 (Steering Descending Neurons: DNa01 / DNa02)</b><br>
+                                            <b style="color:#92400e;">③ 下行急轉非對稱轉向神經元 (Steering Descending Neurons: DNa01 / DNa02)</b><br>
                                             Namiki et al. (2018) 與 FlyWire 下行神經元組證實，<b>DNa01</b> 與 <b>DNa02</b> 為控制飛行姿態橫擺（Yaw）與側傾（Roll）的主控開關。單側活化 DNa 會直接造成兩側雙翼振幅不對稱（Wing Stroke Amplitude Asymmetry, $\Delta \text{WSA}$），在 <b>小於 30 毫秒</b> 內產生超過 90°/s 的急劇空中變向橫切（Saccadic Emergency Turn）。
                                         </div>
                                         <div>
-                                            <b style="color:#fcd34d;">④ 複眼運動視盲漏洞 (Sensory Vulnerability & Motion Blindspot)</b><br>
+                                            <b style="color:#92400e;">④ 複眼運動視盲漏洞 (Sensory Vulnerability & Motion Blindspot)</b><br>
                                             LC4/LPLC2 迴路對慢速、平緩、無急劇擴張的光學位移（如微風吹拂或平滑拋物線）完全不響應；同時巨纖維系統缺乏對低頻刺激的積分能力。當來球為輕推小球（Dink）時，逃逸神經迴路完全靜默，致使蒼蠅因失去威脅特徵而產生感官視盲與飛行失速。
                                         </div>
                                     </div>
                                 </div>
 
                                 <!-- 區塊 3: 匹克球遊戲引擎中的真實映射與配對應用 -->
-                                <div style="background:rgba(15,23,42,0.7);border:1px solid rgba(74,222,128,0.25);border-radius:8px;padding:12px 14px;">
-                                    <div style="font-weight:800;color:#4ade80;font-size:13px;margin-bottom:6px;display:flex;align-items:center;gap:6px;">
+                                <div class="science-box">
+                                    <div style="font-weight:800;color:#1b5e20;font-size:13px;margin-bottom:6px;display:flex;align-items:center;gap:6px;">
                                         <span>🎮</span> 本專案引擎中的神經機制配對與對抗博弈 (In-Engine Neuromechanical Mapping)
                                     </div>
-                                    <div style="display:flex;flex-direction:column;gap:6px;font-size:12px;line-height:1.65;color:#cbd5e1;">
+                                    <div style="display:flex;flex-direction:column;gap:6px;font-size:12px;line-height:1.65;color:#3d2d22;">
                                         <div>
                                             • <b>大力抽球與高速截擊配對 (GFS + DNa01 Counter-Drive)</b>：玩家以 $>9.2\,\text{m/s}$ 大力抽球時，遊戲以 $O(1)$ 演算球距與前進分速，觸發 <code>LOOMING_REFLEX</code>。蒼蠅振翅飆至 125Hz，以 $22\,\text{m/s}$ 瞬移，並啟動 DNa01 急轉向對角算法，呼叫 <code>solveArc</code> 內建 $1.25\times$ 高速初速，回擊壓在對手對角底線死角（$z \in [5.8\text{m}, 6.1\text{m}]$），精確懲罰無腦抽球！
                                         </div>
@@ -953,29 +966,29 @@ I_syn(t) = w_syn · x · u · (dθ/dt)</div>
                         <div class="drawer-content">
                             <p class="rule-desc">可在球場上的「FLY-SNN 示波器」隨時點擊切換以下 6 種神經性格特徵：</p>
                             <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(240px, 1fr));gap:10px;margin-top:8px;">
-                                <div style="background:rgba(15,23,42,0.6);border:1px solid rgba(56,189,248,0.25);border-radius:10px;padding:10px;">
-                                    <div style="font-weight:900;color:#38bdf8;font-size:13px;">⚡ 敏捷截擊獵手 (Agile Interceptor)</div>
-                                    <div style="font-size:11.5px;color:#cbd5e1;margin-top:4px;">高興奮性、短膜時間常數 (τ_m=12ms)，對光學逼近角極度敏感，擅長網前廚房區凌空截擊。</div>
+                                <div style="background:#f0fdf4;border:1.5px solid #86efac;border-radius:10px;padding:10px;box-shadow:0 1px 3px rgba(46,125,50,0.06);">
+                                    <div style="font-weight:900;color:#15803d;font-size:13px;">⚡ 敏捷截擊獵手 (Agile Interceptor)</div>
+                                    <div style="font-size:11.5px;color:#2b1d14;margin-top:4px;line-height:1.55;">高興奮性、短膜時間常數 (τ_m=12ms)，對光學逼近角極度敏感，擅長網前廚房區凌空截擊。</div>
                                 </div>
-                                <div style="background:rgba(15,23,42,0.6);border:1px solid rgba(246,196,69,0.25);border-radius:10px;padding:10px;">
-                                    <div style="font-weight:900;color:#f6c445;font-size:13px;">🌀 神經混沌假動作 (Chaotic Deceiver)</div>
-                                    <div style="font-size:11.5px;color:#cbd5e1;margin-top:4px;">自發神經噪聲高，擊球落點具備高度混沌隨機性，常打出意想不到的反向抽球與假動作。</div>
+                                <div style="background:#fefce8;border:1.5px solid #fde047;border-radius:10px;padding:10px;box-shadow:0 1px 3px rgba(245,158,11,0.06);">
+                                    <div style="font-weight:900;color:#a16207;font-size:13px;">🌀 神經混沌假動作 (Chaotic Deceiver)</div>
+                                    <div style="font-size:11.5px;color:#2b1d14;margin-top:4px;line-height:1.55;">自發神經噪聲高，擊球落點具備高度混沌隨機性，常打出意想不到的反向抽球與假動作。</div>
                                 </div>
-                                <div style="background:rgba(15,23,42,0.6);border:1px solid rgba(239,68,68,0.25);border-radius:10px;padding:10px;">
-                                    <div style="font-weight:900;color:#f87171;font-size:13px;">🦅 高空滑翔重砲 (Gliding Smasher)</div>
-                                    <div style="font-size:11.5px;color:#cbd5e1;margin-top:4px;">下行飛行神經元（PSIm）強權重輸出，專注於底線深球大力抽擊與高壓扣殺。</div>
+                                <div style="background:#fef2f2;border:1.5px solid #fca5a5;border-radius:10px;padding:10px;box-shadow:0 1px 3px rgba(239,68,68,0.06);">
+                                    <div style="font-weight:900;color:#b91c1c;font-size:13px;">🦅 高空滑翔重砲 (Gliding Smasher)</div>
+                                    <div style="font-size:11.5px;color:#2b1d14;margin-top:4px;line-height:1.55;">下行飛行神經元（PSIm）強權重輸出，專注於底線深球大力抽擊與高壓扣殺。</div>
                                 </div>
-                                <div style="background:rgba(15,23,42,0.6);border:1px solid rgba(34,197,94,0.25);border-radius:10px;padding:10px;">
-                                    <div style="font-weight:900;color:#4ade80;font-size:13px;">🛡️ 磐石戰術家 (Steadfast Tactician)</div>
-                                    <div style="font-size:11.5px;color:#cbd5e1;margin-top:4px;">高膜電位適應性 (b=4.5)，不易被虛晃或高頻節奏擾亂，極度耐打且失誤率接近於零。</div>
+                                <div style="background:#f0fdfa;border:1.5px solid #5eead4;border-radius:10px;padding:10px;box-shadow:0 1px 3px rgba(13,148,136,0.06);">
+                                    <div style="font-weight:900;color:#0f766e;font-size:13px;">🛡️ 磐石戰術家 (Steadfast Tactician)</div>
+                                    <div style="font-size:11.5px;color:#2b1d14;margin-top:4px;line-height:1.55;">高膜電位適應性 (b=4.5)，不易被虛晃或高頻節奏擾亂，極度耐打且失誤率接近於零。</div>
                                 </div>
-                                <div style="background:rgba(15,23,42,0.6);border:1px solid rgba(168,85,247,0.25);border-radius:10px;padding:10px;">
-                                    <div style="font-weight:900;color:#c084fc;font-size:13px;">🧬 自適應學習體 (Adaptive Learner)</div>
-                                    <div style="font-size:11.5px;color:#cbd5e1;margin-top:4px;">具備突觸可塑性 (STDP)，會隨著來回抽球記住玩家的慣用擊球路線並提前預判走位！</div>
+                                <div style="background:#faf5ff;border:1.5px solid #d8b4fe;border-radius:10px;padding:10px;box-shadow:0 1px 3px rgba(147,51,234,0.06);">
+                                    <div style="font-weight:900;color:#7e22ce;font-size:13px;">🧬 自適應學習體 (Adaptive Learner)</div>
+                                    <div style="font-size:11.5px;color:#2b1d14;margin-top:4px;line-height:1.55;">具備突觸可塑性 (STDP)，會隨著來回抽球記住玩家的慣用擊球路線並提前預判走位！</div>
                                 </div>
-                                <div style="background:rgba(15,23,42,0.6);border:1px solid rgba(251,146,60,0.25);border-radius:10px;padding:10px;">
-                                    <div style="font-weight:900;color:#fb923c;font-size:13px;">🦢 中興神鵝仿生 (Cyber-Goose)</div>
-                                    <div style="font-size:11.5px;color:#cbd5e1;margin-top:4px;">融合中興湖黑天鵝水陸兩棲領域性本能，具備最強大的全場覆蓋力與怒吼狂暴攻擊！</div>
+                                <div style="background:#fff7ed;border:1.5px solid #fdba74;border-radius:10px;padding:10px;box-shadow:0 1px 3px rgba(234,88,12,0.06);">
+                                    <div style="font-weight:900;color:#c2410c;font-size:13px;">🦢 中興神鵝仿生 (Cyber-Goose)</div>
+                                    <div style="font-size:11.5px;color:#2b1d14;margin-top:4px;line-height:1.55;">融合中興湖黑天鵝水陸兩棲領域性本能，具備最強大的全場覆蓋力與怒吼狂暴攻擊！</div>
                                 </div>
                             </div>
                         </div>
@@ -1964,6 +1977,7 @@ I_syn(t) = w_syn · x · u · (dθ/dt)</div>
     <script src="./js/referee.js"></script>
     <script src="./js/motion.js"></script>
     <script src="./js/hub_sandbox.js"></script>
+    <script src="./js/profile_card.js"></script>
     <script src="./js/ui.js"></script>
     <script src="./js/social.js"></script>
     <script src="./js/fly_connectome.js"></script>

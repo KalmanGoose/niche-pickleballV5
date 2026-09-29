@@ -869,38 +869,58 @@
             text-decoration: underline;
         }
 
-        /* ── 流體力學科普與學術文獻卡片樣式 ── */
+        /* ── 流體力學科普與學術文獻卡片樣式 (自然手繪圖鑑 / 羊皮紙象牙白學術風) ── */
         .physics-formula {
-            background: rgba(15, 23, 42, 0.75);
-            border: 1px solid rgba(56, 189, 248, 0.35);
-            border-radius: 8px;
-            padding: 9px 12px;
+            background: #f4eee2;
+            border: 1.5px solid #dec8a7;
+            border-radius: 10px;
+            padding: 10px 14px;
             font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
             font-size: 11.5px;
-            color: #38bdf8;
-            margin: 8px 0;
-            line-height: 1.55;
+            color: #1b5e20;
+            font-weight: 700;
+            margin: 10px 0;
+            line-height: 1.6;
             overflow-x: auto;
             white-space: pre-wrap;
             word-break: break-all;
+            box-shadow: inset 0 1px 3px rgba(74, 55, 40, 0.08);
         }
         .physics-analogy {
-            background: rgba(211, 243, 108, 0.08);
-            border-left: 3px solid var(--lime);
-            padding: 8px 12px;
-            border-radius: 0 8px 8px 0;
-            margin: 8px 0;
+            background: #f1f8e9;
+            border: 1.5px solid #c8e6c9;
+            border-left: 4px solid #2e7d32;
+            padding: 10px 14px;
+            border-radius: 4px 10px 10px 4px;
+            margin: 10px 0;
             font-size: 12px;
             line-height: 1.65;
-            color: #e2e8f0;
+            color: #2b1d14;
+            box-shadow: 0 1px 3px rgba(46, 125, 50, 0.06);
+        }
+        .science-box {
+            background: #fcfbf7;
+            border: 1.5px solid #dec8a7;
+            border-radius: 10px;
+            padding: 10px 14px;
+            margin-bottom: 8px;
+            box-shadow: 0 1px 2px rgba(74, 55, 40, 0.05);
+        }
+        .science-box-gold {
+            background: linear-gradient(135deg, #fffbeb, #fef3c7);
+            border: 1.5px solid #f59e0b;
+            border-radius: 10px;
+            padding: 12px 14px;
+            margin-top: 8px;
+            box-shadow: 0 2px 4px rgba(245, 158, 11, 0.12);
         }
         .citation-item {
-            font-size: 11px;
-            line-height: 1.6;
-            color: #94a3b8;
-            margin-bottom: 7px;
-            padding-bottom: 7px;
-            border-bottom: 1px dashed rgba(255, 255, 255, 0.1);
+            font-size: 11.5px;
+            line-height: 1.65;
+            color: #5d4037;
+            margin-bottom: 9px;
+            padding-bottom: 9px;
+            border-bottom: 1.5px dashed #ebd8bc;
         }
         .citation-item:last-child {
             border-bottom: 0;
@@ -908,10 +928,10 @@
             padding-bottom: 0;
         }
         .citation-item b {
-            color: #f8fafc;
+            color: #1b5e20;
         }
         .citation-item i {
-            color: var(--lime);
+            color: #b45309;
             font-style: italic;
         }
 
@@ -3006,6 +3026,432 @@
                 min-width: 100%;
                 padding: 11px;
             }
+        }
+
+        /* ══════════════════════════════════════════════════════════════
+           🪪 中興大學匹克球選手證 (NCHU Player Passport) 專屬樣式
+           ══════════════════════════════════════════════════════════════ */
+        #profile-modal .modal-card {
+            width: min(94vw, 540px);
+            max-height: 90vh;
+            padding: 16px 18px;
+            background: #fbf8f0;
+            border: 2px solid #dec8a7;
+            border-radius: 24px;
+            box-shadow: 0 12px 32px rgba(43, 29, 20, 0.22);
+            overflow-y: auto;
+        }
+
+        /* 頂部頁籤切換 */
+        .profile-nav-tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 14px;
+            background: #f0e6d6;
+            padding: 4px;
+            border-radius: 14px;
+            border: 1px solid #dec8a7;
+        }
+        .profile-nav-tab {
+            flex: 1;
+            padding: 8px 12px;
+            font-size: 13px;
+            font-weight: 800;
+            color: #795548;
+            background: transparent;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.18s ease;
+        }
+        .profile-nav-tab.on {
+            background: #ffffff;
+            color: #1b5e20;
+            box-shadow: 0 2px 6px rgba(46, 125, 50, 0.15);
+        }
+
+        /* 選手證外框 */
+        .passport-card {
+            background: #ffffff;
+            border: 2px solid #ecd8b8;
+            border-radius: 20px;
+            padding: 14px;
+            box-shadow: 0 4px 12px rgba(74, 55, 40, 0.08);
+            text-align: left;
+        }
+
+        /* 選手證頂部身分條 */
+        .passport-header-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding-bottom: 10px;
+            border-bottom: 1.5px dashed #ebd8bc;
+            margin-bottom: 12px;
+            gap: 10px;
+        }
+        .passport-title-wrap {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .passport-logo-icon {
+            font-size: 22px;
+        }
+        .passport-title-text h3 {
+            margin: 0;
+            font-size: 14.5px;
+            font-weight: 900;
+            color: #2b1d14;
+            line-height: 1.25;
+        }
+        .passport-sub {
+            font-size: 9.5px;
+            font-weight: 800;
+            color: #92400e;
+            letter-spacing: 0.5px;
+            margin-top: 1px;
+        }
+        .passport-mode-switcher {
+            display: flex;
+            background: #f0e6d6;
+            border-radius: 99px;
+            padding: 2px;
+            gap: 2px;
+        }
+        .btn-avatar-mode {
+            padding: 4px 8px;
+            font-size: 10.5px;
+            font-weight: 800;
+            color: #795548;
+            background: transparent;
+            border: none;
+            border-radius: 99px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        .btn-avatar-mode.on {
+            background: #2e7d32;
+            color: #ffffff;
+            box-shadow: 0 1px 4px rgba(46, 125, 50, 0.25);
+        }
+
+        /* 人偶與右側資訊欄 */
+        .passport-hero-row {
+            display: flex;
+            gap: 14px;
+            align-items: stretch;
+            margin-bottom: 12px;
+        }
+        .passport-doll-box {
+            flex: 0 0 160px;
+            background: #fcfbf7;
+            border: 1.5px solid #dec8a7;
+            border-radius: 16px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 8px;
+            position: relative;
+            box-shadow: inset 0 2px 6px rgba(74, 55, 40, 0.05);
+        }
+        .avatar-2d-canvas-wrap {
+            width: 140px;
+            height: 175px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+        .avatar-2d-svg {
+            width: 100%;
+            height: 100%;
+            filter: drop-shadow(0 4px 8px rgba(74, 55, 40, 0.12));
+            animation: avatarIdleFloat 2.8s ease-in-out infinite;
+        }
+        @keyframes avatarIdleFloat {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
+        }
+        .avatar-idle-badge {
+            position: absolute;
+            bottom: 4px;
+            right: 4px;
+            background: #e8f5e9;
+            color: #1b5e20;
+            font-size: 9.5px;
+            font-weight: 800;
+            padding: 2px 6px;
+            border-radius: 6px;
+            border: 1px solid #a5d6a7;
+        }
+        .avatar-tip-caption {
+            font-size: 10px;
+            color: #92400e;
+            font-weight: 700;
+            margin-top: 4px;
+        }
+
+        .passport-info-col {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        .passport-player-name-row {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+        .passport-player-nick {
+            font-size: 17px;
+            font-weight: 900;
+            color: #2b1d14;
+            max-width: 170px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .passport-status-tag {
+            font-size: 10px;
+            font-weight: 800;
+            padding: 2px 7px;
+            border-radius: 6px;
+        }
+        .passport-status-tag.student {
+            background: #e8f5e9;
+            color: #1b5e20;
+            border: 1px solid #a5d6a7;
+        }
+        .passport-status-tag.guest {
+            background: #fff8e1;
+            color: #92400e;
+            border: 1px solid #fde047;
+        }
+        .passport-player-dept {
+            font-size: 12px;
+            font-weight: 700;
+            color: #5d4037;
+            margin: 3px 0 8px;
+        }
+
+        /* 等級與稱號徽章 */
+        .passport-level-plate {
+            background: #fdfaf3;
+            border: 1.5px solid #dec8a7;
+            border-radius: 12px;
+            padding: 8px 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 8px;
+        }
+        .passport-level-num {
+            font-size: 18px;
+            font-weight: 900;
+            color: #ffffff;
+            background: #2e7d32;
+            padding: 4px 8px;
+            border-radius: 8px;
+            line-height: 1;
+            box-shadow: 0 2px 4px rgba(46, 125, 50, 0.25);
+        }
+        .passport-level-right {
+            flex: 1;
+            min-width: 0;
+        }
+        .passport-level-title {
+            font-size: 12px;
+            font-weight: 800;
+            color: #1b5e20;
+            margin-bottom: 4px;
+        }
+        .passport-exp-bar-wrap {
+            height: 6px;
+            background: #f0e6d6;
+            border-radius: 99px;
+            overflow: hidden;
+            margin-bottom: 2px;
+        }
+        .passport-exp-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #48bb78, #2e7d32);
+            border-radius: 99px;
+            transition: width 0.3s ease;
+        }
+        .passport-exp-label {
+            font-size: 9.5px;
+            color: #795548;
+            font-weight: 700;
+            text-align: right;
+        }
+
+        /* 🍚 揚州炒飯體力加成彩蛋 */
+        .passport-rice-buff {
+            background: linear-gradient(135deg, #fffbeb, #fef3c7);
+            border: 1.5px solid #f59e0b;
+            border-radius: 10px;
+            padding: 7px 9px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 1px 3px rgba(245, 158, 11, 0.12);
+        }
+        .rice-buff-icon {
+            font-size: 20px;
+            animation: riceBob 2.2s ease-in-out infinite;
+        }
+        @keyframes riceBob {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.15) rotate(4deg); }
+        }
+        .rice-buff-info {
+            flex: 1;
+            min-width: 0;
+        }
+        .rice-buff-title {
+            font-size: 11px;
+            font-weight: 800;
+            color: #92400e;
+            line-height: 1.25;
+        }
+        .rice-buff-desc {
+            font-size: 10px;
+            color: #78350f;
+            line-height: 1.35;
+            margin-top: 1px;
+        }
+
+        /* 戰力四維膠囊 */
+        .passport-stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 6px;
+            margin-bottom: 12px;
+        }
+        .stat-pill {
+            background: #fdfcf7;
+            border: 1.5px solid #ebd8bc;
+            border-radius: 10px;
+            padding: 6px 4px;
+            text-align: center;
+            box-shadow: 0 1px 2px rgba(74, 55, 40, 0.04);
+        }
+        .stat-pill .s-icon {
+            font-size: 13px;
+            display: block;
+            margin-bottom: 1px;
+        }
+        .stat-pill .s-name {
+            font-size: 9.5px;
+            font-weight: 800;
+            color: #795548;
+            display: block;
+        }
+        .stat-pill .s-val {
+            font-size: 13px;
+            font-weight: 900;
+            color: #1b5e20;
+            display: block;
+            margin-top: 1px;
+        }
+
+        /* 榮譽成就牆 */
+        .passport-achievements-sec {
+            background: #fbf8f0;
+            border: 1.5px solid #dec8a7;
+            border-radius: 14px;
+            padding: 10px 12px;
+        }
+        .passport-sec-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+        .passport-sec-header .sec-title {
+            font-size: 12.5px;
+            font-weight: 900;
+            color: #2b1d14;
+        }
+        .passport-sec-header .sec-count {
+            font-size: 10.5px;
+            font-weight: 800;
+            color: #2e7d32;
+            background: #e8f5e9;
+            padding: 2px 7px;
+            border-radius: 6px;
+        }
+        .passport-badges-list {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            max-height: 170px;
+            overflow-y: auto;
+            padding-right: 2px;
+        }
+        .ach-badge-card {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 9px;
+            border-radius: 10px;
+            border: 1px solid #ebd8bc;
+            background: #ffffff;
+            transition: all 0.15s ease;
+        }
+        .ach-badge-card.unlocked {
+            border-color: #f59e0b;
+            background: #fffdf5;
+        }
+        .ach-badge-card.locked {
+            opacity: 0.6;
+            background: #f5efe6;
+            filter: grayscale(0.7);
+        }
+        .ach-badge-icon {
+            font-size: 18px;
+            flex-shrink: 0;
+        }
+        .ach-badge-body {
+            flex: 1;
+            min-width: 0;
+        }
+        .ach-badge-top {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .ach-badge-name {
+            font-size: 11.5px;
+            font-weight: 800;
+            color: #2b1d14;
+        }
+        .ach-badge-tag {
+            font-size: 9px;
+            font-weight: 800;
+            padding: 1px 4px;
+            border-radius: 4px;
+            background: #fef3c7;
+            color: #92400e;
+        }
+        .ach-badge-desc {
+            font-size: 10px;
+            color: #795548;
+            line-height: 1.35;
+            margin-top: 1px;
+        }
+        .ach-badge-state {
+            font-size: 12px;
+            font-weight: 900;
+            color: #1b5e20;
+            flex-shrink: 0;
+        }
+        .ach-badge-card.locked .ach-badge-state {
+            color: #94a3b8;
         }
 
 

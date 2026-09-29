@@ -17,7 +17,7 @@ const OUT_INDEX = path.join(ROOT, 'index.html');
 
 const CSS_FILES = ['style.css', 'hud.css', 'nav.css', 'modals.css'];
 const JS_FILES = ['config.js', 'audio.js', 'physics.js', 'referee.js', 'motion.js',
-    'hub_sandbox.js', 'ui.js', 'social.js', 'fly_connectome.js', 'pickle_neural_policy.js', 'fun_mode.js', 'game.js'];
+    'hub_sandbox.js', 'profile_card.js', 'ui.js', 'social.js', 'fly_connectome.js', 'pickle_neural_policy.js', 'fun_mode.js', 'game.js'];
 
 const CSS_BLOCK = /\s*<!-- ═══════ NCHU Pickleball V5 模組化樣式表 ═══════ -->[\s\S]*?<link rel="stylesheet" href="\.\/css\/modals\.css">/;
 const JS_BLOCK = /\s*<!-- ═══════ NCHU Pickleball V5 模組化 JavaScript 核心 ═══════ -->[\s\S]*?<script src="\.\/js\/game\.js"><\/script>/;
