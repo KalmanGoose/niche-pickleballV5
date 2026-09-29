@@ -115,7 +115,7 @@
                 <h2 style="margin:0;font-size:18px;">😎 個人球員設定</h2>
                 <button type="button" class="btn" onclick="closeProfileModal()" style="padding:2px 8px;font-size:14px;">×</button>
             </div>
-            <p style="font-size:12px;color:var(--dim);margin-bottom:12px;">修改後將同步更新動森護照名片與校園英雄榜。</p>
+            <p style="font-size:12px;color:var(--dim);margin-bottom:12px;">修改後將同步更新個人名片與校園英雄榜。</p>
 
             <!-- 訪客轉正提示橫幅 -->
             <div id="edit-guest-banner" class="profile-guest-notice" style="display:none;">
@@ -978,7 +978,7 @@ I_syn(t) = w_syn · x · u · (dθ/dt)</div>
         </div>
     </div>
 
-    <!-- ══════ 拍立得完賽紀念卡 Modal (Animal Crossing Polaroid Souvenir) ══════ -->
+    <!-- ══════ 拍立得完賽紀念卡 Modal (Polaroid Souvenir) ══════ -->
     <div id="polaroid-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="polaroid-title" style="display:none;align-items:center;justify-content:center;background:rgba(15,23,42,0.88);backdrop-filter:blur(12px);z-index:9999;">
         <div class="polaroid-card">
             <div class="polaroid-pin">📌</div>
@@ -1009,7 +1009,7 @@ I_syn(t) = w_syn · x · u · (dθ/dt)</div>
         </div>
     </div>
 
-    <!-- ══════ 🤖 動森風格 對手難度直選彈窗 (#diff-picker-modal) ══════ -->
+    <!-- ══════ 🤖 對手難度直選彈窗 (#diff-picker-modal) ══════ -->
     <div id="diff-picker-modal" class="modal-overlay" style="display:none;" onclick="if(event.target===this)closeDiffPicker()">
         <div class="modal-card">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
@@ -1092,9 +1092,9 @@ I_syn(t) = w_syn · x · u · (dθ/dt)</div>
         </div>
     </div>
 
-    <!-- ══════ 🍃 《動物森友會》島嶼清新風格模式大廳 (Animal Crossing Mode Hub) ══════ -->
+    <!-- ══════ 🍃 清新校園風格模式大廳 (NCHU Mode Hub) ══════ -->
     <div id="mode-hub-overlay" style="display:none;" onclick="if(event.target===this)closeModeHub()">
-        <!-- ══════ 🍃 2.5D 動森中興湖大地圖導覽沙盤 (.hub-map-stage) ══════ -->
+        <!-- ══════ 🍃 2.5D 中興湖大地圖導覽沙盤 (.hub-map-stage) ══════ -->
         <div class="hub-map-stage">
             <!-- 頂部島民護照條 (Top Island Passport Bar) -->
             <div class="hub-map-topbar">
@@ -1120,14 +1120,14 @@ I_syn(t) = w_syn · x · u · (dθ/dt)</div>
 
             <!-- 2.5D 校園大地圖沙盤視口 (.hub-map-viewport) -->
             <div class="hub-map-viewport" id="hub-map-viewport">
-                <!-- 🍃 100% 正宗動森手繪中興湖校園大地圖 (無雜字純淨超高解析底圖) -->
-                <img src="images/nchu_map_2.5d.jpg" alt="國立中興大學中興湖 2.5D 動森校園導覽沙盤" class="hub-map-img" id="hub-map-bg-img"
+                <!-- 🍃 中興湖校園手繪大地圖 (無雜字純淨超高解析底圖) -->
+                <img src="images/nchu_map_2.5d.jpg" alt="國立中興大學中興湖校園導覽地圖" class="hub-map-img" id="hub-map-bg-img"
                      onerror="this.src='images/pickleball_action.jpg';">
 
-                <!-- 🍃 動森微風落櫻花瓣與飄逸夏葉動態粒子層 -->
+                <!-- 🍃 微風落櫻花瓣與飄逸夏葉動態粒子層 -->
                 <canvas id="hub-particle-canvas"></canvas>
 
-                <!-- 🐾 動森活體島民與天鵝動態生態演員 (Living AC Actors) -->
+                <!-- 🐾 活體島民與天鵝動態生態演員 (Living Campus Actors) -->
                 <!-- 1. 👑 皇冠黑天鵝村長 (在湖中自由游弋巡邏) -->
                 <div class="ac-actor ac-swan" id="actor-swan" onclick="HubSandbox.interactActor('swan', event)" title="中興湖黑天鵝村長 (點擊互動)">
                     <div class="ac-actor-flip" id="actor-swan-flip">
@@ -1297,12 +1297,12 @@ I_syn(t) = w_syn · x · u · (dθ/dt)</div>
 
             <!-- 大地圖底部資訊條 -->
             <div class="hub-map-footer">
-                🍃 國立中興大學中興湖 · 2.5D 動森導覽沙盤 · 零個資隱私安全運算
+                🍃 國立中興大學中興湖 · 校園導覽地圖 · 零個資隱私安全運算
             </div>
         </div>
     </div>
 
-    <!-- ══════ 🍃 動森 NookPhone 8 宮格手機輪盤 (#nook-phone-modal) ══════ -->
+    <!-- ══════ 🍃 NookPhone 8 宮格手機輪盤 (#nook-phone-modal) ══════ -->
     <div id="nook-phone-modal" onclick="if(event.target===this) toggleNookPhone(false)">
         <div class="nook-case">
             <div class="nook-screen">
@@ -1393,7 +1393,7 @@ I_syn(t) = w_syn · x · u · (dθ/dt)</div>
         <div id="stage3d"></div>
         <div id="vignette"></div>
 
-        <!-- 🍃 動森風格動態關卡藥丸島 (#dynamic-stage-pill) -->
+        <!-- 🍃 動態關卡藥丸島 (#dynamic-stage-pill) -->
         <div id="dynamic-stage-pill" onclick="openModeHub()" title="點擊開啟模式大廳與關卡切換">
             <span class="dsp-leaf">🍃</span>
             <span class="dsp-stage-txt" id="dsp-stage">第 1 關 · 發球養成</span>
@@ -1401,7 +1401,7 @@ I_syn(t) = w_syn · x · u · (dθ/dt)</div>
             <span class="dsp-score-txt" id="dsp-score">0 - 0</span>
         </div>
 
-        <!-- 🍃 動森 NookPhone 懸浮小葉子按鈕 (#nook-fab) -->
+        <!-- 🍃 NookPhone 懸浮小葉子按鈕 (#nook-fab) -->
         <div id="nook-fab" onclick="toggleNookPhone(true)" title="開啟 NookPhone 快捷選單">
             <span class="nook-fab-leaf">🍃</span>
             <span class="nook-fab-lbl">Nook</span>

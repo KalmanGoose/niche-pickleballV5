@@ -90,7 +90,7 @@
             return t;
         }
 
-        /* ═══════════ 動物森友會風格 程序化紋理 (Animal Crossing Procedural Textures) ═══════════ */
+        /* ═══════════ 清新校園風格 程序化紋理 (Procedural Textures) ═══════════ */
         function acGrassTex() {
             const c = document.createElement('canvas'); c.width = c.height = 128;
             const ctx = c.getContext('2d');
@@ -182,7 +182,7 @@
                 ctx.beginPath(); ctx.moveTo(0, y);
                 ctx.bezierCurveTo(40, y + 4, 80, y - 4, 128, y); ctx.stroke();
             }
-            // Animal Crossing Leaf emblem
+            // Green Leaf emblem
             ctx.fillStyle = '#10b981'; ctx.beginPath();
             ctx.moveTo(64, 45); ctx.bezierCurveTo(92, 55, 96, 95, 68, 115);
             ctx.bezierCurveTo(76, 95, 66, 88, 58, 92);
@@ -224,7 +224,7 @@
             const dims = (customW && customH) ? { w: customW, h: customH } : getStageDimensions();
             const aspect = dims.w / dims.h;
 
-            // ★ 2.5D 動森立體玩具箱視角 (Compressed 2.5D Diorama Camera):
+            // ★ 2.5D 立體玩具箱視角 (Compressed 2.5D Diorama Camera):
             // 告別 84° 陡峭魚眼俯視，改採 42°~46° 壓縮長焦，相機後移並微降仰角 (camH: 5.0, camDist: 13.8)
             // 讓球員、球拍、看台動物與對手匹克鵝立體站立，球場透視深邃且不失真
             let fov = 44;
@@ -318,7 +318,7 @@
             ctx.lineWidth = 2;
             ctx.strokeRect(14, 14, 484, 228);
 
-            // 頂部標題 (動森小島風)
+            // 頂部標題 (清新小島風)
             ctx.fillStyle = '#fde047';
             ctx.font = 'bold 22px system-ui, sans-serif';
             ctx.textAlign = 'center';
@@ -405,7 +405,7 @@
                 }
             }
 
-            // ═══════ 4. 動物森友會低多邊形果樹 (Low-poly Fruit Trees) ═══════
+            // ═══════ 4. 低多邊形果樹 (Low-poly Fruit Trees) ═══════
             const trunkMat = new THREE.MeshStandardMaterial({ color: 0x78350f, roughness: 0.9 });
             const leavesMat = new THREE.MeshStandardMaterial({ color: 0x16a34a, roughness: 0.7 });
             const fruitMat = new THREE.MeshStandardMaterial({ color: 0xef4444, roughness: 0.4 });
@@ -457,7 +457,7 @@
                 }
             }
 
-            // ═══════ 6. 3D 看台黑板計分板 (Animal Crossing Chalkboard) ═══════
+            // ═══════ 6. 3D 看台黑板計分板 (Chalkboard) ═══════
             const scCanvas = document.createElement('canvas');
             scCanvas.width = 512; scCanvas.height = 256;
             scoreboard3DTex = new THREE.CanvasTexture(scCanvas);
@@ -543,12 +543,12 @@
                 cap.position.set(bx, 0.54, bz); cap.scale.set(1, 0.5, 1); scene.add(cap);
             }
 
-            // ★ 外圍緩衝草皮裝飾邊框 (動森草坪綠 0x2e8352 與暖陶土 0xc86446 色彩規範)
+            // ★ 外圍緩衝草皮裝飾邊框 (草坪綠 0x2e8352 與暖陶土 0xc86446 色彩規範)
             const courtTurfMat = new THREE.MeshStandardMaterial({ color: 0x2e8352, roughness: 0.88, metalness: 0.02 });
             const courtApron = new THREE.Mesh(new THREE.PlaneGeometry(COURT_W + 0.36, COURT_L + 0.36), courtTurfMat);
             courtApron.rotation.x = -Math.PI / 2; courtApron.position.y = 0.0005; courtApron.receiveShadow = true; scene.add(courtApron);
 
-            // ★ 4. 正式比賽發球區：動森水上湛藍湖水色 (Clear Lake Blue Service Courts)
+            // ★ 4. 正式比賽發球區：水上湛藍湖水色 (Clear Lake Blue Service Courts)
             const courtMat = new THREE.MeshStandardMaterial({ color: 0x0284c7, roughness: 0.82, metalness: 0.02 });
             const court = new THREE.Mesh(new THREE.PlaneGeometry(COURT_W, COURT_L), courtMat);
             court.rotation.x = -Math.PI / 2; court.position.y = 0.001; court.receiveShadow = true; scene.add(court);
@@ -654,7 +654,7 @@
             buildCourtSign(4.2, 0.58, 'NCHU PICKLEBALL LEARNING COMMUNITY', '國立中興大學匹克球學習社群 · 運動科技推廣中心', '🎾', '#1b4332', '#2d6a4f', -(COURT_W / 2 + 1.25), -1.8, Math.PI / 2);
             // 2. 左側後段看板：馬格努斯流體力學實驗室 (中興湖深潭水藍)
             buildCourtSign(4.2, 0.58, 'MAGNUS EFFECT FLUID DYNAMICS LAB', '旋球流體力學 · NASA 空氣動力學專題科普', '🌪️', '#162a38', '#1e3a5f', -(COURT_W / 2 + 1.25), 1.8, Math.PI / 2);
-            // 3. 右側邊線看板：國立中興大學 中興湖水上球場 (動森自然翠綠)
+            // 3. 右側邊線看板：國立中興大學 中興湖水上球場 (自然翠綠)
             buildCourtSign(4.2, 0.58, 'NATIONAL CHUNG HSING UNIVERSITY', '中興湖水上特訓球場 · ZHONGXING LAKE ARENA', '🌿', '#245e3d', '#40916c', (COURT_W / 2 + 1.25), -1.8, -Math.PI / 2);
             // 4. 右側後段看板：USA Pickleball 官方手冊認證 (暖陶土紅磚木色)
             buildCourtSign(4.2, 0.58, '2026 USA PICKLEBALL OFFICIAL HUB', '國際競賽規則手冊 · 虛擬裁判精準判定', '🏆', '#7c341e', '#c86446', (COURT_W / 2 + 1.25), 1.8, -Math.PI / 2);
@@ -839,7 +839,7 @@
             const pants = new THREE.MeshStandardMaterial({ color: 0x3b82f6, roughness: 0.66 }); // Cobalt shorts
             const shoes = new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.5 }); // White sneakers
 
-            // 1. 圓潤動森風格上身 Polo 衫 (Chibi Torso)
+            // 1. 圓潤風格上身 Polo 衫 (Chibi Torso)
             pTorso = new THREE.Mesh(new THREE.CylinderGeometry(0.20, 0.23, 0.56, 14), shirt);
             pTorso.position.y = 0.82; pTorso.castShadow = true; pGrp.add(pTorso);
 
@@ -858,13 +858,13 @@
             }
             pGrp.add(pLegs);
 
-            // 3. 圓萌動森 Chibi 頭部 (Chibi Head with Sparkling Anime Eyes & Rosy Cheeks)
+            // 3. 圓萌 Chibi 頭部 (Chibi Head with Sparkling Anime Eyes & Rosy Cheeks)
             const headTex = acFaceTex();
             pHead = new THREE.Mesh(new THREE.SphereGeometry(0.25, 20, 20),
                 new THREE.MeshStandardMaterial({ map: headTex, roughness: 0.55 }));
             pHead.position.y = 1.30; pHead.castShadow = true; pGrp.add(pHead);
 
-            // 4. 動森經典遮陽帽 (Sun Visor Cap)
+            // 4. 經典遮陽帽 (Sun Visor Cap)
             pCap = new THREE.Group();
             const capCrown = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.26, 0.08, 16),
                 new THREE.MeshStandardMaterial({ color: 0xff5252, roughness: 0.4 }));
@@ -2245,7 +2245,7 @@ function solveArc(fx, fy, fz, tx, tz, out, speedScale) {
                     if (pHead) pHead.rotation.y = -wantYaw * 0.5;
                 } else {
                     pGrp.rotation.set(0, 0, 0);
-                    // 可愛動森奔跑彈跳 (Cute AC Bouncy Jog)
+                    // 可愛奔跑彈跳 (Cute Bouncy Jog)
                     const speed = Math.hypot(playerVel.x, playerVel.z);
                     if (speed > 0.5) {
                         pGrp.position.y = Math.abs(Math.sin(performance.now() * 0.014)) * 0.035;
@@ -3314,7 +3314,7 @@ function updateGuides(dt) {
                 cam.lookAt(camLookTarget.x, 0.85, camLookTarget.z);
             }
 
-            // ═══════ 動物森友會活潑環境動畫 (Animal Crossing Living World Updates) ═══════
+            // ═══════ 活潑環境動畫 (Living World Updates) ═══════
             // 1. 湖水水波細膩平移
             if (waterTexRef) {
                 waterTexRef.offset.x = (waterTexRef.offset.x + dt * 0.015) % 1;
@@ -3352,7 +3352,7 @@ function updateGuides(dt) {
             ren.render(scene, cam);
         }
 
-        /* ═══════════ 動物森友會 拍立得完賽紀念卡 (Polaroid Souvenir) ═══════════ */
+        /* ═══════════ 拍立得完賽紀念卡 (Polaroid Souvenir) ═══════════ */
         let lastSouvenirWon = true, lastSouvenirP = 3, lastSouvenirA = 1;
         let lastSouvenirSnapshotCanvas = null;
 

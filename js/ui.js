@@ -1411,7 +1411,7 @@ function cycleTeachLevelQuick() {
         }
 
         /* ═══════════════════════════════════════════════════════════
-           🍃 動森 NookPhone 與動態藥丸島控制器 (NookPhone & Dynamic HUD)
+           🍃 NookPhone 與動態藥丸島控制器 (NookPhone & Dynamic HUD)
            ═══════════════════════════════════════════════════════════ */
         function toggleNookPhone(open) {
             const m = document.getElementById('nook-phone-modal');
@@ -1452,11 +1452,11 @@ function cycleTeachLevelQuick() {
             const isNook = document.body.classList.toggle('layout-nook');
             try { localStorage.setItem('nchu_menu_layout', isNook ? 'nook' : 'classic'); } catch (e) {}
             if (typeof toast === 'function') {
-                toast('選單排法已切換', isNook ? '🍃 NookPhone 懸浮小葉子 (動森極簡無遮擋)' : '📐 經典頂部橫條');
+                toast('選單排法已切換', isNook ? '🍃 NookPhone 懸浮小葉子 (極簡無遮擋)' : '📐 經典頂部橫條');
             }
         }
 
-        // 預設啟用動森 NookPhone 懸浮選單（徹底擺脫工業監控橫條）
+        // 預設啟用 NookPhone 懸浮選單（徹底擺脫工業監控橫條）
         try {
             const savedLayout = localStorage.getItem('nchu_menu_layout') || 'nook';
             if (savedLayout === 'nook') {

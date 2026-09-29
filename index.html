@@ -37,7 +37,7 @@
             --bad: #f87171;
             --cool: #52b788;
             --r: 16px;
-            /* --- NCHU & Animal Crossing Design Tokens --- */
+            /* --- NCHU Design Tokens --- */
             --nchu-forest: #1b4332;
             --nchu-grass: #2e8352;
             --nchu-leaf: #40916c;
@@ -1213,7 +1213,7 @@
 
 
 /* ── ★ 虛擬裁判 4 種轉播樣式 (電視轉播條、球員戰況提示、極簡靈動島、3D現場投影) ── */
-        /* ── 方案 1: 電視轉播條 (預設推薦: 位於頂部關卡藥丸下方 top: 56px，動森原木暖白) ── */
+        /* ── 方案 1: 電視轉播條 (預設推薦: 位於頂部關卡藥丸下方 top: 56px，原木暖白) ── */
         #referee-announcement.mode-1, #referee-announcement:not([class*="mode-"]) {
             top: calc(56px + env(safe-area-inset-top));
             bottom: auto;
@@ -2376,7 +2376,7 @@
 }
 
 /* ═══════════════════════════════════════════════════════════
-   🍃 動森 NookPhone 懸浮小葉子輪盤與動態藥丸島 (ACNH NookPhone HUD)
+   🍃 NookPhone 懸浮小葉子輪盤與動態藥丸島 (NookPhone HUD)
    ═══════════════════════════════════════════════════════════ */
 body.layout-nook #nav-wrapper {
     display: none !important;
@@ -2417,7 +2417,7 @@ body.layout-nook #nav-wrapper {
 .dsp-divider { width: 1px; height: 12px; background: #ecd8b8; }
 .dsp-score-txt { font-size: 13px; font-weight: 900; color: #c86446; letter-spacing: 0.5px; }
 
-/* 右側動森小葉子懸浮按鈕 (NookPhone FAB) */
+/* 右側小葉子懸浮按鈕 (NookPhone FAB) */
 #nook-fab {
     position: fixed;
     top: calc(10px + env(safe-area-inset-top));
@@ -4023,7 +4023,7 @@ body.layout-nook #nav-wrapper {
             box-shadow: 0 0 10px rgba(245, 158, 11, 0.4);
         }
 
-        /* ═══════════ 動物森友會風 拍立得完賽紀念卡 (Polaroid Souvenir) ═══════════ */
+        /* ═══════════ 清新風格 拍立得完賽紀念卡 (Polaroid Souvenir) ═══════════ */
         .polaroid-card {
             background: #fdfbf7;
             border-radius: 18px;
@@ -4227,7 +4227,7 @@ body.layout-nook #nav-wrapper {
         }
 
         /* ═══════════════════════════════════════════════════════════
-           🍃 《動物森友會》島嶼清新風格模式大廳 (Animal Crossing Mode Hub)
+           🍃 清新校園風格模式大廳 (NCHU Mode Hub)
            ═══════════════════════════════════════════════════════════ */
         #mode-hub-overlay {
             position: fixed;
@@ -4247,7 +4247,7 @@ body.layout-nook #nav-wrapper {
             color: #4a3728;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Rounded Mplus 1c", sans-serif;
         }
-        /* ═══════ 🍃 2.5D 動森中興湖大地圖大廳 (.hub-map-stage) ═══════ */
+        /* ═══════ 🍃 2.5D 中興湖大地圖大廳 (.hub-map-stage) ═══════ */
         .hub-map-stage {
             width: min(96vw, calc(96dvh * 0.575), 680px);
             height: min(96dvh, 1080px);
@@ -4330,7 +4330,7 @@ body.layout-nook #nav-wrapper {
             transition: transform 0.2s ease-out;
         }
 
-        /* ═══════ 🐾 動森活體島民與天鵝動態生態系統 (Living AC Actors) ═══════ */
+        /* ═══════ 🐾 活體島民與天鵝動態生態系統 (Living AC Actors) ═══════ */
         .ac-actor {
             position: absolute;
             z-index: 15;
@@ -4492,7 +4492,7 @@ body.layout-nook #nav-wrapper {
             font-size: 14px;
         }
 
-        /* ═══════ 🏓 湖上 2.5D 原生動森匹克球場對決組 (Court Duelists) ═══════ */
+        /* ═══════ 🏓 湖上 2.5D 原生匹克球場對決組 (Court Duelists) ═══════ */
         .ac-court-duel {
             position: absolute;
             pointer-events: auto;
@@ -4776,7 +4776,7 @@ body.layout-nook #nav-wrapper {
             z-index: 10;
             pointer-events: none;
         }
-        /* 🍃 動森向量景觀動畫 */
+        /* 🍃 向量景觀動畫 */
         @keyframes swayTree {
             0%, 100% { transform: rotate(0deg); }
             50% { transform: rotate(1.8deg); }
@@ -4983,7 +4983,7 @@ body.layout-nook #nav-wrapper {
             pointer-events: none;
         }
 
-        /* ═══════ 動森大廳 統一連貫清新 Hero 主卡片 (.hub-unified-hero) ═══════ */
+        /* ═══════ 大廳 統一連貫清新 Hero 主卡片 (.hub-unified-hero) ═══════ */
         .hub-unified-hero {
             width: 100%;
             max-width: 1120px;
@@ -5251,7 +5251,7 @@ body.layout-nook #nav-wrapper {
             max-width: 1120px;
         }
 
-        /* ═══════ 動森風格 對手難度直選彈窗 (Difficulty Picker Modal) ═══════ */
+        /* ═══════ 對手難度直選彈窗 (Difficulty Picker Modal) ═══════ */
         #diff-picker-modal .modal-card {
             background: #fffef9;
             border: 3px solid #e8d7be;
@@ -5313,7 +5313,7 @@ body.layout-nook #nav-wrapper {
             transform: scale(1);
         }
 
-        /* ═══════ 動森大廳 匹克球學習社群與主卡片樣式 ═══════ */
+        /* ═══════ 大廳 匹克球學習社群與主卡片樣式 ═══════ */
         .hub-community-main {
             display: flex;
             flex-direction: column;
@@ -5427,7 +5427,7 @@ body.layout-nook #nav-wrapper {
             box-shadow: 0 3px 0 #143024;
         }
 
-        /* ═══════ 個人設定彈窗 (#profile-modal) 動森優化 ═══════ */
+        /* ═══════ 個人設定彈窗 (#profile-modal) 視覺優化 ═══════ */
         #profile-modal .modal-card {
             max-width: min(94vw, 440px);
             background: #fffef9;
@@ -5642,7 +5642,7 @@ body.layout-nook #nav-wrapper {
                 <h2 style="margin:0;font-size:18px;">😎 個人球員設定</h2>
                 <button type="button" class="btn" onclick="closeProfileModal()" style="padding:2px 8px;font-size:14px;">×</button>
             </div>
-            <p style="font-size:12px;color:var(--dim);margin-bottom:12px;">修改後將同步更新動森護照名片與校園英雄榜。</p>
+            <p style="font-size:12px;color:var(--dim);margin-bottom:12px;">修改後將同步更新個人名片與校園英雄榜。</p>
 
             <!-- 訪客轉正提示橫幅 -->
             <div id="edit-guest-banner" class="profile-guest-notice" style="display:none;">
@@ -6505,7 +6505,7 @@ I_syn(t) = w_syn · x · u · (dθ/dt)</div>
         </div>
     </div>
 
-    <!-- ══════ 拍立得完賽紀念卡 Modal (Animal Crossing Polaroid Souvenir) ══════ -->
+    <!-- ══════ 拍立得完賽紀念卡 Modal (Polaroid Souvenir) ══════ -->
     <div id="polaroid-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="polaroid-title" style="display:none;align-items:center;justify-content:center;background:rgba(15,23,42,0.88);backdrop-filter:blur(12px);z-index:9999;">
         <div class="polaroid-card">
             <div class="polaroid-pin">📌</div>
@@ -6536,7 +6536,7 @@ I_syn(t) = w_syn · x · u · (dθ/dt)</div>
         </div>
     </div>
 
-    <!-- ══════ 🤖 動森風格 對手難度直選彈窗 (#diff-picker-modal) ══════ -->
+    <!-- ══════ 🤖 對手難度直選彈窗 (#diff-picker-modal) ══════ -->
     <div id="diff-picker-modal" class="modal-overlay" style="display:none;" onclick="if(event.target===this)closeDiffPicker()">
         <div class="modal-card">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
@@ -6619,9 +6619,9 @@ I_syn(t) = w_syn · x · u · (dθ/dt)</div>
         </div>
     </div>
 
-    <!-- ══════ 🍃 《動物森友會》島嶼清新風格模式大廳 (Animal Crossing Mode Hub) ══════ -->
+    <!-- ══════ 🍃 清新校園風格模式大廳 (NCHU Mode Hub) ══════ -->
     <div id="mode-hub-overlay" style="display:none;" onclick="if(event.target===this)closeModeHub()">
-        <!-- ══════ 🍃 2.5D 動森中興湖大地圖導覽沙盤 (.hub-map-stage) ══════ -->
+        <!-- ══════ 🍃 2.5D 中興湖大地圖導覽沙盤 (.hub-map-stage) ══════ -->
         <div class="hub-map-stage">
             <!-- 頂部島民護照條 (Top Island Passport Bar) -->
             <div class="hub-map-topbar">
@@ -6647,14 +6647,14 @@ I_syn(t) = w_syn · x · u · (dθ/dt)</div>
 
             <!-- 2.5D 校園大地圖沙盤視口 (.hub-map-viewport) -->
             <div class="hub-map-viewport" id="hub-map-viewport">
-                <!-- 🍃 100% 正宗動森手繪中興湖校園大地圖 (無雜字純淨超高解析底圖) -->
-                <img src="images/nchu_map_2.5d.jpg" alt="國立中興大學中興湖 2.5D 動森校園導覽沙盤" class="hub-map-img" id="hub-map-bg-img"
+                <!-- 🍃 中興湖校園手繪大地圖 (無雜字純淨超高解析底圖) -->
+                <img src="images/nchu_map_2.5d.jpg" alt="國立中興大學中興湖校園導覽地圖" class="hub-map-img" id="hub-map-bg-img"
                      onerror="this.src='images/pickleball_action.jpg';">
 
-                <!-- 🍃 動森微風落櫻花瓣與飄逸夏葉動態粒子層 -->
+                <!-- 🍃 微風落櫻花瓣與飄逸夏葉動態粒子層 -->
                 <canvas id="hub-particle-canvas"></canvas>
 
-                <!-- 🐾 動森活體島民與天鵝動態生態演員 (Living AC Actors) -->
+                <!-- 🐾 活體島民與天鵝動態生態演員 (Living Campus Actors) -->
                 <!-- 1. 👑 皇冠黑天鵝村長 (在湖中自由游弋巡邏) -->
                 <div class="ac-actor ac-swan" id="actor-swan" onclick="HubSandbox.interactActor('swan', event)" title="中興湖黑天鵝村長 (點擊互動)">
                     <div class="ac-actor-flip" id="actor-swan-flip">
@@ -6824,12 +6824,12 @@ I_syn(t) = w_syn · x · u · (dθ/dt)</div>
 
             <!-- 大地圖底部資訊條 -->
             <div class="hub-map-footer">
-                🍃 國立中興大學中興湖 · 2.5D 動森導覽沙盤 · 零個資隱私安全運算
+                🍃 國立中興大學中興湖 · 校園導覽地圖 · 零個資隱私安全運算
             </div>
         </div>
     </div>
 
-    <!-- ══════ 🍃 動森 NookPhone 8 宮格手機輪盤 (#nook-phone-modal) ══════ -->
+    <!-- ══════ 🍃 NookPhone 8 宮格手機輪盤 (#nook-phone-modal) ══════ -->
     <div id="nook-phone-modal" onclick="if(event.target===this) toggleNookPhone(false)">
         <div class="nook-case">
             <div class="nook-screen">
@@ -6920,7 +6920,7 @@ I_syn(t) = w_syn · x · u · (dθ/dt)</div>
         <div id="stage3d"></div>
         <div id="vignette"></div>
 
-        <!-- 🍃 動森風格動態關卡藥丸島 (#dynamic-stage-pill) -->
+        <!-- 🍃 動態關卡藥丸島 (#dynamic-stage-pill) -->
         <div id="dynamic-stage-pill" onclick="openModeHub()" title="點擊開啟模式大廳與關卡切換">
             <span class="dsp-leaf">🍃</span>
             <span class="dsp-stage-txt" id="dsp-stage">第 1 關 · 發球養成</span>
@@ -6928,7 +6928,7 @@ I_syn(t) = w_syn · x · u · (dθ/dt)</div>
             <span class="dsp-score-txt" id="dsp-score">0 - 0</span>
         </div>
 
-        <!-- 🍃 動森 NookPhone 懸浮小葉子按鈕 (#nook-fab) -->
+        <!-- 🍃 NookPhone 懸浮小葉子按鈕 (#nook-fab) -->
         <div id="nook-fab" onclick="toggleNookPhone(true)" title="開啟 NookPhone 快捷選單">
             <span class="nook-fab-leaf">🍃</span>
             <span class="nook-fab-lbl">Nook</span>
@@ -8382,7 +8382,7 @@ function apiGet(qs) {
                 this.tone('triangle', 320, 160, 0.22, 0.14);
             }
             point() {
-                // 動森風歡快雙音木琴 (Cozy Marimba Two-tone)
+                // 歡快雙音木琴 (Cozy Marimba Two-tone)
                 this.tone('triangle', 587.33, 587.33, 0.14, 0.26); // D5
                 if (typeof later === 'function') later(() => this.tone('triangle', 880, 880, 0.18, 0.22), 85); // A5
                 else setTimeout(() => this.tone('triangle', 880, 880, 0.18, 0.22), 85);
@@ -8396,7 +8396,7 @@ function apiGet(qs) {
                 const delayFn = (typeof later === 'function') ? later : setTimeout;
                 delayFn(() => this.tone('sine', 987.77, 987.77, 0.14, 0.22), 70);
             }
-            // ═══════ 動森風格專屬療癒音效 ═══════
+            // ═══════ 清新風格專屬療癒音效 ═══════
             quack() {
                 // 匹克鵝村長俏皮叫聲 (Playful Goose Quack)
                 this.tone('sawtooth', 330, 240, 0.09, 0.16);
@@ -8404,7 +8404,7 @@ function apiGet(qs) {
                 delayFn(() => this.tone('sawtooth', 290, 210, 0.11, 0.14), 75);
             }
             fanfare() {
-                // 勝利大獎賽動森號角琶音 (Victory Marimba Arpeggio: C-E-G-C)
+                // 勝利大獎賽號角琶音 (Victory Marimba Arpeggio: C-E-G-C)
                 const delayFn = (typeof later === 'function') ? later : setTimeout;
                 this.tone('triangle', 523.25, 523.25, 0.12, 0.25); // C5
                 delayFn(() => this.tone('triangle', 659.25, 659.25, 0.12, 0.25), 90); // E5
@@ -10224,7 +10224,7 @@ function syncPhysicsModeUI() {
 /**
  * ═══════════════════════════════════════════════════════════
  * 🍃 中興湖 2.5D 動態活沙盤引擎 (NCHU Lake Living Sandbox)
- * 正宗《動物森友會》自然木質風格 + 活體生態巡邏系統 + 互動氣泡
+ * 自然木質風格 + 活體生態巡邏系統 + 互動氣泡
  * ═══════════════════════════════════════════════════════════
  */
 (function(window) {
@@ -10327,7 +10327,7 @@ function syncPhysicsModeUI() {
         duck2: [
             "🐥 嗶嗶！中興湖的水草真好吃～肚子飽飽才有力氣打球！",
             "🐥 嗶！小碼頭的小熊跟小兔已經激戰 50 回合啦！加油加油！",
-            "🐥 嗶嗶嗶！按左上角頭貼可以換成動森柴柴或水豚造型喔！",
+            "🐥 嗶嗶嗶！按左上角頭貼可以換成柴柴或水豚造型喔！",
             "🐥 嗶～浮台碼頭晃呀晃的，好想跳上去當球僮呀！"
         ],
         shiba: [
@@ -10375,7 +10375,7 @@ function syncPhysicsModeUI() {
                 flutter: Math.random() * Math.PI * 2,
                 color: Math.random() > 0.45 
                     ? 'rgba(255, 183, 197, 0.75)'  // 櫻花粉
-                    : 'rgba(168, 218, 140, 0.75)'   // 動森草葉綠
+                    : 'rgba(168, 218, 140, 0.75)'   // 草葉綠
             });
         }
     }
@@ -10630,7 +10630,7 @@ function syncPhysicsModeUI() {
         }
     }
 
-    // 播放動森島民可愛語音叫聲 (Web Audio 合成音階)
+    // 播放島民可愛語音叫聲 (Web Audio 合成音階)
     function playAnimaleseChirp(freq) {
         try {
             const AudioContext = window.AudioContext || window.webkitAudioContext;
@@ -12178,7 +12178,7 @@ function cycleTeachLevelQuick() {
         }
 
         /* ═══════════════════════════════════════════════════════════
-           🍃 動森 NookPhone 與動態藥丸島控制器 (NookPhone & Dynamic HUD)
+           🍃 NookPhone 與動態藥丸島控制器 (NookPhone & Dynamic HUD)
            ═══════════════════════════════════════════════════════════ */
         function toggleNookPhone(open) {
             const m = document.getElementById('nook-phone-modal');
@@ -12219,11 +12219,11 @@ function cycleTeachLevelQuick() {
             const isNook = document.body.classList.toggle('layout-nook');
             try { localStorage.setItem('nchu_menu_layout', isNook ? 'nook' : 'classic'); } catch (e) {}
             if (typeof toast === 'function') {
-                toast('選單排法已切換', isNook ? '🍃 NookPhone 懸浮小葉子 (動森極簡無遮擋)' : '📐 經典頂部橫條');
+                toast('選單排法已切換', isNook ? '🍃 NookPhone 懸浮小葉子 (極簡無遮擋)' : '📐 經典頂部橫條');
             }
         }
 
-        // 預設啟用動森 NookPhone 懸浮選單（徹底擺脫工業監控橫條）
+        // 預設啟用 NookPhone 懸浮選單（徹底擺脫工業監控橫條）
         try {
             const savedLayout = localStorage.getItem('nchu_menu_layout') || 'nook';
             if (savedLayout === 'nook') {
@@ -15532,7 +15532,7 @@ function cycleTeachLevelQuick() {
             return t;
         }
 
-        /* ═══════════ 動物森友會風格 程序化紋理 (Animal Crossing Procedural Textures) ═══════════ */
+        /* ═══════════ 清新校園風格 程序化紋理 (Procedural Textures) ═══════════ */
         function acGrassTex() {
             const c = document.createElement('canvas'); c.width = c.height = 128;
             const ctx = c.getContext('2d');
@@ -15624,7 +15624,7 @@ function cycleTeachLevelQuick() {
                 ctx.beginPath(); ctx.moveTo(0, y);
                 ctx.bezierCurveTo(40, y + 4, 80, y - 4, 128, y); ctx.stroke();
             }
-            // Animal Crossing Leaf emblem
+            // Green Leaf emblem
             ctx.fillStyle = '#10b981'; ctx.beginPath();
             ctx.moveTo(64, 45); ctx.bezierCurveTo(92, 55, 96, 95, 68, 115);
             ctx.bezierCurveTo(76, 95, 66, 88, 58, 92);
@@ -15666,7 +15666,7 @@ function cycleTeachLevelQuick() {
             const dims = (customW && customH) ? { w: customW, h: customH } : getStageDimensions();
             const aspect = dims.w / dims.h;
 
-            // ★ 2.5D 動森立體玩具箱視角 (Compressed 2.5D Diorama Camera):
+            // ★ 2.5D 立體玩具箱視角 (Compressed 2.5D Diorama Camera):
             // 告別 84° 陡峭魚眼俯視，改採 42°~46° 壓縮長焦，相機後移並微降仰角 (camH: 5.0, camDist: 13.8)
             // 讓球員、球拍、看台動物與對手匹克鵝立體站立，球場透視深邃且不失真
             let fov = 44;
@@ -15760,7 +15760,7 @@ function cycleTeachLevelQuick() {
             ctx.lineWidth = 2;
             ctx.strokeRect(14, 14, 484, 228);
 
-            // 頂部標題 (動森小島風)
+            // 頂部標題 (清新小島風)
             ctx.fillStyle = '#fde047';
             ctx.font = 'bold 22px system-ui, sans-serif';
             ctx.textAlign = 'center';
@@ -15847,7 +15847,7 @@ function cycleTeachLevelQuick() {
                 }
             }
 
-            // ═══════ 4. 動物森友會低多邊形果樹 (Low-poly Fruit Trees) ═══════
+            // ═══════ 4. 低多邊形果樹 (Low-poly Fruit Trees) ═══════
             const trunkMat = new THREE.MeshStandardMaterial({ color: 0x78350f, roughness: 0.9 });
             const leavesMat = new THREE.MeshStandardMaterial({ color: 0x16a34a, roughness: 0.7 });
             const fruitMat = new THREE.MeshStandardMaterial({ color: 0xef4444, roughness: 0.4 });
@@ -15899,7 +15899,7 @@ function cycleTeachLevelQuick() {
                 }
             }
 
-            // ═══════ 6. 3D 看台黑板計分板 (Animal Crossing Chalkboard) ═══════
+            // ═══════ 6. 3D 看台黑板計分板 (Chalkboard) ═══════
             const scCanvas = document.createElement('canvas');
             scCanvas.width = 512; scCanvas.height = 256;
             scoreboard3DTex = new THREE.CanvasTexture(scCanvas);
@@ -15985,12 +15985,12 @@ function cycleTeachLevelQuick() {
                 cap.position.set(bx, 0.54, bz); cap.scale.set(1, 0.5, 1); scene.add(cap);
             }
 
-            // ★ 外圍緩衝草皮裝飾邊框 (動森草坪綠 0x2e8352 與暖陶土 0xc86446 色彩規範)
+            // ★ 外圍緩衝草皮裝飾邊框 (草坪綠 0x2e8352 與暖陶土 0xc86446 色彩規範)
             const courtTurfMat = new THREE.MeshStandardMaterial({ color: 0x2e8352, roughness: 0.88, metalness: 0.02 });
             const courtApron = new THREE.Mesh(new THREE.PlaneGeometry(COURT_W + 0.36, COURT_L + 0.36), courtTurfMat);
             courtApron.rotation.x = -Math.PI / 2; courtApron.position.y = 0.0005; courtApron.receiveShadow = true; scene.add(courtApron);
 
-            // ★ 4. 正式比賽發球區：動森水上湛藍湖水色 (Clear Lake Blue Service Courts)
+            // ★ 4. 正式比賽發球區：水上湛藍湖水色 (Clear Lake Blue Service Courts)
             const courtMat = new THREE.MeshStandardMaterial({ color: 0x0284c7, roughness: 0.82, metalness: 0.02 });
             const court = new THREE.Mesh(new THREE.PlaneGeometry(COURT_W, COURT_L), courtMat);
             court.rotation.x = -Math.PI / 2; court.position.y = 0.001; court.receiveShadow = true; scene.add(court);
@@ -16096,7 +16096,7 @@ function cycleTeachLevelQuick() {
             buildCourtSign(4.2, 0.58, 'NCHU PICKLEBALL LEARNING COMMUNITY', '國立中興大學匹克球學習社群 · 運動科技推廣中心', '🎾', '#1b4332', '#2d6a4f', -(COURT_W / 2 + 1.25), -1.8, Math.PI / 2);
             // 2. 左側後段看板：馬格努斯流體力學實驗室 (中興湖深潭水藍)
             buildCourtSign(4.2, 0.58, 'MAGNUS EFFECT FLUID DYNAMICS LAB', '旋球流體力學 · NASA 空氣動力學專題科普', '🌪️', '#162a38', '#1e3a5f', -(COURT_W / 2 + 1.25), 1.8, Math.PI / 2);
-            // 3. 右側邊線看板：國立中興大學 中興湖水上球場 (動森自然翠綠)
+            // 3. 右側邊線看板：國立中興大學 中興湖水上球場 (自然翠綠)
             buildCourtSign(4.2, 0.58, 'NATIONAL CHUNG HSING UNIVERSITY', '中興湖水上特訓球場 · ZHONGXING LAKE ARENA', '🌿', '#245e3d', '#40916c', (COURT_W / 2 + 1.25), -1.8, -Math.PI / 2);
             // 4. 右側後段看板：USA Pickleball 官方手冊認證 (暖陶土紅磚木色)
             buildCourtSign(4.2, 0.58, '2026 USA PICKLEBALL OFFICIAL HUB', '國際競賽規則手冊 · 虛擬裁判精準判定', '🏆', '#7c341e', '#c86446', (COURT_W / 2 + 1.25), 1.8, -Math.PI / 2);
@@ -16281,7 +16281,7 @@ function cycleTeachLevelQuick() {
             const pants = new THREE.MeshStandardMaterial({ color: 0x3b82f6, roughness: 0.66 }); // Cobalt shorts
             const shoes = new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.5 }); // White sneakers
 
-            // 1. 圓潤動森風格上身 Polo 衫 (Chibi Torso)
+            // 1. 圓潤風格上身 Polo 衫 (Chibi Torso)
             pTorso = new THREE.Mesh(new THREE.CylinderGeometry(0.20, 0.23, 0.56, 14), shirt);
             pTorso.position.y = 0.82; pTorso.castShadow = true; pGrp.add(pTorso);
 
@@ -16300,13 +16300,13 @@ function cycleTeachLevelQuick() {
             }
             pGrp.add(pLegs);
 
-            // 3. 圓萌動森 Chibi 頭部 (Chibi Head with Sparkling Anime Eyes & Rosy Cheeks)
+            // 3. 圓萌 Chibi 頭部 (Chibi Head with Sparkling Anime Eyes & Rosy Cheeks)
             const headTex = acFaceTex();
             pHead = new THREE.Mesh(new THREE.SphereGeometry(0.25, 20, 20),
                 new THREE.MeshStandardMaterial({ map: headTex, roughness: 0.55 }));
             pHead.position.y = 1.30; pHead.castShadow = true; pGrp.add(pHead);
 
-            // 4. 動森經典遮陽帽 (Sun Visor Cap)
+            // 4. 經典遮陽帽 (Sun Visor Cap)
             pCap = new THREE.Group();
             const capCrown = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.26, 0.08, 16),
                 new THREE.MeshStandardMaterial({ color: 0xff5252, roughness: 0.4 }));
@@ -17687,7 +17687,7 @@ function solveArc(fx, fy, fz, tx, tz, out, speedScale) {
                     if (pHead) pHead.rotation.y = -wantYaw * 0.5;
                 } else {
                     pGrp.rotation.set(0, 0, 0);
-                    // 可愛動森奔跑彈跳 (Cute AC Bouncy Jog)
+                    // 可愛奔跑彈跳 (Cute Bouncy Jog)
                     const speed = Math.hypot(playerVel.x, playerVel.z);
                     if (speed > 0.5) {
                         pGrp.position.y = Math.abs(Math.sin(performance.now() * 0.014)) * 0.035;
@@ -18756,7 +18756,7 @@ function updateGuides(dt) {
                 cam.lookAt(camLookTarget.x, 0.85, camLookTarget.z);
             }
 
-            // ═══════ 動物森友會活潑環境動畫 (Animal Crossing Living World Updates) ═══════
+            // ═══════ 活潑環境動畫 (Living World Updates) ═══════
             // 1. 湖水水波細膩平移
             if (waterTexRef) {
                 waterTexRef.offset.x = (waterTexRef.offset.x + dt * 0.015) % 1;
@@ -18794,7 +18794,7 @@ function updateGuides(dt) {
             ren.render(scene, cam);
         }
 
-        /* ═══════════ 動物森友會 拍立得完賽紀念卡 (Polaroid Souvenir) ═══════════ */
+        /* ═══════════ 拍立得完賽紀念卡 (Polaroid Souvenir) ═══════════ */
         let lastSouvenirWon = true, lastSouvenirP = 3, lastSouvenirA = 1;
         let lastSouvenirSnapshotCanvas = null;
 

@@ -239,8 +239,8 @@ try {
     assert(false, "物理模擬腳本執行異常", e.message);
 }
 
-// ── 8. 動物森友會視覺音效與拍立得紀念卡 (Animal Crossing & Polaroid Souvenir) ──
-console.log("\n▶ [8/8] 動物森友會風格與拍立得完賽紀念卡 (Animal Crossing & Polaroid Souvenir)...");
+// ── 8. 清新視覺音效與拍立得紀念卡 (Polaroid Souvenir) ──
+console.log("\n▶ [8/8] 清新風格與拍立得完賽紀念卡 (Polaroid Souvenir)...");
 try {
     const gameSrc = fs.readFileSync(path.join(ROOT, "js/game.js"), "utf8");
     const audioSrc = fs.readFileSync(path.join(ROOT, "js/audio.js"), "utf8");
@@ -248,11 +248,11 @@ try {
     const v14Html = fs.readFileSync(path.join(ROOT, "v14.html"), "utf8");
     const singleHtml = fs.readFileSync(path.join(ROOT, "v14-single.html"), "utf8");
 
-    // 1. 動森程序化紋理
+    // 1. 程序化紋理
     assert(gameSrc.includes("function acGrassTex()") && gameSrc.includes("function acWaterTex()"),
-        "js/game.js 包含動森草皮 (acGrassTex) 與湖水水波紋理 (acWaterTex)");
+        "js/game.js 包含草皮 (acGrassTex) 與湖水水波紋理 (acWaterTex)");
     assert(gameSrc.includes("function acFaceTex()") && gameSrc.includes("function acPaddleTex()"),
-        "js/game.js 包含動森島民臉龐 (acFaceTex) 與樹葉球拍 (acPaddleTex)");
+        "js/game.js 包含島民臉龐 (acFaceTex) 與樹葉球拍 (acPaddleTex)");
     assert(gameSrc.includes("function acGooseFaceTex()") && gameSrc.includes("function updateGooseEmote("),
         "js/game.js 包含村長鵝表情 (acGooseFaceTex) 與動態情緒氣泡 (updateGooseEmote)");
 
@@ -264,15 +264,15 @@ try {
     assert(gameSrc.includes("function showPolaroidSouvenir(") && gameSrc.includes("function downloadPolaroid()"),
         "js/game.js 實作 3D 畫面截圖合成與下載 (showPolaroidSouvenir / downloadPolaroid)");
 
-    // 3. 動物森友會手感音效
+    // 3. 療癒手感音效
     assert(audioSrc.includes("quack(") && audioSrc.includes("fanfare(") && audioSrc.includes("shutter("),
-        "js/audio.js 包含動物森友會專屬音效 (quack 鵝叫 / fanfare 勝利馬林巴 / shutter 快門)");
+        "js/audio.js 包含專屬音效 (quack 鵝叫 / fanfare 勝利馬林巴 / shutter 快門)");
 
-    // 4. 球場柔和光照與動森大地色盤
+    // 4. 球場柔和光照與自然大地色盤
     assert(gameSrc.includes("ACESFilmicToneMapping") && gameSrc.includes("0x2e8352") && gameSrc.includes("0xc86446"),
-        "js/game.js 包含 ACESFilmic 色調映射、動森草坪綠 (0x2e8352) 與暖陶土 (0xc86446)");
+        "js/game.js 包含 ACESFilmic 色調映射、草坪綠 (0x2e8352) 與暖陶土 (0xc86446)");
 } catch (e) {
-    assert(false, "動森與拍立得模組檢測異常", e.message);
+    assert(false, "視覺與拍立得模組檢測異常", e.message);
 }
 
 // ── [9/9] 遊戲化模式選擇大廳、NCHU 品牌看板與 2K 個人化拍立得卡 ──
@@ -321,7 +321,7 @@ try {
     const motionSrc = fs.readFileSync(path.resolve(__dirname, "../js/motion.js"), "utf8");
     const refereeSrc = fs.readFileSync(path.resolve(__dirname, "../js/referee.js"), "utf8");
 
-    // 1. 動森 NookPhone 與頂部動態藥丸島
+    // 1. NookPhone 與頂部動態藥丸島
     assert(v14Src.includes('id="nook-fab"') && v14Src.includes('id="nook-phone-modal"') && v14Src.includes('id="dynamic-stage-pill"'),
         "v14.html 包含 NookPhone 懸浮小葉子 (#nook-fab)、手機抽屜 (#nook-phone-modal) 與動態關卡藥丸島");
     assert(uiSrc.includes("toggleNookPhone") && uiSrc.includes("updateDynamicStagePill"),
@@ -388,14 +388,14 @@ try {
     assert(benchOut.includes("基準測試完成！所有預設 10,000 幀物理與神經步進皆順利通過！"),
         "10,000 幀極限效能基準測試全數通過，單幀耗時 < 0.5ms，零記憶體洩漏");
 
-    // 9. NookPhone 難度選擇器、2.5D 動森中興湖大地圖導覽沙盤與小碼頭實裝檢測
+    // 9. NookPhone 難度選擇器、2.5D 中興湖大地圖導覽沙盤與小碼頭實裝檢測
     assert(v14Src.includes('id="diff-picker-modal"') && uiSrc.includes("openDiffPicker") && uiSrc.includes("selectDiffLevel"),
-        "實裝動森風格對手難度直選面板 (#diff-picker-modal) 與控制器");
+        "實裝對手難度直選面板 (#diff-picker-modal) 與控制器");
     assert(v14Src.includes('class="hub-map-stage"') && v14Src.includes('id="hub-map-viewport"'),
-        "大廳升級為 2.5D 動森中興湖大地圖導覽沙盤 (.hub-map-stage) 與專屬視口");
+        "大廳升級為 2.5D 中興湖大地圖導覽沙盤 (.hub-map-stage) 與專屬視口");
     assert(v14Src.includes('images/nchu_map_2.5d.jpg') && fs.existsSync(path.join(ROOT, "images", "nchu_map_2.5d.jpg")) &&
            v14Src.includes('id="hub-particle-canvas"') && fs.existsSync(path.join(ROOT, "js", "hub_sandbox.js")),
-        "大廳升級為 100% 正宗動森手繪無雜字超清沙盤底圖 (images/nchu_map_2.5d.jpg) 與動態粒子微視差層 (#hub-particle-canvas)");
+        "大廳升級為 中興湖手繪無雜字超清沙盤底圖 (images/nchu_map_2.5d.jpg) 與動態粒子微視差層 (#hub-particle-canvas)");
     assert(v14Src.includes('id="pin-admin"') && v14Src.includes('id="pin-social-building"') &&
            v14Src.includes('id="pin-lifescience"') && v14Src.includes('id="pin-agri-env"') &&
            v14Src.includes('id="pin-library"') && v14Src.includes('id="pin-dock"'),
@@ -424,8 +424,8 @@ try {
     assert(false, "資安滲透防禦與 NookPhone 檢測異常", e.message);
 }
 
-// ── 11. 2.5D 動森立體玩具箱球場、單打規則與神經決策小模型 ──
-console.log("\n▶ [11/11] 2.5D 動森立體玩具箱球場、單打規則與神經決策小模型 (2.5D Court & Neural Policy)...");
+// ── 11. 2.5D 立體玩具箱球場、單打規則與神經決策小模型 ──
+console.log("\n▶ [11/11] 2.5D 立體玩具箱球場、單打規則與神經決策小模型 (2.5D Court & Neural Policy)...");
 try {
     const gameSrc = fs.readFileSync(path.resolve(__dirname, "../js/game.js"), "utf8");
     const refereeSrc = fs.readFileSync(path.resolve(__dirname, "../js/referee.js"), "utf8");
@@ -434,7 +434,7 @@ try {
     assert(gameSrc.includes("acWoodPlanksTex") && gameSrc.includes("camDist: 13.8") && gameSrc.includes("lookY: 0.95"),
         "js/game.js 包含 2.5D 壓縮長焦玩具箱相機 (camH: 5.0, camDist: 13.8) 與浮島木甲板材質");
     assert(gameSrc.includes("0x0284c7") && gameSrc.includes("0x38bdf8"),
-        "js/game.js 球場升級為動森水上湛藍發球區 (0x0284c7) 與天青藍廚房區 (0x38bdf8)");
+        "js/game.js 球場升級為水上湛藍發球區 (0x0284c7) 與天青藍廚房區 (0x38bdf8)");
     assert(refereeSrc.includes("USA Pickleball Official Singles Rules") && !refereeSrc.includes("Second Serve"),
         "js/referee.js 單打模式遵循 USA Pickleball 官方規則：失分即 Side-out 換發球權，徹底根除雙打 Second Serve 誤用");
     assert(refereeSrc.includes("isMajorCall") && refereeSrc.includes("announceReferee(main, sub, isFault)"),
@@ -444,7 +444,7 @@ try {
     assert(hudCssSrc.includes("#referee-announcement.mode-1") && hudCssSrc.includes("calc(56px + env(safe-area-inset-top))"),
         "hud.css 裁判廣播膠囊精準定位於頂部藥丸下方 (top: 56px)，杜絕介面重疊");
 } catch (e) {
-    assert(false, "2.5D 動森球場與神經小模型檢測異常", e.message);
+    assert(false, "2.5D 球場與神經小模型檢測異常", e.message);
 }
 
 // ── 總結 ──
