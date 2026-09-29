@@ -194,11 +194,11 @@
         </div>
     </div>
 
-    <!-- ══════ 音效設定 ══════ -->
+    <!-- ══════ 音效與觸覺震動設定 ══════ -->
     <div id="audio-modal" class="modal-overlay" style="display:none;">
         <div class="modal-card">
-            <h2>🎶 音效設定</h2>
-            <p>設定會自動記憶到本機。</p>
+            <h2>🎶 音效與震動設定</h2>
+            <p>設定會自動記憶到本機，打球更具手感。</p>
             <div class="input-group">
                 <div class="pref-row">
                     <span class="pref-label">🔊 遊戲音效</span>
@@ -212,7 +212,20 @@
                     <input type="range" id="pref-vol" class="vol-range" min="0" max="100" step="5"
                         oninput="onVolInput(this.value)">
                 </div>
-                <button class="btn-test" onclick="testSfx()">▶ 試聽擊球音</button>
+                <div class="pref-row" style="margin-top:6px;">
+                    <div style="display:flex;flex-direction:column;text-align:left;">
+                        <span class="pref-label">📳 擊球微震動反饋</span>
+                        <small id="pref-vibrate-hint" style="font-size:11px;color:#7a6b58;margin-top:2px;">四段式微觸感 (放短/平抽/殺球/失誤)</small>
+                    </div>
+                    <label class="switch">
+                        <input type="checkbox" id="pref-vibrate" onchange="onVibrateToggle(this.checked)">
+                        <span class="slider-ui"></span>
+                    </label>
+                </div>
+                <div style="display:flex;gap:8px;margin-top:12px;">
+                    <button class="btn-test" style="flex:1;margin-top:0;" onclick="testSfx()">▶ 試聽擊球音</button>
+                    <button class="btn-test" style="flex:1;margin-top:0;" onclick="testVibrate()">📳 試震一下</button>
+                </div>
             </div>
             <button class="btn-main" onclick="closeAudioModal()">完成</button>
         </div>
@@ -1468,7 +1481,7 @@ I_syn(t) = w_syn · x · u · (dθ/dt)</div>
                         </button>
                         <button class="nook-app phone-app" onclick="toggleNookPhone(false); openAudioModal();">
                             <div class="nook-app-icon phone-app-icon app-settings">🎶</div>
-                            <span class="nook-app-label phone-app-label">音效設定</span>
+                            <span class="nook-app-label phone-app-label">音效震動</span>
                         </button>
                     </div>
 

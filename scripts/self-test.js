@@ -264,9 +264,34 @@ try {
     assert(gameSrc.includes("function showPolaroidSouvenir(") && gameSrc.includes("function downloadPolaroid()"),
         "js/game.js 實作 3D 畫面截圖合成與下載 (showPolaroidSouvenir / downloadPolaroid)");
 
-    // 3. 療癒手感音效
+    // 3. 療癒手感音效與觸覺微震動 (Haptic Feedback)
     assert(audioSrc.includes("quack(") && audioSrc.includes("fanfare(") && audioSrc.includes("shutter("),
         "js/audio.js 包含專屬音效 (quack 鵝叫 / fanfare 勝利馬林巴 / shutter 快門)");
+    assert(audioSrc.includes("const Haptic =") && audioSrc.includes("vibrateOn: true") && audioSrc.includes("onVibrateToggle"),
+        "js/audio.js 包含 Haptic 震動回饋控制器與 vibrateOn 開關");
+    assert(v14Html.includes('id="pref-vibrate"') && singleHtml.includes('id="pref-vibrate"'),
+        "設定彈窗包含 #pref-vibrate 觸覺震動切換開關與試震按鈕");
+
+    // Haptic 單元邏輯模擬測試
+    const hapticSandbox = {
+        navigator: {
+            vibrateHistory: [],
+            vibrate(p) { this.vibrateHistory.push(p); return true; }
+        },
+        document: { getElementById: () => null },
+        localStorage: { getItem: () => null, setItem: () => null },
+        window: {}
+    };
+    vm.runInNewContext(audioSrc + "; hapticSandbox.H = Haptic;", { ...hapticSandbox, hapticSandbox });
+    const H = hapticSandbox.H;
+    assert(H && typeof H.hit === 'function', "Haptic 模組成功初始化並提供 hit/dink/drive/smash/fault 介面");
+    H.hit(0.2); // dink
+    H.hit(0.6); // drive
+    H.hit(0.9); // smash
+    H.fault();  // fault
+    const vHist = hapticSandbox.navigator.vibrateHistory;
+    assert(vHist.length === 4 && vHist[0] === 12 && vHist[1] === 22 && Array.isArray(vHist[2]) && vHist[2][0] === 25 && Array.isArray(vHist[3]) && vHist[3][0] === 50,
+        "Haptic 震動曲線符合 4 段式規格 (放短 12ms / 平抽 22ms / 殺球 [25,15,45] / 失誤 [50,30,50])");
 
     // 4. 球場柔和光照與自然大地色盤
     assert(gameSrc.includes("ACESFilmicToneMapping") && gameSrc.includes("0x2e8352") && gameSrc.includes("0xc86446"),

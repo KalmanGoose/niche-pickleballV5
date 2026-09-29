@@ -1,7 +1,7 @@
 /* ═══════════════════════════════════════════════════════════════════
    NCHU Pickleball V5 - 音效系統與 Web Audio 合成器 (Audio System)
    ═══════════════════════════════════════════════════════════════════ */
-        const AUDIO_PREFS = { sfxOn: true, master: 0.8 };
+        const AUDIO_PREFS = { sfxOn: true, master: 0.8, vibrateOn: true };
         const PREF_KEY = 'nchu_pb_audio';
         function loadAudioPrefs() {
             try {
@@ -10,28 +10,106 @@
                     const o = JSON.parse(raw);
                     if (typeof o.sfxOn === 'boolean') AUDIO_PREFS.sfxOn = o.sfxOn;
                     if (typeof o.master === 'number') AUDIO_PREFS.master = Math.min(1, Math.max(0, o.master));
+                    if (typeof o.vibrateOn === 'boolean') AUDIO_PREFS.vibrateOn = o.vibrateOn;
                 }
             } catch (e) { }
         }
         function saveAudioPrefs() { try { localStorage.setItem(PREF_KEY, JSON.stringify(AUDIO_PREFS)); } catch (e) { } }
         function syncAudioUI() {
             const cb = document.getElementById('pref-sfx'), rg = document.getElementById('pref-vol'),
-                nm = document.getElementById('pref-vol-num');
+                nm = document.getElementById('pref-vol-num'),
+                vb = document.getElementById('pref-vibrate'),
+                vbHint = document.getElementById('pref-vibrate-hint');
             if (cb) cb.checked = AUDIO_PREFS.sfxOn;
             if (rg) { rg.value = Math.round(AUDIO_PREFS.master * 100); rg.disabled = !AUDIO_PREFS.sfxOn; }
             if (nm) nm.innerText = Math.round(AUDIO_PREFS.master * 100) + '%';
+            if (vb) {
+                vb.checked = AUDIO_PREFS.vibrateOn;
+                if (vbHint) {
+                    const sup = typeof Haptic !== 'undefined' && Haptic.isSupported();
+                    vbHint.innerText = sup
+                        ? '已連線手機震動馬達 (支援 Android/Chrome 等)'
+                        : '此裝置不支援震動 API (iOS/Safari 以音效共振替代)';
+                }
+            }
         }
         function onSfxToggle(on) { AUDIO_PREFS.sfxOn = !!on; saveAudioPrefs(); syncAudioUI(); if (on) { S.init(); S.swap(); } }
+        function onVibrateToggle(on) {
+            AUDIO_PREFS.vibrateOn = !!on;
+            saveAudioPrefs();
+            syncAudioUI();
+            if (on && typeof Haptic !== 'undefined') {
+                Haptic.drive();
+            }
+        }
         function onVolInput(v) {
             AUDIO_PREFS.master = Math.min(1, Math.max(0, v / 100));
             document.getElementById('pref-vol-num').innerText = Math.round(AUDIO_PREFS.master * 100) + '%';
             saveAudioPrefs();
         }
         function testSfx() { S.init(); S.pop(0.75); later(() => S.point(), 220); }
+        function testVibrate() {
+            if (typeof Haptic === 'undefined' || !Haptic.isSupported()) {
+                if (typeof toast === 'function') toast('📳 此裝置不支援原生震動 (iOS/Safari)', '以打擊立體聲音效優雅共振替代');
+                S.init();
+                S.pop(0.9);
+                return;
+            }
+            AUDIO_PREFS.vibrateOn = true;
+            saveAudioPrefs();
+            syncAudioUI();
+            Haptic.smash();
+            S.init();
+            S.pop(0.9);
+            if (typeof toast === 'function') toast('📳 觸覺震動測試成功！', '重砲殺球爆裂手感 [25ms, 15ms, 45ms]');
+        }
         function openAudioModal() { syncAudioUI(); document.getElementById('audio-modal').style.display = 'flex'; closePanel(); S.init(); }
         function closeAudioModal() { document.getElementById('audio-modal').style.display = 'none'; saveAudioPrefs(); clearKeys(); }
         function openTechModal() { document.getElementById('tech-modal').style.display = 'flex'; closePanel(); }
         function closeTechModal() { document.getElementById('tech-modal').style.display = 'none'; clearKeys(); }
+
+        /* ═══════ 觸覺震動回饋系統 (Haptic Feedback System) ═══════ */
+        const Haptic = {
+            isSupported() {
+                return typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function';
+            },
+            vibrate(pattern) {
+                if (!AUDIO_PREFS.vibrateOn) return false;
+                if (!this.isSupported()) return false;
+                try {
+                    return navigator.vibrate(pattern);
+                } catch (e) {
+                    return false;
+                }
+            },
+            // 1. 網前放短 (Dink)：12ms 極短促微震
+            dink() {
+                return this.vibrate(12);
+            },
+            // 2. 標準平抽 (Drive)：22ms 清脆短震
+            drive() {
+                return this.vibrate(22);
+            },
+            // 3. 重砲殺球 (Smash)：兩段式爆裂震 [25ms 震, 15ms 停, 45ms 重震]
+            smash() {
+                return this.vibrate([25, 15, 45]);
+            },
+            // 4. 觸網 / 犯規失誤 (Fault)：阻滯頓挫震 [50ms 震, 30ms 停, 50ms 震]
+            fault() {
+                return this.vibrate([50, 30, 50]);
+            },
+            // 根據擊球力度 p (0.0 ~ 1.0) 動態選擇微震曲線
+            hit(power = 0.5) {
+                if (power < 0.45) return this.dink();
+                if (power >= 0.8) return this.smash();
+                return this.drive();
+            }
+        };
+        if (typeof window !== 'undefined') {
+            window.Haptic = Haptic;
+            window.testVibrate = testVibrate;
+            window.onVibrateToggle = onVibrateToggle;
+        }
 
         /* ═══════ 常數與狀態 ═══════ */
 
@@ -67,14 +145,19 @@
                 // 原木球拍清脆打擊聲 (Crisp Wood Paddle Pop)
                 this.tone('sine', 220 + p * 180, 55, 0.042, 0.65, pan);
                 this.tone('triangle', 950 + p * 450, 320, 0.035, 0.18, pan);
+                if (typeof Haptic !== 'undefined') Haptic.hit(p);
             }
             thump(p = 1, pan = 0) { this.tone('sine', 108, 30, 0.075, 0.30 * Math.min(1, p), pan); }
             coach() { this.tone('triangle', 523.25, 659.25, 0.10, 0.22); }
-            net() { this.tone('triangle', 250, 85, 0.13, 0.34); }
+            net() {
+                this.tone('triangle', 250, 85, 0.13, 0.34);
+                if (typeof Haptic !== 'undefined') Haptic.fault();
+            }
             fault() {
                 // 溫和抱歉的小失誤聲，非刺耳噪音
                 this.tone('sine', 480, 220, 0.18, 0.18);
                 this.tone('triangle', 320, 160, 0.22, 0.14);
+                if (typeof Haptic !== 'undefined') Haptic.fault();
             }
             point() {
                 // 歡快雙音木琴 (Cozy Marimba Two-tone)
