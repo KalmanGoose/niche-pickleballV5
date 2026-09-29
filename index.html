@@ -1378,16 +1378,63 @@
         }
 
 
-/* ── 速度膠囊、難度按鈕與 HUD 拖曳手勢效果 ── */
-        /* 速度膠囊 Tabular Nums 防跳字與 Safe Area 適配 - ★ v5.0.3 修復重疊: 手機版預設置於右下角，避開左下角虛擬搖桿 */
+/* ── 速度膠囊、走位速度按鈕與 HUD 拖曳手勢效果 ── */
         #speed-hud-mini {
-            bottom: calc(14px + env(safe-area-inset-bottom));
-            right: calc(14px + env(safe-area-inset-right));
-            left: auto;
+            position: absolute;
+            bottom: calc(140px + env(safe-area-inset-bottom));
+            left: calc(14px + env(safe-area-inset-left));
+            right: auto;
             font-variant-numeric: tabular-nums;
+            z-index: 35;
+            background: rgba(15, 23, 42, 0.88);
+            border: 1px solid rgba(56, 189, 248, 0.35);
+            border-radius: 99px;
+            padding: 5px 12px;
+            font-size: 12px;
+            font-weight: 800;
+            color: var(--accent);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
+            cursor: pointer;
+            user-select: none;
+            touch-action: none;
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
         }
+        #speed-hud-mini:hover {
+            transform: translateY(-1px);
+            border-color: #38bdf8;
+            box-shadow: 0 6px 20px rgba(56, 189, 248, 0.25);
+        }
+        #speed-hud-joy-btn {
+            background: rgba(34, 197, 94, 0.18);
+            border: 1px solid rgba(34, 197, 94, 0.45);
+            color: #4ade80;
+            font-size: 11px;
+            font-weight: 800;
+            padding: 2px 7px;
+            border-radius: 99px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 2px;
+            white-space: nowrap;
+        }
+        #speed-hud-joy-btn:hover {
+            background: rgba(34, 197, 94, 0.32);
+            transform: scale(1.05);
+        }
+        #speed-hud-joy-btn:active {
+            transform: scale(0.95);
+        }
+
         @media (min-width: 821px) {
             #speed-hud-mini {
+                bottom: calc(14px + env(safe-area-inset-bottom));
                 left: calc(14px + env(safe-area-inset-left));
                 right: auto;
             }
@@ -2576,6 +2623,15 @@ body.layout-nook #nav-wrapper {
 }
 .nook-home-btn:hover { background: #ecd8b8; }
 .nook-home-btn:active { transform: translateY(2px); box-shadow: 0 0 0 transparent; }
+
+/* ══════ 砍掉舊版冗餘框框 (#info 關卡卡片與 #board 黑底比分板) ══════ */
+#info,
+#board {
+    display: none !important;
+    pointer-events: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+}
 
 /* ─── nav.css ─── */
 /* ═══════════════════════════════════════════════════════════════════
@@ -5928,12 +5984,18 @@ body.layout-nook #nav-wrapper {
     </div>
 
     
-    <!-- ══════ 迷你速度指示膠囊 (手機響應式) ══════ -->
-    <div id="speed-hud-mini" onclick="toggleBottomCollapse()" title="點擊展開/收折操作面板">
-        <span>🎾</span>
-        <span id="mini-spd-val">0.0 mph</span>
-        <span style="color:var(--dim);">|</span>
-        <span style="color:var(--ok);">⚡ <span id="mini-pwr-val">0%</span></span>
+    <!-- ══════ 即時球速與走位速率指示膠囊 (#speed-hud-mini) ══════ -->
+    <div id="speed-hud-mini" title="按住可自由拖曳移動，點擊展開/收折操作面板">
+        <span class="speed-drag-dot" style="font-size:10px;color:var(--dim);opacity:0.6;cursor:grab;">⠿</span>
+        <span style="font-size:13px;">🎾</span>
+        <span id="mini-spd-val" style="font-weight:900;letter-spacing:-0.2px;">0.0 mph</span>
+        <span style="color:rgba(255,255,255,0.2);">|</span>
+        <span style="color:var(--ok);font-weight:800;">⚡ <span id="mini-pwr-val">0%</span></span>
+        <span style="color:rgba(255,255,255,0.2);">|</span>
+        <!-- 走位速度一鍵切換按鈕 (修復卡 bug，點擊即時在慢速/標準/疾速之間循環切換) -->
+        <button id="speed-hud-joy-btn" type="button" onclick="event.stopPropagation(); cycleJoySpeedQuick();" title="點擊切換搖桿走位速率 (慢速/標準/疾速)">
+            🕹️ <span id="speed-hud-joy-val">標準</span>
+        </button>
         <span id="mini-toggle-icon" style="font-size:10px;color:var(--dim);margin-left:2px;">▸</span>
     </div>
 
@@ -7004,7 +7066,7 @@ I_syn(t) = w_syn · x · u · (dθ/dt)</div>
         </div>
 
 
-        <div id="info" class="card" title="按住關卡框可自由拖曳移動，雙擊重置位置">
+        <div id="info" class="card" style="display:none !important;" aria-hidden="true" title="按住關卡框可自由拖曳移動，雙擊重置位置">
             <div class="info-drag-handle" title="按住拖曳關卡框，雙擊重設位置">⠿</div>
             <div id="chip">◆ <span id="chip-n">STAGE 1</span></div>
             <div id="s-name">發球養成</div>
@@ -7043,8 +7105,8 @@ I_syn(t) = w_syn · x · u · (dθ/dt)</div>
             </div>
         </div>
 
-        <!-- 即時雙人比分板 -->
-        <div id="board" class="card" title="按住比分板可自由拖曳移動，雙擊重置位置">
+        <!-- 即時雙人比分板 (舊黑底板已砍掉，比分統一由頂部動態藥丸島 #dsp-score 優雅展示) -->
+        <div id="board" class="card" style="display:none !important;" aria-hidden="true" title="按住比分板可自由拖曳移動，雙擊重置位置">
             <div class="card-resize-handle" data-target="board" title="按住拖曳調整大小，雙擊重置">⤢</div>
             <div class="side">
                 <div class="who" id="p-who-label">🪿 玩家</div>
@@ -8217,6 +8279,10 @@ function apiGet(qs) {
             const lbl = document.getElementById('joy-speed-lbl');
             if (lbl && JOY_SPEED_PRESETS[joySpeedLevel]) {
                 lbl.innerText = JOY_SPEED_PRESETS[joySpeedLevel].label;
+            }
+            const hudVal = document.getElementById('speed-hud-joy-val');
+            if (hudVal && JOY_SPEED_PRESETS[joySpeedLevel]) {
+                hudVal.innerText = JOY_SPEED_PRESETS[joySpeedLevel].label;
             }
             const aiJoyBtn = document.getElementById('subbar-joy-btn');
             if (aiJoyBtn && JOY_SPEED_PRESETS[joySpeedLevel]) {
@@ -11633,16 +11699,22 @@ function syncSubbarStates() {
             if (!speedHud || speedHud._hudDragInit) return;
             speedHud._hudDragInit = true;
 
+            let lastToggleTime = 0;
             window.makeHudDraggable(speedHud, {
                 storageKey: 'nchu_speed_pos',
                 name: '球速指示膠囊',
-                onTap: () => {
+                ignoreSelector: '#speed-hud-joy-btn',
+                onTap: (e) => {
+                    if (e && e.target && e.target.closest('#speed-hud-joy-btn')) return;
+                    const now = Date.now();
+                    if (now - lastToggleTime < 350) return;
+                    lastToggleTime = now;
                     if (typeof toggleBottomCollapse === 'function') toggleBottomCollapse();
                 },
                 defaultStyles: {
                     bottom: 'calc(14px + env(safe-area-inset-bottom))',
-                    right: 'calc(14px + env(safe-area-inset-right))',
-                    left: 'auto',
+                    left: 'calc(14px + env(safe-area-inset-left))',
+                    right: 'auto',
                     top: 'auto',
                     transform: 'none'
                 }
@@ -15666,24 +15738,19 @@ function cycleTeachLevelQuick() {
             const dims = (customW && customH) ? { w: customW, h: customH } : getStageDimensions();
             const aspect = dims.w / dims.h;
 
-            // ★ 2.5D 立體玩具箱視角 (Compressed 2.5D Diorama Camera):
-            // 告別 84° 陡峭魚眼俯視，改採 42°~46° 壓縮長焦，相機後移並微降仰角 (camH: 5.0, camDist: 13.8)
-            // 讓球員、球拍、看台動物與對手匹克鵝立體站立，球場透視深邃且不失真
-            let fov = 44;
-            if (aspect > 1.2) {
-                fov = 40; // 橫向螢幕
-            } else if (aspect < 0.58) {
-                fov = 46; // 窄長直向手機 (9:19.5, 9:20)
-            } else {
-                fov = 43; // 標準直向 (9:16)
-            }
+            // ★ 自然實戰自適應相機 (Natural Adaptive Match Camera):
+            // 還原順手舒適的實戰自適應仰俯角 (camH: 6.1, camDist: 11.5, lookY: 0.85, lookZ: -0.4)
+            // 依據寬高比動態調整水平/垂直視角 (52°~84°)，球感自然、空間感清晰，打球手感最佳
+            const targetHFOVRad = 48 * Math.PI / 180;
+            const vFOVRad = 2 * Math.atan(Math.tan(targetHFOVRad / 2) / Math.min(aspect, 0.72));
+            const fov = Math.min(84, Math.max(52, vFOVRad * 180 / Math.PI));
 
             return {
                 fov: fov,
-                camH: 5.0,
-                camDist: 13.8,
-                lookY: 0.95,
-                lookZ: -0.5,
+                camH: 6.1,
+                camDist: 11.5,
+                lookY: 0.85,
+                lookZ: -0.4,
                 ballScale: 1.25,
                 glowScale: 8,
                 glowOpacity: 0.35

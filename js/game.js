@@ -224,24 +224,19 @@
             const dims = (customW && customH) ? { w: customW, h: customH } : getStageDimensions();
             const aspect = dims.w / dims.h;
 
-            // ★ 2.5D 立體玩具箱視角 (Compressed 2.5D Diorama Camera):
-            // 告別 84° 陡峭魚眼俯視，改採 42°~46° 壓縮長焦，相機後移並微降仰角 (camH: 5.0, camDist: 13.8)
-            // 讓球員、球拍、看台動物與對手匹克鵝立體站立，球場透視深邃且不失真
-            let fov = 44;
-            if (aspect > 1.2) {
-                fov = 40; // 橫向螢幕
-            } else if (aspect < 0.58) {
-                fov = 46; // 窄長直向手機 (9:19.5, 9:20)
-            } else {
-                fov = 43; // 標準直向 (9:16)
-            }
+            // ★ 自然實戰自適應相機 (Natural Adaptive Match Camera):
+            // 還原順手舒適的實戰自適應仰俯角 (camH: 6.1, camDist: 11.5, lookY: 0.85, lookZ: -0.4)
+            // 依據寬高比動態調整水平/垂直視角 (52°~84°)，球感自然、空間感清晰，打球手感最佳
+            const targetHFOVRad = 48 * Math.PI / 180;
+            const vFOVRad = 2 * Math.atan(Math.tan(targetHFOVRad / 2) / Math.min(aspect, 0.72));
+            const fov = Math.min(84, Math.max(52, vFOVRad * 180 / Math.PI));
 
             return {
                 fov: fov,
-                camH: 5.0,
-                camDist: 13.8,
-                lookY: 0.95,
-                lookZ: -0.5,
+                camH: 6.1,
+                camDist: 11.5,
+                lookY: 0.85,
+                lookZ: -0.4,
                 ballScale: 1.25,
                 glowScale: 8,
                 glowOpacity: 0.35

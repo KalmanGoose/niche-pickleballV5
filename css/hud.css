@@ -1206,16 +1206,63 @@
         }
 
 
-/* ── 速度膠囊、難度按鈕與 HUD 拖曳手勢效果 ── */
-        /* 速度膠囊 Tabular Nums 防跳字與 Safe Area 適配 - ★ v5.0.3 修復重疊: 手機版預設置於右下角，避開左下角虛擬搖桿 */
+/* ── 速度膠囊、走位速度按鈕與 HUD 拖曳手勢效果 ── */
         #speed-hud-mini {
-            bottom: calc(14px + env(safe-area-inset-bottom));
-            right: calc(14px + env(safe-area-inset-right));
-            left: auto;
+            position: absolute;
+            bottom: calc(140px + env(safe-area-inset-bottom));
+            left: calc(14px + env(safe-area-inset-left));
+            right: auto;
             font-variant-numeric: tabular-nums;
+            z-index: 35;
+            background: rgba(15, 23, 42, 0.88);
+            border: 1px solid rgba(56, 189, 248, 0.35);
+            border-radius: 99px;
+            padding: 5px 12px;
+            font-size: 12px;
+            font-weight: 800;
+            color: var(--accent);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
+            cursor: pointer;
+            user-select: none;
+            touch-action: none;
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
         }
+        #speed-hud-mini:hover {
+            transform: translateY(-1px);
+            border-color: #38bdf8;
+            box-shadow: 0 6px 20px rgba(56, 189, 248, 0.25);
+        }
+        #speed-hud-joy-btn {
+            background: rgba(34, 197, 94, 0.18);
+            border: 1px solid rgba(34, 197, 94, 0.45);
+            color: #4ade80;
+            font-size: 11px;
+            font-weight: 800;
+            padding: 2px 7px;
+            border-radius: 99px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 2px;
+            white-space: nowrap;
+        }
+        #speed-hud-joy-btn:hover {
+            background: rgba(34, 197, 94, 0.32);
+            transform: scale(1.05);
+        }
+        #speed-hud-joy-btn:active {
+            transform: scale(0.95);
+        }
+
         @media (min-width: 821px) {
             #speed-hud-mini {
+                bottom: calc(14px + env(safe-area-inset-bottom));
                 left: calc(14px + env(safe-area-inset-left));
                 right: auto;
             }
@@ -2404,3 +2451,12 @@ body.layout-nook #nav-wrapper {
 }
 .nook-home-btn:hover { background: #ecd8b8; }
 .nook-home-btn:active { transform: translateY(2px); box-shadow: 0 0 0 transparent; }
+
+/* ══════ 砍掉舊版冗餘框框 (#info 關卡卡片與 #board 黑底比分板) ══════ */
+#info,
+#board {
+    display: none !important;
+    pointer-events: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+}

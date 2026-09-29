@@ -866,16 +866,22 @@ function syncSubbarStates() {
             if (!speedHud || speedHud._hudDragInit) return;
             speedHud._hudDragInit = true;
 
+            let lastToggleTime = 0;
             window.makeHudDraggable(speedHud, {
                 storageKey: 'nchu_speed_pos',
                 name: '球速指示膠囊',
-                onTap: () => {
+                ignoreSelector: '#speed-hud-joy-btn',
+                onTap: (e) => {
+                    if (e && e.target && e.target.closest('#speed-hud-joy-btn')) return;
+                    const now = Date.now();
+                    if (now - lastToggleTime < 350) return;
+                    lastToggleTime = now;
                     if (typeof toggleBottomCollapse === 'function') toggleBottomCollapse();
                 },
                 defaultStyles: {
                     bottom: 'calc(14px + env(safe-area-inset-bottom))',
-                    right: 'calc(14px + env(safe-area-inset-right))',
-                    left: 'auto',
+                    left: 'calc(14px + env(safe-area-inset-left))',
+                    right: 'auto',
                     top: 'auto',
                     transform: 'none'
                 }

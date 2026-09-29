@@ -852,6 +852,10 @@ function apiGet(qs) {
             if (lbl && JOY_SPEED_PRESETS[joySpeedLevel]) {
                 lbl.innerText = JOY_SPEED_PRESETS[joySpeedLevel].label;
             }
+            const hudVal = document.getElementById('speed-hud-joy-val');
+            if (hudVal && JOY_SPEED_PRESETS[joySpeedLevel]) {
+                hudVal.innerText = JOY_SPEED_PRESETS[joySpeedLevel].label;
+            }
             const aiJoyBtn = document.getElementById('subbar-joy-btn');
             if (aiJoyBtn && JOY_SPEED_PRESETS[joySpeedLevel]) {
                 aiJoyBtn.innerHTML = `🕹️ 搖桿: ${JOY_SPEED_PRESETS[joySpeedLevel].label}`;

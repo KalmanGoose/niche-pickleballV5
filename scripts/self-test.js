@@ -431,8 +431,8 @@ try {
     const refereeSrc = fs.readFileSync(path.resolve(__dirname, "../js/referee.js"), "utf8");
     const hudCssSrc = fs.readFileSync(path.resolve(__dirname, "../css/hud.css"), "utf8");
 
-    assert(gameSrc.includes("acWoodPlanksTex") && gameSrc.includes("camDist: 13.8") && gameSrc.includes("lookY: 0.95"),
-        "js/game.js 包含 2.5D 壓縮長焦玩具箱相機 (camH: 5.0, camDist: 13.8) 與浮島木甲板材質");
+    assert(gameSrc.includes("acWoodPlanksTex") && gameSrc.includes("camDist: 11.5") && gameSrc.includes("camH: 6.1") && gameSrc.includes("lookY: 0.85"),
+        "js/game.js 還原順手舒適的實戰自適應相機 (camH: 6.1, camDist: 11.5) 與浮島木甲板材質");
     assert(gameSrc.includes("0x0284c7") && gameSrc.includes("0x38bdf8"),
         "js/game.js 球場升級為水上湛藍發球區 (0x0284c7) 與天青藍廚房區 (0x38bdf8)");
     assert(refereeSrc.includes("USA Pickleball Official Singles Rules") && !refereeSrc.includes("Second Serve"),
@@ -443,6 +443,8 @@ try {
         "實裝輕量神經戰術小模型 (TinyPicklePolicy) 並於 AI planShot 決策中深度融合");
     assert(hudCssSrc.includes("#referee-announcement.mode-1") && hudCssSrc.includes("calc(56px + env(safe-area-inset-top))"),
         "hud.css 裁判廣播膠囊精準定位於頂部藥丸下方 (top: 56px)，杜絕介面重疊");
+    assert(hudCssSrc.includes("#info,") && hudCssSrc.includes("#board") && hudCssSrc.includes("display: none !important;"),
+        "css/hud.css 嚴格隱藏舊版 #info 與 #board，畫面開闊清爽");
 } catch (e) {
     assert(false, "2.5D 球場與神經小模型檢測異常", e.message);
 }

@@ -401,12 +401,18 @@
     </div>
 
     
-    <!-- ══════ 迷你速度指示膠囊 (手機響應式) ══════ -->
-    <div id="speed-hud-mini" onclick="toggleBottomCollapse()" title="點擊展開/收折操作面板">
-        <span>🎾</span>
-        <span id="mini-spd-val">0.0 mph</span>
-        <span style="color:var(--dim);">|</span>
-        <span style="color:var(--ok);">⚡ <span id="mini-pwr-val">0%</span></span>
+    <!-- ══════ 即時球速與走位速率指示膠囊 (#speed-hud-mini) ══════ -->
+    <div id="speed-hud-mini" title="按住可自由拖曳移動，點擊展開/收折操作面板">
+        <span class="speed-drag-dot" style="font-size:10px;color:var(--dim);opacity:0.6;cursor:grab;">⠿</span>
+        <span style="font-size:13px;">🎾</span>
+        <span id="mini-spd-val" style="font-weight:900;letter-spacing:-0.2px;">0.0 mph</span>
+        <span style="color:rgba(255,255,255,0.2);">|</span>
+        <span style="color:var(--ok);font-weight:800;">⚡ <span id="mini-pwr-val">0%</span></span>
+        <span style="color:rgba(255,255,255,0.2);">|</span>
+        <!-- 走位速度一鍵切換按鈕 (修復卡 bug，點擊即時在慢速/標準/疾速之間循環切換) -->
+        <button id="speed-hud-joy-btn" type="button" onclick="event.stopPropagation(); cycleJoySpeedQuick();" title="點擊切換搖桿走位速率 (慢速/標準/疾速)">
+            🕹️ <span id="speed-hud-joy-val">標準</span>
+        </button>
         <span id="mini-toggle-icon" style="font-size:10px;color:var(--dim);margin-left:2px;">▸</span>
     </div>
 
@@ -1477,7 +1483,7 @@ I_syn(t) = w_syn · x · u · (dθ/dt)</div>
         </div>
 
 
-        <div id="info" class="card" title="按住關卡框可自由拖曳移動，雙擊重置位置">
+        <div id="info" class="card" style="display:none !important;" aria-hidden="true" title="按住關卡框可自由拖曳移動，雙擊重置位置">
             <div class="info-drag-handle" title="按住拖曳關卡框，雙擊重設位置">⠿</div>
             <div id="chip">◆ <span id="chip-n">STAGE 1</span></div>
             <div id="s-name">發球養成</div>
@@ -1516,8 +1522,8 @@ I_syn(t) = w_syn · x · u · (dθ/dt)</div>
             </div>
         </div>
 
-        <!-- 即時雙人比分板 -->
-        <div id="board" class="card" title="按住比分板可自由拖曳移動，雙擊重置位置">
+        <!-- 即時雙人比分板 (舊黑底板已砍掉，比分統一由頂部動態藥丸島 #dsp-score 優雅展示) -->
+        <div id="board" class="card" style="display:none !important;" aria-hidden="true" title="按住比分板可自由拖曳移動，雙擊重置位置">
             <div class="card-resize-handle" data-target="board" title="按住拖曳調整大小，雙擊重置">⤢</div>
             <div class="side">
                 <div class="who" id="p-who-label">🪿 玩家</div>
