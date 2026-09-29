@@ -252,8 +252,13 @@
             const camCfg = getResponsiveCameraConfig(dims.w, dims.h);
             cam = new THREE.PerspectiveCamera(camCfg.fov, dims.w / dims.h, 0.1, 200);
             cam.position.set(0, camCfg.camH, camCfg.camDist);
+            const isMobileDevice = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent || '');
             try {
-                ren = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance', preserveDrawingBuffer: true });
+                ren = new THREE.WebGLRenderer({
+                    antialias: !isMobileDevice,
+                    powerPreference: isMobileDevice ? 'default' : 'high-performance',
+                    preserveDrawingBuffer: false
+                });
             } catch (e) {
                 document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;' +
                     'padding:24px;text-align:center;font-size:15px;line-height:1.8;color:#f8fafc;">' +
@@ -261,14 +266,15 @@
                     '請改用 Chrome / Edge 最新版,或在瀏覽器設定中開啟硬體加速。</div>';
                 throw e;
             }
-            const initPR = Math.min(window.devicePixelRatio || 2, (typeof PERF_PRESETS !== 'undefined' && typeof perfLevel !== 'undefined' && PERF_PRESETS[perfLevel]) ? PERF_PRESETS[perfLevel].pixelRatio : 2.0);
+            const mobileMaxPR = isMobileDevice ? 1.4 : 2.0;
+            const initPR = Math.min(window.devicePixelRatio || 1.5, (typeof PERF_PRESETS !== 'undefined' && typeof perfLevel !== 'undefined' && PERF_PRESETS[perfLevel]) ? Math.min(PERF_PRESETS[perfLevel].pixelRatio, mobileMaxPR) : mobileMaxPR);
             ren.setPixelRatio(initPR);
             ren.setSize(dims.w, dims.h);
             ren.outputEncoding = THREE.sRGBEncoding;
             ren.toneMapping = THREE.ACESFilmicToneMapping;
             ren.toneMappingExposure = GRADE.exposure;
             ren.shadowMap.enabled = true;
-            ren.shadowMap.type = THREE.PCFSoftShadowMap;
+            ren.shadowMap.type = isMobileDevice ? THREE.BasicShadowMap : THREE.PCFSoftShadowMap;
             document.getElementById('stage3d').appendChild(ren.domElement);
             ray = new THREE.Raycaster();
             aimPlane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
@@ -3178,6 +3184,10 @@ function updateGuides(dt) {
         const _camDesPos = new THREE.Vector3(), _camDesLook = new THREE.Vector3();
         const _camNormPos = new THREE.Vector3(), _camNormLook = new THREE.Vector3();
         let loopFrameCount = 0;
+        let isLoopSuspended = false;
+        let lastRenderTime = 0;
+        const isMobileLoop = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent || '');
+        const targetFrameInterval = isMobileLoop ? (1000 / 60 - 1.5) : 0; // 行動端平滑限制 60 FPS，防止 120Hz 盲目空轉發熱
         const camLookTarget = new THREE.Vector3(0, 0.85, 0.3);
         const huntCamPos = new THREE.Vector3();
         const huntCamLook = new THREE.Vector3();
@@ -3185,9 +3195,43 @@ function updateGuides(dt) {
         let huntReturnTimer = 0;
         let cachedMiniSpd = null, cachedMiniPwr = null;
 
-        function loop() {
+        function suspend3DLoop() {
+            isLoopSuspended = true;
+        }
+        function resume3DLoop() {
+            if (!isLoopSuspended) return;
+            isLoopSuspended = false;
+            last = performance.now();
+            lastRenderTime = performance.now();
+        }
+        window.suspend3DLoop = suspend3DLoop;
+        window.resume3DLoop = resume3DLoop;
+
+        // 全域頁面可見度監聽：切換 App 或鎖屏時 100% 暫停 3D 與大廳，回歸時平滑喚醒
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                suspend3DLoop();
+                if (typeof HubSandbox !== 'undefined' && HubSandbox.stop) HubSandbox.stop();
+            } else {
+                const hub = document.getElementById('mode-hub-overlay');
+                if (!hub || hub.style.display === 'none') {
+                    resume3DLoop();
+                } else {
+                    if (typeof HubSandbox !== 'undefined' && HubSandbox.start) HubSandbox.start();
+                }
+            }
+        });
+
+        function loop(timestamp) {
             requestAnimationFrame(loop);
-            const now = performance.now();
+            if (isLoopSuspended) return; // ★ 模式大廳或全屏 Modal 開啟時，3D 迴圈 100% 休眠省電！
+
+            const now = timestamp || performance.now();
+            if (targetFrameInterval > 0) {
+                const elapsed = now - lastRenderTime;
+                if (elapsed < targetFrameInterval) return;
+                lastRenderTime = now - (elapsed % targetFrameInterval);
+            }
             let dt = (now - last) / 1000; last = now;
             if (dt > 0.05) dt = 0.05;
 

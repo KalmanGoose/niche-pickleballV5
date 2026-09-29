@@ -1492,64 +1492,6 @@
             transform-origin: center center;
         }
 
-        /* 🎒 散步柴犬 (Walking Shiba Villager with Backpack) */
-        .ac-walker-shiba {
-            width: 40px;
-            height: 46px;
-            pointer-events: auto;
-        }
-        .ac-walker-shiba .walker-body {
-            width: 100%;
-            height: 100%;
-            position: relative;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 28px;
-            animation: shibaWalkBob 0.55s ease-in-out infinite alternate;
-        }
-        @keyframes shibaWalkBob {
-            0% { transform: translateY(0) rotate(-2deg); }
-            100% { transform: translateY(-4px) rotate(2deg); }
-        }
-        .shiba-backpack {
-            position: absolute;
-            left: 1px;
-            top: 14px;
-            font-size: 14px;
-            animation: backpackJiggle 0.55s ease-in-out infinite alternate;
-        }
-        @keyframes backpackJiggle {
-            0% { transform: translateY(0) rotate(-5deg); }
-            100% { transform: translateY(-2.5px) rotate(5deg); }
-        }
-
-        /* 🧋 散步珍奶貓咪 (Walking Boba Cat Villager) */
-        .ac-walker-cat {
-            width: 40px;
-            height: 46px;
-            pointer-events: auto;
-        }
-        .ac-walker-cat .cat-body {
-            width: 100%;
-            height: 100%;
-            position: relative;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 28px;
-            animation: catWalkBob 0.6s ease-in-out infinite alternate;
-        }
-        @keyframes catWalkBob {
-            0% { transform: translateY(0) rotate(-2deg); }
-            100% { transform: translateY(-3.5px) rotate(2deg); }
-        }
-        .cat-boba {
-            position: absolute;
-            right: 0px;
-            top: 16px;
-            font-size: 14px;
-        }
 
         /* ═══════ 🏓 湖上 2.5D 原生匹克球場對決組 (Court Duelists) ═══════ */
         .ac-court-duel {

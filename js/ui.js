@@ -1320,6 +1320,9 @@ function cycleTeachLevelQuick() {
         function openModeHub() {
             const hub = document.getElementById('mode-hub-overlay');
             if (!hub) return;
+            // 進入大廳時立即凍結 3D 渲染，GPU/CPU 負載歸零，徹底消除手機發燙
+            if (typeof suspend3DLoop === 'function') suspend3DLoop();
+
             const av = document.getElementById('hub-avatar');
             const nk = document.getElementById('hub-nick');
             const dp = document.getElementById('hub-dept');
@@ -1355,6 +1358,8 @@ function cycleTeachLevelQuick() {
             if (typeof HubSandbox !== 'undefined' && HubSandbox.stop) {
                 HubSandbox.stop();
             }
+            // 關閉大廳踏上球場時，無縫喚醒 3D 迴圈
+            if (typeof resume3DLoop === 'function') resume3DLoop();
         }
 
         /* 🍃 水上小碼頭 5 大關卡歷險抽屜控制器 (Dock Level Picker Drawer) */
@@ -1423,17 +1428,50 @@ function cycleTeachLevelQuick() {
         /* ═══════════════════════════════════════════════════════════
            🍃 NookPhone 與動態藥丸島控制器 (NookPhone & Dynamic HUD)
            ═══════════════════════════════════════════════════════════ */
+        function updatePhoneClock() {
+            const clockEl = document.getElementById('phone-clock');
+            if (!clockEl) return;
+            const now = new Date();
+            const hh = String(now.getHours()).padStart(2, '0');
+            const mm = String(now.getMinutes()).padStart(2, '0');
+            clockEl.innerText = `${hh}:${mm}`;
+        }
+        let phoneClockTimer = null;
+
         function toggleNookPhone(open) {
             const m = document.getElementById('nook-phone-modal');
             if (!m) return;
             const want = (typeof open === 'boolean') ? open : !m.classList.contains('open');
             m.classList.toggle('open', want);
             if (want) {
+                updatePhoneClock();
+                if (!phoneClockTimer) {
+                    phoneClockTimer = setInterval(updatePhoneClock, 1000);
+                }
                 if (typeof S !== 'undefined' && S.swap) S.swap();
             } else {
+                if (phoneClockTimer) {
+                    clearInterval(phoneClockTimer);
+                    phoneClockTimer = null;
+                }
                 if (typeof S !== 'undefined' && S.pop) S.pop(0.5);
             }
         }
+
+        function pulseDynamicIsland() {
+            const pill = document.getElementById('phone-island');
+            const chip = document.getElementById('island-chip');
+            if (!pill) return;
+            if (typeof S !== 'undefined' && S.swap) S.swap();
+            if (chip) {
+                const orig = chip.innerText;
+                chip.innerText = '🎵 中興湖廣播播送中';
+                setTimeout(() => {
+                    if (chip) chip.innerText = orig;
+                }, 2000);
+            }
+        }
+        window.pulseDynamicIsland = pulseDynamicIsland;
 
         function updateDynamicStagePill(stageNum, pScore, gScore) {
             const sTxt = document.getElementById('dsp-stage');

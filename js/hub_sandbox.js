@@ -17,8 +17,8 @@
     // 視差微動偏移
     let targetParallaxX = 0, targetParallaxY = 0;
 
-    // 櫻花／落葉粒子池
-    const MAX_PARTICLES = 22;
+    // 櫻花／落葉粒子池 (調校為節能 12 顆，大幅降低行動端 GPU/Canvas 負載)
+    const MAX_PARTICLES = 12;
     const particles = [];
 
     // 湖面黑天鵝與鴨鴨家族狀態 (沿中興湖開闊水道巡游，嚴格避開中心島、大樹與兩座球場)
@@ -60,28 +60,6 @@
         return getCatmullRomPoint(pts[idx0], pts[idx1], pts[idx2], pts[idx3], t);
     }
 
-    // 背包柴犬步道巡邏狀態
-    const shibaWaypoints = [
-        { x: 18.0, y: 38.0 },
-        { x: 22.5, y: 55.0 },
-        { x: 25.5, y: 72.0 }
-    ];
-    let shibaSegment = 0;
-    let shibaDir = 1;
-    let shibaT = 0;
-    let shibaPauseTimer = 0;
-
-    // 珍奶貓咪步道漫步狀態
-    const catWaypoints = [
-        { x: 33.0, y: 83.5 },
-        { x: 50.0, y: 84.0 },
-        { x: 67.0, y: 83.0 }
-    ];
-    let catSegment = 0;
-    let catDir = 1;
-    let catT = 0;
-    let catPauseTimer = 0;
-
     // DOM 快取
     let domCache = null;
     let actorAudioCtx = null;
@@ -107,20 +85,6 @@
             "🐥 嗶嗶嗶！按左上角頭貼可以換成柴柴或水豚造型喔！",
             "🐥 嗶～浮台碼頭晃呀晃的，好想跳上去當球僮呀！"
         ],
-        shiba: [
-            "🐕 汪汪！我的後背包裝滿了匹克球拍跟補給水壺！",
-            "🐕 汪！今天去社管大樓測動力鏈，軀幹發力與轉體得分 98 分！",
-            "🐕 汪嗚～散步去看看名人堂英雄榜，我也要衝上第一名！",
-            "🐕 汪！在後場深球擊球時，記得身體重心向前壓，球才會扎實！",
-            "🐕 汪汪！天氣真好，今天一定要在湖畔連擊賽突破 20 球！"
-        ],
-        cat: [
-            "🐈 喵～圖書館前喝一杯半糖微冰珍珠奶茶，人生一大享受喵～",
-            "🐈 喵嗚～旋球是匹克球的精髓，手指向上滑動刷出漂亮上旋！",
-            "🐈 喵！剛才看到行政大樓的學號綁定，雲端進度隨時同步喵～",
-            "🐈 喵～中興湖的微風好溫柔，躺在草皮上曬太陽最舒服了喵～",
-            "🐈 喵嗚～剛剛社管大樓的柴柴一直盯著我的吸管看，真好笑！"
-        ],
         dock: [
             "🐻 熊熊：看我的第三桿放短 (Drop Shot)！精準過網落入廚房區！",
             "🐰 兔兔：接招！大角度反手挑球直攻底線！",
@@ -135,7 +99,7 @@
             "🦊 狐狸：千萬不要著急抽球，耐心等待對手失誤放高！"
         ]
     };
-    const quoteIndexMap = { swan: 0, duck1: 0, duck2: 0, shiba: 0, cat: 0, dock: 0, court_sw: 0 };
+    const quoteIndexMap = { swan: 0, duck1: 0, duck2: 0, dock: 0, court_sw: 0 };
 
     // 初始化粒子
     function initParticles(w, h) {
@@ -220,10 +184,6 @@
             actorDuck1Flip: document.getElementById('actor-duck-1-flip'),
             actorDuck2: document.getElementById('actor-duck-2'),
             actorDuck2Flip: document.getElementById('actor-duck-2-flip'),
-            actorShiba: document.getElementById('actor-shiba'),
-            actorShibaFlip: document.getElementById('actor-shiba-flip'),
-            actorCat: document.getElementById('actor-cat'),
-            actorCatFlip: document.getElementById('actor-cat-flip'),
             courtDuelNE: document.getElementById('court-duel-ne'),
             courtDuelSW: document.getElementById('court-duel-sw')
         };
@@ -280,94 +240,6 @@
             domCache.actorDuck2.style.top = pDuck2.y.toFixed(2) + '%';
             if (domCache.actorDuck2Flip) {
                 domCache.actorDuck2Flip.style.transform = d2vx > 0.005 ? 'scaleX(-1)' : 'scaleX(1)';
-            }
-        }
-
-        // ════ 2. 🎒 背包柴犬步道巡邏 ════
-        if (shibaPauseTimer > 0) {
-            shibaPauseTimer -= dt;
-        } else {
-            const pStart = shibaDir === 1 ? shibaWaypoints[shibaSegment] : shibaWaypoints[shibaSegment + 1];
-            const pEnd = shibaDir === 1 ? shibaWaypoints[shibaSegment + 1] : shibaWaypoints[shibaSegment];
-            const dx = pEnd.x - pStart.x;
-            const dy = pEnd.y - pStart.y;
-            const dist = Math.hypot(dx, dy) || 1;
-            const speed = 4.0; // 百分比 / 秒
-            shibaT += (speed / dist) * dt;
-
-            if (shibaT >= 1) {
-                shibaT = 0;
-                if (shibaDir === 1) {
-                    shibaSegment++;
-                    if (shibaSegment >= shibaWaypoints.length - 1) {
-                        shibaDir = -1;
-                        shibaSegment = shibaWaypoints.length - 2;
-                        shibaPauseTimer = 1.8; // 端點停頓張望
-                    }
-                } else {
-                    shibaSegment--;
-                    if (shibaSegment < 0) {
-                        shibaDir = 1;
-                        shibaSegment = 0;
-                        shibaPauseTimer = 1.8; // 端點停頓張望
-                    }
-                }
-            }
-
-            const clampedT = Math.min(1, Math.max(0, shibaT));
-            const shibaCurX = pStart.x + dx * clampedT;
-            const shibaCurY = pStart.y + dy * clampedT;
-
-            if (domCache.actorShiba) {
-                domCache.actorShiba.style.left = shibaCurX.toFixed(2) + '%';
-                domCache.actorShiba.style.top = shibaCurY.toFixed(2) + '%';
-                if (domCache.actorShibaFlip) {
-                    domCache.actorShibaFlip.style.transform = dx > 0.05 ? 'scaleX(-1)' : 'scaleX(1)';
-                }
-            }
-        }
-
-        // ════ 3. 🧋 珍奶貓咪步道漫遊 ════
-        if (catPauseTimer > 0) {
-            catPauseTimer -= dt;
-        } else {
-            const cpStart = catDir === 1 ? catWaypoints[catSegment] : catWaypoints[catSegment + 1];
-            const cpEnd = catDir === 1 ? catWaypoints[catSegment + 1] : catWaypoints[catSegment];
-            const cdx = cpEnd.x - cpStart.x;
-            const cdy = cpEnd.y - cpStart.y;
-            const cdist = Math.hypot(cdx, cdy) || 1;
-            const cspeed = 3.6; // 百分比 / 秒
-            catT += (cspeed / cdist) * dt;
-
-            if (catT >= 1) {
-                catT = 0;
-                if (catDir === 1) {
-                    catSegment++;
-                    if (catSegment >= catWaypoints.length - 1) {
-                        catDir = -1;
-                        catSegment = catWaypoints.length - 2;
-                        catPauseTimer = 2.2; // 端點停頓喝珍奶
-                    }
-                } else {
-                    catSegment--;
-                    if (catSegment < 0) {
-                        catDir = 1;
-                        catSegment = 0;
-                        catPauseTimer = 2.2; // 端點停頓喝珍奶
-                    }
-                }
-            }
-
-            const cClampedT = Math.min(1, Math.max(0, catT));
-            const catCurX = cpStart.x + cdx * cClampedT;
-            const catCurY = cpStart.y + cdy * cClampedT;
-
-            if (domCache.actorCat) {
-                domCache.actorCat.style.left = catCurX.toFixed(2) + '%';
-                domCache.actorCat.style.top = catCurY.toFixed(2) + '%';
-                if (domCache.actorCatFlip) {
-                    domCache.actorCatFlip.style.transform = cdx > 0.05 ? 'scaleX(-1)' : 'scaleX(1)';
-                }
             }
         }
     }
@@ -445,7 +317,7 @@
         quoteIndexMap[actorId] = idx + 1;
 
         // 叫聲頻率微調
-        const freqMap = { swan: 440, duck1: 620, duck2: 780, shiba: 520, cat: 680, dock: 480, court_sw: 560 };
+        const freqMap = { swan: 440, duck1: 620, duck2: 780, dock: 480, court_sw: 560 };
         playAnimaleseChirp(freqMap[actorId] || 560);
 
         // 尋找目標容器

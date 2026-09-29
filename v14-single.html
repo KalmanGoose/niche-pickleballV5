@@ -2496,7 +2496,7 @@ body.layout-nook #nav-wrapper {
 .nook-fab-leaf { font-size: 20px; line-height: 1; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.2)); }
 .nook-fab-lbl { font-size: 8px; font-weight: 900; color: #fcfbf7; letter-spacing: -0.2px; margin-top: 1px; }
 
-/* NookPhone 手機輪盤 Modal (#nook-phone-modal) */
+/* ══════ 🍃 旗艦智慧手機真機外觀 (#nook-phone-modal) ══════ */
 #nook-phone-modal {
     position: fixed;
     inset: 0;
@@ -2504,125 +2504,360 @@ body.layout-nook #nav-wrapper {
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(40, 25, 15, 0.45);
-    backdrop-filter: blur(8px);
-    padding: 20px;
+    background: rgba(10, 18, 14, 0.62);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    padding: 16px;
     box-sizing: border-box;
     opacity: 0;
     pointer-events: none;
-    transition: opacity 0.22s ease;
+    transition: opacity 0.28s cubic-bezier(0.16, 1, 0.3, 1);
 }
 #nook-phone-modal.open {
     opacity: 1;
     pointer-events: auto;
 }
-.nook-case {
+
+/* 旗艦金屬立體機身 (.phone-body / .nook-case) */
+.phone-body.nook-case {
+    position: relative;
+    width: 326px;
+    max-width: calc(100vw - 24px);
+    height: 648px;
+    max-height: calc(100vh - 32px);
+    background: linear-gradient(145deg, #1f2e26 0%, #131c17 50%, #0d1511 100%);
+    border-radius: 50px;
+    box-shadow: 0 32px 84px -12px rgba(0, 0, 0, 0.75),
+                0 0 0 1px rgba(255, 255, 255, 0.18) inset,
+                0 0 0 3px #273b30,
+                0 0 0 4.5px #0a110d;
+    padding: 10px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    transform: scale(0.88) translateY(24px);
+    transition: transform 0.35s cubic-bezier(0.34, 1.45, 0.64, 1);
+}
+#nook-phone-modal.open .phone-body.nook-case {
+    transform: scale(1) translateY(0);
+}
+
+/* 側邊實體金屬按鍵 */
+.phone-side-btn {
+    position: absolute;
+    background: #2a3c32;
+    border-radius: 2px;
+    pointer-events: none;
+}
+.phone-side-btn.btn-action {
+    left: -5.5px;
+    top: 98px;
+    width: 4px;
+    height: 24px;
+    border-radius: 3px 0 0 3px;
+    box-shadow: -1px 0 3px rgba(0,0,0,0.5);
+}
+.phone-side-btn.btn-vol-up {
+    left: -5.5px;
+    top: 136px;
+    width: 4px;
+    height: 44px;
+    border-radius: 3px 0 0 3px;
+    box-shadow: -1px 0 3px rgba(0,0,0,0.5);
+}
+.phone-side-btn.btn-vol-down {
+    left: -5.5px;
+    top: 192px;
+    width: 4px;
+    height: 44px;
+    border-radius: 3px 0 0 3px;
+    box-shadow: -1px 0 3px rgba(0,0,0,0.5);
+}
+.phone-side-btn.btn-power {
+    right: -5.5px;
+    top: 148px;
+    width: 4px;
+    height: 64px;
+    border-radius: 0 3px 3px 0;
+    box-shadow: 1px 0 3px rgba(0,0,0,0.5);
+}
+
+/* 螢幕外黑邊框 */
+.phone-screen-bezel {
+    position: relative;
     width: 100%;
-    max-width: 340px;
-    background: #2b3d36;
-    border: 6px solid #e8decb;
+    height: 100%;
     border-radius: 40px;
-    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.4), inset 0 2px 6px rgba(255, 255, 255, 0.15);
-    padding: 16px 14px 20px 14px;
-    box-sizing: border-box;
+    overflow: hidden;
+    background: #000;
+    box-shadow: 0 0 0 2px #0a110d;
     display: flex;
     flex-direction: column;
-    align-items: center;
-    transform: scale(0.85);
-    transition: transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
-#nook-phone-modal.open .nook-case {
-    transform: scale(1);
-}
-.nook-screen {
+
+/* 螢幕顯示區與中興湖晨曦微光桌布 */
+.phone-screen.nook-screen {
+    position: relative;
     width: 100%;
-    background: #fdfaf2;
-    border-radius: 28px;
-    padding: 16px 12px;
-    box-sizing: border-box;
+    height: 100%;
+    border-radius: 39px;
+    overflow: hidden;
     display: flex;
     flex-direction: column;
-    align-items: center;
-    border: 2px solid #dfcca9;
-    box-shadow: inset 0 2px 6px rgba(100, 70, 40, 0.08);
+    background: radial-gradient(circle at 50% 16%, #1f5341 0%, #0d2820 45%, #081712 90%);
+    box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.6);
+    border: none;
+    padding: 0;
 }
-.nook-status-bar {
+
+/* 頂部靈動島 (Dynamic Island) */
+.phone-island-pill {
+    position: absolute;
+    top: 9px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 102px;
+    height: 25px;
+    border-radius: 99px;
+    background: #000000;
+    z-index: 50;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 9px;
+    box-sizing: border-box;
+    cursor: pointer;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.7);
+    transition: width 0.25s ease, height 0.25s ease;
+}
+.phone-island-pill:hover {
+    width: 112px;
+}
+.island-camera {
+    width: 9.5px;
+    height: 9.5px;
+    border-radius: 50%;
+    background: #0a0e14;
+    border: 1.5px solid #182230;
+    box-shadow: inset 0 0 3px #3b82f6;
+}
+.island-speaker {
+    width: 30px;
+    height: 3px;
+    border-radius: 99px;
+    background: #161b17;
+}
+.island-chip {
+    font-size: 8px;
+    font-weight: 800;
+    color: #34d399;
+    letter-spacing: -0.2px;
+    white-space: nowrap;
+}
+
+/* 狀態列 */
+.phone-status-bar.nook-status-bar {
     width: 100%;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    font-size: 11px;
-    font-weight: 800;
-    color: #8b6b4d;
-    padding-bottom: 8px;
-    border-bottom: 1.5px dashed #eddcc6;
-    margin-bottom: 14px;
+    padding: 12px 18px 0 18px;
+    box-sizing: border-box;
+    z-index: 40;
+    pointer-events: none;
+    border-bottom: none;
+    margin-bottom: 0;
 }
-.nook-grid {
+.phone-status-time {
+    font-size: 13px;
+    font-weight: 800;
+    color: #ffffff;
+    letter-spacing: -0.3px;
+    font-variant-numeric: tabular-nums;
+}
+.phone-status-icons {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 10px;
+    font-weight: 800;
+    color: #ffffff;
+}
+.phone-status-badge {
+    font-size: 9px;
+    font-weight: 900;
+    background: rgba(255,255,255,0.22);
+    padding: 1px 4px;
+    border-radius: 4px;
+    letter-spacing: 0.2px;
+}
+.phone-status-wifi {
+    font-size: 11px;
+}
+.phone-status-battery {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    font-size: 9.5px;
+    font-weight: 800;
+    color: #4ade80;
+}
+.battery-bar {
+    display: inline-block;
+    width: 14px;
+    height: 7.5px;
+    border: 1px solid #4ade80;
+    border-radius: 2px;
+    position: relative;
+    background: rgba(74,222,128,0.3);
+}
+.battery-bar::after {
+    content: '';
+    position: absolute;
+    right: -2.5px;
+    top: 2px;
+    width: 1.5px;
+    height: 2.5px;
+    background: #4ade80;
+    border-radius: 0 1px 1px 0;
+}
+
+/* App 網格 */
+.phone-app-grid.nook-grid {
+    flex: 1;
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: 12px 8px;
-    width: 100%;
+    gap: 12px 6px;
+    padding: 24px 12px 8px 12px;
+    box-sizing: border-box;
+    align-content: start;
     justify-items: center;
 }
-.nook-app {
+.phone-app.nook-app {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 5px;
-    cursor: pointer;
+    gap: 4px;
     background: none;
     border: none;
     padding: 0;
+    cursor: pointer;
     width: 100%;
-    transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1);
+    transition: transform 0.16s ease, filter 0.16s ease;
 }
-.nook-app:hover {
-    transform: scale(1.1);
+.phone-app.nook-app:hover {
+    transform: translateY(-2px) scale(1.06);
+    filter: brightness(1.1);
 }
-.nook-app:active {
+.phone-app.nook-app:active {
     transform: scale(0.92);
 }
-.nook-app-icon {
-    width: 52px;
-    height: 52px;
-    border-radius: 18px;
+
+/* Squircle App 圖標 (平滑連續曲率) */
+.phone-app-icon.nook-app-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 14px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 26px;
-    box-shadow: 0 4px 10px rgba(100, 70, 40, 0.15), 0 3px 0 var(--app-shadow, #bbb);
-    border: 2px solid rgba(255, 255, 255, 0.6);
+    font-size: 24px;
+    position: relative;
+    box-shadow: 0 6px 14px rgba(0, 0, 0, 0.4),
+                inset 0 1px 1px rgba(255, 255, 255, 0.45),
+                inset 0 -1.5px 2px rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.22);
 }
-.nook-app-label {
-    font-size: 11px;
-    font-weight: 800;
-    color: #4a3728;
+.phone-app-label.nook-app-label {
+    font-size: 10px;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.92);
     text-align: center;
     white-space: nowrap;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.85);
 }
-.app-hub { background: #60a5fa; --app-shadow: #2563eb; }
-.app-wall { background: #fb923c; --app-shadow: #c2410c; }
-.app-stage { background: #4ade80; --app-shadow: #16a34a; }
-.app-diff { background: #f472b6; --app-shadow: #db2777; }
-.app-motion { background: #2dd4bf; --app-shadow: #0f766e; }
-.app-fun { background: #facc15; --app-shadow: #ca8a04; }
-.app-social { background: #fbbf24; --app-shadow: #b45309; }
-.app-settings { background: #a78bfa; --app-shadow: #7c3aed; }
 
-.nook-home-btn {
-    margin-top: 14px;
-    width: 48px;
-    height: 14px;
-    border-radius: 99px;
-    background: #dfcca9;
-    border: 1.5px solid #c9b48f;
-    cursor: pointer;
-    box-shadow: 0 2px 0 #bfa881;
-    transition: all 0.15s;
+/* 現代 Squircle 漸層色票 */
+.app-hub { background: linear-gradient(135deg, #38bdf8 0%, #0284c7 100%); }
+.app-wall { background: linear-gradient(135deg, #fb923c 0%, #ea580c 100%); }
+.app-stage { background: linear-gradient(135deg, #4ade80 0%, #16a34a 100%); }
+.app-diff { background: linear-gradient(135deg, #f472b6 0%, #db2777 100%); }
+.app-motion { background: linear-gradient(135deg, #2dd4bf 0%, #0d9488 100%); }
+.app-fun { background: linear-gradient(135deg, #facc15 0%, #ca8a04 100%); }
+.app-social { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); }
+.app-community { background: linear-gradient(135deg, #34d399 0%, #059669 100%); }
+.app-profile { background: linear-gradient(135deg, #fbbf24 0%, #b45309 100%); }
+.app-rules { background: linear-gradient(135deg, #60a5fa 0%, #2563eb 100%); }
+.app-invite { background: linear-gradient(135deg, #c084fc 0%, #9333ea 100%); }
+.app-settings { background: linear-gradient(135deg, #a855f7 0%, #6b21a8 100%); }
+
+/* 底部磨砂毛玻璃 Dock 欄 */
+.phone-dock {
+    margin: 0 10px 4px 10px;
+    height: 56px;
+    background: rgba(255, 255, 255, 0.16);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    border-radius: 26px;
+    border: 1px solid rgba(255, 255, 255, 0.24);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    padding: 0 6px;
 }
-.nook-home-btn:hover { background: #ecd8b8; }
-.nook-home-btn:active { transform: translateY(2px); box-shadow: 0 0 0 transparent; }
+.phone-dock-item {
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    width: 44px;
+    height: 44px;
+    border-radius: 13px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    transition: transform 0.16s ease;
+}
+.phone-dock-item:hover {
+    transform: scale(1.12);
+}
+.phone-dock-item:active {
+    transform: scale(0.92);
+}
+
+/* 底部 Home Bar 手勢指示橫條 */
+.phone-home-indicator {
+    width: 100%;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 40;
+    padding-bottom: 2px;
+}
+.phone-home-bar.nook-home-btn {
+    width: 110px;
+    height: 4.5px;
+    border-radius: 99px;
+    background: rgba(255, 255, 255, 0.85);
+    border: none;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.5);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin: 0;
+    padding: 0;
+}
+.phone-home-indicator:hover .phone-home-bar.nook-home-btn {
+    width: 130px;
+    background: #ffffff;
+    box-shadow: 0 0 10px rgba(255,255,255,0.7);
+}
+.phone-home-indicator:active .phone-home-bar.nook-home-btn {
+    transform: translateY(-2px) scale(0.95);
+}
 
 /* ══════ 砍掉舊版冗餘框框 (#info 關卡卡片與 #board 黑底比分板) ══════ */
 #info,
@@ -4489,64 +4724,6 @@ body.layout-nook #nav-wrapper {
             transform-origin: center center;
         }
 
-        /* 🎒 散步柴犬 (Walking Shiba Villager with Backpack) */
-        .ac-walker-shiba {
-            width: 40px;
-            height: 46px;
-            pointer-events: auto;
-        }
-        .ac-walker-shiba .walker-body {
-            width: 100%;
-            height: 100%;
-            position: relative;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 28px;
-            animation: shibaWalkBob 0.55s ease-in-out infinite alternate;
-        }
-        @keyframes shibaWalkBob {
-            0% { transform: translateY(0) rotate(-2deg); }
-            100% { transform: translateY(-4px) rotate(2deg); }
-        }
-        .shiba-backpack {
-            position: absolute;
-            left: 1px;
-            top: 14px;
-            font-size: 14px;
-            animation: backpackJiggle 0.55s ease-in-out infinite alternate;
-        }
-        @keyframes backpackJiggle {
-            0% { transform: translateY(0) rotate(-5deg); }
-            100% { transform: translateY(-2.5px) rotate(5deg); }
-        }
-
-        /* 🧋 散步珍奶貓咪 (Walking Boba Cat Villager) */
-        .ac-walker-cat {
-            width: 40px;
-            height: 46px;
-            pointer-events: auto;
-        }
-        .ac-walker-cat .cat-body {
-            width: 100%;
-            height: 100%;
-            position: relative;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 28px;
-            animation: catWalkBob 0.6s ease-in-out infinite alternate;
-        }
-        @keyframes catWalkBob {
-            0% { transform: translateY(0) rotate(-2deg); }
-            100% { transform: translateY(-3.5px) rotate(2deg); }
-        }
-        .cat-boba {
-            position: absolute;
-            right: 0px;
-            top: 16px;
-            font-size: 14px;
-        }
 
         /* ═══════ 🏓 湖上 2.5D 原生匹克球場對決組 (Court Duelists) ═══════ */
         .ac-court-duel {
@@ -6702,7 +6879,8 @@ I_syn(t) = w_syn · x · u · (dθ/dt)</div>
                 </div>
                 <div class="hub-map-top-ctrls">
                     <button type="button" class="hub-map-icon-btn" onclick="openAudioModal()" title="廣播音效設定">🎶 音效</button>
-                    <button type="button" class="hub-map-icon-btn" id="hub-webcam-btn" onclick="toggleWebcamAI()" title="切換鏡頭體感模式">📷 體感: 關</button>
+                    <button type="button" class="hub-map-icon-btn" id="hub-social-btn" onclick="openSocial()" title="球友社群與好友邀請榜單">👥 好友社群</button>
+                    <button type="button" class="hub-map-icon-btn" id="hub-phone-btn" onclick="toggleNookPhone(true)" title="開啟智慧手機">📱 手機</button>
                     <button type="button" class="hub-map-icon-btn hub-map-close-btn" onclick="closeModeHub()" title="踏上中興湖球場">🎾 踏上球場</button>
                 </div>
             </div>
@@ -6738,26 +6916,6 @@ I_syn(t) = w_syn · x · u · (dθ/dt)</div>
                 <div class="ac-actor ac-duckling" id="actor-duck-2" onclick="HubSandbox.interactActor('duck2', event)" title="貪吃小雛鴨 (點擊互動)">
                     <div class="ac-actor-flip" id="actor-duck-2-flip">
                         <div class="ac-duckling-inner">🐥</div>
-                    </div>
-                </div>
-
-                <!-- 4. 🎒 背包柴犬 (西側步道巡邏散步) -->
-                <div class="ac-actor ac-walker-shiba" id="actor-shiba" onclick="HubSandbox.interactActor('shiba', event)" title="背包柴柴島民 (點擊互動)">
-                    <div class="ac-actor-flip" id="actor-shiba-flip">
-                        <div class="walker-body">
-                            🐕
-                            <span class="shiba-backpack">🎒</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- 5. 🧋 珍奶貓咪 (南側步道散步漫遊) -->
-                <div class="ac-actor ac-walker-cat" id="actor-cat" onclick="HubSandbox.interactActor('cat', event)" title="珍奶貓咪島民 (點擊互動)">
-                    <div class="ac-actor-flip" id="actor-cat-flip">
-                        <div class="cat-body">
-                            🐈
-                            <span class="cat-boba">🧋</span>
-                        </div>
                     </div>
                 </div>
 
@@ -6891,62 +7049,108 @@ I_syn(t) = w_syn · x · u · (dθ/dt)</div>
         </div>
     </div>
 
-    <!-- ══════ 🍃 NookPhone 8 宮格手機輪盤 (#nook-phone-modal) ══════ -->
+    <!-- ══════ 🍃 旗艦智慧手機真機外觀 (#nook-phone-modal) ══════ -->
     <div id="nook-phone-modal" onclick="if(event.target===this) toggleNookPhone(false)">
-        <div class="nook-case">
-            <div class="nook-screen">
-                <div class="nook-status-bar">
-                    <span>📡 Nook Inc. 4G</span>
-                    <span>🌿 中興湖島</span>
-                    <span>🔋 100%</span>
+        <div class="nook-case phone-body">
+            <!-- 實體側邊金屬物理按鍵 -->
+            <div class="phone-side-btn btn-action" title="靜音/動作鍵"></div>
+            <div class="phone-side-btn btn-vol-up" title="音量增加"></div>
+            <div class="phone-side-btn btn-vol-down" title="音量減少"></div>
+            <div class="phone-side-btn btn-power" title="電源鍵"></div>
+
+            <!-- 超窄邊框螢幕與顯示區 -->
+            <div class="phone-screen-bezel">
+                <div class="phone-screen nook-screen">
+                    <!-- 頂部深邃黑靈動島 (Dynamic Island) -->
+                    <div class="phone-island-pill" id="phone-island" onclick="if(typeof pulseDynamicIsland==='function')pulseDynamicIsland()" title="中興湖智慧互聯系統">
+                        <span class="island-camera"></span>
+                        <span class="island-speaker"></span>
+                        <span class="island-chip" id="island-chip">🌿 NCHU OS</span>
+                    </div>
+
+                    <!-- 即時本地時間狀態列 -->
+                    <div class="phone-status-bar nook-status-bar">
+                        <span class="phone-status-time" id="phone-clock">12:00</span>
+                        <div class="phone-status-icons">
+                            <span class="phone-status-badge">5G</span>
+                            <span class="phone-status-wifi">🛜</span>
+                            <span class="phone-status-battery" title="電量 100%"><i class="battery-bar"></i>100%</span>
+                        </div>
+                    </div>
+
+                    <!-- 應用程式 Squircle 現代圖標網格 -->
+                    <div class="phone-app-grid nook-grid">
+                        <button class="nook-app phone-app" onclick="toggleNookPhone(false); openModeHub();">
+                            <div class="nook-app-icon phone-app-icon app-hub">🏠</div>
+                            <span class="nook-app-label phone-app-label">模式大廳</span>
+                        </button>
+                        <button class="nook-app phone-app" onclick="toggleNookPhone(false); startWallPractice();">
+                            <div class="nook-app-icon phone-app-icon app-wall">🧱</div>
+                            <span class="nook-app-label phone-app-label">對牆特訓</span>
+                        </button>
+                        <button class="nook-app phone-app" onclick="toggleNookPhone(false); toggleNavMenu('stage');">
+                            <div class="nook-app-icon phone-app-icon app-stage">🎯</div>
+                            <span class="nook-app-label phone-app-label">切換關卡</span>
+                        </button>
+                        <button class="nook-app phone-app" onclick="toggleNookPhone(false); openDiffPicker();">
+                            <div class="nook-app-icon phone-app-icon app-diff">🤖</div>
+                            <span class="nook-app-label phone-app-label">對手難度</span>
+                        </button>
+                        <button class="nook-app phone-app" onclick="toggleNookPhone(false); toggleWebcamAI();">
+                            <div class="nook-app-icon phone-app-icon app-motion">📷</div>
+                            <span class="nook-app-label phone-app-label">體感鏡頭</span>
+                        </button>
+                        <button class="nook-app phone-app" onclick="toggleNookPhone(false); toggleFunMode();">
+                            <div class="nook-app-icon phone-app-icon app-fun">🍄</div>
+                            <span class="nook-app-label phone-app-label">道具模式</span>
+                        </button>
+                        <button class="nook-app phone-app" onclick="toggleNookPhone(false); openSocial();">
+                            <div class="nook-app-icon phone-app-icon app-social">🏆</div>
+                            <span class="nook-app-label phone-app-label">英雄榜單</span>
+                        </button>
+                        <button class="nook-app phone-app" onclick="toggleNookPhone(false); openCommunityModal();">
+                            <div class="nook-app-icon phone-app-icon app-community">🏓</div>
+                            <span class="nook-app-label phone-app-label">匹克社群</span>
+                        </button>
+                        <button class="nook-app phone-app" onclick="toggleNookPhone(false); openProfileModal();">
+                            <div class="nook-app-icon phone-app-icon app-profile">👤</div>
+                            <span class="nook-app-label phone-app-label">個人設定</span>
+                        </button>
+                        <button class="nook-app phone-app" onclick="toggleNookPhone(false); openRulesModal('rules');">
+                            <div class="nook-app-icon phone-app-icon app-rules">📖</div>
+                            <span class="nook-app-label phone-app-label">規則手冊</span>
+                        </button>
+                        <button class="nook-app phone-app" onclick="toggleNookPhone(false); openSocial();">
+                            <div class="nook-app-icon phone-app-icon app-invite">👥</div>
+                            <span class="nook-app-label phone-app-label">好友邀請</span>
+                        </button>
+                        <button class="nook-app phone-app" onclick="toggleNookPhone(false); openAudioModal();">
+                            <div class="nook-app-icon phone-app-icon app-settings">🎶</div>
+                            <span class="nook-app-label phone-app-label">音效設定</span>
+                        </button>
+                    </div>
+
+                    <!-- 底部磨砂毛玻璃 Dock 欄 (最常用常駐應用) -->
+                    <div class="phone-dock">
+                        <button class="phone-dock-item" onclick="toggleNookPhone(false); openModeHub();" title="模式大廳">
+                            <span class="dock-icon">🏠</span>
+                        </button>
+                        <button class="phone-dock-item" onclick="toggleNookPhone(false); closeModeHub();" title="踏上球場">
+                            <span class="dock-icon">🎾</span>
+                        </button>
+                        <button class="phone-dock-item" onclick="toggleNookPhone(false); openSocial();" title="球友社群">
+                            <span class="dock-icon">👥</span>
+                        </button>
+                        <button class="phone-dock-item" onclick="toggleNookPhone(false); openAudioModal();" title="系統設定">
+                            <span class="dock-icon">⚙️</span>
+                        </button>
+                    </div>
+
+                    <!-- 底部 Home Bar 手勢指示橫條 (輕觸或向上輕滑即可收起手機) -->
+                    <div class="phone-home-indicator" onclick="toggleNookPhone(false)" title="收起手機 (Home Bar)">
+                        <button class="nook-home-btn phone-home-bar" title="收起手機"></button>
+                    </div>
                 </div>
-                <div class="nook-grid">
-                    <button class="nook-app" onclick="toggleNookPhone(false); openModeHub();">
-                        <div class="nook-app-icon app-hub">🏠</div>
-                        <span class="nook-app-label">模式大廳</span>
-                    </button>
-                    <button class="nook-app" onclick="toggleNookPhone(false); startWallPractice();">
-                        <div class="nook-app-icon app-wall">🧱</div>
-                        <span class="nook-app-label">對牆特訓</span>
-                    </button>
-                    <button class="nook-app" onclick="toggleNookPhone(false); toggleNavMenu('stage');">
-                        <div class="nook-app-icon app-stage">🎯</div>
-                        <span class="nook-app-label">切換關卡</span>
-                    </button>
-                    <button class="nook-app" onclick="toggleNookPhone(false); openDiffPicker();">
-                        <div class="nook-app-icon app-diff">🤖</div>
-                        <span class="nook-app-label">對手難度</span>
-                    </button>
-                    <button class="nook-app" onclick="toggleNookPhone(false); toggleWebcamAI();">
-                        <div class="nook-app-icon app-motion">📷</div>
-                        <span class="nook-app-label">體感開關</span>
-                    </button>
-                    <button class="nook-app" onclick="toggleNookPhone(false); toggleFunMode();">
-                        <div class="nook-app-icon app-fun">🍄</div>
-                        <span class="nook-app-label">道具模式</span>
-                    </button>
-                    <button class="nook-app" onclick="toggleNookPhone(false); openSocial();">
-                        <div class="nook-app-icon app-social">🏆</div>
-                        <span class="nook-app-label">英雄榜單</span>
-                    </button>
-                    <button class="nook-app" onclick="toggleNookPhone(false); openCommunityModal();">
-                        <div class="nook-app-icon" style="background:#e8f5e9;">🏓</div>
-                        <span class="nook-app-label">匹克社群</span>
-                    </button>
-                    <button class="nook-app" onclick="toggleNookPhone(false); openProfileModal();">
-                        <div class="nook-app-icon" style="background:#fef3c7;">👤</div>
-                        <span class="nook-app-label">個人設定</span>
-                    </button>
-                    <button class="nook-app" onclick="toggleNookPhone(false); openRulesModal('rules');">
-                        <div class="nook-app-icon" style="background:#e0f2fe;">📖</div>
-                        <span class="nook-app-label">規則文獻</span>
-                    </button>
-                    <button class="nook-app" onclick="toggleNookPhone(false); openAudioModal();">
-                        <div class="nook-app-icon app-settings">⚙️</div>
-                        <span class="nook-app-label">音效設定</span>
-                    </button>
-                </div>
-                <button class="nook-home-btn" onclick="toggleNookPhone(false)" title="收起手機"></button>
             </div>
         </div>
     </div>
@@ -10306,8 +10510,8 @@ function syncPhysicsModeUI() {
     // 視差微動偏移
     let targetParallaxX = 0, targetParallaxY = 0;
 
-    // 櫻花／落葉粒子池
-    const MAX_PARTICLES = 22;
+    // 櫻花／落葉粒子池 (調校為節能 12 顆，大幅降低行動端 GPU/Canvas 負載)
+    const MAX_PARTICLES = 12;
     const particles = [];
 
     // 湖面黑天鵝與鴨鴨家族狀態 (沿中興湖開闊水道巡游，嚴格避開中心島、大樹與兩座球場)
@@ -10349,28 +10553,6 @@ function syncPhysicsModeUI() {
         return getCatmullRomPoint(pts[idx0], pts[idx1], pts[idx2], pts[idx3], t);
     }
 
-    // 背包柴犬步道巡邏狀態
-    const shibaWaypoints = [
-        { x: 18.0, y: 38.0 },
-        { x: 22.5, y: 55.0 },
-        { x: 25.5, y: 72.0 }
-    ];
-    let shibaSegment = 0;
-    let shibaDir = 1;
-    let shibaT = 0;
-    let shibaPauseTimer = 0;
-
-    // 珍奶貓咪步道漫步狀態
-    const catWaypoints = [
-        { x: 33.0, y: 83.5 },
-        { x: 50.0, y: 84.0 },
-        { x: 67.0, y: 83.0 }
-    ];
-    let catSegment = 0;
-    let catDir = 1;
-    let catT = 0;
-    let catPauseTimer = 0;
-
     // DOM 快取
     let domCache = null;
     let actorAudioCtx = null;
@@ -10396,20 +10578,6 @@ function syncPhysicsModeUI() {
             "🐥 嗶嗶嗶！按左上角頭貼可以換成柴柴或水豚造型喔！",
             "🐥 嗶～浮台碼頭晃呀晃的，好想跳上去當球僮呀！"
         ],
-        shiba: [
-            "🐕 汪汪！我的後背包裝滿了匹克球拍跟補給水壺！",
-            "🐕 汪！今天去社管大樓測動力鏈，軀幹發力與轉體得分 98 分！",
-            "🐕 汪嗚～散步去看看名人堂英雄榜，我也要衝上第一名！",
-            "🐕 汪！在後場深球擊球時，記得身體重心向前壓，球才會扎實！",
-            "🐕 汪汪！天氣真好，今天一定要在湖畔連擊賽突破 20 球！"
-        ],
-        cat: [
-            "🐈 喵～圖書館前喝一杯半糖微冰珍珠奶茶，人生一大享受喵～",
-            "🐈 喵嗚～旋球是匹克球的精髓，手指向上滑動刷出漂亮上旋！",
-            "🐈 喵！剛才看到行政大樓的學號綁定，雲端進度隨時同步喵～",
-            "🐈 喵～中興湖的微風好溫柔，躺在草皮上曬太陽最舒服了喵～",
-            "🐈 喵嗚～剛剛社管大樓的柴柴一直盯著我的吸管看，真好笑！"
-        ],
         dock: [
             "🐻 熊熊：看我的第三桿放短 (Drop Shot)！精準過網落入廚房區！",
             "🐰 兔兔：接招！大角度反手挑球直攻底線！",
@@ -10424,7 +10592,7 @@ function syncPhysicsModeUI() {
             "🦊 狐狸：千萬不要著急抽球，耐心等待對手失誤放高！"
         ]
     };
-    const quoteIndexMap = { swan: 0, duck1: 0, duck2: 0, shiba: 0, cat: 0, dock: 0, court_sw: 0 };
+    const quoteIndexMap = { swan: 0, duck1: 0, duck2: 0, dock: 0, court_sw: 0 };
 
     // 初始化粒子
     function initParticles(w, h) {
@@ -10509,10 +10677,6 @@ function syncPhysicsModeUI() {
             actorDuck1Flip: document.getElementById('actor-duck-1-flip'),
             actorDuck2: document.getElementById('actor-duck-2'),
             actorDuck2Flip: document.getElementById('actor-duck-2-flip'),
-            actorShiba: document.getElementById('actor-shiba'),
-            actorShibaFlip: document.getElementById('actor-shiba-flip'),
-            actorCat: document.getElementById('actor-cat'),
-            actorCatFlip: document.getElementById('actor-cat-flip'),
             courtDuelNE: document.getElementById('court-duel-ne'),
             courtDuelSW: document.getElementById('court-duel-sw')
         };
@@ -10569,94 +10733,6 @@ function syncPhysicsModeUI() {
             domCache.actorDuck2.style.top = pDuck2.y.toFixed(2) + '%';
             if (domCache.actorDuck2Flip) {
                 domCache.actorDuck2Flip.style.transform = d2vx > 0.005 ? 'scaleX(-1)' : 'scaleX(1)';
-            }
-        }
-
-        // ════ 2. 🎒 背包柴犬步道巡邏 ════
-        if (shibaPauseTimer > 0) {
-            shibaPauseTimer -= dt;
-        } else {
-            const pStart = shibaDir === 1 ? shibaWaypoints[shibaSegment] : shibaWaypoints[shibaSegment + 1];
-            const pEnd = shibaDir === 1 ? shibaWaypoints[shibaSegment + 1] : shibaWaypoints[shibaSegment];
-            const dx = pEnd.x - pStart.x;
-            const dy = pEnd.y - pStart.y;
-            const dist = Math.hypot(dx, dy) || 1;
-            const speed = 4.0; // 百分比 / 秒
-            shibaT += (speed / dist) * dt;
-
-            if (shibaT >= 1) {
-                shibaT = 0;
-                if (shibaDir === 1) {
-                    shibaSegment++;
-                    if (shibaSegment >= shibaWaypoints.length - 1) {
-                        shibaDir = -1;
-                        shibaSegment = shibaWaypoints.length - 2;
-                        shibaPauseTimer = 1.8; // 端點停頓張望
-                    }
-                } else {
-                    shibaSegment--;
-                    if (shibaSegment < 0) {
-                        shibaDir = 1;
-                        shibaSegment = 0;
-                        shibaPauseTimer = 1.8; // 端點停頓張望
-                    }
-                }
-            }
-
-            const clampedT = Math.min(1, Math.max(0, shibaT));
-            const shibaCurX = pStart.x + dx * clampedT;
-            const shibaCurY = pStart.y + dy * clampedT;
-
-            if (domCache.actorShiba) {
-                domCache.actorShiba.style.left = shibaCurX.toFixed(2) + '%';
-                domCache.actorShiba.style.top = shibaCurY.toFixed(2) + '%';
-                if (domCache.actorShibaFlip) {
-                    domCache.actorShibaFlip.style.transform = dx > 0.05 ? 'scaleX(-1)' : 'scaleX(1)';
-                }
-            }
-        }
-
-        // ════ 3. 🧋 珍奶貓咪步道漫遊 ════
-        if (catPauseTimer > 0) {
-            catPauseTimer -= dt;
-        } else {
-            const cpStart = catDir === 1 ? catWaypoints[catSegment] : catWaypoints[catSegment + 1];
-            const cpEnd = catDir === 1 ? catWaypoints[catSegment + 1] : catWaypoints[catSegment];
-            const cdx = cpEnd.x - cpStart.x;
-            const cdy = cpEnd.y - cpStart.y;
-            const cdist = Math.hypot(cdx, cdy) || 1;
-            const cspeed = 3.6; // 百分比 / 秒
-            catT += (cspeed / cdist) * dt;
-
-            if (catT >= 1) {
-                catT = 0;
-                if (catDir === 1) {
-                    catSegment++;
-                    if (catSegment >= catWaypoints.length - 1) {
-                        catDir = -1;
-                        catSegment = catWaypoints.length - 2;
-                        catPauseTimer = 2.2; // 端點停頓喝珍奶
-                    }
-                } else {
-                    catSegment--;
-                    if (catSegment < 0) {
-                        catDir = 1;
-                        catSegment = 0;
-                        catPauseTimer = 2.2; // 端點停頓喝珍奶
-                    }
-                }
-            }
-
-            const cClampedT = Math.min(1, Math.max(0, catT));
-            const catCurX = cpStart.x + cdx * cClampedT;
-            const catCurY = cpStart.y + cdy * cClampedT;
-
-            if (domCache.actorCat) {
-                domCache.actorCat.style.left = catCurX.toFixed(2) + '%';
-                domCache.actorCat.style.top = catCurY.toFixed(2) + '%';
-                if (domCache.actorCatFlip) {
-                    domCache.actorCatFlip.style.transform = cdx > 0.05 ? 'scaleX(-1)' : 'scaleX(1)';
-                }
             }
         }
     }
@@ -10734,7 +10810,7 @@ function syncPhysicsModeUI() {
         quoteIndexMap[actorId] = idx + 1;
 
         // 叫聲頻率微調
-        const freqMap = { swan: 440, duck1: 620, duck2: 780, shiba: 520, cat: 680, dock: 480, court_sw: 560 };
+        const freqMap = { swan: 440, duck1: 620, duck2: 780, dock: 480, court_sw: 560 };
         playAnimaleseChirp(freqMap[actorId] || 560);
 
         // 尋找目標容器
@@ -12153,6 +12229,9 @@ function cycleTeachLevelQuick() {
         function openModeHub() {
             const hub = document.getElementById('mode-hub-overlay');
             if (!hub) return;
+            // 進入大廳時立即凍結 3D 渲染，GPU/CPU 負載歸零，徹底消除手機發燙
+            if (typeof suspend3DLoop === 'function') suspend3DLoop();
+
             const av = document.getElementById('hub-avatar');
             const nk = document.getElementById('hub-nick');
             const dp = document.getElementById('hub-dept');
@@ -12188,6 +12267,8 @@ function cycleTeachLevelQuick() {
             if (typeof HubSandbox !== 'undefined' && HubSandbox.stop) {
                 HubSandbox.stop();
             }
+            // 關閉大廳踏上球場時，無縫喚醒 3D 迴圈
+            if (typeof resume3DLoop === 'function') resume3DLoop();
         }
 
         /* 🍃 水上小碼頭 5 大關卡歷險抽屜控制器 (Dock Level Picker Drawer) */
@@ -12256,17 +12337,50 @@ function cycleTeachLevelQuick() {
         /* ═══════════════════════════════════════════════════════════
            🍃 NookPhone 與動態藥丸島控制器 (NookPhone & Dynamic HUD)
            ═══════════════════════════════════════════════════════════ */
+        function updatePhoneClock() {
+            const clockEl = document.getElementById('phone-clock');
+            if (!clockEl) return;
+            const now = new Date();
+            const hh = String(now.getHours()).padStart(2, '0');
+            const mm = String(now.getMinutes()).padStart(2, '0');
+            clockEl.innerText = `${hh}:${mm}`;
+        }
+        let phoneClockTimer = null;
+
         function toggleNookPhone(open) {
             const m = document.getElementById('nook-phone-modal');
             if (!m) return;
             const want = (typeof open === 'boolean') ? open : !m.classList.contains('open');
             m.classList.toggle('open', want);
             if (want) {
+                updatePhoneClock();
+                if (!phoneClockTimer) {
+                    phoneClockTimer = setInterval(updatePhoneClock, 1000);
+                }
                 if (typeof S !== 'undefined' && S.swap) S.swap();
             } else {
+                if (phoneClockTimer) {
+                    clearInterval(phoneClockTimer);
+                    phoneClockTimer = null;
+                }
                 if (typeof S !== 'undefined' && S.pop) S.pop(0.5);
             }
         }
+
+        function pulseDynamicIsland() {
+            const pill = document.getElementById('phone-island');
+            const chip = document.getElementById('island-chip');
+            if (!pill) return;
+            if (typeof S !== 'undefined' && S.swap) S.swap();
+            if (chip) {
+                const orig = chip.innerText;
+                chip.innerText = '🎵 中興湖廣播播送中';
+                setTimeout(() => {
+                    if (chip) chip.innerText = orig;
+                }, 2000);
+            }
+        }
+        window.pulseDynamicIsland = pulseDynamicIsland;
 
         function updateDynamicStagePill(stageNum, pScore, gScore) {
             const sTxt = document.getElementById('dsp-stage');
@@ -15770,8 +15884,13 @@ function cycleTeachLevelQuick() {
             const camCfg = getResponsiveCameraConfig(dims.w, dims.h);
             cam = new THREE.PerspectiveCamera(camCfg.fov, dims.w / dims.h, 0.1, 200);
             cam.position.set(0, camCfg.camH, camCfg.camDist);
+            const isMobileDevice = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent || '');
             try {
-                ren = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance', preserveDrawingBuffer: true });
+                ren = new THREE.WebGLRenderer({
+                    antialias: !isMobileDevice,
+                    powerPreference: isMobileDevice ? 'default' : 'high-performance',
+                    preserveDrawingBuffer: false
+                });
             } catch (e) {
                 document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;' +
                     'padding:24px;text-align:center;font-size:15px;line-height:1.8;color:#f8fafc;">' +
@@ -15779,14 +15898,15 @@ function cycleTeachLevelQuick() {
                     '請改用 Chrome / Edge 最新版,或在瀏覽器設定中開啟硬體加速。</div>';
                 throw e;
             }
-            const initPR = Math.min(window.devicePixelRatio || 2, (typeof PERF_PRESETS !== 'undefined' && typeof perfLevel !== 'undefined' && PERF_PRESETS[perfLevel]) ? PERF_PRESETS[perfLevel].pixelRatio : 2.0);
+            const mobileMaxPR = isMobileDevice ? 1.4 : 2.0;
+            const initPR = Math.min(window.devicePixelRatio || 1.5, (typeof PERF_PRESETS !== 'undefined' && typeof perfLevel !== 'undefined' && PERF_PRESETS[perfLevel]) ? Math.min(PERF_PRESETS[perfLevel].pixelRatio, mobileMaxPR) : mobileMaxPR);
             ren.setPixelRatio(initPR);
             ren.setSize(dims.w, dims.h);
             ren.outputEncoding = THREE.sRGBEncoding;
             ren.toneMapping = THREE.ACESFilmicToneMapping;
             ren.toneMappingExposure = GRADE.exposure;
             ren.shadowMap.enabled = true;
-            ren.shadowMap.type = THREE.PCFSoftShadowMap;
+            ren.shadowMap.type = isMobileDevice ? THREE.BasicShadowMap : THREE.PCFSoftShadowMap;
             document.getElementById('stage3d').appendChild(ren.domElement);
             ray = new THREE.Raycaster();
             aimPlane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
@@ -18696,6 +18816,10 @@ function updateGuides(dt) {
         const _camDesPos = new THREE.Vector3(), _camDesLook = new THREE.Vector3();
         const _camNormPos = new THREE.Vector3(), _camNormLook = new THREE.Vector3();
         let loopFrameCount = 0;
+        let isLoopSuspended = false;
+        let lastRenderTime = 0;
+        const isMobileLoop = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent || '');
+        const targetFrameInterval = isMobileLoop ? (1000 / 60 - 1.5) : 0; // 行動端平滑限制 60 FPS，防止 120Hz 盲目空轉發熱
         const camLookTarget = new THREE.Vector3(0, 0.85, 0.3);
         const huntCamPos = new THREE.Vector3();
         const huntCamLook = new THREE.Vector3();
@@ -18703,9 +18827,43 @@ function updateGuides(dt) {
         let huntReturnTimer = 0;
         let cachedMiniSpd = null, cachedMiniPwr = null;
 
-        function loop() {
+        function suspend3DLoop() {
+            isLoopSuspended = true;
+        }
+        function resume3DLoop() {
+            if (!isLoopSuspended) return;
+            isLoopSuspended = false;
+            last = performance.now();
+            lastRenderTime = performance.now();
+        }
+        window.suspend3DLoop = suspend3DLoop;
+        window.resume3DLoop = resume3DLoop;
+
+        // 全域頁面可見度監聽：切換 App 或鎖屏時 100% 暫停 3D 與大廳，回歸時平滑喚醒
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                suspend3DLoop();
+                if (typeof HubSandbox !== 'undefined' && HubSandbox.stop) HubSandbox.stop();
+            } else {
+                const hub = document.getElementById('mode-hub-overlay');
+                if (!hub || hub.style.display === 'none') {
+                    resume3DLoop();
+                } else {
+                    if (typeof HubSandbox !== 'undefined' && HubSandbox.start) HubSandbox.start();
+                }
+            }
+        });
+
+        function loop(timestamp) {
             requestAnimationFrame(loop);
-            const now = performance.now();
+            if (isLoopSuspended) return; // ★ 模式大廳或全屏 Modal 開啟時，3D 迴圈 100% 休眠省電！
+
+            const now = timestamp || performance.now();
+            if (targetFrameInterval > 0) {
+                const elapsed = now - lastRenderTime;
+                if (elapsed < targetFrameInterval) return;
+                lastRenderTime = now - (elapsed % targetFrameInterval);
+            }
             let dt = (now - last) / 1000; last = now;
             if (dt > 0.05) dt = 0.05;
 

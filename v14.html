@@ -1119,7 +1119,8 @@ I_syn(t) = w_syn · x · u · (dθ/dt)</div>
                 </div>
                 <div class="hub-map-top-ctrls">
                     <button type="button" class="hub-map-icon-btn" onclick="openAudioModal()" title="廣播音效設定">🎶 音效</button>
-                    <button type="button" class="hub-map-icon-btn" id="hub-webcam-btn" onclick="toggleWebcamAI()" title="切換鏡頭體感模式">📷 體感: 關</button>
+                    <button type="button" class="hub-map-icon-btn" id="hub-social-btn" onclick="openSocial()" title="球友社群與好友邀請榜單">👥 好友社群</button>
+                    <button type="button" class="hub-map-icon-btn" id="hub-phone-btn" onclick="toggleNookPhone(true)" title="開啟智慧手機">📱 手機</button>
                     <button type="button" class="hub-map-icon-btn hub-map-close-btn" onclick="closeModeHub()" title="踏上中興湖球場">🎾 踏上球場</button>
                 </div>
             </div>
@@ -1155,26 +1156,6 @@ I_syn(t) = w_syn · x · u · (dθ/dt)</div>
                 <div class="ac-actor ac-duckling" id="actor-duck-2" onclick="HubSandbox.interactActor('duck2', event)" title="貪吃小雛鴨 (點擊互動)">
                     <div class="ac-actor-flip" id="actor-duck-2-flip">
                         <div class="ac-duckling-inner">🐥</div>
-                    </div>
-                </div>
-
-                <!-- 4. 🎒 背包柴犬 (西側步道巡邏散步) -->
-                <div class="ac-actor ac-walker-shiba" id="actor-shiba" onclick="HubSandbox.interactActor('shiba', event)" title="背包柴柴島民 (點擊互動)">
-                    <div class="ac-actor-flip" id="actor-shiba-flip">
-                        <div class="walker-body">
-                            🐕
-                            <span class="shiba-backpack">🎒</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- 5. 🧋 珍奶貓咪 (南側步道散步漫遊) -->
-                <div class="ac-actor ac-walker-cat" id="actor-cat" onclick="HubSandbox.interactActor('cat', event)" title="珍奶貓咪島民 (點擊互動)">
-                    <div class="ac-actor-flip" id="actor-cat-flip">
-                        <div class="cat-body">
-                            🐈
-                            <span class="cat-boba">🧋</span>
-                        </div>
                     </div>
                 </div>
 
@@ -1308,62 +1289,108 @@ I_syn(t) = w_syn · x · u · (dθ/dt)</div>
         </div>
     </div>
 
-    <!-- ══════ 🍃 NookPhone 8 宮格手機輪盤 (#nook-phone-modal) ══════ -->
+    <!-- ══════ 🍃 旗艦智慧手機真機外觀 (#nook-phone-modal) ══════ -->
     <div id="nook-phone-modal" onclick="if(event.target===this) toggleNookPhone(false)">
-        <div class="nook-case">
-            <div class="nook-screen">
-                <div class="nook-status-bar">
-                    <span>📡 Nook Inc. 4G</span>
-                    <span>🌿 中興湖島</span>
-                    <span>🔋 100%</span>
+        <div class="nook-case phone-body">
+            <!-- 實體側邊金屬物理按鍵 -->
+            <div class="phone-side-btn btn-action" title="靜音/動作鍵"></div>
+            <div class="phone-side-btn btn-vol-up" title="音量增加"></div>
+            <div class="phone-side-btn btn-vol-down" title="音量減少"></div>
+            <div class="phone-side-btn btn-power" title="電源鍵"></div>
+
+            <!-- 超窄邊框螢幕與顯示區 -->
+            <div class="phone-screen-bezel">
+                <div class="phone-screen nook-screen">
+                    <!-- 頂部深邃黑靈動島 (Dynamic Island) -->
+                    <div class="phone-island-pill" id="phone-island" onclick="if(typeof pulseDynamicIsland==='function')pulseDynamicIsland()" title="中興湖智慧互聯系統">
+                        <span class="island-camera"></span>
+                        <span class="island-speaker"></span>
+                        <span class="island-chip" id="island-chip">🌿 NCHU OS</span>
+                    </div>
+
+                    <!-- 即時本地時間狀態列 -->
+                    <div class="phone-status-bar nook-status-bar">
+                        <span class="phone-status-time" id="phone-clock">12:00</span>
+                        <div class="phone-status-icons">
+                            <span class="phone-status-badge">5G</span>
+                            <span class="phone-status-wifi">🛜</span>
+                            <span class="phone-status-battery" title="電量 100%"><i class="battery-bar"></i>100%</span>
+                        </div>
+                    </div>
+
+                    <!-- 應用程式 Squircle 現代圖標網格 -->
+                    <div class="phone-app-grid nook-grid">
+                        <button class="nook-app phone-app" onclick="toggleNookPhone(false); openModeHub();">
+                            <div class="nook-app-icon phone-app-icon app-hub">🏠</div>
+                            <span class="nook-app-label phone-app-label">模式大廳</span>
+                        </button>
+                        <button class="nook-app phone-app" onclick="toggleNookPhone(false); startWallPractice();">
+                            <div class="nook-app-icon phone-app-icon app-wall">🧱</div>
+                            <span class="nook-app-label phone-app-label">對牆特訓</span>
+                        </button>
+                        <button class="nook-app phone-app" onclick="toggleNookPhone(false); toggleNavMenu('stage');">
+                            <div class="nook-app-icon phone-app-icon app-stage">🎯</div>
+                            <span class="nook-app-label phone-app-label">切換關卡</span>
+                        </button>
+                        <button class="nook-app phone-app" onclick="toggleNookPhone(false); openDiffPicker();">
+                            <div class="nook-app-icon phone-app-icon app-diff">🤖</div>
+                            <span class="nook-app-label phone-app-label">對手難度</span>
+                        </button>
+                        <button class="nook-app phone-app" onclick="toggleNookPhone(false); toggleWebcamAI();">
+                            <div class="nook-app-icon phone-app-icon app-motion">📷</div>
+                            <span class="nook-app-label phone-app-label">體感鏡頭</span>
+                        </button>
+                        <button class="nook-app phone-app" onclick="toggleNookPhone(false); toggleFunMode();">
+                            <div class="nook-app-icon phone-app-icon app-fun">🍄</div>
+                            <span class="nook-app-label phone-app-label">道具模式</span>
+                        </button>
+                        <button class="nook-app phone-app" onclick="toggleNookPhone(false); openSocial();">
+                            <div class="nook-app-icon phone-app-icon app-social">🏆</div>
+                            <span class="nook-app-label phone-app-label">英雄榜單</span>
+                        </button>
+                        <button class="nook-app phone-app" onclick="toggleNookPhone(false); openCommunityModal();">
+                            <div class="nook-app-icon phone-app-icon app-community">🏓</div>
+                            <span class="nook-app-label phone-app-label">匹克社群</span>
+                        </button>
+                        <button class="nook-app phone-app" onclick="toggleNookPhone(false); openProfileModal();">
+                            <div class="nook-app-icon phone-app-icon app-profile">👤</div>
+                            <span class="nook-app-label phone-app-label">個人設定</span>
+                        </button>
+                        <button class="nook-app phone-app" onclick="toggleNookPhone(false); openRulesModal('rules');">
+                            <div class="nook-app-icon phone-app-icon app-rules">📖</div>
+                            <span class="nook-app-label phone-app-label">規則手冊</span>
+                        </button>
+                        <button class="nook-app phone-app" onclick="toggleNookPhone(false); openSocial();">
+                            <div class="nook-app-icon phone-app-icon app-invite">👥</div>
+                            <span class="nook-app-label phone-app-label">好友邀請</span>
+                        </button>
+                        <button class="nook-app phone-app" onclick="toggleNookPhone(false); openAudioModal();">
+                            <div class="nook-app-icon phone-app-icon app-settings">🎶</div>
+                            <span class="nook-app-label phone-app-label">音效設定</span>
+                        </button>
+                    </div>
+
+                    <!-- 底部磨砂毛玻璃 Dock 欄 (最常用常駐應用) -->
+                    <div class="phone-dock">
+                        <button class="phone-dock-item" onclick="toggleNookPhone(false); openModeHub();" title="模式大廳">
+                            <span class="dock-icon">🏠</span>
+                        </button>
+                        <button class="phone-dock-item" onclick="toggleNookPhone(false); closeModeHub();" title="踏上球場">
+                            <span class="dock-icon">🎾</span>
+                        </button>
+                        <button class="phone-dock-item" onclick="toggleNookPhone(false); openSocial();" title="球友社群">
+                            <span class="dock-icon">👥</span>
+                        </button>
+                        <button class="phone-dock-item" onclick="toggleNookPhone(false); openAudioModal();" title="系統設定">
+                            <span class="dock-icon">⚙️</span>
+                        </button>
+                    </div>
+
+                    <!-- 底部 Home Bar 手勢指示橫條 (輕觸或向上輕滑即可收起手機) -->
+                    <div class="phone-home-indicator" onclick="toggleNookPhone(false)" title="收起手機 (Home Bar)">
+                        <button class="nook-home-btn phone-home-bar" title="收起手機"></button>
+                    </div>
                 </div>
-                <div class="nook-grid">
-                    <button class="nook-app" onclick="toggleNookPhone(false); openModeHub();">
-                        <div class="nook-app-icon app-hub">🏠</div>
-                        <span class="nook-app-label">模式大廳</span>
-                    </button>
-                    <button class="nook-app" onclick="toggleNookPhone(false); startWallPractice();">
-                        <div class="nook-app-icon app-wall">🧱</div>
-                        <span class="nook-app-label">對牆特訓</span>
-                    </button>
-                    <button class="nook-app" onclick="toggleNookPhone(false); toggleNavMenu('stage');">
-                        <div class="nook-app-icon app-stage">🎯</div>
-                        <span class="nook-app-label">切換關卡</span>
-                    </button>
-                    <button class="nook-app" onclick="toggleNookPhone(false); openDiffPicker();">
-                        <div class="nook-app-icon app-diff">🤖</div>
-                        <span class="nook-app-label">對手難度</span>
-                    </button>
-                    <button class="nook-app" onclick="toggleNookPhone(false); toggleWebcamAI();">
-                        <div class="nook-app-icon app-motion">📷</div>
-                        <span class="nook-app-label">體感開關</span>
-                    </button>
-                    <button class="nook-app" onclick="toggleNookPhone(false); toggleFunMode();">
-                        <div class="nook-app-icon app-fun">🍄</div>
-                        <span class="nook-app-label">道具模式</span>
-                    </button>
-                    <button class="nook-app" onclick="toggleNookPhone(false); openSocial();">
-                        <div class="nook-app-icon app-social">🏆</div>
-                        <span class="nook-app-label">英雄榜單</span>
-                    </button>
-                    <button class="nook-app" onclick="toggleNookPhone(false); openCommunityModal();">
-                        <div class="nook-app-icon" style="background:#e8f5e9;">🏓</div>
-                        <span class="nook-app-label">匹克社群</span>
-                    </button>
-                    <button class="nook-app" onclick="toggleNookPhone(false); openProfileModal();">
-                        <div class="nook-app-icon" style="background:#fef3c7;">👤</div>
-                        <span class="nook-app-label">個人設定</span>
-                    </button>
-                    <button class="nook-app" onclick="toggleNookPhone(false); openRulesModal('rules');">
-                        <div class="nook-app-icon" style="background:#e0f2fe;">📖</div>
-                        <span class="nook-app-label">規則文獻</span>
-                    </button>
-                    <button class="nook-app" onclick="toggleNookPhone(false); openAudioModal();">
-                        <div class="nook-app-icon app-settings">⚙️</div>
-                        <span class="nook-app-label">音效設定</span>
-                    </button>
-                </div>
-                <button class="nook-home-btn" onclick="toggleNookPhone(false)" title="收起手機"></button>
             </div>
         </div>
     </div>
