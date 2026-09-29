@@ -38,23 +38,24 @@
 
             const isMatch = (stage === 4 || stage === 5 || stage === 6);
             if (isMatch) {
-                // ★ 規格 8: 正式匹克球發球得分制 (Side-out Scoring)
+                // ★ 規格 8: 正式匹克球單打發球得分制 (USA Pickleball Official Singles Rules)
                 const oppName = (typeof diffLevel !== 'undefined' && diffLevel === 'fly') ? '🪰 仿生蒼蠅' : '🪿 匹克鵝';
                 if (scorer === server) {
-                    // 發球方贏得回合 ➔ 得 1 分 + 換至另一側繼續發球
+                    // 發球方贏得回合 ➔ 得 1 分 + 依新分數奇偶切換發球區 (偶數右區、奇數左區)
                     if (server === 'PLAYER') {
                         pScore++; S.point(); popRing(0, -3, 6, 0x3fe0c4);
                         if (typeof updateGooseEmote === 'function') updateGooseEmote('💦');
-                        toast('🏆 玩家得分！換邊發球', '比分 ' + pScore + ' - ' + aScore);
+                        serveSide = (pScore % 2 === 0) ? 1 : -1;
+                        toast('🏆 玩家得分！', '比分 ' + pScore + ' - ' + aScore + ' · ' + (serveSide === 1 ? '右側' : '左側') + '發球');
                     } else {
                         aScore++; S.fault(); addShake(0.22);
                         if (typeof updateGooseEmote === 'function') updateGooseEmote('🎵');
-                        toast(oppName + '得分！換邊發球', '比分 ' + pScore + ' - ' + aScore);
+                        serveSide = (aScore % 2 === 0) ? 1 : -1;
+                        toast(oppName + '得分！', '比分 ' + pScore + ' - ' + aScore + ' · ' + (serveSide === 1 ? '右側' : '左側') + '發球');
                     }
-                    serveSide *= -1;
-                    secondServe = false; // 得分繼續保有第 1 次發球權
+                    secondServe = false;
                 } else {
-                    // 接球方贏得回合 ➔ 不得分, 破壞對方發球權 (Fault / Side-out)
+                    // 接球方贏得回合 ➔ 單打直接 Side-out 換發球權 (單打無第二發球員，失誤即換發球權)
                     if (scorer === 'PLAYER') {
                         S.point();
                         if (typeof updateGooseEmote === 'function') updateGooseEmote('💦');
@@ -62,18 +63,12 @@
                         S.fault(); addShake(0.22);
                         if (typeof updateGooseEmote === 'function') updateGooseEmote('🎵');
                     }
-                    if (!secondServe) {
-                        // 第一次失誤 ➔ 換邊進行 Second Serve
-                        secondServe = true;
-                        serveSide *= -1;
-                        toast('⚠️ ' + msg + ' (Second Serve)', (server === 'PLAYER' ? '玩家' : oppName) + ' 第 2 次發球機會 · 換邊');
-                    } else {
-                        // 第二次失誤 ➔ 觸發 Side-out 換球權!
-                        secondServe = false;
-                        server = (server === 'PLAYER' ? 'GOOSE' : 'PLAYER');
-                        serveSide = 1; // 換球權由右側開始發球
-                        toast('🔄 Side-out 換球權！', '輪到 ' + (server === 'PLAYER' ? '玩家' : oppName) + ' 右側發球');
-                    }
+                    secondServe = false;
+                    server = (server === 'PLAYER' ? 'GOOSE' : 'PLAYER');
+                    const newServerScore = (server === 'PLAYER') ? pScore : aScore;
+                    serveSide = (newServerScore % 2 === 0) ? 1 : -1;
+                    const nextName = (server === 'PLAYER' ? '玩家' : oppName);
+                    toast('🔄 Side-out 換發球權！', '輪到 ' + nextName + ' (' + (serveSide === 1 ? '右側' : '左側') + '發球)');
                 }
             } else {
                 if (scorer === 'PLAYER') {
@@ -180,14 +175,23 @@
         }
         let toastT = null;
         function toast(main, sub) {
-            D.tMain.innerText = main; D.tSub.innerText = sub || '';
-            D.tMain.classList.add('on');
-            if (toastT) clearTimeout(toastT);
-            toastT = setTimeout(() => D.tMain.classList.remove('on'), 1900);
-
-            // ★ V5 虛擬裁判膠囊同步廣播
+            // ★ V5 裁判廣播與操作指引分工解耦，杜絕多層重複疊字
             const isFault = (main.indexOf('FAULT') !== -1 || main.indexOf('失誤') !== -1 || main.indexOf('違規') !== -1 || main.indexOf('出界') !== -1 || main.indexOf('❌') !== -1);
+            const isMajorCall = isFault || main.indexOf('Side-out') !== -1 || main.indexOf('得分') !== -1 || main.indexOf('獲勝') !== -1 || main.indexOf('連擊中斷') !== -1;
+
+            // 1. 裁判廣播橫幅 (頂部木質懸浮膠囊) 專司賽事正式判決
             announceReferee(main, sub, isFault);
+
+            // 2. 中央大字提示 (#toast) 僅於操作性教學/發球指引時輕量顯示，重大判決隱藏以杜絕疊字遮擋 3D 看板與球場
+            if (!isMajorCall && D.tMain) {
+                D.tMain.innerText = main;
+                if (D.tSub) D.tSub.innerText = sub || '';
+                D.tMain.classList.add('on');
+                if (toastT) clearTimeout(toastT);
+                toastT = setTimeout(() => D.tMain.classList.remove('on'), 1900);
+            } else if (D.tMain) {
+                D.tMain.classList.remove('on');
+            }
         }
         function updateScore() {
             updatePlayerWhoLabel();

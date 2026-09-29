@@ -604,36 +604,43 @@
         /* ---------- 提示 ---------- */
         #toast {
             position: absolute;
-            top: 31%;
+            bottom: calc(110px + env(safe-area-inset-bottom));
             left: 50%;
-            transform: translate(-50%, -50%);
+            transform: translateX(-50%);
             text-align: center;
-            width: 92%;
-            pointer-events: none
+            width: auto;
+            max-width: 90vw;
+            pointer-events: none;
+            z-index: 150;
         }
 
         #t-main {
-            font-size: 26px;
+            display: inline-block;
+            font-size: 16px;
             font-weight: 800;
-            letter-spacing: -.01em;
-            color: #fff;
-            text-shadow: 0 3px 20px rgba(0, 0, 0, .8);
+            letter-spacing: 0.2px;
+            color: #2d6a4f;
+            background: rgba(254, 252, 247, 0.95);
+            border: 1.5px solid #ecd8b8;
+            border-radius: 99px;
+            padding: 6px 18px;
+            box-shadow: 0 4px 16px rgba(90, 60, 30, 0.18), 0 2px 0 #ebd8bc;
             opacity: 0;
             transform: translateY(7px) scale(.97);
-            transition: opacity .2s, transform .28s
+            transition: opacity .2s, transform .28s;
         }
 
         #t-main.on {
             opacity: 1;
-            transform: translateY(0) scale(1)
+            transform: translateY(0) scale(1);
         }
 
         #t-sub {
-            font-size: 13px;
+            font-size: 12px;
             font-weight: 700;
-            color: #cbd5e1;
-            margin-top: 7px;
-            text-shadow: 0 2px 12px rgba(0, 0, 0, .8)
+            color: #854d0e;
+            margin-top: 4px;
+            text-shadow: 0 1px 4px rgba(0, 0, 0, .4);
         }
 
         #aim-hud {
@@ -1034,26 +1041,29 @@
 
 
 /* ── ★ 虛擬裁判 4 種轉播樣式 (電視轉播條、球員戰況提示、極簡靈動島、3D現場投影) ── */
-        /* ── 方案 1: 電視轉播條 (預設推薦: 位於頂部功能列下方 top: 102px，3D天空無人區) ── */
+        /* ── 方案 1: 電視轉播條 (預設推薦: 位於頂部關卡藥丸下方 top: 56px，動森原木暖白) ── */
         #referee-announcement.mode-1, #referee-announcement:not([class*="mode-"]) {
-            top: calc(100px + env(safe-area-inset-top));
+            top: calc(56px + env(safe-area-inset-top));
             bottom: auto;
             flex-direction: row;
             gap: 10px;
-            padding: 7px 20px;
+            padding: 7px 22px;
             border-radius: 99px;
-            background: rgba(15, 23, 42, 0.90);
-            border: 1.5px solid rgba(211, 243, 108, 0.7);
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6), 0 0 20px rgba(211, 243, 108, 0.3);
+            background: rgba(254, 252, 247, 0.96);
+            border: 2px solid #ecd8b8;
+            box-shadow: 0 8px 24px rgba(90, 60, 30, 0.20), 0 2px 0 #ebd8bc;
+            color: #2d6a4f;
         }
         #referee-announcement.mode-1 #ref-title, #referee-announcement:not([class*="mode-"]) #ref-title {
             font-size: 15px;
             font-weight: 900;
+            color: #2d6a4f;
         }
         #referee-announcement.mode-1 #ref-detail, #referee-announcement:not([class*="mode-"]) #ref-detail {
-            font-size: 11.5px;
+            font-size: 12px;
+            font-weight: 700;
             margin-top: 0;
-            color: #cbd5e1;
+            color: #854d0e;
         }
 
         /* ── 方案 2: 球員戰況提示 (位於主角 Steve 頭頂上方 bottom: 130px) ── */
@@ -1105,8 +1115,9 @@
         }
 
         #referee-announcement.fault {
-            border-color: rgba(248, 113, 113, 0.85) !important;
-            box-shadow: 0 12px 36px rgba(0, 0, 0, 0.6), 0 0 24px rgba(248, 113, 113, 0.35) !important;
+            background: rgba(254, 242, 242, 0.98) !important;
+            border-color: #fca5a5 !important;
+            box-shadow: 0 8px 24px rgba(220, 38, 38, 0.22), 0 2px 0 #f87171 !important;
         }
         #ref-title {
             font-family: var(--font-display);
@@ -1121,7 +1132,10 @@
             line-height: 1.1;
         }
         #referee-announcement.fault #ref-title {
-            color: var(--bad) !important;
+            color: #dc2626 !important;
+        }
+        #referee-announcement.fault #ref-detail {
+            color: #991b1b !important;
         }
         #ref-detail {
             font-size: 12px;

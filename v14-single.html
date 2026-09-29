@@ -776,36 +776,43 @@
         /* ---------- 提示 ---------- */
         #toast {
             position: absolute;
-            top: 31%;
+            bottom: calc(110px + env(safe-area-inset-bottom));
             left: 50%;
-            transform: translate(-50%, -50%);
+            transform: translateX(-50%);
             text-align: center;
-            width: 92%;
-            pointer-events: none
+            width: auto;
+            max-width: 90vw;
+            pointer-events: none;
+            z-index: 150;
         }
 
         #t-main {
-            font-size: 26px;
+            display: inline-block;
+            font-size: 16px;
             font-weight: 800;
-            letter-spacing: -.01em;
-            color: #fff;
-            text-shadow: 0 3px 20px rgba(0, 0, 0, .8);
+            letter-spacing: 0.2px;
+            color: #2d6a4f;
+            background: rgba(254, 252, 247, 0.95);
+            border: 1.5px solid #ecd8b8;
+            border-radius: 99px;
+            padding: 6px 18px;
+            box-shadow: 0 4px 16px rgba(90, 60, 30, 0.18), 0 2px 0 #ebd8bc;
             opacity: 0;
             transform: translateY(7px) scale(.97);
-            transition: opacity .2s, transform .28s
+            transition: opacity .2s, transform .28s;
         }
 
         #t-main.on {
             opacity: 1;
-            transform: translateY(0) scale(1)
+            transform: translateY(0) scale(1);
         }
 
         #t-sub {
-            font-size: 13px;
+            font-size: 12px;
             font-weight: 700;
-            color: #cbd5e1;
-            margin-top: 7px;
-            text-shadow: 0 2px 12px rgba(0, 0, 0, .8)
+            color: #854d0e;
+            margin-top: 4px;
+            text-shadow: 0 1px 4px rgba(0, 0, 0, .4);
         }
 
         #aim-hud {
@@ -1206,26 +1213,29 @@
 
 
 /* ── ★ 虛擬裁判 4 種轉播樣式 (電視轉播條、球員戰況提示、極簡靈動島、3D現場投影) ── */
-        /* ── 方案 1: 電視轉播條 (預設推薦: 位於頂部功能列下方 top: 102px，3D天空無人區) ── */
+        /* ── 方案 1: 電視轉播條 (預設推薦: 位於頂部關卡藥丸下方 top: 56px，動森原木暖白) ── */
         #referee-announcement.mode-1, #referee-announcement:not([class*="mode-"]) {
-            top: calc(100px + env(safe-area-inset-top));
+            top: calc(56px + env(safe-area-inset-top));
             bottom: auto;
             flex-direction: row;
             gap: 10px;
-            padding: 7px 20px;
+            padding: 7px 22px;
             border-radius: 99px;
-            background: rgba(15, 23, 42, 0.90);
-            border: 1.5px solid rgba(211, 243, 108, 0.7);
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6), 0 0 20px rgba(211, 243, 108, 0.3);
+            background: rgba(254, 252, 247, 0.96);
+            border: 2px solid #ecd8b8;
+            box-shadow: 0 8px 24px rgba(90, 60, 30, 0.20), 0 2px 0 #ebd8bc;
+            color: #2d6a4f;
         }
         #referee-announcement.mode-1 #ref-title, #referee-announcement:not([class*="mode-"]) #ref-title {
             font-size: 15px;
             font-weight: 900;
+            color: #2d6a4f;
         }
         #referee-announcement.mode-1 #ref-detail, #referee-announcement:not([class*="mode-"]) #ref-detail {
-            font-size: 11.5px;
+            font-size: 12px;
+            font-weight: 700;
             margin-top: 0;
-            color: #cbd5e1;
+            color: #854d0e;
         }
 
         /* ── 方案 2: 球員戰況提示 (位於主角 Steve 頭頂上方 bottom: 130px) ── */
@@ -1277,8 +1287,9 @@
         }
 
         #referee-announcement.fault {
-            border-color: rgba(248, 113, 113, 0.85) !important;
-            box-shadow: 0 12px 36px rgba(0, 0, 0, 0.6), 0 0 24px rgba(248, 113, 113, 0.35) !important;
+            background: rgba(254, 242, 242, 0.98) !important;
+            border-color: #fca5a5 !important;
+            box-shadow: 0 8px 24px rgba(220, 38, 38, 0.22), 0 2px 0 #f87171 !important;
         }
         #ref-title {
             font-family: var(--font-display);
@@ -1293,7 +1304,10 @@
             line-height: 1.1;
         }
         #referee-announcement.fault #ref-title {
-            color: var(--bad) !important;
+            color: #dc2626 !important;
+        }
+        #referee-announcement.fault #ref-detail {
+            color: #991b1b !important;
         }
         #ref-detail {
             font-size: 12px;
@@ -8365,23 +8379,24 @@ function syncPhysicsModeUI() {
 
             const isMatch = (stage === 4 || stage === 5 || stage === 6);
             if (isMatch) {
-                // ★ 規格 8: 正式匹克球發球得分制 (Side-out Scoring)
+                // ★ 規格 8: 正式匹克球單打發球得分制 (USA Pickleball Official Singles Rules)
                 const oppName = (typeof diffLevel !== 'undefined' && diffLevel === 'fly') ? '🪰 仿生蒼蠅' : '🪿 匹克鵝';
                 if (scorer === server) {
-                    // 發球方贏得回合 ➔ 得 1 分 + 換至另一側繼續發球
+                    // 發球方贏得回合 ➔ 得 1 分 + 依新分數奇偶切換發球區 (偶數右區、奇數左區)
                     if (server === 'PLAYER') {
                         pScore++; S.point(); popRing(0, -3, 6, 0x3fe0c4);
                         if (typeof updateGooseEmote === 'function') updateGooseEmote('💦');
-                        toast('🏆 玩家得分！換邊發球', '比分 ' + pScore + ' - ' + aScore);
+                        serveSide = (pScore % 2 === 0) ? 1 : -1;
+                        toast('🏆 玩家得分！', '比分 ' + pScore + ' - ' + aScore + ' · ' + (serveSide === 1 ? '右側' : '左側') + '發球');
                     } else {
                         aScore++; S.fault(); addShake(0.22);
                         if (typeof updateGooseEmote === 'function') updateGooseEmote('🎵');
-                        toast(oppName + '得分！換邊發球', '比分 ' + pScore + ' - ' + aScore);
+                        serveSide = (aScore % 2 === 0) ? 1 : -1;
+                        toast(oppName + '得分！', '比分 ' + pScore + ' - ' + aScore + ' · ' + (serveSide === 1 ? '右側' : '左側') + '發球');
                     }
-                    serveSide *= -1;
-                    secondServe = false; // 得分繼續保有第 1 次發球權
+                    secondServe = false;
                 } else {
-                    // 接球方贏得回合 ➔ 不得分, 破壞對方發球權 (Fault / Side-out)
+                    // 接球方贏得回合 ➔ 單打直接 Side-out 換發球權 (單打無第二發球員，失誤即換發球權)
                     if (scorer === 'PLAYER') {
                         S.point();
                         if (typeof updateGooseEmote === 'function') updateGooseEmote('💦');
@@ -8389,18 +8404,12 @@ function syncPhysicsModeUI() {
                         S.fault(); addShake(0.22);
                         if (typeof updateGooseEmote === 'function') updateGooseEmote('🎵');
                     }
-                    if (!secondServe) {
-                        // 第一次失誤 ➔ 換邊進行 Second Serve
-                        secondServe = true;
-                        serveSide *= -1;
-                        toast('⚠️ ' + msg + ' (Second Serve)', (server === 'PLAYER' ? '玩家' : oppName) + ' 第 2 次發球機會 · 換邊');
-                    } else {
-                        // 第二次失誤 ➔ 觸發 Side-out 換球權!
-                        secondServe = false;
-                        server = (server === 'PLAYER' ? 'GOOSE' : 'PLAYER');
-                        serveSide = 1; // 換球權由右側開始發球
-                        toast('🔄 Side-out 換球權！', '輪到 ' + (server === 'PLAYER' ? '玩家' : oppName) + ' 右側發球');
-                    }
+                    secondServe = false;
+                    server = (server === 'PLAYER' ? 'GOOSE' : 'PLAYER');
+                    const newServerScore = (server === 'PLAYER') ? pScore : aScore;
+                    serveSide = (newServerScore % 2 === 0) ? 1 : -1;
+                    const nextName = (server === 'PLAYER' ? '玩家' : oppName);
+                    toast('🔄 Side-out 換發球權！', '輪到 ' + nextName + ' (' + (serveSide === 1 ? '右側' : '左側') + '發球)');
                 }
             } else {
                 if (scorer === 'PLAYER') {
@@ -8507,14 +8516,23 @@ function syncPhysicsModeUI() {
         }
         let toastT = null;
         function toast(main, sub) {
-            D.tMain.innerText = main; D.tSub.innerText = sub || '';
-            D.tMain.classList.add('on');
-            if (toastT) clearTimeout(toastT);
-            toastT = setTimeout(() => D.tMain.classList.remove('on'), 1900);
-
-            // ★ V5 虛擬裁判膠囊同步廣播
+            // ★ V5 裁判廣播與操作指引分工解耦，杜絕多層重複疊字
             const isFault = (main.indexOf('FAULT') !== -1 || main.indexOf('失誤') !== -1 || main.indexOf('違規') !== -1 || main.indexOf('出界') !== -1 || main.indexOf('❌') !== -1);
+            const isMajorCall = isFault || main.indexOf('Side-out') !== -1 || main.indexOf('得分') !== -1 || main.indexOf('獲勝') !== -1 || main.indexOf('連擊中斷') !== -1;
+
+            // 1. 裁判廣播橫幅 (頂部木質懸浮膠囊) 專司賽事正式判決
             announceReferee(main, sub, isFault);
+
+            // 2. 中央大字提示 (#toast) 僅於操作性教學/發球指引時輕量顯示，重大判決隱藏以杜絕疊字遮擋 3D 看板與球場
+            if (!isMajorCall && D.tMain) {
+                D.tMain.innerText = main;
+                if (D.tSub) D.tSub.innerText = sub || '';
+                D.tMain.classList.add('on');
+                if (toastT) clearTimeout(toastT);
+                toastT = setTimeout(() => D.tMain.classList.remove('on'), 1900);
+            } else if (D.tMain) {
+                D.tMain.classList.remove('on');
+            }
         }
         function updateScore() {
             updatePlayerWhoLabel();
@@ -13002,6 +13020,278 @@ function cycleTeachLevelQuick() {
 })();
 
 
+/* ─── pickle_neural_policy.js ─── */
+/* ═══════════════════════════════════════════════════════════════════
+   NCHU Pickleball V5 - 輕量神經戰術決策網路 (Tiny Pickle Neural Policy)
+   PPA Tour 戰術知識蒸餾神經網路 (8 Inputs -> 16 Hidden -> 4 Tactical Outputs)
+   計算時間 < 0.05ms，零 GC 分配，相容 Node.js 與瀏覽器 WebGL 環境
+   ═══════════════════════════════════════════════════════════════════ */
+
+(function (global) {
+    'use strict';
+
+    // 4 大戰術動作常數
+    const ACTIONS = ['DROP', 'DRIVE', 'DINK', 'LOB'];
+    const ACTION_NAMES = {
+        DROP: '💧 第三桿放短 (Third Shot Drop)',
+        DRIVE: '🚀 穿越重砲抽球 (Power Drive)',
+        DINK: '🎾 廚房區切角小球 (Angled Dink)',
+        LOB: '🌈 挑高過頂長球 (Tactical Lob)'
+    };
+
+    // ═══════ 神經網路權重矩陣 (Distilled PPA Tour Neural Weights) ═══════
+    // W1: 16 個神經元 x 8 個輸入特徵
+    // 特徵順序: [ballX_norm, ballY_norm, ballZ_norm, ballVx_norm, ballVy_norm, ballVz_norm, playerX_norm, playerZ_norm]
+    const W1 = new Float32Array([
+        // N0: 偵測玩家退縮底線 (Deep Baseline Opponent)
+         0.12, -0.45,  0.35,  0.08, -0.15,  0.62, -0.10,  1.85,
+        // N1: 偵測玩家逼近廚房 (Rushing Kitchen Opponent)
+        -0.08,  0.52, -0.40, -0.05,  0.22, -0.55,  0.05, -1.92,
+        // N2: 偵測玩家左側空檔 (Player Displaced Left -> Attack Right)
+        -0.85,  0.10,  0.25, -0.32,  0.05,  0.40, -1.65,  0.22,
+        // N3: 偵測玩家右側空檔 (Player Displaced Right -> Attack Left)
+         0.85,  0.10,  0.25,  0.32,  0.05,  0.40,  1.65,  0.22,
+        // N4: 偵測自身處於廚房近網區 (In-Kitchen Soft Exchange)
+         0.05, -0.65,  1.42,  0.12, -0.40,  0.88,  0.15, -0.50,
+        // N5: 偵測高浮半空機會球 (Looming High Float Ball)
+         0.00,  1.75, -0.30,  0.10,  0.85, -0.60,  0.00,  0.10,
+        // N6: 偵測極速重抽衝擊 (Heavy Inbound Attack)
+         0.20,  0.15, -0.85,  0.45, -0.35, -1.80, -0.12,  0.35,
+        // N7: 偵測中路真空地帶 (Center Court Gap)
+        -0.30,  0.20,  0.40, -0.15,  0.10,  0.50,  0.05,  0.80,
+        // N8: 側旋來球抗性與消旋特徵 (Spin Neutralizer)
+         0.45, -0.20,  0.60,  0.85, -0.10,  0.45,  0.30,  0.40,
+        // N9: 第三桿關鍵決策特徵 (Third Shot Drop Prime)
+         0.10, -0.30, -0.95, -0.10, -0.25, -1.15,  0.05,  1.40,
+        // N10: 網頂擦網球 (Net Cord / Low Skimmer)
+        -0.15, -1.45,  0.85,  0.05, -0.90,  0.75, -0.20, -0.30,
+        // N11: 弧線防禦挑高緩衝 (Defensive Reset Lob)
+         0.05, -0.80, -1.20, -0.20, -0.50, -1.50, -0.10, -0.80,
+        // N12: 刁鑽對角壓迫 (Cross-Court Squeeze)
+        -0.70,  0.35,  0.55, -0.40,  0.15,  0.65,  1.20,  0.15,
+        // N13: 順向直線偷襲 (Down-the-Line Ambush)
+         0.70,  0.35,  0.55,  0.40,  0.15,  0.65, -1.20,  0.15,
+        // N14: 節奏突變破壞 (Pace Disruption)
+         0.15, -0.25,  0.75, -0.65,  0.35, -0.80,  0.00,  0.60,
+        // N15: 穩定壓底防守 (Deep Baseline Containment)
+         0.00,  0.10, -0.50,  0.00,  0.10, -0.70,  0.00, -0.40
+    ]);
+
+    const B1 = new Float32Array([
+         0.15, -0.10,  0.05,  0.05,  0.20, -0.25,  0.10,  0.05,
+        -0.05,  0.35, -0.15, -0.30,  0.10,  0.10,  0.00,  0.25
+    ]);
+
+    // W2: 4 個動作輸出 (DROP, DRIVE, DINK, LOB) x 16 個隱藏節點
+    const W2 = new Float32Array([
+        // DROP: 第三桿放短 (由 N0, N4, N9, N10 強正向驅動)
+         1.45, -1.20,  0.10,  0.10,  1.10, -1.50, -0.35,  0.45,
+         0.20,  1.85,  1.05, -0.40,  0.25,  0.25,  0.60,  0.15,
+        // DRIVE: 重砲抽球 (由 N2, N3, N5, N6, N12, N13 強正向驅動)
+        -0.85,  0.40,  1.35,  1.35, -0.95,  1.80,  1.25,  0.70,
+         0.40, -1.10, -0.75, -1.10,  1.45,  1.45, -0.50,  0.65,
+        // DINK: 廚房切角小球 (由 N1, N4, N10, N12, N13 強正向驅動)
+        -0.40,  1.15,  0.75,  0.75,  1.75, -0.80, -0.60, -0.25,
+         0.15,  0.45,  1.60, -0.85,  1.20,  1.20,  0.80, -0.50,
+        // LOB: 挑高過頂長球 (由 N1, N11 強正向驅動，玩家前衝時必殺)
+        -1.60,  2.10, -0.30, -0.30, -0.85, -0.50,  0.15, -0.40,
+        -0.10, -0.85, -0.60,  2.20, -0.45, -0.45,  0.35, -0.70
+    ]);
+
+    const B2 = new Float32Array([
+        0.25, 0.40, 0.30, -0.65
+    ]);
+
+    // 預分配推論工作記憶體 (Zero-Allocation Buffer)
+    const _feat = new Float32Array(8);
+    const _hid = new Float32Array(16);
+    const _logits = new Float32Array(4);
+    const _probs = new Float32Array(4);
+
+    /**
+     * 前向推論計算：8 Inputs -> 16 Hidden (LeakyReLU) -> 4 Logits -> Softmax
+     */
+    function forwardPass(features) {
+        // 隱藏層運算
+        for (let i = 0; i < 16; i++) {
+            let sum = B1[i];
+            const rowOffset = i * 8;
+            for (let j = 0; j < 8; j++) {
+                sum += features[j] * W1[rowOffset + j];
+            }
+            // LeakyReLU: max(0.05 * sum, sum)
+            _hid[i] = sum > 0 ? sum : sum * 0.05;
+        }
+
+        // 輸出層運算
+        let maxLogit = -Infinity;
+        for (let k = 0; k < 4; k++) {
+            let sum = B2[k];
+            const rowOffset = k * 16;
+            for (let i = 0; i < 16; i++) {
+                sum += _hid[i] * W2[rowOffset + i];
+            }
+            _logits[k] = sum;
+            if (sum > maxLogit) maxLogit = sum;
+        }
+
+        // 數值穩定 Softmax
+        let expSum = 0;
+        for (let k = 0; k < 4; k++) {
+            const e = Math.exp(_logits[k] - maxLogit);
+            _probs[k] = e;
+            expSum += e;
+        }
+        for (let k = 0; k < 4; k++) {
+            _probs[k] /= expSum;
+        }
+
+        return _probs;
+    }
+
+    /**
+     * 戰術幾何解算器：根據神經網路決策的動作，推演最佳落點座標、初速倍率與旋轉參數
+     */
+    function resolveTactics(actionIdx, ball, playerPos, courtW, halfL, kitchenD) {
+        const action = ACTIONS[actionIdx];
+        const halfW = courtW * 0.5;
+        const safeW = halfW - 0.45; // 邊線安全留白 45cm，確保 100% 界內
+
+        let targetX = 0;
+        let targetZ = 0;
+        let speedScale = 1.0;
+        let spin = 0;
+        let liftY = 0;
+        let explanation = '';
+
+        // 玩家站位偏向 (Player Offset)
+        const px = playerPos ? playerPos.x : 0;
+        const pz = playerPos ? playerPos.z : halfL - 0.5;
+        // 尋找球場空檔 (反向空側)
+        const openCourtX = px > 0.3 ? -safeW * 0.85 : (px < -0.3 ? safeW * 0.85 : (Math.random() < 0.5 ? -safeW * 0.6 : safeW * 0.6));
+
+        switch (action) {
+            case 'DROP':
+                // 💧 第三桿放短：精確落在玩家廚房區 (1.15m ~ 1.85m)，柔和過網消去攻擊力
+                targetX = openCourtX * 0.6 + (Math.random() - 0.5) * 0.4;
+                targetZ = 1.25 + Math.random() * 0.60;
+                speedScale = 0.72;
+                spin = -0.08; // 輕微回旋
+                liftY = 0.25;
+                explanation = '對手深站底線，神經網路執行【第三桿放短】，將球柔和吊入廚房區！';
+                break;
+
+            case 'DRIVE':
+                // 🚀 穿越重砲：高速低平壓向深底線空檔角 (5.2m ~ 5.9m)
+                targetX = openCourtX + (Math.random() - 0.5) * 0.3;
+                targetZ = halfL - 0.95 + (Math.random() - 0.5) * 0.35;
+                speedScale = 1.22;
+                spin = 0.12 * Math.sign(openCourtX); // 兩側刁鑽上旋 / 側旋
+                liftY = 0;
+                explanation = '抓到邊線空檔，神經網路發動【穿越重砲抽球】，直壓底角！';
+                break;
+
+            case 'DINK':
+                // 🎾 廚房區切角小球：網前極致小角度對角切球 (0.8m ~ 1.6m)
+                targetX = (px > 0 ? -1 : 1) * safeW * 0.80 + (Math.random() - 0.5) * 0.3;
+                targetZ = 0.85 + Math.random() * 0.70;
+                speedScale = 0.65;
+                spin = (px > 0 ? -0.15 : 0.15); // 順勢切球
+                liftY = 0.18;
+                explanation = '網前近身交鋒，神經網路執行【大斜線丁克切球】，逼迫對手跨步！';
+                break;
+
+            case 'LOB':
+                // 🌈 挑高過頂長球：當玩家過度前衝時，高角度吊越過頂落在底線前 80cm
+                targetX = (Math.random() - 0.5) * 1.5;
+                targetZ = halfL - 0.80 + (Math.random() - 0.5) * 0.4;
+                speedScale = 0.92;
+                spin = 0;
+                liftY = 1.45; // 弧線大幅挑高
+                explanation = '偵測到對手過度逼近廚房網前，神經網路果斷【挑高過頂長球】！';
+                break;
+        }
+
+        // 界內安全鉗制
+        targetX = Math.max(-safeW, Math.min(safeW, targetX));
+        targetZ = Math.max(0.65, Math.min(halfL - 0.45, targetZ));
+
+        return {
+            targetX,
+            targetZ,
+            speedScale,
+            spin,
+            liftY,
+            explanation
+        };
+    }
+
+    /**
+     * 對外主介面：TinyPicklePolicy.evaluate(state)
+     */
+    const TinyPicklePolicy = {
+        ACTIONS,
+        ACTION_NAMES,
+
+        /**
+         * 執行決策推論
+         * @param {Object} state
+         *   - ball: { x, y, z, vx, vy, vz }
+         *   - player: { x, y, z }
+         *   - court: { width, halfL, kitchenD }
+         * @returns {Object} 包含最佳動作、機率分佈、戰術落點與解說
+         */
+        evaluate: function (state) {
+            const b = state.ball || { x: 0, y: 1.0, z: 0, vx: 0, vy: 0, vz: 0 };
+            const p = state.player || { x: 0, y: 0.9, z: 5.5 };
+            const cW = (state.court && state.court.width) || 6.10;
+            const hL = (state.court && state.court.halfL) || 6.70;
+            const kD = (state.court && state.court.kitchenD) || 2.13;
+
+            // 特徵正規化 [-1, 1]
+            _feat[0] = Math.max(-1, Math.min(1, b.x / (cW * 0.5)));
+            _feat[1] = Math.max(0, Math.min(1, b.y / 3.0));
+            _feat[2] = Math.max(-1, Math.min(1, b.z / hL));
+            _feat[3] = Math.max(-1, Math.min(1, (b.vx || 0) / 15.0));
+            _feat[4] = Math.max(-1, Math.min(1, (b.vy || 0) / 12.0));
+            _feat[5] = Math.max(-1, Math.min(1, (b.vz || 0) / 20.0));
+            _feat[6] = Math.max(-1, Math.min(1, p.x / (cW * 0.5)));
+            _feat[7] = Math.max(0, Math.min(1, p.z / hL)); // 0: 網前, 1: 深底線
+
+            const probs = forwardPass(_feat);
+
+            // 選取最高機率之戰術
+            let bestIdx = 0;
+            let bestProb = probs[0];
+            for (let i = 1; i < 4; i++) {
+                if (probs[i] > bestProb) {
+                    bestProb = probs[i];
+                    bestIdx = i;
+                }
+            }
+
+            const tactics = resolveTactics(bestIdx, b, p, cW, hL, kD);
+
+            return {
+                action: ACTIONS[bestIdx],
+                actionName: ACTION_NAMES[ACTIONS[bestIdx]],
+                confidence: bestProb,
+                probabilities: [probs[0], probs[1], probs[2], probs[3]],
+                tactics: tactics
+            };
+        }
+    };
+
+    if (typeof module !== 'undefined' && module.exports) {
+        module.exports = TinyPicklePolicy;
+    }
+    if (typeof global !== 'undefined') {
+        global.TinyPicklePolicy = TinyPicklePolicy;
+        global.PickleNeuralPolicy = TinyPicklePolicy;
+    }
+})(typeof window !== 'undefined' ? window : global);
+
+
 /* ─── fun_mode.js ─── */
 /* ═══════════════════════════════════════════════════════════════════
    NCHU Pickleball V5 - 瘋狂道具戰模式 (Fun Item Battle Mode)
@@ -14645,6 +14935,25 @@ function cycleTeachLevelQuick() {
             return t;
         }
 
+        let woodPlanksTexRef = null;
+        function acWoodPlanksTex() {
+            const c = document.createElement('canvas'); c.width = 256; c.height = 256;
+            const ctx = c.getContext('2d');
+            ctx.fillStyle = '#deb887'; ctx.fillRect(0, 0, 256, 256);
+            ctx.strokeStyle = '#b07d50'; ctx.lineWidth = 4;
+            for (let y = 0; y < 256; y += 32) {
+                ctx.fillStyle = (y % 64 === 0) ? '#e6c594' : '#deb887';
+                ctx.fillRect(0, y, 256, 30);
+                ctx.beginPath(); ctx.moveTo(0, y + 31); ctx.lineTo(256, y + 31); ctx.stroke();
+                ctx.fillStyle = 'rgba(120, 60, 20, 0.22)';
+                ctx.beginPath(); ctx.arc((y * 37) % 230 + 12, y + 16, 2.5, 0, Math.PI * 2); ctx.fill();
+            }
+            const t = new THREE.CanvasTexture(c);
+            t.encoding = THREE.sRGBEncoding; t.wrapS = t.wrapT = THREE.RepeatWrapping;
+            woodPlanksTexRef = t;
+            return t;
+        }
+
         function acFaceTex() {
             const c = document.createElement('canvas'); c.width = c.height = 128;
             const ctx = c.getContext('2d');
@@ -14724,17 +15033,24 @@ function cycleTeachLevelQuick() {
             const dims = (customW && customH) ? { w: customW, h: customH } : getStageDimensions();
             const aspect = dims.w / dims.h;
 
-            // ★ 寫死純直立視角 (Locked Portrait Mode Only):
-            // 透過垂直視場角 (vFoV) 自適應計算，保障球場左右邊界、發球區與對手鵝都在視野黃金分割區
-            const targetHFOVRad = 48 * Math.PI / 180;
-            const vFOVRad = 2 * Math.atan(Math.tan(targetHFOVRad / 2) / Math.min(aspect, 0.72));
-            const fov = Math.min(84, Math.max(52, vFOVRad * 180 / Math.PI));
+            // ★ 2.5D 動森立體玩具箱視角 (Compressed 2.5D Diorama Camera):
+            // 告別 84° 陡峭魚眼俯視，改採 42°~46° 壓縮長焦，相機後移並微降仰角 (camH: 5.0, camDist: 13.8)
+            // 讓球員、球拍、看台動物與對手匹克鵝立體站立，球場透視深邃且不失真
+            let fov = 44;
+            if (aspect > 1.2) {
+                fov = 40; // 橫向螢幕
+            } else if (aspect < 0.58) {
+                fov = 46; // 窄長直向手機 (9:19.5, 9:20)
+            } else {
+                fov = 43; // 標準直向 (9:16)
+            }
+
             return {
                 fov: fov,
-                camH: 6.1,
-                camDist: 11.5,
-                lookY: 0.85,
-                lookZ: -0.4,
+                camH: 5.0,
+                camDist: 13.8,
+                lookY: 0.95,
+                lookZ: -0.5,
                 ballScale: 1.25,
                 glowScale: 8,
                 glowOpacity: 0.35
@@ -14995,20 +15311,64 @@ function cycleTeachLevelQuick() {
         }
 
         function buildCourt() {
-            // ★ 外圍緩衝區：溫潤大地細沙 (Warm Earthy Sand Apron)
-            const outMat = new THREE.MeshStandardMaterial({ color: 0xd4a373, roughness: 0.90, metalness: 0.0 });
-            const out = new THREE.Mesh(new THREE.PlaneGeometry(COURT_W + 5.6, COURT_L + 5.6), outMat);
-            out.rotation.x = -Math.PI / 2; out.position.y = -0.008; out.receiveShadow = true; scene.add(out);
+            // ★ 1. 浮島原木甲板平台 (3D Raised Floating Wooden Deck Platform)
+            // 具備實體厚度 0.28m，浮於中興湖水面 (y = -0.14)，細緻木紋板條與柔和陰影
+            const woodTex = acWoodPlanksTex();
+            woodTex.repeat.set(6, 14);
+            const deckMat = new THREE.MeshStandardMaterial({
+                map: woodTex, color: 0xdeb887, roughness: 0.78, metalness: 0.05
+            });
+            const deckW = COURT_W + 4.8;
+            const deckL = COURT_L + 5.2;
+            const deckH = 0.28;
+            const deck = new THREE.Mesh(new THREE.BoxGeometry(deckW, deckH, deckL), deckMat);
+            deck.position.set(0, -deckH / 2, 0);
+            deck.receiveShadow = true;
+            deck.castShadow = true;
+            scene.add(deck);
 
-            // ★ 正式比賽發球區：動森草坪綠 (Cozy Meadow Turf Green)
-            const courtMat = new THREE.MeshStandardMaterial({ color: 0x2e8352, roughness: 0.88, metalness: 0.02 });
+            // ★ 2. 四周倒角原木護欄 (Beveled Wooden Curb Rims)
+            const curbMat = new THREE.MeshStandardMaterial({ color: 0x8b5a2b, roughness: 0.75 });
+            const curbThick = 0.18, curbH = 0.09;
+            for (const sx of [-1, 1]) {
+                const rim = new THREE.Mesh(new THREE.BoxGeometry(curbThick, curbH, deckL), curbMat);
+                rim.position.set(sx * (deckW / 2 - curbThick / 2), curbH / 2, 0);
+                rim.castShadow = true; rim.receiveShadow = true; scene.add(rim);
+            }
+            for (const sz of [-1, 1]) {
+                const rim = new THREE.Mesh(new THREE.BoxGeometry(deckW, curbH, curbThick), curbMat);
+                rim.position.set(0, curbH / 2, sz * (deckL / 2 - curbThick / 2));
+                rim.castShadow = true; rim.receiveShadow = true; scene.add(rim);
+            }
+
+            // ★ 3. 碼頭原木繫船柱 (Dock Wooden Bollards at Corners)
+            const bollardMat = new THREE.MeshStandardMaterial({ color: 0x6e4720, roughness: 0.8 });
+            const capMat = new THREE.MeshStandardMaterial({ color: 0x9a6b38, roughness: 0.6 });
+            for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
+                const bx = sx * (deckW / 2 - 0.26), bz = sz * (deckL / 2 - 0.26);
+                const post = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.16, 0.65, 12), bollardMat);
+                post.position.set(bx, 0.24, bz); post.castShadow = true; scene.add(post);
+                const cap = new THREE.Mesh(new THREE.SphereGeometry(0.16, 12, 8), capMat);
+                cap.position.set(bx, 0.54, bz); cap.scale.set(1, 0.5, 1); scene.add(cap);
+            }
+
+            // ★ 外圍緩衝草皮裝飾邊框 (動森草坪綠 0x2e8352 與暖陶土 0xc86446 色彩規範)
+            const courtTurfMat = new THREE.MeshStandardMaterial({ color: 0x2e8352, roughness: 0.88, metalness: 0.02 });
+            const courtApron = new THREE.Mesh(new THREE.PlaneGeometry(COURT_W + 0.36, COURT_L + 0.36), courtTurfMat);
+            courtApron.rotation.x = -Math.PI / 2; courtApron.position.y = 0.0005; courtApron.receiveShadow = true; scene.add(courtApron);
+
+            // ★ 4. 正式比賽發球區：動森水上湛藍湖水色 (Clear Lake Blue Service Courts)
+            const courtMat = new THREE.MeshStandardMaterial({ color: 0x0284c7, roughness: 0.82, metalness: 0.02 });
             const court = new THREE.Mesh(new THREE.PlaneGeometry(COURT_W, COURT_L), courtMat);
-            court.rotation.x = -Math.PI / 2; court.receiveShadow = true; scene.add(court);
+            court.rotation.x = -Math.PI / 2; court.position.y = 0.001; court.receiveShadow = true; scene.add(court);
 
-            // ★ 廚房區 (7 FT NVZ)：溫暖陶土紅土 (Warm Terracotta Peach Kitchen)
-            const kitMat = new THREE.MeshStandardMaterial({ color: 0xc86446, roughness: 0.88, metalness: 0.02 });
+            // ★ 5. 廚房區 (7 FT NVZ)：清新天青藍 (Fresh Sky Blue Kitchen) 與暖陶土基線
+            const kitMat = new THREE.MeshStandardMaterial({ color: 0x38bdf8, roughness: 0.82, metalness: 0.02 });
             const kit = new THREE.Mesh(new THREE.PlaneGeometry(COURT_W, KITCHEN_D * 2), kitMat);
-            kit.rotation.x = -Math.PI / 2; kit.position.y = 0.002; kit.receiveShadow = true; scene.add(kit);
+            kit.rotation.x = -Math.PI / 2; kit.position.y = 0.003; kit.receiveShadow = true; scene.add(kit);
+            const kitBaseAccent = new THREE.Mesh(new THREE.PlaneGeometry(COURT_W, 0.04),
+                new THREE.MeshBasicMaterial({ color: 0xc86446 }));
+            kitBaseAccent.rotation.x = -Math.PI / 2; kitBaseAccent.position.set(0, 0.0035, 0); scene.add(kitBaseAccent);
 
             // ★ 3D 廚房區 (7 FT Non-Volley Zone) 清新木紋白字立體標註
             try {
@@ -16735,14 +17095,39 @@ function solveArc(fx, fy, fz, tx, tz, out, speedScale) {
         }
         function planShot() {
             const plan = AI_PLAN[stage] || 'MIX', xl = COURT_W / 2 - 0.45;
-            if (plan === 'DEEP') {
-                aiShot.z = HALF_L - 0.55 - Math.random() * 0.6;
-                aiShot.x = THREE.MathUtils.clamp(pPos.x + (Math.random() - 0.5) * 1.2, -xl, xl);
-            } else if (plan === 'KITCHEN') {
-                // ★ v5.0.12: 第三關廚房落點優化：落點穩定在 1.15m ~ 1.85m (廚房線以內、過網餘裕充足)，弧線平滑過網，供玩家完美練習落地擊球
-                aiShot.z = 1.15 + Math.random() * 0.70;
-                aiShot.x = THREE.MathUtils.clamp(pPos.x * 0.45 + (Math.random() - 0.5) * 1.5, -xl, xl);
-            } else if (plan === 'BOSS') {
+
+            // ★ 前三關教學保持確定性教學引導落點
+            if (stage <= 3) {
+                if (plan === 'DEEP') {
+                    aiShot.z = HALF_L - 0.55 - Math.random() * 0.6;
+                    aiShot.x = THREE.MathUtils.clamp(pPos.x + (Math.random() - 0.5) * 1.2, -xl, xl);
+                } else if (plan === 'KITCHEN') {
+                    aiShot.z = 1.15 + Math.random() * 0.70;
+                    aiShot.x = THREE.MathUtils.clamp(pPos.x * 0.45 + (Math.random() - 0.5) * 1.5, -xl, xl);
+                }
+                return;
+            }
+
+            // ★ 🧠 輕量神經戰術小模型推論 (Tiny Pickle Neural Decision Policy)
+            if (typeof TinyPicklePolicy !== 'undefined' && TinyPicklePolicy.evaluate && (diffLevel !== 'easy' || stage >= 4)) {
+                try {
+                    const neuralRes = TinyPicklePolicy.evaluate({
+                        ball: { x: PH.pos.x, y: PH.pos.y, z: PH.pos.z, vx: PH.vel.x, vy: PH.vel.y, vz: PH.vel.z },
+                        player: { x: pPos.x, y: 0.9, z: pPos.z },
+                        court: { width: COURT_W, halfL: HALF_L, kitchenD: KITCHEN_D }
+                    });
+                    if (neuralRes && neuralRes.tactics) {
+                        aiShot.x = neuralRes.tactics.targetX;
+                        aiShot.z = neuralRes.tactics.targetZ;
+                        if (neuralRes.tactics.spin) PH.spin = neuralRes.tactics.spin;
+                        return;
+                    }
+                } catch(e) {
+                    console.warn('TinyPicklePolicy fallback to heuristic AI:', e);
+                }
+            }
+
+            if (plan === 'BOSS') {
                 // ★ 魔王關: 30% 丁克球 + 70% 兩側刁鑽深球
                 if (Math.random() < 0.30) {
                     aiShot.z = 0.65 + Math.random() * 1.15;

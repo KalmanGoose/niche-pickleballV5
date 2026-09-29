@@ -126,6 +126,25 @@
             return t;
         }
 
+        let woodPlanksTexRef = null;
+        function acWoodPlanksTex() {
+            const c = document.createElement('canvas'); c.width = 256; c.height = 256;
+            const ctx = c.getContext('2d');
+            ctx.fillStyle = '#deb887'; ctx.fillRect(0, 0, 256, 256);
+            ctx.strokeStyle = '#b07d50'; ctx.lineWidth = 4;
+            for (let y = 0; y < 256; y += 32) {
+                ctx.fillStyle = (y % 64 === 0) ? '#e6c594' : '#deb887';
+                ctx.fillRect(0, y, 256, 30);
+                ctx.beginPath(); ctx.moveTo(0, y + 31); ctx.lineTo(256, y + 31); ctx.stroke();
+                ctx.fillStyle = 'rgba(120, 60, 20, 0.22)';
+                ctx.beginPath(); ctx.arc((y * 37) % 230 + 12, y + 16, 2.5, 0, Math.PI * 2); ctx.fill();
+            }
+            const t = new THREE.CanvasTexture(c);
+            t.encoding = THREE.sRGBEncoding; t.wrapS = t.wrapT = THREE.RepeatWrapping;
+            woodPlanksTexRef = t;
+            return t;
+        }
+
         function acFaceTex() {
             const c = document.createElement('canvas'); c.width = c.height = 128;
             const ctx = c.getContext('2d');
@@ -205,17 +224,24 @@
             const dims = (customW && customH) ? { w: customW, h: customH } : getStageDimensions();
             const aspect = dims.w / dims.h;
 
-            // ★ 寫死純直立視角 (Locked Portrait Mode Only):
-            // 透過垂直視場角 (vFoV) 自適應計算，保障球場左右邊界、發球區與對手鵝都在視野黃金分割區
-            const targetHFOVRad = 48 * Math.PI / 180;
-            const vFOVRad = 2 * Math.atan(Math.tan(targetHFOVRad / 2) / Math.min(aspect, 0.72));
-            const fov = Math.min(84, Math.max(52, vFOVRad * 180 / Math.PI));
+            // ★ 2.5D 動森立體玩具箱視角 (Compressed 2.5D Diorama Camera):
+            // 告別 84° 陡峭魚眼俯視，改採 42°~46° 壓縮長焦，相機後移並微降仰角 (camH: 5.0, camDist: 13.8)
+            // 讓球員、球拍、看台動物與對手匹克鵝立體站立，球場透視深邃且不失真
+            let fov = 44;
+            if (aspect > 1.2) {
+                fov = 40; // 橫向螢幕
+            } else if (aspect < 0.58) {
+                fov = 46; // 窄長直向手機 (9:19.5, 9:20)
+            } else {
+                fov = 43; // 標準直向 (9:16)
+            }
+
             return {
                 fov: fov,
-                camH: 6.1,
-                camDist: 11.5,
-                lookY: 0.85,
-                lookZ: -0.4,
+                camH: 5.0,
+                camDist: 13.8,
+                lookY: 0.95,
+                lookZ: -0.5,
                 ballScale: 1.25,
                 glowScale: 8,
                 glowOpacity: 0.35
@@ -476,20 +502,64 @@
         }
 
         function buildCourt() {
-            // ★ 外圍緩衝區：溫潤大地細沙 (Warm Earthy Sand Apron)
-            const outMat = new THREE.MeshStandardMaterial({ color: 0xd4a373, roughness: 0.90, metalness: 0.0 });
-            const out = new THREE.Mesh(new THREE.PlaneGeometry(COURT_W + 5.6, COURT_L + 5.6), outMat);
-            out.rotation.x = -Math.PI / 2; out.position.y = -0.008; out.receiveShadow = true; scene.add(out);
+            // ★ 1. 浮島原木甲板平台 (3D Raised Floating Wooden Deck Platform)
+            // 具備實體厚度 0.28m，浮於中興湖水面 (y = -0.14)，細緻木紋板條與柔和陰影
+            const woodTex = acWoodPlanksTex();
+            woodTex.repeat.set(6, 14);
+            const deckMat = new THREE.MeshStandardMaterial({
+                map: woodTex, color: 0xdeb887, roughness: 0.78, metalness: 0.05
+            });
+            const deckW = COURT_W + 4.8;
+            const deckL = COURT_L + 5.2;
+            const deckH = 0.28;
+            const deck = new THREE.Mesh(new THREE.BoxGeometry(deckW, deckH, deckL), deckMat);
+            deck.position.set(0, -deckH / 2, 0);
+            deck.receiveShadow = true;
+            deck.castShadow = true;
+            scene.add(deck);
 
-            // ★ 正式比賽發球區：動森草坪綠 (Cozy Meadow Turf Green)
-            const courtMat = new THREE.MeshStandardMaterial({ color: 0x2e8352, roughness: 0.88, metalness: 0.02 });
+            // ★ 2. 四周倒角原木護欄 (Beveled Wooden Curb Rims)
+            const curbMat = new THREE.MeshStandardMaterial({ color: 0x8b5a2b, roughness: 0.75 });
+            const curbThick = 0.18, curbH = 0.09;
+            for (const sx of [-1, 1]) {
+                const rim = new THREE.Mesh(new THREE.BoxGeometry(curbThick, curbH, deckL), curbMat);
+                rim.position.set(sx * (deckW / 2 - curbThick / 2), curbH / 2, 0);
+                rim.castShadow = true; rim.receiveShadow = true; scene.add(rim);
+            }
+            for (const sz of [-1, 1]) {
+                const rim = new THREE.Mesh(new THREE.BoxGeometry(deckW, curbH, curbThick), curbMat);
+                rim.position.set(0, curbH / 2, sz * (deckL / 2 - curbThick / 2));
+                rim.castShadow = true; rim.receiveShadow = true; scene.add(rim);
+            }
+
+            // ★ 3. 碼頭原木繫船柱 (Dock Wooden Bollards at Corners)
+            const bollardMat = new THREE.MeshStandardMaterial({ color: 0x6e4720, roughness: 0.8 });
+            const capMat = new THREE.MeshStandardMaterial({ color: 0x9a6b38, roughness: 0.6 });
+            for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
+                const bx = sx * (deckW / 2 - 0.26), bz = sz * (deckL / 2 - 0.26);
+                const post = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.16, 0.65, 12), bollardMat);
+                post.position.set(bx, 0.24, bz); post.castShadow = true; scene.add(post);
+                const cap = new THREE.Mesh(new THREE.SphereGeometry(0.16, 12, 8), capMat);
+                cap.position.set(bx, 0.54, bz); cap.scale.set(1, 0.5, 1); scene.add(cap);
+            }
+
+            // ★ 外圍緩衝草皮裝飾邊框 (動森草坪綠 0x2e8352 與暖陶土 0xc86446 色彩規範)
+            const courtTurfMat = new THREE.MeshStandardMaterial({ color: 0x2e8352, roughness: 0.88, metalness: 0.02 });
+            const courtApron = new THREE.Mesh(new THREE.PlaneGeometry(COURT_W + 0.36, COURT_L + 0.36), courtTurfMat);
+            courtApron.rotation.x = -Math.PI / 2; courtApron.position.y = 0.0005; courtApron.receiveShadow = true; scene.add(courtApron);
+
+            // ★ 4. 正式比賽發球區：動森水上湛藍湖水色 (Clear Lake Blue Service Courts)
+            const courtMat = new THREE.MeshStandardMaterial({ color: 0x0284c7, roughness: 0.82, metalness: 0.02 });
             const court = new THREE.Mesh(new THREE.PlaneGeometry(COURT_W, COURT_L), courtMat);
-            court.rotation.x = -Math.PI / 2; court.receiveShadow = true; scene.add(court);
+            court.rotation.x = -Math.PI / 2; court.position.y = 0.001; court.receiveShadow = true; scene.add(court);
 
-            // ★ 廚房區 (7 FT NVZ)：溫暖陶土紅土 (Warm Terracotta Peach Kitchen)
-            const kitMat = new THREE.MeshStandardMaterial({ color: 0xc86446, roughness: 0.88, metalness: 0.02 });
+            // ★ 5. 廚房區 (7 FT NVZ)：清新天青藍 (Fresh Sky Blue Kitchen) 與暖陶土基線
+            const kitMat = new THREE.MeshStandardMaterial({ color: 0x38bdf8, roughness: 0.82, metalness: 0.02 });
             const kit = new THREE.Mesh(new THREE.PlaneGeometry(COURT_W, KITCHEN_D * 2), kitMat);
-            kit.rotation.x = -Math.PI / 2; kit.position.y = 0.002; kit.receiveShadow = true; scene.add(kit);
+            kit.rotation.x = -Math.PI / 2; kit.position.y = 0.003; kit.receiveShadow = true; scene.add(kit);
+            const kitBaseAccent = new THREE.Mesh(new THREE.PlaneGeometry(COURT_W, 0.04),
+                new THREE.MeshBasicMaterial({ color: 0xc86446 }));
+            kitBaseAccent.rotation.x = -Math.PI / 2; kitBaseAccent.position.set(0, 0.0035, 0); scene.add(kitBaseAccent);
 
             // ★ 3D 廚房區 (7 FT Non-Volley Zone) 清新木紋白字立體標註
             try {
@@ -2216,14 +2286,39 @@ function solveArc(fx, fy, fz, tx, tz, out, speedScale) {
         }
         function planShot() {
             const plan = AI_PLAN[stage] || 'MIX', xl = COURT_W / 2 - 0.45;
-            if (plan === 'DEEP') {
-                aiShot.z = HALF_L - 0.55 - Math.random() * 0.6;
-                aiShot.x = THREE.MathUtils.clamp(pPos.x + (Math.random() - 0.5) * 1.2, -xl, xl);
-            } else if (plan === 'KITCHEN') {
-                // ★ v5.0.12: 第三關廚房落點優化：落點穩定在 1.15m ~ 1.85m (廚房線以內、過網餘裕充足)，弧線平滑過網，供玩家完美練習落地擊球
-                aiShot.z = 1.15 + Math.random() * 0.70;
-                aiShot.x = THREE.MathUtils.clamp(pPos.x * 0.45 + (Math.random() - 0.5) * 1.5, -xl, xl);
-            } else if (plan === 'BOSS') {
+
+            // ★ 前三關教學保持確定性教學引導落點
+            if (stage <= 3) {
+                if (plan === 'DEEP') {
+                    aiShot.z = HALF_L - 0.55 - Math.random() * 0.6;
+                    aiShot.x = THREE.MathUtils.clamp(pPos.x + (Math.random() - 0.5) * 1.2, -xl, xl);
+                } else if (plan === 'KITCHEN') {
+                    aiShot.z = 1.15 + Math.random() * 0.70;
+                    aiShot.x = THREE.MathUtils.clamp(pPos.x * 0.45 + (Math.random() - 0.5) * 1.5, -xl, xl);
+                }
+                return;
+            }
+
+            // ★ 🧠 輕量神經戰術小模型推論 (Tiny Pickle Neural Decision Policy)
+            if (typeof TinyPicklePolicy !== 'undefined' && TinyPicklePolicy.evaluate && (diffLevel !== 'easy' || stage >= 4)) {
+                try {
+                    const neuralRes = TinyPicklePolicy.evaluate({
+                        ball: { x: PH.pos.x, y: PH.pos.y, z: PH.pos.z, vx: PH.vel.x, vy: PH.vel.y, vz: PH.vel.z },
+                        player: { x: pPos.x, y: 0.9, z: pPos.z },
+                        court: { width: COURT_W, halfL: HALF_L, kitchenD: KITCHEN_D }
+                    });
+                    if (neuralRes && neuralRes.tactics) {
+                        aiShot.x = neuralRes.tactics.targetX;
+                        aiShot.z = neuralRes.tactics.targetZ;
+                        if (neuralRes.tactics.spin) PH.spin = neuralRes.tactics.spin;
+                        return;
+                    }
+                } catch(e) {
+                    console.warn('TinyPicklePolicy fallback to heuristic AI:', e);
+                }
+            }
+
+            if (plan === 'BOSS') {
                 // ★ 魔王關: 30% 丁克球 + 70% 兩側刁鑽深球
                 if (Math.random() < 0.30) {
                     aiShot.z = 0.65 + Math.random() * 1.15;

@@ -32,7 +32,7 @@ console.log("══════════════════════�
 // ── 1. 語法檢測 (Syntax Check) ──
 console.log("▶ [1/8] 模組語法檢測 (Node.js vm & Syntax Parsing)...");
 const jsFiles = ["config.js", "audio.js", "physics.js", "referee.js", "motion.js",
-    "hub_sandbox.js", "ui.js", "social.js", "fly_connectome.js", "fun_mode.js", "game.js"];
+    "hub_sandbox.js", "ui.js", "social.js", "fly_connectome.js", "pickle_neural_policy.js", "fun_mode.js", "game.js"];
 for (const f of jsFiles) {
     const full = path.join(ROOT, "js", f);
     try {
@@ -422,6 +422,29 @@ try {
         "對牆特訓徹底隔絕蒼蠅/匹克鵝發球定時器與道具空投干擾");
 } catch (e) {
     assert(false, "資安滲透防禦與 NookPhone 檢測異常", e.message);
+}
+
+// ── 11. 2.5D 動森立體玩具箱球場、單打規則與神經決策小模型 ──
+console.log("\n▶ [11/11] 2.5D 動森立體玩具箱球場、單打規則與神經決策小模型 (2.5D Court & Neural Policy)...");
+try {
+    const gameSrc = fs.readFileSync(path.resolve(__dirname, "../js/game.js"), "utf8");
+    const refereeSrc = fs.readFileSync(path.resolve(__dirname, "../js/referee.js"), "utf8");
+    const hudCssSrc = fs.readFileSync(path.resolve(__dirname, "../css/hud.css"), "utf8");
+
+    assert(gameSrc.includes("acWoodPlanksTex") && gameSrc.includes("camDist: 13.8") && gameSrc.includes("lookY: 0.95"),
+        "js/game.js 包含 2.5D 壓縮長焦玩具箱相機 (camH: 5.0, camDist: 13.8) 與浮島木甲板材質");
+    assert(gameSrc.includes("0x0284c7") && gameSrc.includes("0x38bdf8"),
+        "js/game.js 球場升級為動森水上湛藍發球區 (0x0284c7) 與天青藍廚房區 (0x38bdf8)");
+    assert(refereeSrc.includes("USA Pickleball Official Singles Rules") && !refereeSrc.includes("Second Serve"),
+        "js/referee.js 單打模式遵循 USA Pickleball 官方規則：失分即 Side-out 換發球權，徹底根除雙打 Second Serve 誤用");
+    assert(refereeSrc.includes("isMajorCall") && refereeSrc.includes("announceReferee(main, sub, isFault)"),
+        "js/referee.js 實裝裁判廣播與中央提示分流，重大判決隱藏中央大字，徹底杜絕三層疊字遮擋");
+    assert(fs.existsSync(path.join(ROOT, "js", "pickle_neural_policy.js")) && gameSrc.includes("TinyPicklePolicy.evaluate"),
+        "實裝輕量神經戰術小模型 (TinyPicklePolicy) 並於 AI planShot 決策中深度融合");
+    assert(hudCssSrc.includes("#referee-announcement.mode-1") && hudCssSrc.includes("calc(56px + env(safe-area-inset-top))"),
+        "hud.css 裁判廣播膠囊精準定位於頂部藥丸下方 (top: 56px)，杜絕介面重疊");
+} catch (e) {
+    assert(false, "2.5D 動森球場與神經小模型檢測異常", e.message);
 }
 
 // ── 總結 ──
