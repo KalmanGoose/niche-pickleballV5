@@ -308,31 +308,31 @@ function syncSubbarStates() {
             const rect = el.getBoundingClientRect();
             if (rect.width === 0 || rect.height === 0) return;
 
-            const winW = window.innerWidth;
-            const winH = window.innerHeight;
+            const parentEl = el.offsetParent || document.getElementById('game-container') || document.body;
+            const pRect = parentEl.getBoundingClientRect();
 
             let shiftX = 0;
             let shiftY = 0;
 
-            if (rect.right > winW - margin) {
-                shiftX = (winW - margin) - rect.right;
+            if (rect.right > pRect.right - margin) {
+                shiftX = (pRect.right - margin) - rect.right;
             }
-            if (rect.left + shiftX < margin) {
-                shiftX = margin - rect.left;
+            if (rect.left + shiftX < pRect.left + margin) {
+                shiftX = (pRect.left + margin) - rect.left;
             }
 
-            if (rect.bottom > winH - margin) {
-                shiftY = (winH - margin) - rect.bottom;
+            if (rect.bottom > pRect.bottom - margin) {
+                shiftY = (pRect.bottom - margin) - rect.bottom;
             }
-            if (rect.top + shiftY < margin) {
-                shiftY = margin - rect.top;
+            if (rect.top + shiftY < pRect.top + margin) {
+                shiftY = (pRect.top + margin) - rect.top;
             }
 
             if (Math.abs(shiftX) > 0.5 || Math.abs(shiftY) > 0.5) {
-                const curLeft = parseFloat(el.style.left) || rect.left;
-                const curTop = parseFloat(el.style.top) || rect.top;
-                el.style.left = (curLeft + shiftX) + 'px';
-                el.style.top = (curTop + shiftY) + 'px';
+                const curLeft = parseFloat(el.style.left) || (rect.left - pRect.left);
+                const curTop = parseFloat(el.style.top) || (rect.top - pRect.top);
+                el.style.left = Math.round(curLeft + shiftX) + 'px';
+                el.style.top = Math.round(curTop + shiftY) + 'px';
                 el.style.right = 'auto';
                 el.style.bottom = 'auto';
             }
@@ -528,70 +528,58 @@ function syncSubbarStates() {
             let isDragging = false;
             let pointerDownActive = false;
             let startPointerX = 0, startPointerY = 0;
-            let initLeft = 0, initTop = 0;
+            let grabOffsetX = 0, grabOffsetY = 0;
             let hasMoved = false;
             let lastTapTime = 0;
 
             const dragTrigger = dragHandle || el;
 
-            dragTrigger.addEventListener('pointerdown', (e) => {
-                if (e.button && e.button !== 0) return;
-                if (ignoreSelector && e.target.closest(ignoreSelector)) return;
-
-                pointerDownActive = true;
-                isDragging = false;
-                hasMoved = false;
-                startPointerX = e.clientX;
-                startPointerY = e.clientY;
-
-                const rect = el.getBoundingClientRect();
-                initLeft = rect.left;
-                initTop = rect.top;
-            });
-
-            dragTrigger.addEventListener('pointermove', (e) => {
+            const onPointerMove = (e) => {
                 if (!pointerDownActive) return;
-                const dx = e.clientX - startPointerX;
-                const dy = e.clientY - startPointerY;
-                const dist = Math.hypot(dx, dy);
+                const dist = Math.hypot(e.clientX - startPointerX, e.clientY - startPointerY);
 
-                // 8px 門檻值：未達 8px 視為正常點按，絕不干擾/攔截子元素點擊
+                // 6px 門檻值：未達 6px 視為輕點，超逾 6px 即刻啟動真隨動拖曳
                 if (!isDragging) {
-                    if (dist > 8) {
+                    if (dist > 6) {
                         isDragging = true;
                         hasMoved = true;
-                        el.style.transform = 'none';
-                        el.style.left = initLeft + 'px';
-                        el.style.top = initTop + 'px';
-                        el.style.right = 'auto';
-                        el.style.bottom = 'auto';
                         el.style.zIndex = '9999';
                         el.classList.add('hud-dragging');
-                        try { dragTrigger.setPointerCapture(e.pointerId); } catch (_) {}
                     } else {
                         return;
                     }
                 }
 
-                const rect = el.getBoundingClientRect();
-                const winW = window.innerWidth;
-                const winH = window.innerHeight;
-                const margin = 8;
+                const parentEl = el.offsetParent || document.getElementById('game-container') || document.body;
+                const parentRect = parentEl.getBoundingClientRect();
+                const elRect = el.getBoundingClientRect();
 
-                const maxLeft = Math.max(margin, winW - rect.width - margin);
-                const maxTop = Math.max(margin, winH - rect.height - margin);
+                // ★ 核心修復：手指觸控點 100% 絕對咬合跟隨 (手指在哪裡，元素精確咬住手指)
+                let targetLeft = (e.clientX - grabOffsetX) - parentRect.left;
+                let targetTop = (e.clientY - grabOffsetY) - parentRect.top;
 
-                const newL = Math.max(margin, Math.min(maxLeft, initLeft + dx));
-                const newT = Math.max(margin, Math.min(maxTop, initTop + dy));
+                // 父容器內部邊界保護 (4px 內縮，杜絕爆框)
+                const margin = 4;
+                const maxLeft = parentEl.clientWidth - elRect.width - margin;
+                const maxTop = parentEl.clientHeight - elRect.height - margin;
 
-                el.style.left = newL + 'px';
-                el.style.top = newT + 'px';
+                targetLeft = Math.max(margin, Math.min(Math.max(margin, maxLeft), targetLeft));
+                targetTop = Math.max(margin, Math.min(Math.max(margin, maxTop), targetTop));
+
+                el.style.left = Math.round(targetLeft) + 'px';
+                el.style.top = Math.round(targetTop) + 'px';
+                el.style.right = 'auto';
+                el.style.bottom = 'auto';
 
                 e.stopPropagation();
                 e.preventDefault();
-            });
+            };
 
             const endDrag = (e) => {
+                window.removeEventListener('pointermove', onPointerMove);
+                window.removeEventListener('pointerup', endDrag);
+                window.removeEventListener('pointercancel', endDrag);
+
                 if (!pointerDownActive) return;
                 pointerDownActive = false;
 
@@ -599,7 +587,6 @@ function syncSubbarStates() {
                     isDragging = false;
                     el.classList.remove('hud-dragging');
                     el.style.zIndex = String(window.getNextHudZIndex());
-                    try { dragTrigger.releasePointerCapture(e.pointerId); } catch (_) {}
 
                     // 真正位移拖曳才阻斷 click，保護單純輕點操作
                     const killClick = (ev) => {
@@ -607,10 +594,9 @@ function syncSubbarStates() {
                         ev.preventDefault();
                     };
                     window.addEventListener('click', killClick, { capture: true, once: true });
-                    setTimeout(() => window.removeEventListener('click', killClick, { capture: true }), 180);
+                    setTimeout(() => window.removeEventListener('click', killClick, { capture: true }), 200);
 
-                    // 智慧防重疊避讓與邊界防爆框
-                    window.resolveHudOverlap(el);
+                    // 確保邊界安全 (只防爆框，尊重玩家的手動擺放，絕不強行彈開竄改位置)
                     window.clampHudElement(el);
 
                     const curLeft = parseFloat(el.style.left);
@@ -621,7 +607,7 @@ function syncSubbarStates() {
                         } catch (_) {}
                     }
                     if (typeof toast === 'function') {
-                        toast(`📍 ${name}位置已就緒`, '自動避讓重疊並記憶位置');
+                        toast(`📍 ${name}位置已就緒`, '已記錄當前自訂位置');
                     }
                 } else {
                     // 單純輕點操作：支援雙擊重置與點擊回調
@@ -638,8 +624,26 @@ function syncSubbarStates() {
                 }
             };
 
-            dragTrigger.addEventListener('pointerup', endDrag);
-            dragTrigger.addEventListener('pointercancel', endDrag);
+            dragTrigger.addEventListener('pointerdown', (e) => {
+                if (e.button && e.button !== 0) return;
+                if (ignoreSelector && e.target.closest(ignoreSelector)) return;
+
+                pointerDownActive = true;
+                isDragging = false;
+                hasMoved = false;
+                startPointerX = e.clientX;
+                startPointerY = e.clientY;
+
+                const elRect = el.getBoundingClientRect();
+                // 記錄手指相對於元素左上角的相對抓取偏差量
+                grabOffsetX = e.clientX - elRect.left;
+                grabOffsetY = e.clientY - elRect.top;
+
+                // ★ 全域監聽 window 上的指針移動與釋放，手指即便快速甩動滑脫也 100% 流暢跟隨！
+                window.addEventListener('pointermove', onPointerMove, { passive: false });
+                window.addEventListener('pointerup', endDrag);
+                window.addEventListener('pointercancel', endDrag);
+            });
 
             function resetToDefault() {
                 if (storageKey) {

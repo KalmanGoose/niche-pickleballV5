@@ -694,7 +694,7 @@
             window.makeHudDraggable(hud, {
                 storageKey: 'nchu_fly_snn_custom_pos',
                 name: '神經示波器',
-                ignoreSelector: 'button, canvas, #snn-zoom-level, .card-resize-handle',
+                ignoreSelector: 'button, canvas, #snn-zoom-level, .card-resize-handle, .snn-ctrls',
                 onReset: () => {
                     snnPosIdx = 0;
                     applySnnPosition(0, true);
