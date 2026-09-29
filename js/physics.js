@@ -69,9 +69,14 @@ function integrateVel(vel, spin, h, mode) {
     return spin;
 }
 
-function crossesNet(z0, z1, y1, x1) {
-    return z0 !== z1 && z0 * z1 <= 0 &&
-        y1 < NET_H + BALL_R && Math.abs(x1) < COURT_W / 2 + 0.2;
+function crossesNet(z0, z1, y1, x1, y0) {
+    if (z0 === z1 || z0 * z1 > 0) return false;
+    let netY = y1;
+    if (typeof y0 === 'number' && Math.abs(z1 - z0) > 1e-6) {
+        const t = Math.abs(z0) / Math.abs(z1 - z0);
+        netY = y0 + (y1 - y0) * t;
+    }
+    return netY < NET_H + BALL_R && Math.abs(x1) < COURT_W / 2 + 0.2;
 }
 
 /* ═══════ 飛行模擬器（預測、預覽線、彈道解算共用） ═══════ */
@@ -88,11 +93,11 @@ function simulateFlight(p0, v0, spin, pts, h, tMax) {
     let s = spin || 0, t = 0, n = 0;
     if (n < cap) pts[n++].copy(_simP);
     while (t < tMax) {
-        const z0 = _simP.z;
+        const z0 = _simP.z, y0 = _simP.y;
         s = integrateVel(_simV, s, h, currentPhysicsMode);
         _simP.addScaledVector(_simV, h);
         t += h;
-        if (crossesNet(z0, _simP.z, _simP.y, _simP.x)) {
+        if (crossesNet(z0, _simP.z, _simP.y, _simP.x, y0)) {
             _simP.z = 0;
             if (n < cap) pts[n++].copy(_simP);
             _simOut.x = _simP.x; _simOut.z = 0; _simOut.t = t; _simOut.net = true; _simOut.n = n;
@@ -179,7 +184,7 @@ class Physics {
         this.sync();
     }
     step(h) {
-        const pz = this.pos.z;
+        const pz = this.pos.z, py = this.pos.y;
         this.spin = integrateVel(this.vel, this.spin, h, currentPhysicsMode);
         if (ball) {
             ball.rotation.x -= this.vel.z * 3.6 * h;
@@ -197,7 +202,7 @@ class Physics {
                 if (typeof onWallHit === 'function') onWallHit(this.pos.x, this.pos.y);
                 return true;
             }
-        } else if (crossesNet(pz, this.pos.z, this.pos.y, this.pos.x)) {
+        } else if (crossesNet(pz, this.pos.z, this.pos.y, this.pos.x, py)) {
             this.pos.z = 0; this.vel.set(0, 0, 0);
             S.net(); addShake(0.1);
             popRing(this.pos.x, 0.05, 2, 0xff5555);

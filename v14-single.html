@@ -9905,9 +9905,14 @@ function integrateVel(vel, spin, h, mode) {
     return spin;
 }
 
-function crossesNet(z0, z1, y1, x1) {
-    return z0 !== z1 && z0 * z1 <= 0 &&
-        y1 < NET_H + BALL_R && Math.abs(x1) < COURT_W / 2 + 0.2;
+function crossesNet(z0, z1, y1, x1, y0) {
+    if (z0 === z1 || z0 * z1 > 0) return false;
+    let netY = y1;
+    if (typeof y0 === 'number' && Math.abs(z1 - z0) > 1e-6) {
+        const t = Math.abs(z0) / Math.abs(z1 - z0);
+        netY = y0 + (y1 - y0) * t;
+    }
+    return netY < NET_H + BALL_R && Math.abs(x1) < COURT_W / 2 + 0.2;
 }
 
 /* ═══════ 飛行模擬器（預測、預覽線、彈道解算共用） ═══════ */
@@ -9924,11 +9929,11 @@ function simulateFlight(p0, v0, spin, pts, h, tMax) {
     let s = spin || 0, t = 0, n = 0;
     if (n < cap) pts[n++].copy(_simP);
     while (t < tMax) {
-        const z0 = _simP.z;
+        const z0 = _simP.z, y0 = _simP.y;
         s = integrateVel(_simV, s, h, currentPhysicsMode);
         _simP.addScaledVector(_simV, h);
         t += h;
-        if (crossesNet(z0, _simP.z, _simP.y, _simP.x)) {
+        if (crossesNet(z0, _simP.z, _simP.y, _simP.x, y0)) {
             _simP.z = 0;
             if (n < cap) pts[n++].copy(_simP);
             _simOut.x = _simP.x; _simOut.z = 0; _simOut.t = t; _simOut.net = true; _simOut.n = n;
@@ -10015,7 +10020,7 @@ class Physics {
         this.sync();
     }
     step(h) {
-        const pz = this.pos.z;
+        const pz = this.pos.z, py = this.pos.y;
         this.spin = integrateVel(this.vel, this.spin, h, currentPhysicsMode);
         if (ball) {
             ball.rotation.x -= this.vel.z * 3.6 * h;
@@ -10033,7 +10038,7 @@ class Physics {
                 if (typeof onWallHit === 'function') onWallHit(this.pos.x, this.pos.y);
                 return true;
             }
-        } else if (crossesNet(pz, this.pos.z, this.pos.y, this.pos.x)) {
+        } else if (crossesNet(pz, this.pos.z, this.pos.y, this.pos.x, py)) {
             this.pos.z = 0; this.vel.set(0, 0, 0);
             S.net(); addShake(0.1);
             popRing(this.pos.x, 0.05, 2, 0xff5555);
@@ -11168,7 +11173,8 @@ function syncPhysicsModeUI() {
             if (!SWIPE.active) return;
             if (window.FunMode && FunMode.onSwipeMove) FunMode.onSwipeMove(x, y);
             const now = performance.now();
-            const dt = Math.max(0.004, Math.min(0.08, (now - SWIPE.lastTime) / 1000));
+            const prevTime = SWIPE.lastTime;
+            const dt = Math.max(0.004, Math.min(0.08, (now - prevTime) / 1000));
             SWIPE.lastTime = now;
 
             const dx = x - SWIPE.prevX;
@@ -11198,7 +11204,7 @@ function syncPhysicsModeUI() {
             if (stepDist > 30 && SWIPE.history.length > 0) {
                 const midX = (SWIPE.prevX + x) * 0.5;
                 const midY = (SWIPE.prevY + y) * 0.5;
-                const midT = (SWIPE.lastTime + now) * 0.5;
+                const midT = (prevTime + now) * 0.5;
                 SWIPE.history.push({ x: midX, y: midY, t: midT });
             }
             SWIPE.history.push({ x, y, t: now });
@@ -15175,7 +15181,7 @@ function cycleTeachLevelQuick() {
                     this.refTimer -= actualDtSub;
                     this.Vm = this.vReset;
                 } else {
-                    // 神經生物布朗噪聲 (Ornstein-Uhlenbeck / Gaussian Jitter)
+                    // 高斯類白噪聲膜電位擾動 (Uniform White Noise Jitter)
                     const noise = (this.noiseAmp > 0) ? (Math.random() - 0.5) * this.noiseAmp * 5.0 : 0.0;
 
                     // LIF-A 微分方程 (含 dVm 與 Vm 安全數值鉗制):
@@ -15192,7 +15198,7 @@ function cycleTeachLevelQuick() {
                         this.refTimer = this.tauRef; // 進入 3.5ms 不反應期
                         this.adapt += this.adaptB;   // 適應性電流激增
 
-                        // STDP 脈衝依賴在線突觸自適應
+                        // 環境刺激驅動突觸自適應 (Reward-modulated Plasticity / Hebbian-like)
                         if (this.stdpEnabled) {
                             const dw = (this.vApproach > 5.0 ? 0.08 : -0.02) * this.stdpRate;
                             this.wLC4 = THREE_CLAMP(this.wLC4 + dw, 2.0, 6.0);
@@ -15240,7 +15246,7 @@ function cycleTeachLevelQuick() {
             this.isFatigued = (this.xVesicle < 0.26);
             this.dThetaDt = 0.0;
             this.iSyn = 0.0;
-            this.dlmnFreq = 70.0;
+            this.dlmnFreq = this.isFatigued ? 14.0 : this.dlmnBaseFreq;
             this.ttmnActive = false;
         }
 

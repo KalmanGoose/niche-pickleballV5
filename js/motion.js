@@ -559,7 +559,8 @@
             if (!SWIPE.active) return;
             if (window.FunMode && FunMode.onSwipeMove) FunMode.onSwipeMove(x, y);
             const now = performance.now();
-            const dt = Math.max(0.004, Math.min(0.08, (now - SWIPE.lastTime) / 1000));
+            const prevTime = SWIPE.lastTime;
+            const dt = Math.max(0.004, Math.min(0.08, (now - prevTime) / 1000));
             SWIPE.lastTime = now;
 
             const dx = x - SWIPE.prevX;
@@ -589,7 +590,7 @@
             if (stepDist > 30 && SWIPE.history.length > 0) {
                 const midX = (SWIPE.prevX + x) * 0.5;
                 const midY = (SWIPE.prevY + y) * 0.5;
-                const midT = (SWIPE.lastTime + now) * 0.5;
+                const midT = (prevTime + now) * 0.5;
                 SWIPE.history.push({ x: midX, y: midY, t: midT });
             }
             SWIPE.history.push({ x, y, t: now });

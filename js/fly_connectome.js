@@ -295,7 +295,7 @@
                     this.refTimer -= actualDtSub;
                     this.Vm = this.vReset;
                 } else {
-                    // 神經生物布朗噪聲 (Ornstein-Uhlenbeck / Gaussian Jitter)
+                    // 高斯類白噪聲膜電位擾動 (Uniform White Noise Jitter)
                     const noise = (this.noiseAmp > 0) ? (Math.random() - 0.5) * this.noiseAmp * 5.0 : 0.0;
 
                     // LIF-A 微分方程 (含 dVm 與 Vm 安全數值鉗制):
@@ -312,7 +312,7 @@
                         this.refTimer = this.tauRef; // 進入 3.5ms 不反應期
                         this.adapt += this.adaptB;   // 適應性電流激增
 
-                        // STDP 脈衝依賴在線突觸自適應
+                        // 環境刺激驅動突觸自適應 (Reward-modulated Plasticity / Hebbian-like)
                         if (this.stdpEnabled) {
                             const dw = (this.vApproach > 5.0 ? 0.08 : -0.02) * this.stdpRate;
                             this.wLC4 = THREE_CLAMP(this.wLC4 + dw, 2.0, 6.0);
@@ -360,7 +360,7 @@
             this.isFatigued = (this.xVesicle < 0.26);
             this.dThetaDt = 0.0;
             this.iSyn = 0.0;
-            this.dlmnFreq = 70.0;
+            this.dlmnFreq = this.isFatigued ? 14.0 : this.dlmnBaseFreq;
             this.ttmnActive = false;
         }
 

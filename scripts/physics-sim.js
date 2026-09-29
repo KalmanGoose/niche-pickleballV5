@@ -125,7 +125,7 @@ function simBallTrajectory(p0, v0, spin, mode, dtStep = 1 / 120, maxT = 4.0) {
     const history = [{ t, x: p.x, y: p.y, z: p.z }];
 
     while (t < maxT) {
-        const pz0 = p.z;
+        const pz0 = p.z, py0 = p.y;
         s = integrateVel(v, s, dtStep, mode);
         p.addScaledVector(v, dtStep);
         t += dtStep;
@@ -136,7 +136,7 @@ function simBallTrajectory(p0, v0, spin, mode, dtStep = 1 / 120, maxT = 4.0) {
         if (pz0 * p.z <= 0 && pz0 !== p.z) {
             netY = p.y;
             netT = t;
-            if (crossesNet(pz0, p.z, p.y, p.x)) {
+            if (crossesNet(pz0, p.z, p.y, p.x, py0)) {
                 hitNet = true;
                 break;
             }
