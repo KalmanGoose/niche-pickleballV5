@@ -2504,7 +2504,7 @@ body.layout-nook #nav-wrapper {
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(10, 18, 14, 0.62);
+    background: rgba(30, 22, 16, 0.55);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
     padding: 16px;
@@ -2518,19 +2518,19 @@ body.layout-nook #nav-wrapper {
     pointer-events: auto;
 }
 
-/* 旗艦金屬立體機身 (.phone-body / .nook-case) */
+/* 旗艦立體機身 (.phone-body / .nook-case) - 溫潤墨綠金屬與暖象牙邊框 */
 .phone-body.nook-case {
     position: relative;
     width: 326px;
     max-width: calc(100vw - 24px);
     height: 648px;
     max-height: calc(100vh - 32px);
-    background: linear-gradient(145deg, #1f2e26 0%, #131c17 50%, #0d1511 100%);
-    border-radius: 50px;
-    box-shadow: 0 32px 84px -12px rgba(0, 0, 0, 0.75),
-                0 0 0 1px rgba(255, 255, 255, 0.18) inset,
-                0 0 0 3px #273b30,
-                0 0 0 4.5px #0a110d;
+    background: #2b3e34;
+    border: 5px solid #ebd9c0;
+    border-radius: 46px;
+    box-shadow: 0 24px 60px rgba(40, 25, 15, 0.42),
+                inset 0 2px 6px rgba(255, 255, 255, 0.22),
+                0 0 0 2px #22332a;
     padding: 10px;
     box-sizing: border-box;
     display: flex;
@@ -2545,7 +2545,7 @@ body.layout-nook #nav-wrapper {
 /* 側邊實體金屬按鍵 */
 .phone-side-btn {
     position: absolute;
-    background: #2a3c32;
+    background: #395244;
     border-radius: 2px;
     pointer-events: none;
 }
@@ -2555,7 +2555,7 @@ body.layout-nook #nav-wrapper {
     width: 4px;
     height: 24px;
     border-radius: 3px 0 0 3px;
-    box-shadow: -1px 0 3px rgba(0,0,0,0.5);
+    box-shadow: -1px 0 3px rgba(0,0,0,0.3);
 }
 .phone-side-btn.btn-vol-up {
     left: -5.5px;
@@ -2563,7 +2563,7 @@ body.layout-nook #nav-wrapper {
     width: 4px;
     height: 44px;
     border-radius: 3px 0 0 3px;
-    box-shadow: -1px 0 3px rgba(0,0,0,0.5);
+    box-shadow: -1px 0 3px rgba(0,0,0,0.3);
 }
 .phone-side-btn.btn-vol-down {
     left: -5.5px;
@@ -2571,7 +2571,7 @@ body.layout-nook #nav-wrapper {
     width: 4px;
     height: 44px;
     border-radius: 3px 0 0 3px;
-    box-shadow: -1px 0 3px rgba(0,0,0,0.5);
+    box-shadow: -1px 0 3px rgba(0,0,0,0.3);
 }
 .phone-side-btn.btn-power {
     right: -5.5px;
@@ -2579,38 +2579,38 @@ body.layout-nook #nav-wrapper {
     width: 4px;
     height: 64px;
     border-radius: 0 3px 3px 0;
-    box-shadow: 1px 0 3px rgba(0,0,0,0.5);
+    box-shadow: 1px 0 3px rgba(0,0,0,0.3);
 }
 
-/* 螢幕外黑邊框 */
+/* 螢幕外白邊框 */
 .phone-screen-bezel {
     position: relative;
     width: 100%;
     height: 100%;
-    border-radius: 40px;
+    border-radius: 37px;
     overflow: hidden;
-    background: #000;
-    box-shadow: 0 0 0 2px #0a110d;
+    background: #ffffff;
+    box-shadow: 0 0 0 1.5px #dfcca9;
     display: flex;
     flex-direction: column;
 }
 
-/* 螢幕顯示區與中興湖晨曦微光桌布 */
+/* 螢幕顯示區與溫潤自然象牙桌布 (Warm Cream & Sunny Meadow) */
 .phone-screen.nook-screen {
     position: relative;
     width: 100%;
     height: 100%;
-    border-radius: 39px;
+    border-radius: 36px;
     overflow: hidden;
     display: flex;
     flex-direction: column;
-    background: radial-gradient(circle at 50% 16%, #1f5341 0%, #0d2820 45%, #081712 90%);
-    box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.6);
+    background: linear-gradient(180deg, #fdfbf7 0%, #f7f1e6 55%, #f0ede3 100%);
+    box-shadow: inset 0 2px 8px rgba(100, 70, 40, 0.08);
     border: none;
     padding: 0;
 }
 
-/* 頂部靈動島 (Dynamic Island) */
+/* 頂部深邃墨綠靈動島 (Dynamic Island) */
 .phone-island-pill {
     position: absolute;
     top: 9px;
@@ -2619,7 +2619,7 @@ body.layout-nook #nav-wrapper {
     width: 102px;
     height: 25px;
     border-radius: 99px;
-    background: #000000;
+    background: #23362c;
     z-index: 50;
     display: flex;
     align-items: center;
@@ -2627,7 +2627,7 @@ body.layout-nook #nav-wrapper {
     padding: 0 9px;
     box-sizing: border-box;
     cursor: pointer;
-    box-shadow: 0 3px 10px rgba(0,0,0,0.7);
+    box-shadow: 0 3px 8px rgba(35, 54, 44, 0.35);
     transition: width 0.25s ease, height 0.25s ease;
 }
 .phone-island-pill:hover {
@@ -2637,41 +2637,41 @@ body.layout-nook #nav-wrapper {
     width: 9.5px;
     height: 9.5px;
     border-radius: 50%;
-    background: #0a0e14;
-    border: 1.5px solid #182230;
-    box-shadow: inset 0 0 3px #3b82f6;
+    background: #0d1511;
+    border: 1.5px solid #1a2820;
+    box-shadow: inset 0 0 2px #4ade80;
 }
 .island-speaker {
     width: 30px;
     height: 3px;
     border-radius: 99px;
-    background: #161b17;
+    background: #17241d;
 }
 .island-chip {
     font-size: 8px;
     font-weight: 800;
-    color: #34d399;
+    color: #4ade80;
     letter-spacing: -0.2px;
     white-space: nowrap;
 }
 
-/* 狀態列 */
+/* 狀態列 - 溫暖深棕字與清新圖標 */
 .phone-status-bar.nook-status-bar {
     width: 100%;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 12px 18px 0 18px;
+    padding: 12px 16px 8px 16px;
     box-sizing: border-box;
     z-index: 40;
     pointer-events: none;
-    border-bottom: none;
-    margin-bottom: 0;
+    border-bottom: 1px dashed #ebd9c0;
+    margin-bottom: 4px;
 }
 .phone-status-time {
     font-size: 13px;
     font-weight: 800;
-    color: #ffffff;
+    color: #4a3728;
     letter-spacing: -0.3px;
     font-variant-numeric: tabular-nums;
 }
@@ -2681,18 +2681,20 @@ body.layout-nook #nav-wrapper {
     gap: 5px;
     font-size: 10px;
     font-weight: 800;
-    color: #ffffff;
+    color: #634d3b;
 }
 .phone-status-badge {
     font-size: 9px;
     font-weight: 900;
-    background: rgba(255,255,255,0.22);
+    background: #e6dac6;
+    color: #5a422e;
     padding: 1px 4px;
     border-radius: 4px;
     letter-spacing: 0.2px;
 }
 .phone-status-wifi {
     font-size: 11px;
+    color: #634d3b;
 }
 .phone-status-battery {
     display: flex;
@@ -2700,16 +2702,16 @@ body.layout-nook #nav-wrapper {
     gap: 3px;
     font-size: 9.5px;
     font-weight: 800;
-    color: #4ade80;
+    color: #2e7d32;
 }
 .battery-bar {
     display: inline-block;
     width: 14px;
     height: 7.5px;
-    border: 1px solid #4ade80;
+    border: 1.5px solid #2e7d32;
     border-radius: 2px;
     position: relative;
-    background: rgba(74,222,128,0.3);
+    background: rgba(46, 125, 50, 0.25);
 }
 .battery-bar::after {
     content: '';
@@ -2718,7 +2720,7 @@ body.layout-nook #nav-wrapper {
     top: 2px;
     width: 1.5px;
     height: 2.5px;
-    background: #4ade80;
+    background: #2e7d32;
     border-radius: 0 1px 1px 0;
 }
 
@@ -2728,7 +2730,7 @@ body.layout-nook #nav-wrapper {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     gap: 12px 6px;
-    padding: 24px 12px 8px 12px;
+    padding: 18px 12px 6px 12px;
     box-sizing: border-box;
     align-content: start;
     justify-items: center;
@@ -2747,7 +2749,7 @@ body.layout-nook #nav-wrapper {
 }
 .phone-app.nook-app:hover {
     transform: translateY(-2px) scale(1.06);
-    filter: brightness(1.1);
+    filter: brightness(1.05);
 }
 .phone-app.nook-app:active {
     transform: scale(0.92);
@@ -2763,44 +2765,44 @@ body.layout-nook #nav-wrapper {
     justify-content: center;
     font-size: 24px;
     position: relative;
-    box-shadow: 0 6px 14px rgba(0, 0, 0, 0.4),
-                inset 0 1px 1px rgba(255, 255, 255, 0.45),
-                inset 0 -1.5px 2px rgba(0, 0, 0, 0.3);
-    border: 1px solid rgba(255, 255, 255, 0.22);
+    box-shadow: 0 4px 10px rgba(100, 70, 40, 0.16),
+                inset 0 1px 1px rgba(255, 255, 255, 0.55),
+                inset 0 -1.5px 2px rgba(0, 0, 0, 0.15);
+    border: 1.5px solid rgba(255, 255, 255, 0.7);
 }
 .phone-app-label.nook-app-label {
-    font-size: 10px;
-    font-weight: 700;
-    color: rgba(255, 255, 255, 0.92);
+    font-size: 10.5px !important;
+    font-weight: 800 !important;
+    color: #4a3728 !important;
     text-align: center;
     white-space: nowrap;
-    text-shadow: 0 1px 2px rgba(0,0,0,0.85);
+    text-shadow: none !important;
 }
 
 /* 現代 Squircle 漸層色票 */
-.app-hub { background: linear-gradient(135deg, #38bdf8 0%, #0284c7 100%); }
+.app-hub { background: linear-gradient(135deg, #60a5fa 0%, #2563eb 100%); }
 .app-wall { background: linear-gradient(135deg, #fb923c 0%, #ea580c 100%); }
 .app-stage { background: linear-gradient(135deg, #4ade80 0%, #16a34a 100%); }
 .app-diff { background: linear-gradient(135deg, #f472b6 0%, #db2777 100%); }
 .app-motion { background: linear-gradient(135deg, #2dd4bf 0%, #0d9488 100%); }
 .app-fun { background: linear-gradient(135deg, #facc15 0%, #ca8a04 100%); }
-.app-social { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); }
+.app-social { background: linear-gradient(135deg, #fbbf24 0%, #d97706 100%); }
 .app-community { background: linear-gradient(135deg, #34d399 0%, #059669 100%); }
-.app-profile { background: linear-gradient(135deg, #fbbf24 0%, #b45309 100%); }
-.app-rules { background: linear-gradient(135deg, #60a5fa 0%, #2563eb 100%); }
+.app-profile { background: linear-gradient(135deg, #f59e0b 0%, #b45309 100%); }
+.app-rules { background: linear-gradient(135deg, #38bdf8 0%, #0284c7 100%); }
 .app-invite { background: linear-gradient(135deg, #c084fc 0%, #9333ea 100%); }
-.app-settings { background: linear-gradient(135deg, #a855f7 0%, #6b21a8 100%); }
+.app-settings { background: linear-gradient(135deg, #a78bfa 0%, #7c3aed 100%); }
 
-/* 底部磨砂毛玻璃 Dock 欄 */
+/* 底部磨砂毛玻璃 Dock 欄 (清爽暖白磨砂) */
 .phone-dock {
     margin: 0 10px 4px 10px;
     height: 56px;
-    background: rgba(255, 255, 255, 0.16);
-    backdrop-filter: blur(18px);
-    -webkit-backdrop-filter: blur(18px);
+    background: rgba(255, 255, 255, 0.82);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
     border-radius: 26px;
-    border: 1px solid rgba(255, 255, 255, 0.24);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+    border: 2px solid #ebd9c0;
+    box-shadow: 0 6px 16px rgba(90, 65, 35, 0.12);
     display: flex;
     align-items: center;
     justify-content: space-around;
@@ -2842,9 +2844,9 @@ body.layout-nook #nav-wrapper {
     width: 110px;
     height: 4.5px;
     border-radius: 99px;
-    background: rgba(255, 255, 255, 0.85);
+    background: #bfa881;
     border: none;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.5);
+    box-shadow: 0 1px 2px rgba(100, 70, 40, 0.2);
     cursor: pointer;
     transition: all 0.2s ease;
     margin: 0;
@@ -2852,8 +2854,8 @@ body.layout-nook #nav-wrapper {
 }
 .phone-home-indicator:hover .phone-home-bar.nook-home-btn {
     width: 130px;
-    background: #ffffff;
-    box-shadow: 0 0 10px rgba(255,255,255,0.7);
+    background: #8b6e50;
+    box-shadow: 0 0 8px rgba(139, 110, 80, 0.4);
 }
 .phone-home-indicator:active .phone-home-bar.nook-home-btn {
     transform: translateY(-2px) scale(0.95);
@@ -3284,20 +3286,27 @@ body.layout-nook #nav-wrapper {
             width: 52px;
             height: 52px;
             border-radius: 50%;
-            background: rgba(255, 255, 255, .06);
-            border: 2px solid var(--line);
+            background: rgba(255, 255, 255, .1);
+            border: 2.5px solid rgba(255, 255, 255, .25);
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 24px;
+            font-size: 26px;
             cursor: pointer;
-            transition: .2s
+            transition: all .2s cubic-bezier(0.34, 1.56, 0.64, 1);
+            position: relative;
+        }
+
+        .avatar-opt:hover {
+            transform: scale(1.1);
+            border-color: #4ade80;
         }
 
         .avatar-opt.selected {
-            border-color: var(--accent);
-            background: rgba(56, 189, 248, .15);
-            transform: scale(1.08)
+            border-color: #22c55e !important;
+            background: rgba(34, 197, 94, 0.28) !important;
+            transform: scale(1.16) !important;
+            box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.45), 0 4px 12px rgba(0, 0, 0, 0.3) !important;
         }
 
         .input-group {
@@ -5660,51 +5669,291 @@ body.layout-nook #nav-wrapper {
             box-shadow: 0 3px 0 #143024;
         }
 
-        /* ═══════ 個人設定彈窗 (#profile-modal) 視覺優化 ═══════ */
+        /* ═══════ 個人設定彈窗 (#profile-modal) 視覺全面強化 ═══════ */
         #profile-modal .modal-card {
             max-width: min(94vw, 440px);
             background: #fffef9;
-            border: 3px solid #ebd9c0;
+            border: 3.5px solid #ebd9c0;
             border-radius: 28px;
-            box-shadow: 0 16px 40px rgba(60, 40, 20, 0.25);
-            padding: 20px 22px;
+            box-shadow: 0 20px 50px rgba(60, 40, 20, 0.28);
+            padding: 22px 24px;
             text-align: left;
+            color: #3d2b1f;
         }
+
+        #profile-modal .modal-card h2 {
+            color: #2b1d14 !important;
+            font-size: 20px !important;
+            font-weight: 900 !important;
+            letter-spacing: -0.01em;
+            margin: 0;
+        }
+
+        #profile-modal .profile-subtitle {
+            color: #795548 !important;
+            font-size: 12.5px;
+            font-weight: 600;
+            margin: 4px 0 14px 0;
+            line-height: 1.45;
+        }
+
+        #profile-modal .btn-close-profile {
+            background: #f7efe2;
+            border: 1.5px solid #dec8a7;
+            color: #5d4634;
+            border-radius: 10px;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 15px;
+            font-weight: 900;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        #profile-modal .btn-close-profile:hover {
+            background: #ebd8bd;
+            color: #2b1d14;
+            transform: scale(1.05);
+        }
+
+        #profile-modal .profile-field-label,
+        #profile-modal .input-group label {
+            display: block;
+            font-size: 11px !important;
+            font-weight: 800 !important;
+            color: #5a422e !important;
+            margin-bottom: 6px;
+            letter-spacing: 0.3px;
+            text-transform: uppercase;
+        }
+
+        /* 訪客提示橫幅 */
         .profile-guest-notice {
             background: #fff8e1;
             border: 2px solid #ffe082;
             border-radius: 14px;
             padding: 10px 14px;
-            margin-bottom: 12px;
+            margin-bottom: 14px;
             font-size: 12px;
             color: #8d6e63;
             line-height: 1.5;
         }
         .profile-guest-badge {
             display: inline-block;
-            background: #ffb300;
+            background: #f59e0b;
             color: #ffffff;
-            font-size: 10px;
+            font-size: 10.5px;
             font-weight: 900;
-            padding: 2px 7px;
+            padding: 2.5px 8px;
             border-radius: 6px;
-            margin-bottom: 4px;
+            margin-bottom: 5px;
         }
+
+        /* 代表頭像網格與鮮明選中效果 (超鮮明翡翠綠光暈與勾勾，徹底解決頭像看不清) */
+        #profile-modal .avatar-grid {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 16px;
+            background: #f7f1e5;
+            padding: 14px 10px;
+            border-radius: 20px;
+            border: 2px solid #ecdac0;
+            box-shadow: inset 0 2px 5px rgba(90, 60, 30, 0.05);
+        }
+        #profile-modal .avatar-opt {
+            width: 52px;
+            height: 52px;
+            border-radius: 50%;
+            background: #ffffff !important;
+            border: 2.5px solid #dec8a7 !important;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 26px;
+            cursor: pointer;
+            box-shadow: 0 3px 6px rgba(90, 60, 30, 0.08);
+            transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+            position: relative;
+        }
+        #profile-modal .avatar-opt:hover {
+            transform: scale(1.12);
+            border-color: #2e7d32 !important;
+            box-shadow: 0 4px 10px rgba(46, 125, 50, 0.22);
+        }
+        #profile-modal .avatar-opt.selected {
+            background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%) !important;
+            border: 3.5px solid #2e7d32 !important;
+            transform: scale(1.18) !important;
+            box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.35), 0 6px 16px rgba(46, 125, 50, 0.3) !important;
+        }
+        #profile-modal .avatar-opt.selected::after {
+            content: '✓';
+            position: absolute;
+            bottom: -3px;
+            right: -3px;
+            width: 17px;
+            height: 17px;
+            background: #2e7d32;
+            color: #ffffff;
+            font-size: 11px;
+            font-weight: 900;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid #ffffff;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.25);
+        }
+
+        /* 修改序號與輸入框 (高對比純白底、深暖棕文字、大地色邊框) */
+        #profile-modal .input-group {
+            margin-bottom: 14px;
+            text-align: left;
+        }
+        #profile-modal .input-group input[type=text],
+        #profile-modal .input-group select {
+            width: 100%;
+            padding: 11px 14px;
+            background: #ffffff !important;
+            border: 2px solid #dfcca9 !important;
+            border-radius: 12px !important;
+            color: #2b1d14 !important;
+            font-size: 14.5px !important;
+            font-weight: 700 !important;
+            letter-spacing: 0.5px;
+            outline: none;
+            box-shadow: inset 0 1px 3px rgba(60, 40, 20, 0.05);
+            transition: all 0.18s ease;
+            box-sizing: border-box;
+        }
+        #profile-modal .input-group input[type=text]::placeholder {
+            color: #a8947a !important;
+            font-weight: 500;
+        }
+        #profile-modal .input-group input[type=text]:focus,
+        #profile-modal .input-group select:focus {
+            border-color: #2e7d32 !important;
+            background: #ffffff !important;
+            box-shadow: 0 0 0 3.5px rgba(46, 125, 50, 0.22), inset 0 1px 3px rgba(0,0,0,0.04) !important;
+        }
+        #profile-modal .input-group select option,
+        #profile-modal .input-group select optgroup {
+            background: #ffffff !important;
+            color: #2b1d14 !important;
+            font-weight: 700;
+        }
+
+        /* 序號判定訊息膠囊 (高對比鮮明色票，徹底杜絕白底淺黃看不清) */
+        #profile-modal .sid-msg {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 11.5px !important;
+            font-weight: 800 !important;
+            margin-top: 7px;
+            padding: 5px 12px;
+            border-radius: 99px;
+            background: #f4ecdc;
+            color: #6d4c41;
+            border: 1.5px solid #dec8a7;
+            box-shadow: 0 1px 3px rgba(90, 60, 30, 0.05);
+            transition: all 0.2s ease;
+        }
+        #profile-modal .sid-msg.ok {
+            background: #e8f5e9 !important;
+            color: #1b5e20 !important;
+            border: 1.5px solid #81c784 !important;
+            box-shadow: 0 2px 6px rgba(46, 125, 50, 0.18) !important;
+        }
+        #profile-modal .sid-msg.warn {
+            background: #fff8e1 !important;
+            color: #92400e !important;
+            border: 1.5px solid #f59e0b !important;
+            box-shadow: 0 2px 6px rgba(217, 119, 6, 0.18) !important;
+        }
+        #profile-modal .sid-msg.bad {
+            background: #fee2e2 !important;
+            color: #991b1b !important;
+            border: 1.5px solid #f87171 !important;
+            box-shadow: 0 2px 6px rgba(220, 38, 38, 0.18) !important;
+        }
+
+        /* 名片代碼 ID Badge */
+        #profile-modal .id-badge {
+            font-size: 11px !important;
+            font-weight: 700;
+            color: #5d4037 !important;
+            background: #f7f1e5;
+            border: 1.5px solid #ecdac0;
+            border-radius: 12px;
+            padding: 8px 12px;
+            margin-top: 10px;
+            letter-spacing: 0.05em;
+            text-align: center;
+        }
+
+        /* 保存修改與取消按鈕 */
+        #profile-modal #edit-save-btn {
+            background: linear-gradient(135deg, #2e7d32 0%, #1b5e20 100%) !important;
+            color: #ffffff !important;
+            border: none !important;
+            border-radius: 14px !important;
+            padding: 12px 18px !important;
+            font-size: 14px !important;
+            font-weight: 800 !important;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(46, 125, 50, 0.35) !important;
+            transition: all 0.16s ease;
+        }
+        #profile-modal #edit-save-btn:hover {
+            transform: translateY(-2px);
+            filter: brightness(1.08);
+            box-shadow: 0 6px 16px rgba(46, 125, 50, 0.45) !important;
+        }
+        #profile-modal #edit-save-btn:active {
+            transform: translateY(1px);
+        }
+
+        #profile-modal .btn-cancel {
+            background: #f5ede0 !important;
+            color: #5a422e !important;
+            border: 1.5px solid #dec8a7 !important;
+            border-radius: 14px !important;
+            padding: 12px 18px !important;
+            font-size: 14px !important;
+            font-weight: 800 !important;
+            cursor: pointer;
+            box-shadow: 0 2px 0 #dec8a7;
+            transition: all 0.16s ease;
+        }
+        #profile-modal .btn-cancel:hover {
+            background: #ebd8bd !important;
+            color: #2b1d14 !important;
+        }
+        #profile-modal .btn-cancel:active {
+            transform: translateY(1px);
+        }
+
         .btn-reopen-login {
             width: 100%;
-            margin-top: 10px;
-            padding: 9px 12px;
+            margin-top: 12px;
+            padding: 10px 14px;
             background: #f5ede0;
             border: 1.5px solid #dec8a7;
-            border-radius: 12px;
+            border-radius: 14px;
             color: #634d3b;
-            font-size: 12px;
+            font-size: 12.5px;
             font-weight: 800;
             cursor: pointer;
             transition: all 0.15s ease;
         }
         .btn-reopen-login:hover {
             background: #ecddc7;
+            color: #2b1d14;
         }
 
         /* ═══════ 手機直立螢幕端響應式 (@media) ═══════ */
@@ -5872,10 +6121,10 @@ body.layout-nook #nav-wrapper {
     <div id="profile-modal" class="modal-overlay" style="display:none;">
         <div class="modal-card">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
-                <h2 style="margin:0;font-size:18px;">😎 個人球員設定</h2>
-                <button type="button" class="btn" onclick="closeProfileModal()" style="padding:2px 8px;font-size:14px;">×</button>
+                <h2 style="margin:0;font-size:19px;">😎 個人球員設定</h2>
+                <button type="button" class="btn-close-profile" onclick="closeProfileModal()">✕</button>
             </div>
-            <p style="font-size:12px;color:var(--dim);margin-bottom:12px;">修改後將同步更新個人名片與校園英雄榜。</p>
+            <p class="profile-subtitle">修改後將同步更新個人名片與校園英雄榜。</p>
 
             <!-- 訪客轉正提示橫幅 -->
             <div id="edit-guest-banner" class="profile-guest-notice" style="display:none;">
@@ -5884,7 +6133,7 @@ body.layout-nook #nav-wrapper {
             </div>
 
             <div style="margin-bottom:12px;">
-                <label style="display:block;font-size:10px;font-weight:700;color:var(--dim);margin-bottom:6px;text-transform:uppercase;">代表頭像</label>
+                <label class="profile-field-label">代表頭像</label>
                 <div class="avatar-grid" id="edit-avatar-grid"></div>
             </div>
 
@@ -5933,7 +6182,7 @@ body.layout-nook #nav-wrapper {
             <div class="id-badge" id="edit-id-badge">—</div>
 
             <div style="display:flex;gap:10px;margin-top:14px;">
-                <button type="button" class="btn-main" style="background:rgba(255,255,255,.1);margin-top:0;flex:1;" onclick="closeProfileModal()">取消</button>
+                <button type="button" class="btn-cancel" style="margin-top:0;flex:1;" onclick="closeProfileModal()">取消</button>
                 <button type="button" class="btn-main" id="edit-save-btn" style="margin-top:0;flex:2;" onclick="saveProfile()">💾 保存修改</button>
             </div>
 

@@ -112,10 +112,10 @@
     <div id="profile-modal" class="modal-overlay" style="display:none;">
         <div class="modal-card">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
-                <h2 style="margin:0;font-size:18px;">😎 個人球員設定</h2>
-                <button type="button" class="btn" onclick="closeProfileModal()" style="padding:2px 8px;font-size:14px;">×</button>
+                <h2 style="margin:0;font-size:19px;">😎 個人球員設定</h2>
+                <button type="button" class="btn-close-profile" onclick="closeProfileModal()">✕</button>
             </div>
-            <p style="font-size:12px;color:var(--dim);margin-bottom:12px;">修改後將同步更新個人名片與校園英雄榜。</p>
+            <p class="profile-subtitle">修改後將同步更新個人名片與校園英雄榜。</p>
 
             <!-- 訪客轉正提示橫幅 -->
             <div id="edit-guest-banner" class="profile-guest-notice" style="display:none;">
@@ -124,7 +124,7 @@
             </div>
 
             <div style="margin-bottom:12px;">
-                <label style="display:block;font-size:10px;font-weight:700;color:var(--dim);margin-bottom:6px;text-transform:uppercase;">代表頭像</label>
+                <label class="profile-field-label">代表頭像</label>
                 <div class="avatar-grid" id="edit-avatar-grid"></div>
             </div>
 
@@ -173,7 +173,7 @@
             <div class="id-badge" id="edit-id-badge">—</div>
 
             <div style="display:flex;gap:10px;margin-top:14px;">
-                <button type="button" class="btn-main" style="background:rgba(255,255,255,.1);margin-top:0;flex:1;" onclick="closeProfileModal()">取消</button>
+                <button type="button" class="btn-cancel" style="margin-top:0;flex:1;" onclick="closeProfileModal()">取消</button>
                 <button type="button" class="btn-main" id="edit-save-btn" style="margin-top:0;flex:2;" onclick="saveProfile()">💾 保存修改</button>
             </div>
 

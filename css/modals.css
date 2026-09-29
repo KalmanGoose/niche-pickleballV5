@@ -52,20 +52,27 @@
             width: 52px;
             height: 52px;
             border-radius: 50%;
-            background: rgba(255, 255, 255, .06);
-            border: 2px solid var(--line);
+            background: rgba(255, 255, 255, .1);
+            border: 2.5px solid rgba(255, 255, 255, .25);
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 24px;
+            font-size: 26px;
             cursor: pointer;
-            transition: .2s
+            transition: all .2s cubic-bezier(0.34, 1.56, 0.64, 1);
+            position: relative;
+        }
+
+        .avatar-opt:hover {
+            transform: scale(1.1);
+            border-color: #4ade80;
         }
 
         .avatar-opt.selected {
-            border-color: var(--accent);
-            background: rgba(56, 189, 248, .15);
-            transform: scale(1.08)
+            border-color: #22c55e !important;
+            background: rgba(34, 197, 94, 0.28) !important;
+            transform: scale(1.16) !important;
+            box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.45), 0 4px 12px rgba(0, 0, 0, 0.3) !important;
         }
 
         .input-group {
@@ -2428,51 +2435,291 @@
             box-shadow: 0 3px 0 #143024;
         }
 
-        /* ═══════ 個人設定彈窗 (#profile-modal) 視覺優化 ═══════ */
+        /* ═══════ 個人設定彈窗 (#profile-modal) 視覺全面強化 ═══════ */
         #profile-modal .modal-card {
             max-width: min(94vw, 440px);
             background: #fffef9;
-            border: 3px solid #ebd9c0;
+            border: 3.5px solid #ebd9c0;
             border-radius: 28px;
-            box-shadow: 0 16px 40px rgba(60, 40, 20, 0.25);
-            padding: 20px 22px;
+            box-shadow: 0 20px 50px rgba(60, 40, 20, 0.28);
+            padding: 22px 24px;
             text-align: left;
+            color: #3d2b1f;
         }
+
+        #profile-modal .modal-card h2 {
+            color: #2b1d14 !important;
+            font-size: 20px !important;
+            font-weight: 900 !important;
+            letter-spacing: -0.01em;
+            margin: 0;
+        }
+
+        #profile-modal .profile-subtitle {
+            color: #795548 !important;
+            font-size: 12.5px;
+            font-weight: 600;
+            margin: 4px 0 14px 0;
+            line-height: 1.45;
+        }
+
+        #profile-modal .btn-close-profile {
+            background: #f7efe2;
+            border: 1.5px solid #dec8a7;
+            color: #5d4634;
+            border-radius: 10px;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 15px;
+            font-weight: 900;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        #profile-modal .btn-close-profile:hover {
+            background: #ebd8bd;
+            color: #2b1d14;
+            transform: scale(1.05);
+        }
+
+        #profile-modal .profile-field-label,
+        #profile-modal .input-group label {
+            display: block;
+            font-size: 11px !important;
+            font-weight: 800 !important;
+            color: #5a422e !important;
+            margin-bottom: 6px;
+            letter-spacing: 0.3px;
+            text-transform: uppercase;
+        }
+
+        /* 訪客提示橫幅 */
         .profile-guest-notice {
             background: #fff8e1;
             border: 2px solid #ffe082;
             border-radius: 14px;
             padding: 10px 14px;
-            margin-bottom: 12px;
+            margin-bottom: 14px;
             font-size: 12px;
             color: #8d6e63;
             line-height: 1.5;
         }
         .profile-guest-badge {
             display: inline-block;
-            background: #ffb300;
+            background: #f59e0b;
             color: #ffffff;
-            font-size: 10px;
+            font-size: 10.5px;
             font-weight: 900;
-            padding: 2px 7px;
+            padding: 2.5px 8px;
             border-radius: 6px;
-            margin-bottom: 4px;
+            margin-bottom: 5px;
         }
+
+        /* 代表頭像網格與鮮明選中效果 (超鮮明翡翠綠光暈與勾勾，徹底解決頭像看不清) */
+        #profile-modal .avatar-grid {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 16px;
+            background: #f7f1e5;
+            padding: 14px 10px;
+            border-radius: 20px;
+            border: 2px solid #ecdac0;
+            box-shadow: inset 0 2px 5px rgba(90, 60, 30, 0.05);
+        }
+        #profile-modal .avatar-opt {
+            width: 52px;
+            height: 52px;
+            border-radius: 50%;
+            background: #ffffff !important;
+            border: 2.5px solid #dec8a7 !important;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 26px;
+            cursor: pointer;
+            box-shadow: 0 3px 6px rgba(90, 60, 30, 0.08);
+            transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+            position: relative;
+        }
+        #profile-modal .avatar-opt:hover {
+            transform: scale(1.12);
+            border-color: #2e7d32 !important;
+            box-shadow: 0 4px 10px rgba(46, 125, 50, 0.22);
+        }
+        #profile-modal .avatar-opt.selected {
+            background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%) !important;
+            border: 3.5px solid #2e7d32 !important;
+            transform: scale(1.18) !important;
+            box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.35), 0 6px 16px rgba(46, 125, 50, 0.3) !important;
+        }
+        #profile-modal .avatar-opt.selected::after {
+            content: '✓';
+            position: absolute;
+            bottom: -3px;
+            right: -3px;
+            width: 17px;
+            height: 17px;
+            background: #2e7d32;
+            color: #ffffff;
+            font-size: 11px;
+            font-weight: 900;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid #ffffff;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.25);
+        }
+
+        /* 修改序號與輸入框 (高對比純白底、深暖棕文字、大地色邊框) */
+        #profile-modal .input-group {
+            margin-bottom: 14px;
+            text-align: left;
+        }
+        #profile-modal .input-group input[type=text],
+        #profile-modal .input-group select {
+            width: 100%;
+            padding: 11px 14px;
+            background: #ffffff !important;
+            border: 2px solid #dfcca9 !important;
+            border-radius: 12px !important;
+            color: #2b1d14 !important;
+            font-size: 14.5px !important;
+            font-weight: 700 !important;
+            letter-spacing: 0.5px;
+            outline: none;
+            box-shadow: inset 0 1px 3px rgba(60, 40, 20, 0.05);
+            transition: all 0.18s ease;
+            box-sizing: border-box;
+        }
+        #profile-modal .input-group input[type=text]::placeholder {
+            color: #a8947a !important;
+            font-weight: 500;
+        }
+        #profile-modal .input-group input[type=text]:focus,
+        #profile-modal .input-group select:focus {
+            border-color: #2e7d32 !important;
+            background: #ffffff !important;
+            box-shadow: 0 0 0 3.5px rgba(46, 125, 50, 0.22), inset 0 1px 3px rgba(0,0,0,0.04) !important;
+        }
+        #profile-modal .input-group select option,
+        #profile-modal .input-group select optgroup {
+            background: #ffffff !important;
+            color: #2b1d14 !important;
+            font-weight: 700;
+        }
+
+        /* 序號判定訊息膠囊 (高對比鮮明色票，徹底杜絕白底淺黃看不清) */
+        #profile-modal .sid-msg {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 11.5px !important;
+            font-weight: 800 !important;
+            margin-top: 7px;
+            padding: 5px 12px;
+            border-radius: 99px;
+            background: #f4ecdc;
+            color: #6d4c41;
+            border: 1.5px solid #dec8a7;
+            box-shadow: 0 1px 3px rgba(90, 60, 30, 0.05);
+            transition: all 0.2s ease;
+        }
+        #profile-modal .sid-msg.ok {
+            background: #e8f5e9 !important;
+            color: #1b5e20 !important;
+            border: 1.5px solid #81c784 !important;
+            box-shadow: 0 2px 6px rgba(46, 125, 50, 0.18) !important;
+        }
+        #profile-modal .sid-msg.warn {
+            background: #fff8e1 !important;
+            color: #92400e !important;
+            border: 1.5px solid #f59e0b !important;
+            box-shadow: 0 2px 6px rgba(217, 119, 6, 0.18) !important;
+        }
+        #profile-modal .sid-msg.bad {
+            background: #fee2e2 !important;
+            color: #991b1b !important;
+            border: 1.5px solid #f87171 !important;
+            box-shadow: 0 2px 6px rgba(220, 38, 38, 0.18) !important;
+        }
+
+        /* 名片代碼 ID Badge */
+        #profile-modal .id-badge {
+            font-size: 11px !important;
+            font-weight: 700;
+            color: #5d4037 !important;
+            background: #f7f1e5;
+            border: 1.5px solid #ecdac0;
+            border-radius: 12px;
+            padding: 8px 12px;
+            margin-top: 10px;
+            letter-spacing: 0.05em;
+            text-align: center;
+        }
+
+        /* 保存修改與取消按鈕 */
+        #profile-modal #edit-save-btn {
+            background: linear-gradient(135deg, #2e7d32 0%, #1b5e20 100%) !important;
+            color: #ffffff !important;
+            border: none !important;
+            border-radius: 14px !important;
+            padding: 12px 18px !important;
+            font-size: 14px !important;
+            font-weight: 800 !important;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(46, 125, 50, 0.35) !important;
+            transition: all 0.16s ease;
+        }
+        #profile-modal #edit-save-btn:hover {
+            transform: translateY(-2px);
+            filter: brightness(1.08);
+            box-shadow: 0 6px 16px rgba(46, 125, 50, 0.45) !important;
+        }
+        #profile-modal #edit-save-btn:active {
+            transform: translateY(1px);
+        }
+
+        #profile-modal .btn-cancel {
+            background: #f5ede0 !important;
+            color: #5a422e !important;
+            border: 1.5px solid #dec8a7 !important;
+            border-radius: 14px !important;
+            padding: 12px 18px !important;
+            font-size: 14px !important;
+            font-weight: 800 !important;
+            cursor: pointer;
+            box-shadow: 0 2px 0 #dec8a7;
+            transition: all 0.16s ease;
+        }
+        #profile-modal .btn-cancel:hover {
+            background: #ebd8bd !important;
+            color: #2b1d14 !important;
+        }
+        #profile-modal .btn-cancel:active {
+            transform: translateY(1px);
+        }
+
         .btn-reopen-login {
             width: 100%;
-            margin-top: 10px;
-            padding: 9px 12px;
+            margin-top: 12px;
+            padding: 10px 14px;
             background: #f5ede0;
             border: 1.5px solid #dec8a7;
-            border-radius: 12px;
+            border-radius: 14px;
             color: #634d3b;
-            font-size: 12px;
+            font-size: 12.5px;
             font-weight: 800;
             cursor: pointer;
             transition: all 0.15s ease;
         }
         .btn-reopen-login:hover {
             background: #ecddc7;
+            color: #2b1d14;
         }
 
         /* ═══════ 手機直立螢幕端響應式 (@media) ═══════ */

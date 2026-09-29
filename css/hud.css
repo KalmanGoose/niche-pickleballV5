@@ -2332,7 +2332,7 @@ body.layout-nook #nav-wrapper {
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(10, 18, 14, 0.62);
+    background: rgba(30, 22, 16, 0.55);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
     padding: 16px;
@@ -2346,19 +2346,19 @@ body.layout-nook #nav-wrapper {
     pointer-events: auto;
 }
 
-/* 旗艦金屬立體機身 (.phone-body / .nook-case) */
+/* 旗艦立體機身 (.phone-body / .nook-case) - 溫潤墨綠金屬與暖象牙邊框 */
 .phone-body.nook-case {
     position: relative;
     width: 326px;
     max-width: calc(100vw - 24px);
     height: 648px;
     max-height: calc(100vh - 32px);
-    background: linear-gradient(145deg, #1f2e26 0%, #131c17 50%, #0d1511 100%);
-    border-radius: 50px;
-    box-shadow: 0 32px 84px -12px rgba(0, 0, 0, 0.75),
-                0 0 0 1px rgba(255, 255, 255, 0.18) inset,
-                0 0 0 3px #273b30,
-                0 0 0 4.5px #0a110d;
+    background: #2b3e34;
+    border: 5px solid #ebd9c0;
+    border-radius: 46px;
+    box-shadow: 0 24px 60px rgba(40, 25, 15, 0.42),
+                inset 0 2px 6px rgba(255, 255, 255, 0.22),
+                0 0 0 2px #22332a;
     padding: 10px;
     box-sizing: border-box;
     display: flex;
@@ -2373,7 +2373,7 @@ body.layout-nook #nav-wrapper {
 /* 側邊實體金屬按鍵 */
 .phone-side-btn {
     position: absolute;
-    background: #2a3c32;
+    background: #395244;
     border-radius: 2px;
     pointer-events: none;
 }
@@ -2383,7 +2383,7 @@ body.layout-nook #nav-wrapper {
     width: 4px;
     height: 24px;
     border-radius: 3px 0 0 3px;
-    box-shadow: -1px 0 3px rgba(0,0,0,0.5);
+    box-shadow: -1px 0 3px rgba(0,0,0,0.3);
 }
 .phone-side-btn.btn-vol-up {
     left: -5.5px;
@@ -2391,7 +2391,7 @@ body.layout-nook #nav-wrapper {
     width: 4px;
     height: 44px;
     border-radius: 3px 0 0 3px;
-    box-shadow: -1px 0 3px rgba(0,0,0,0.5);
+    box-shadow: -1px 0 3px rgba(0,0,0,0.3);
 }
 .phone-side-btn.btn-vol-down {
     left: -5.5px;
@@ -2399,7 +2399,7 @@ body.layout-nook #nav-wrapper {
     width: 4px;
     height: 44px;
     border-radius: 3px 0 0 3px;
-    box-shadow: -1px 0 3px rgba(0,0,0,0.5);
+    box-shadow: -1px 0 3px rgba(0,0,0,0.3);
 }
 .phone-side-btn.btn-power {
     right: -5.5px;
@@ -2407,38 +2407,38 @@ body.layout-nook #nav-wrapper {
     width: 4px;
     height: 64px;
     border-radius: 0 3px 3px 0;
-    box-shadow: 1px 0 3px rgba(0,0,0,0.5);
+    box-shadow: 1px 0 3px rgba(0,0,0,0.3);
 }
 
-/* 螢幕外黑邊框 */
+/* 螢幕外白邊框 */
 .phone-screen-bezel {
     position: relative;
     width: 100%;
     height: 100%;
-    border-radius: 40px;
+    border-radius: 37px;
     overflow: hidden;
-    background: #000;
-    box-shadow: 0 0 0 2px #0a110d;
+    background: #ffffff;
+    box-shadow: 0 0 0 1.5px #dfcca9;
     display: flex;
     flex-direction: column;
 }
 
-/* 螢幕顯示區與中興湖晨曦微光桌布 */
+/* 螢幕顯示區與溫潤自然象牙桌布 (Warm Cream & Sunny Meadow) */
 .phone-screen.nook-screen {
     position: relative;
     width: 100%;
     height: 100%;
-    border-radius: 39px;
+    border-radius: 36px;
     overflow: hidden;
     display: flex;
     flex-direction: column;
-    background: radial-gradient(circle at 50% 16%, #1f5341 0%, #0d2820 45%, #081712 90%);
-    box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.6);
+    background: linear-gradient(180deg, #fdfbf7 0%, #f7f1e6 55%, #f0ede3 100%);
+    box-shadow: inset 0 2px 8px rgba(100, 70, 40, 0.08);
     border: none;
     padding: 0;
 }
 
-/* 頂部靈動島 (Dynamic Island) */
+/* 頂部深邃墨綠靈動島 (Dynamic Island) */
 .phone-island-pill {
     position: absolute;
     top: 9px;
@@ -2447,7 +2447,7 @@ body.layout-nook #nav-wrapper {
     width: 102px;
     height: 25px;
     border-radius: 99px;
-    background: #000000;
+    background: #23362c;
     z-index: 50;
     display: flex;
     align-items: center;
@@ -2455,7 +2455,7 @@ body.layout-nook #nav-wrapper {
     padding: 0 9px;
     box-sizing: border-box;
     cursor: pointer;
-    box-shadow: 0 3px 10px rgba(0,0,0,0.7);
+    box-shadow: 0 3px 8px rgba(35, 54, 44, 0.35);
     transition: width 0.25s ease, height 0.25s ease;
 }
 .phone-island-pill:hover {
@@ -2465,41 +2465,41 @@ body.layout-nook #nav-wrapper {
     width: 9.5px;
     height: 9.5px;
     border-radius: 50%;
-    background: #0a0e14;
-    border: 1.5px solid #182230;
-    box-shadow: inset 0 0 3px #3b82f6;
+    background: #0d1511;
+    border: 1.5px solid #1a2820;
+    box-shadow: inset 0 0 2px #4ade80;
 }
 .island-speaker {
     width: 30px;
     height: 3px;
     border-radius: 99px;
-    background: #161b17;
+    background: #17241d;
 }
 .island-chip {
     font-size: 8px;
     font-weight: 800;
-    color: #34d399;
+    color: #4ade80;
     letter-spacing: -0.2px;
     white-space: nowrap;
 }
 
-/* 狀態列 */
+/* 狀態列 - 溫暖深棕字與清新圖標 */
 .phone-status-bar.nook-status-bar {
     width: 100%;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 12px 18px 0 18px;
+    padding: 12px 16px 8px 16px;
     box-sizing: border-box;
     z-index: 40;
     pointer-events: none;
-    border-bottom: none;
-    margin-bottom: 0;
+    border-bottom: 1px dashed #ebd9c0;
+    margin-bottom: 4px;
 }
 .phone-status-time {
     font-size: 13px;
     font-weight: 800;
-    color: #ffffff;
+    color: #4a3728;
     letter-spacing: -0.3px;
     font-variant-numeric: tabular-nums;
 }
@@ -2509,18 +2509,20 @@ body.layout-nook #nav-wrapper {
     gap: 5px;
     font-size: 10px;
     font-weight: 800;
-    color: #ffffff;
+    color: #634d3b;
 }
 .phone-status-badge {
     font-size: 9px;
     font-weight: 900;
-    background: rgba(255,255,255,0.22);
+    background: #e6dac6;
+    color: #5a422e;
     padding: 1px 4px;
     border-radius: 4px;
     letter-spacing: 0.2px;
 }
 .phone-status-wifi {
     font-size: 11px;
+    color: #634d3b;
 }
 .phone-status-battery {
     display: flex;
@@ -2528,16 +2530,16 @@ body.layout-nook #nav-wrapper {
     gap: 3px;
     font-size: 9.5px;
     font-weight: 800;
-    color: #4ade80;
+    color: #2e7d32;
 }
 .battery-bar {
     display: inline-block;
     width: 14px;
     height: 7.5px;
-    border: 1px solid #4ade80;
+    border: 1.5px solid #2e7d32;
     border-radius: 2px;
     position: relative;
-    background: rgba(74,222,128,0.3);
+    background: rgba(46, 125, 50, 0.25);
 }
 .battery-bar::after {
     content: '';
@@ -2546,7 +2548,7 @@ body.layout-nook #nav-wrapper {
     top: 2px;
     width: 1.5px;
     height: 2.5px;
-    background: #4ade80;
+    background: #2e7d32;
     border-radius: 0 1px 1px 0;
 }
 
@@ -2556,7 +2558,7 @@ body.layout-nook #nav-wrapper {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     gap: 12px 6px;
-    padding: 24px 12px 8px 12px;
+    padding: 18px 12px 6px 12px;
     box-sizing: border-box;
     align-content: start;
     justify-items: center;
@@ -2575,7 +2577,7 @@ body.layout-nook #nav-wrapper {
 }
 .phone-app.nook-app:hover {
     transform: translateY(-2px) scale(1.06);
-    filter: brightness(1.1);
+    filter: brightness(1.05);
 }
 .phone-app.nook-app:active {
     transform: scale(0.92);
@@ -2591,44 +2593,44 @@ body.layout-nook #nav-wrapper {
     justify-content: center;
     font-size: 24px;
     position: relative;
-    box-shadow: 0 6px 14px rgba(0, 0, 0, 0.4),
-                inset 0 1px 1px rgba(255, 255, 255, 0.45),
-                inset 0 -1.5px 2px rgba(0, 0, 0, 0.3);
-    border: 1px solid rgba(255, 255, 255, 0.22);
+    box-shadow: 0 4px 10px rgba(100, 70, 40, 0.16),
+                inset 0 1px 1px rgba(255, 255, 255, 0.55),
+                inset 0 -1.5px 2px rgba(0, 0, 0, 0.15);
+    border: 1.5px solid rgba(255, 255, 255, 0.7);
 }
 .phone-app-label.nook-app-label {
-    font-size: 10px;
-    font-weight: 700;
-    color: rgba(255, 255, 255, 0.92);
+    font-size: 10.5px !important;
+    font-weight: 800 !important;
+    color: #4a3728 !important;
     text-align: center;
     white-space: nowrap;
-    text-shadow: 0 1px 2px rgba(0,0,0,0.85);
+    text-shadow: none !important;
 }
 
 /* 現代 Squircle 漸層色票 */
-.app-hub { background: linear-gradient(135deg, #38bdf8 0%, #0284c7 100%); }
+.app-hub { background: linear-gradient(135deg, #60a5fa 0%, #2563eb 100%); }
 .app-wall { background: linear-gradient(135deg, #fb923c 0%, #ea580c 100%); }
 .app-stage { background: linear-gradient(135deg, #4ade80 0%, #16a34a 100%); }
 .app-diff { background: linear-gradient(135deg, #f472b6 0%, #db2777 100%); }
 .app-motion { background: linear-gradient(135deg, #2dd4bf 0%, #0d9488 100%); }
 .app-fun { background: linear-gradient(135deg, #facc15 0%, #ca8a04 100%); }
-.app-social { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); }
+.app-social { background: linear-gradient(135deg, #fbbf24 0%, #d97706 100%); }
 .app-community { background: linear-gradient(135deg, #34d399 0%, #059669 100%); }
-.app-profile { background: linear-gradient(135deg, #fbbf24 0%, #b45309 100%); }
-.app-rules { background: linear-gradient(135deg, #60a5fa 0%, #2563eb 100%); }
+.app-profile { background: linear-gradient(135deg, #f59e0b 0%, #b45309 100%); }
+.app-rules { background: linear-gradient(135deg, #38bdf8 0%, #0284c7 100%); }
 .app-invite { background: linear-gradient(135deg, #c084fc 0%, #9333ea 100%); }
-.app-settings { background: linear-gradient(135deg, #a855f7 0%, #6b21a8 100%); }
+.app-settings { background: linear-gradient(135deg, #a78bfa 0%, #7c3aed 100%); }
 
-/* 底部磨砂毛玻璃 Dock 欄 */
+/* 底部磨砂毛玻璃 Dock 欄 (清爽暖白磨砂) */
 .phone-dock {
     margin: 0 10px 4px 10px;
     height: 56px;
-    background: rgba(255, 255, 255, 0.16);
-    backdrop-filter: blur(18px);
-    -webkit-backdrop-filter: blur(18px);
+    background: rgba(255, 255, 255, 0.82);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
     border-radius: 26px;
-    border: 1px solid rgba(255, 255, 255, 0.24);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+    border: 2px solid #ebd9c0;
+    box-shadow: 0 6px 16px rgba(90, 65, 35, 0.12);
     display: flex;
     align-items: center;
     justify-content: space-around;
@@ -2670,9 +2672,9 @@ body.layout-nook #nav-wrapper {
     width: 110px;
     height: 4.5px;
     border-radius: 99px;
-    background: rgba(255, 255, 255, 0.85);
+    background: #bfa881;
     border: none;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.5);
+    box-shadow: 0 1px 2px rgba(100, 70, 40, 0.2);
     cursor: pointer;
     transition: all 0.2s ease;
     margin: 0;
@@ -2680,8 +2682,8 @@ body.layout-nook #nav-wrapper {
 }
 .phone-home-indicator:hover .phone-home-bar.nook-home-btn {
     width: 130px;
-    background: #ffffff;
-    box-shadow: 0 0 10px rgba(255,255,255,0.7);
+    background: #8b6e50;
+    box-shadow: 0 0 8px rgba(139, 110, 80, 0.4);
 }
 .phone-home-indicator:active .phone-home-bar.nook-home-btn {
     transform: translateY(-2px) scale(0.95);
