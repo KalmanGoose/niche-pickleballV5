@@ -470,6 +470,13 @@ try {
         "hud.css 裁判廣播膠囊精準定位於頂部藥丸下方 (top: 56px)，杜絕介面重疊");
     assert(hudCssSrc.includes("#info,") && hudCssSrc.includes("#board") && hudCssSrc.includes("display: none !important;"),
         "css/hud.css 嚴格隱藏舊版 #info 與 #board，畫面開闊清爽");
+
+    // 全域變數聲明完整性 (防止 ReferenceError: Can't find variable)
+    assert(/let\s+[^;]*\bserveCooldown\b/.test(refereeSrc),
+        "js/referee.js 包含 serveCooldown 變數聲明，徹底杜絕 Safari WebKit ReferenceError 崩潰");
+    const socialSrc = fs.readFileSync(path.resolve(__dirname, "../js/social.js"), "utf8");
+    assert(socialSrc.includes("let lastWristAngle = 0, lastShoulderAngle = 0;"),
+        "js/social.js 包含 lastWristAngle 與 lastShoulderAngle 變數聲明");
 } catch (e) {
     assert(false, "2.5D 球場與神經小模型檢測異常", e.message);
 }

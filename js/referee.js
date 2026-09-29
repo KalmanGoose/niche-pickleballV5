@@ -14,7 +14,7 @@
         let charging = false, power = 0, powerDir = 1, powerBarDisplay = 0;
         let swingT = 0, swingP = 0, pLock = 0, gLock = 0;
         let serveLegal = true, pulse = 0, shake = 0, ballSquash = 0;
-        let servePrepared = false;
+        let servePrepared = false, serveCooldown = 0;
 
 
 /* ═══════ 計分判定、發球權轉換、規則手冊與虛擬裁判廣播 ═══════ */

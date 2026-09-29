@@ -457,6 +457,7 @@
             toast('左右方向已' + (AIM.invert ? '反轉' : '還原'), '若動作方向與選格相反就切這個');
         }
         function toggleWebcamAI() { if (!webcamActive) startWebcamAI(); else stopWebcamAI(); }
+        let lastWristAngle = 0, lastShoulderAngle = 0;
 
         function startWebcamAI() {
             const btn = document.getElementById('ai-toggle-btn');

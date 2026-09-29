@@ -10293,7 +10293,7 @@ function syncPhysicsModeUI() {
         let charging = false, power = 0, powerDir = 1, powerBarDisplay = 0;
         let swingT = 0, swingP = 0, pLock = 0, gLock = 0;
         let serveLegal = true, pulse = 0, shake = 0, ballSquash = 0;
-        let servePrepared = false;
+        let servePrepared = false, serveCooldown = 0;
 
 
 /* ═══════ 計分判定、發球權轉換、規則手冊與虛擬裁判廣播 ═══════ */
@@ -14717,6 +14717,7 @@ function cycleTeachLevelQuick() {
             toast('左右方向已' + (AIM.invert ? '反轉' : '還原'), '若動作方向與選格相反就切這個');
         }
         function toggleWebcamAI() { if (!webcamActive) startWebcamAI(); else stopWebcamAI(); }
+        let lastWristAngle = 0, lastShoulderAngle = 0;
 
         function startWebcamAI() {
             const btn = document.getElementById('ai-toggle-btn');
