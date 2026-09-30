@@ -3530,6 +3530,21 @@ body.distant-hud-active #subbar-ai-btn {
             color: #fff
         }
 
+        #profile-modal .preset-tag {
+            background: #ffffff;
+            border: 1.5px solid #dec8a7;
+            color: #5a4a3a;
+            font-weight: 700;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        }
+
+        #profile-modal .preset-tag:hover {
+            background: #fbf7ee;
+            border-color: #2e7d32;
+            color: #2e7d32;
+            box-shadow: 0 2px 6px rgba(46, 125, 50, 0.15);
+        }
+
         .sid-msg {
             font-size: 10.5px;
             font-weight: 700;
@@ -7118,6 +7133,7 @@ body.distant-hud-active #subbar-ai-btn {
                     <label>遊戲暱稱(可隨時修改)</label>
                     <input type="text" id="user-nick" value="叫獸aka愛叫的野獸" placeholder="自訂或點下方梗圖">
                     <div class="preset-tags">
+                        <span class="preset-tag" onclick="setNick('揚州炒飯超級好吃')">🍚 揚州炒飯超級好吃</span>
                         <span class="preset-tag" onclick="setNick('呱')">呱</span>
                         <span class="preset-tag" onclick="setNick('馬某人')">馬某人</span>
                         <span class="preset-tag" onclick="setNick('黑天鵝')">黑天鵝</span>
@@ -7234,6 +7250,20 @@ body.distant-hud-active #subbar-ai-btn {
                 <div class="input-group">
                     <label>遊戲暱稱</label>
                     <input type="text" id="edit-nick" placeholder="自訂您的球場暱稱">
+                    <div class="preset-tags">
+                        <span class="preset-tag" onclick="setNick('揚州炒飯超級好吃')">🍚 揚州炒飯超級好吃</span>
+                        <span class="preset-tag" onclick="setNick('呱')">呱</span>
+                        <span class="preset-tag" onclick="setNick('馬某人')">馬某人</span>
+                        <span class="preset-tag" onclick="setNick('黑天鵝')">黑天鵝</span>
+                        <span class="preset-tag" onclick="setNick('張麻子')">張麻子</span>
+                        <span class="preset-tag" onclick="setNick('湯師爺')">湯師爺</span>
+                        <span class="preset-tag" onclick="setNick('我是叫獸')">我是叫獸</span>
+                        <span class="preset-tag" onclick="setNick('叫獸aka愛叫的野獸')">叫獸aka愛叫的野獸</span>
+                        <span class="preset-tag" onclick="setNick('煞氣a捕夢網')">煞氣a捕夢網</span>
+                        <span class="preset-tag" onclick="setNick('呂允才不是你寶寶')">呂允才不是你寶寶 ㄌㄩㄝ</span>
+                        <span class="preset-tag" onclick="setNick('大風起兮雲飛揚')">大風起兮雲飛揚</span>
+                        <span class="preset-tag" onclick="setNick('嘿嘿我是黃四郎')">嘿嘿我是黃四郎</span>
+                    </div>
                 </div>
 
                 <div class="input-group">
@@ -9306,7 +9336,12 @@ function apiGet(qs) {
             document.querySelectorAll('#edit-avatar-grid .avatar-opt').forEach(o => o.classList.remove('selected'));
             el.classList.add('selected'); playerProfile.avatar = em;
         }
-        function setNick(t) { document.getElementById('user-nick').value = t; }
+        function setNick(t) {
+            const un = document.getElementById('user-nick');
+            const en = document.getElementById('edit-nick');
+            if (un) un.value = t;
+            if (en) en.value = t;
+        }
 
         /* ═══════ 身分編號 (方案 B: 裝置綁定唯一 ID) ═══════ */
         const ID_KEY = 'nchu_pb_identity';
@@ -9339,6 +9374,9 @@ function apiGet(qs) {
             playerId: null, avatar: '🪿', sidPrefix: '', deptCode: '',
             department: '', grade: '', entryYear: '', nickname: '叫獸aka愛叫的野獸', sessionId: null
         };
+        if (typeof window !== 'undefined') {
+            window.playerProfile = playerProfile;
+        }
 
         /* ═══════ 教練模式與參數熱抽換 (Dual-Track Model) ═══════ */
         const MODEL_STORAGE_KEY = 'nchu_custom_motion_model';
@@ -9524,6 +9562,7 @@ function apiGet(qs) {
                 checkAdminAccess(playerProfile.nickname);
 
                 updateWhoLabel(playerProfile.nickname, playerProfile.avatar);
+                window.playerProfile = playerProfile;
                 document.getElementById('login-overlay').style.display = 'none';
                 document.body.classList.remove('login-open');
                 clearKeys();
@@ -9547,6 +9586,7 @@ function apiGet(qs) {
             playerProfile.ig = '';
             playerProfile.sessionId = 'S-' + Date.now().toString(36);
             checkAdminAccess(playerProfile.nickname);
+            window.playerProfile = playerProfile;
 
             updateWhoLabel(playerProfile.nickname, playerProfile.avatar);
             const overlay = document.getElementById('login-overlay');
@@ -9595,6 +9635,7 @@ function apiGet(qs) {
             });
 
             updateWhoLabel(playerProfile.nickname, playerProfile.avatar);
+            window.playerProfile = playerProfile;
             document.getElementById('login-overlay').style.display = 'none';
             document.body.classList.remove('login-open');
             clearKeys();
@@ -9656,6 +9697,7 @@ function apiGet(qs) {
         }
 
         function openProfileModal() {
+            window.playerProfile = playerProfile;
             // Update Passport UI
             const avDisp = document.getElementById('passport-avatar-display');
             const nmDisp = document.getElementById('passport-name-display');
@@ -9800,6 +9842,10 @@ function apiGet(qs) {
             sv.entryYear = playerProfile.entryYear;
             sv.ig = playerProfile.ig;
             saveIdentity(sv);
+            window.playerProfile = playerProfile;
+            if (typeof renderPassportView === 'function') {
+                renderPassportView();
+            }
             closeProfileModal();
 
             const hubAv = document.getElementById('hub-avatar');
@@ -10050,6 +10096,7 @@ function apiGet(qs) {
             window.openProfileModal = openProfileModal;
             window.closeProfileModal = closeProfileModal;
             window.saveProfile = saveProfile;
+            window.playerProfile = playerProfile;
             window.reopenLoginOverlay = reopenLoginOverlay;
             window.onEditSidInput = onEditSidInput;
 
@@ -11113,6 +11160,7 @@ if (typeof window !== "undefined") {
                     if (server === 'PLAYER') {
                         pScore++; S.point(); popRing(0, -3, 6, 0x3fe0c4);
                         if (typeof updateGooseEmote === 'function') updateGooseEmote('💦');
+                        if (typeof addPlayerExp === 'function') addPlayerExp(25, '得分');
                         serveSide = (pScore % 2 === 0) ? 1 : -1;
                         toast('🏆 玩家得分！', '比分 ' + pScore + ' - ' + aScore + ' · ' + (serveSide === 1 ? '右側' : '左側') + '發球');
                     } else {
@@ -11195,6 +11243,7 @@ if (typeof window !== "undefined") {
             state = 'CLEARED'; freeze(); clearTimers(); locked = true; S.point();
             popRing(0, 2, 8, 0xffc857);
             if (typeof updateGooseEmote === 'function') updateGooseEmote('👏');
+            if (typeof addPlayerExp === 'function') addPlayerExp(stage === 5 ? 300 : 120, '關卡勝利');
             if (typeof showPolaroidSouvenir === 'function' && stage >= 4) {
                 showPolaroidSouvenir(true, pScore, aScore);
                 // ★ 正式關卡通關拍立得彈出時，等待玩家點擊 [繼續遊戲] 再推進關卡！
@@ -12890,9 +12939,12 @@ if (typeof window !== "undefined") {
     function getPlayerExp() {
         try {
             const raw = localStorage.getItem(EXP_KEY);
-            return raw ? parseInt(raw, 10) : 2450;
+            if (raw !== null && !isNaN(parseInt(raw, 10))) {
+                return parseInt(raw, 10);
+            }
+            return 120; // 首次新玩家初始經驗值 (Lv.1 新手球員)
         } catch (e) {
-            return 2450;
+            return 120;
         }
     }
 
@@ -12900,6 +12952,27 @@ if (typeof window !== "undefined") {
         try {
             localStorage.setItem(EXP_KEY, String(exp));
         } catch (e) {}
+    }
+
+    function addPlayerExp(amount, reason = '') {
+        const cur = getPlayerExp();
+        const next = Math.max(0, cur + (amount || 0));
+        setPlayerExp(next);
+        const oldLevel = Math.floor(cur / 300) + 1;
+        const newLevel = Math.floor(next / 300) + 1;
+        if (newLevel > oldLevel) {
+            const { title } = calcLevelInfo(next);
+            if (typeof toast === 'function') {
+                toast(`🎉 等級提升至 Lv.${newLevel}！`, `榮獲頭銜：${title}`);
+            }
+            if (typeof S !== 'undefined' && S.fanfare) {
+                S.fanfare();
+            }
+            if (typeof speakReferee === 'function') {
+                speakReferee(`恭喜升級！晉升為等級 ${newLevel}！`);
+            }
+        }
+        return next;
     }
 
     function getUnlockedAchievements() {
@@ -13223,6 +13296,7 @@ if (typeof window !== "undefined") {
     window.suspendProfileAvatar = suspendProfileAvatar;
     window.getPlayerExp = getPlayerExp;
     window.setPlayerExp = setPlayerExp;
+    window.addPlayerExp = addPlayerExp;
 
 })(window);
 
@@ -18813,6 +18887,9 @@ function cycleTeachLevelQuick() {
                 if (typeof updateDynamicStagePill === 'function') {
                     updateDynamicStagePill(1, pScore, wallCombo);
                 }
+                if (typeof addPlayerExp === 'function') {
+                    addPlayerExp(isBullseye ? 10 : 5, '對牆特訓');
+                }
             }
         }
         window.initWallPractice = initWallPractice;
@@ -19807,6 +19884,7 @@ function solveArc(fx, fy, fz, tx, tz, out, speedScale) {
             }
             if (volley && needBounce()) { endRally('GOOSE', '雙彈跳違規', '接發球必須等球落地一次'); return; }
             pLock = 0.28; lastHitter = 'PLAYER'; rallyHits++; bounces = 0;
+            if (typeof addPlayerExp === 'function') addPlayerExp(2, '擊球');
 
             // 🍄 瘋狂道具戰：擊球特殊觸發 (電蚊拍電擊、巨球震撼、巨拍轟擊)
             if (typeof FunMode !== 'undefined' && FunMode.activeBuff) {

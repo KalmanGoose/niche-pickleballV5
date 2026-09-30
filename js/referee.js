@@ -45,6 +45,7 @@
                     if (server === 'PLAYER') {
                         pScore++; S.point(); popRing(0, -3, 6, 0x3fe0c4);
                         if (typeof updateGooseEmote === 'function') updateGooseEmote('💦');
+                        if (typeof addPlayerExp === 'function') addPlayerExp(25, '得分');
                         serveSide = (pScore % 2 === 0) ? 1 : -1;
                         toast('🏆 玩家得分！', '比分 ' + pScore + ' - ' + aScore + ' · ' + (serveSide === 1 ? '右側' : '左側') + '發球');
                     } else {
@@ -127,6 +128,7 @@
             state = 'CLEARED'; freeze(); clearTimers(); locked = true; S.point();
             popRing(0, 2, 8, 0xffc857);
             if (typeof updateGooseEmote === 'function') updateGooseEmote('👏');
+            if (typeof addPlayerExp === 'function') addPlayerExp(stage === 5 ? 300 : 120, '關卡勝利');
             if (typeof showPolaroidSouvenir === 'function' && stage >= 4) {
                 showPolaroidSouvenir(true, pScore, aScore);
                 // ★ 正式關卡通關拍立得彈出時，等待玩家點擊 [繼續遊戲] 再推進關卡！

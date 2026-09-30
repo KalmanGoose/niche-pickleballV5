@@ -226,7 +226,12 @@ function apiGet(qs) {
             document.querySelectorAll('#edit-avatar-grid .avatar-opt').forEach(o => o.classList.remove('selected'));
             el.classList.add('selected'); playerProfile.avatar = em;
         }
-        function setNick(t) { document.getElementById('user-nick').value = t; }
+        function setNick(t) {
+            const un = document.getElementById('user-nick');
+            const en = document.getElementById('edit-nick');
+            if (un) un.value = t;
+            if (en) en.value = t;
+        }
 
         /* ═══════ 身分編號 (方案 B: 裝置綁定唯一 ID) ═══════ */
         const ID_KEY = 'nchu_pb_identity';
@@ -259,6 +264,9 @@ function apiGet(qs) {
             playerId: null, avatar: '🪿', sidPrefix: '', deptCode: '',
             department: '', grade: '', entryYear: '', nickname: '叫獸aka愛叫的野獸', sessionId: null
         };
+        if (typeof window !== 'undefined') {
+            window.playerProfile = playerProfile;
+        }
 
         /* ═══════ 教練模式與參數熱抽換 (Dual-Track Model) ═══════ */
         const MODEL_STORAGE_KEY = 'nchu_custom_motion_model';
@@ -444,6 +452,7 @@ function apiGet(qs) {
                 checkAdminAccess(playerProfile.nickname);
 
                 updateWhoLabel(playerProfile.nickname, playerProfile.avatar);
+                window.playerProfile = playerProfile;
                 document.getElementById('login-overlay').style.display = 'none';
                 document.body.classList.remove('login-open');
                 clearKeys();
@@ -467,6 +476,7 @@ function apiGet(qs) {
             playerProfile.ig = '';
             playerProfile.sessionId = 'S-' + Date.now().toString(36);
             checkAdminAccess(playerProfile.nickname);
+            window.playerProfile = playerProfile;
 
             updateWhoLabel(playerProfile.nickname, playerProfile.avatar);
             const overlay = document.getElementById('login-overlay');
@@ -515,6 +525,7 @@ function apiGet(qs) {
             });
 
             updateWhoLabel(playerProfile.nickname, playerProfile.avatar);
+            window.playerProfile = playerProfile;
             document.getElementById('login-overlay').style.display = 'none';
             document.body.classList.remove('login-open');
             clearKeys();
@@ -576,6 +587,7 @@ function apiGet(qs) {
         }
 
         function openProfileModal() {
+            window.playerProfile = playerProfile;
             // Update Passport UI
             const avDisp = document.getElementById('passport-avatar-display');
             const nmDisp = document.getElementById('passport-name-display');
@@ -720,6 +732,10 @@ function apiGet(qs) {
             sv.entryYear = playerProfile.entryYear;
             sv.ig = playerProfile.ig;
             saveIdentity(sv);
+            window.playerProfile = playerProfile;
+            if (typeof renderPassportView === 'function') {
+                renderPassportView();
+            }
             closeProfileModal();
 
             const hubAv = document.getElementById('hub-avatar');
@@ -970,6 +986,7 @@ function apiGet(qs) {
             window.openProfileModal = openProfileModal;
             window.closeProfileModal = closeProfileModal;
             window.saveProfile = saveProfile;
+            window.playerProfile = playerProfile;
             window.reopenLoginOverlay = reopenLoginOverlay;
             window.onEditSidInput = onEditSidInput;
 

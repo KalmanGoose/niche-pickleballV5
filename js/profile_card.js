@@ -18,9 +18,12 @@
     function getPlayerExp() {
         try {
             const raw = localStorage.getItem(EXP_KEY);
-            return raw ? parseInt(raw, 10) : 2450;
+            if (raw !== null && !isNaN(parseInt(raw, 10))) {
+                return parseInt(raw, 10);
+            }
+            return 120; // 首次新玩家初始經驗值 (Lv.1 新手球員)
         } catch (e) {
-            return 2450;
+            return 120;
         }
     }
 
@@ -28,6 +31,27 @@
         try {
             localStorage.setItem(EXP_KEY, String(exp));
         } catch (e) {}
+    }
+
+    function addPlayerExp(amount, reason = '') {
+        const cur = getPlayerExp();
+        const next = Math.max(0, cur + (amount || 0));
+        setPlayerExp(next);
+        const oldLevel = Math.floor(cur / 300) + 1;
+        const newLevel = Math.floor(next / 300) + 1;
+        if (newLevel > oldLevel) {
+            const { title } = calcLevelInfo(next);
+            if (typeof toast === 'function') {
+                toast(`🎉 等級提升至 Lv.${newLevel}！`, `榮獲頭銜：${title}`);
+            }
+            if (typeof S !== 'undefined' && S.fanfare) {
+                S.fanfare();
+            }
+            if (typeof speakReferee === 'function') {
+                speakReferee(`恭喜升級！晉升為等級 ${newLevel}！`);
+            }
+        }
+        return next;
     }
 
     function getUnlockedAchievements() {
@@ -351,5 +375,6 @@
     window.suspendProfileAvatar = suspendProfileAvatar;
     window.getPlayerExp = getPlayerExp;
     window.setPlayerExp = setPlayerExp;
+    window.addPlayerExp = addPlayerExp;
 
 })(window);

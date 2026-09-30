@@ -840,6 +840,9 @@
                 if (typeof updateDynamicStagePill === 'function') {
                     updateDynamicStagePill(1, pScore, wallCombo);
                 }
+                if (typeof addPlayerExp === 'function') {
+                    addPlayerExp(isBullseye ? 10 : 5, '對牆特訓');
+                }
             }
         }
         window.initWallPractice = initWallPractice;
@@ -1834,6 +1837,7 @@ function solveArc(fx, fy, fz, tx, tz, out, speedScale) {
             }
             if (volley && needBounce()) { endRally('GOOSE', '雙彈跳違規', '接發球必須等球落地一次'); return; }
             pLock = 0.28; lastHitter = 'PLAYER'; rallyHits++; bounces = 0;
+            if (typeof addPlayerExp === 'function') addPlayerExp(2, '擊球');
 
             // 🍄 瘋狂道具戰：擊球特殊觸發 (電蚊拍電擊、巨球震撼、巨拍轟擊)
             if (typeof FunMode !== 'undefined' && FunMode.activeBuff) {
