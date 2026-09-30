@@ -162,8 +162,9 @@ class Physics {
         this.spin = 0;
     }
     sync() {
+        if (typeof ball === 'undefined' || !ball || typeof ballGlow === 'undefined' || !ballGlow) return;
         const k = BALL_VIS.base * BALL_VIS.item;
-        const sq = ballSquash;
+        const sq = (typeof ballSquash !== 'undefined') ? ballSquash : 0;
         ball.position.copy(this.pos);
         ball.scale.set(k * (1 + sq * 0.26), k * (1 - sq * 0.34), k * (1 + sq * 0.26));
         ballGlow.position.copy(this.pos);
@@ -178,39 +179,47 @@ class Physics {
         } else {
             ballGlow.material.color.set(0xdcff6a);
         }
-        for (let i = ballTrail.length - 1; i > 0; i--) ballTrail[i].p.copy(ballTrail[i - 1].p);
-        ballTrail[0].p.copy(this.pos);
-        const on = spd > 2.8;
-        for (let i = 0; i < ballTrail.length; i++) {
-            const tr = ballTrail[i], f = 1 - i / ballTrail.length;
-            tr.spr.position.copy(tr.p);
-            const sc = BALL_R * (hasCurve ? 5.2 : 3.8) * f;
-            tr.spr.scale.set(sc, sc, 1);
-            if (hasCurve) {
-                tr.spr.material.color.set(this.spin > 0 ? 0xf6c445 : 0x2d6a4f);
-                tr.spr.material.opacity = on ? (0.48 * f) : 0;
-            } else {
-                tr.spr.material.color.set(0xdcff6a);
-                tr.spr.material.opacity = on ? (0.24 * f * f) : 0;
+        if (typeof ballTrail !== 'undefined' && ballTrail && ballTrail.length > 0) {
+            for (let i = ballTrail.length - 1; i > 0; i--) ballTrail[i].p.copy(ballTrail[i - 1].p);
+            ballTrail[0].p.copy(this.pos);
+            const on = spd > 2.8;
+            for (let i = 0; i < ballTrail.length; i++) {
+                const tr = ballTrail[i], f = 1 - i / ballTrail.length;
+                tr.spr.position.copy(tr.p);
+                const sc = BALL_R * (hasCurve ? 5.2 : 3.8) * f;
+                tr.spr.scale.set(sc, sc, 1);
+                if (hasCurve) {
+                    tr.spr.material.color.set(this.spin > 0 ? 0xf6c445 : 0x2d6a4f);
+                    tr.spr.material.opacity = on ? (0.48 * f) : 0;
+                } else {
+                    tr.spr.material.color.set(0xdcff6a);
+                    tr.spr.material.opacity = on ? (0.24 * f * f) : 0;
+                }
             }
         }
-        ballBlob.position.set(this.pos.x, 0.014, this.pos.z);
-        const hh = THREE.MathUtils.clamp(this.pos.y, 0, 3.2);
-        const bs = THREE.MathUtils.lerp(BALL_R * 3.1, BALL_R * 6.4, hh / 3.2);
-        ballBlob.scale.set(bs, bs, 1);
-        ballBlob.material.opacity = THREE.MathUtils.lerp(0.5, 0.09, hh / 3.2);
+        if (typeof ballBlob !== 'undefined' && ballBlob) {
+            ballBlob.position.set(this.pos.x, 0.014, this.pos.z);
+            const hh = THREE.MathUtils.clamp(this.pos.y, 0, 3.2);
+            const bs = THREE.MathUtils.lerp(BALL_R * 3.1, BALL_R * 6.4, hh / 3.2);
+            ballBlob.scale.set(bs, bs, 1);
+            ballBlob.material.opacity = THREE.MathUtils.lerp(0.5, 0.09, hh / 3.2);
+        }
         updateWindHud();
     }
-    setPos(x, y, z) { this.pos.set(x, y, z); this.prevPos.copy(this.pos);
-        if (WIND.enabled) WIND.update(dt); if (ball) this.sync(); }
+    setPos(x, y, z) {
+        this.pos.set(x, y, z);
+        this.prevPos.copy(this.pos);
+        if (typeof ball !== 'undefined' && ball) this.sync();
+    }
     reset(x, y, z) {
         this.setPos(x, y, z);
         this.prevPos.copy(this.pos);
         this.vel.set(0, 0, 0);
         this.spin = 0;
-        if (ball) ball.rotation.set(0, 0, 0);
+        if (typeof ball !== 'undefined' && ball) ball.rotation.set(0, 0, 0);
     }
     update(dt) {
+        if (WIND.enabled) WIND.update(dt);
         if (state === 'SERVE_READY' || state === 'FAULT' || state === 'OVER' || state === 'CLEARED') {
             this.prevPos.copy(this.pos);
             this.sync();
@@ -227,7 +236,7 @@ class Physics {
     step(h) {
         const pz = this.pos.z, py = this.pos.y;
         this.spin = integrateVel(this.vel, this.spin, h, currentPhysicsMode);
-        if (ball) {
+        if (typeof ball !== 'undefined' && ball) {
             ball.rotation.x -= this.vel.z * 3.6 * h;
             ball.rotation.y += this.spin * 16.0 * h;
         }

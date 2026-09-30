@@ -235,6 +235,49 @@ try {
     const mPass = simOut.match(/通過:\s*(\d+)\s*項/);
     const passCount = mPass ? parseInt(mPass[1], 10) : 0;
     assert(passCount >= 80, `82 項物理動力學與 CCD 防穿透測試全數 PASS (通過 ${passCount} 項)`);
+
+    // ── 7-2: 物理實例 setPos / reset 執行期無未宣告變數 (Anti-ReferenceError in Physics) ──
+    const configSrc = fs.readFileSync(path.join(ROOT, "js/config.js"), "utf8");
+    const physSrc = fs.readFileSync(path.join(ROOT, "js/physics.js"), "utf8");
+    const testSandbox = {
+        THREE: {
+            Vector3: class { constructor(x=0,y=0,z=0){this.x=x;this.y=y;this.z=z;} set(x,y,z){this.x=x;this.y=y;this.z=z;} copy(o){this.x=o.x;this.y=o.y;this.z=o.z;} clone(){return new this.constructor(this.x,this.y,this.z);} addScaledVector(){} },
+            MathUtils: { clamp: (v) => v, lerp: (a,b) => a }
+        },
+        window: {},
+        document: { getElementById: () => ({ style: {}, classList: { add(){}, remove(){} } }), querySelectorAll: () => [] },
+        navigator: { userAgent: "Node" },
+        localStorage: { getItem: () => null, setItem: () => {} },
+        Math
+    };
+    testSandbox.window = testSandbox;
+    vm.createContext(testSandbox);
+    vm.runInContext(configSrc, testSandbox);
+    vm.runInContext(physSrc, testSandbox);
+    let setPosOk = false;
+    try {
+        vm.runInContext("PH.setPos(0, 1, 0); PH.reset(0, 1, 0);", testSandbox);
+        setPosOk = true;
+    } catch (err) {
+        setPosOk = false;
+    }
+    assert(setPosOk, "Physics.setPos 與 reset 執行期無未宣告變數 (杜絕 ReferenceError: dt is not defined)");
+
+    // ── 7-3: WIND 氣動力向量與 updateWindHud 正確運作 ──
+    let windOk = false;
+    try {
+        vm.runInContext("WIND.update(1/60); updateWindHud();", testSandbox);
+        const w = testSandbox.WIND;
+        windOk = (typeof w.speed === "number" && !isNaN(w.speed) && w.speed > 0);
+    } catch (err) {
+        windOk = false;
+    }
+    assert(windOk, "WIND 環境微風向量與 updateWindHud 更新正常無異常拋出");
+
+    // ── 7-4: 風向儀佈局防遮擋檢測 (Anti-Collision with Dynamic Stage Pill) ──
+    const hudCssText = fs.readFileSync(path.join(ROOT, "css/hud.css"), "utf8");
+    const windHudLeftMatch = /#wind-hud\s*\{[^}]*left:\s*14px;/s.test(hudCssText);
+    assert(windHudLeftMatch, "css/hud.css 中 #wind-hud 嚴格定位於頂部左側 (left: 14px)，杜絕與中央藥丸疊合遮擋");
 } catch (e) {
     assert(false, "物理模擬腳本執行異常", e.message);
 }

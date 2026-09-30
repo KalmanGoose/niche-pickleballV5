@@ -2762,13 +2762,13 @@ body.distant-hud-active #subbar-ai-btn {
    🍃 中興湖風向風速儀標籤 (Wind Indicator)
    ═══════════════════════════════════════════════════════════════════ */
 #wind-hud {
-    position: absolute;
-    top: calc(14px + env(safe-area-inset-top));
-    right: 76px;
+    position: fixed;
+    top: calc(12px + env(safe-area-inset-top));
+    left: 14px;
     background: rgba(254, 252, 247, 0.92);
     border: 1.5px solid #ecd8b8;
     border-radius: 20px;
-    padding: 4px 10px;
+    padding: 4px 9px;
     font-size: 11px;
     font-weight: 800;
     color: #2e7d32;
