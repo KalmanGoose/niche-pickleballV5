@@ -144,3 +144,26 @@
             border-radius: 14px !important;
             touch-action: manipulation !important;
         }
+
+/* Quick Badge (Login UI) Typography Optimization */
+#quick-badge-card {
+    background: rgba(255, 255, 255, 0.9) !important;
+    backdrop-filter: blur(8px);
+    box-shadow: 0 4px 12px rgba(43, 29, 20, 0.1);
+    border: 2px solid #ecd8b8 !important;
+}
+#quick-avatar {
+    font-size: 42px !important;
+    text-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+#quick-nickname {
+    font-size: 18px !important;
+    font-weight: 900 !important;
+    color: #2b1d14 !important;
+    letter-spacing: 0.5px;
+}
+#quick-dept {
+    font-size: 13px !important;
+    color: #40916c !important;
+    font-weight: 700;
+}

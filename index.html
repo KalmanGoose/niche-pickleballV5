@@ -195,6 +195,29 @@
             touch-action: manipulation !important;
         }
 
+/* Quick Badge (Login UI) Typography Optimization */
+#quick-badge-card {
+    background: rgba(255, 255, 255, 0.9) !important;
+    backdrop-filter: blur(8px);
+    box-shadow: 0 4px 12px rgba(43, 29, 20, 0.1);
+    border: 2px solid #ecd8b8 !important;
+}
+#quick-avatar {
+    font-size: 42px !important;
+    text-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+#quick-nickname {
+    font-size: 18px !important;
+    font-weight: 900 !important;
+    color: #2b1d14 !important;
+    letter-spacing: 0.5px;
+}
+#quick-dept {
+    font-size: 13px !important;
+    color: #40916c !important;
+    font-weight: 700;
+}
+
 
 /* ─── hud.css ─── */
 /* ═══════════════════════════════════════════════════════════════════
@@ -1231,6 +1254,9 @@
             -webkit-backdrop-filter: blur(16px);
             transition: opacity 0.22s cubic-bezier(0.16, 1, 0.3, 1), transform 0.24s cubic-bezier(0.16, 1, 0.3, 1);
             max-width: min(92vw, 460px);
+            word-break: break-word;
+            white-space: pre-wrap;
+            text-align: center;
             box-sizing: border-box;
             text-align: center;
         }
@@ -3322,7 +3348,7 @@ body.layout-nook #nav-wrapper {
 
         .modal-card p {
             color: var(--dim);
-            font-size: 12px;
+            font-size: 11px; letter-spacing: 0.5px;
             line-height: 1.5;
             margin-bottom: 18px
         }
@@ -3649,7 +3675,7 @@ body.layout-nook #nav-wrapper {
             border: 0;
             background: transparent;
             color: var(--dim);
-            font-size: 12px;
+            font-size: 11px; letter-spacing: 0.5px;
             font-weight: 700;
             border-radius: 7px;
             cursor: pointer;
@@ -3682,7 +3708,7 @@ body.layout-nook #nav-wrapper {
 
         .lb-rank {
             width: 30px;
-            font-size: 12px;
+            font-size: 11px; letter-spacing: 0.5px;
             font-weight: 800;
             flex-shrink: 0;
             text-align: center
@@ -3699,7 +3725,7 @@ body.layout-nook #nav-wrapper {
         }
 
         .lb-nick {
-            font-size: 12px;
+            font-size: 11px; letter-spacing: 0.5px;
             font-weight: 800;
             color: var(--txt);
             white-space: nowrap;
@@ -3961,7 +3987,7 @@ body.layout-nook #nav-wrapper {
             border: 1px solid var(--line);
             border-radius: 20px;
             padding: 4px 12px;
-            font-size: 12px;
+            font-size: 11px; letter-spacing: 0.5px;
             font-weight: 800;
             color: var(--accent);
             backdrop-filter: blur(8px);
@@ -3992,7 +4018,7 @@ body.layout-nook #nav-wrapper {
             border: 1px solid rgba(56, 189, 248, 0.35);
             border-radius: 22px;
             padding: 6px 14px;
-            font-size: 12px;
+            font-size: 11px; letter-spacing: 0.5px;
             font-weight: 800;
             color: var(--accent);
             backdrop-filter: blur(10px);
@@ -4180,7 +4206,7 @@ body.layout-nook #nav-wrapper {
             padding: 10px 14px;
             border-radius: 4px 10px 10px 4px;
             margin: 10px 0;
-            font-size: 12px;
+            font-size: 11px; letter-spacing: 0.5px;
             line-height: 1.65;
             color: #2b1d14;
             box-shadow: 0 1px 3px rgba(46, 125, 50, 0.06);
@@ -4265,7 +4291,7 @@ body.layout-nook #nav-wrapper {
             background: rgba(255, 255, 255, 0.08);
             border: 1px solid rgba(255, 255, 255, 0.12);
             color: #cbd5e1;
-            font-size: 12px;
+            font-size: 11px; letter-spacing: 0.5px;
             font-weight: 700;
             cursor: pointer;
             transition: all 0.2s ease;
@@ -5062,7 +5088,7 @@ body.layout-nook #nav-wrapper {
             border: 2px solid #5a4230;
             border-radius: 16px;
             padding: 8px 13px;
-            font-size: 12px;
+            font-size: 11px; letter-spacing: 0.5px;
             font-weight: 800;
             color: #2b1d14;
             box-shadow: 0 6px 18px rgba(0, 0, 0, 0.22), 0 2px 0 #5a4230;
@@ -5070,7 +5096,7 @@ body.layout-nook #nav-wrapper {
             word-break: break-word;
             text-align: left;
             line-height: 1.5;
-            max-width: min(220px, 58vw);
+            max-width: min(200px, 60vw);
             min-width: 130px;
             width: max-content;
             box-sizing: border-box;
@@ -5313,7 +5339,7 @@ body.layout-nook #nav-wrapper {
             color: #2b6cb0;
             padding: 10px;
             border-radius: 14px;
-            font-size: 12px;
+            font-size: 11px; letter-spacing: 0.5px;
             font-weight: 800;
             cursor: pointer;
             box-shadow: 0 2px 0 #d9c49f;
@@ -5534,7 +5560,7 @@ body.layout-nook #nav-wrapper {
             letter-spacing: 0.3px;
         }
         .mode-card-desc {
-            font-size: 12px;
+            font-size: 11px; letter-spacing: 0.5px;
             color: #6b5543;
             line-height: 1.5;
             margin-bottom: 14px;
@@ -5870,7 +5896,7 @@ body.layout-nook #nav-wrapper {
             border-radius: 14px;
             padding: 10px 14px;
             margin-bottom: 14px;
-            font-size: 12px;
+            font-size: 11px; letter-spacing: 0.5px;
             color: #8d6e63;
             line-height: 1.5;
         }
@@ -6297,7 +6323,7 @@ body.layout-nook #nav-wrapper {
                 font-size: 16px;
             }
             .hub-community-body {
-                font-size: 12px;
+                font-size: 11px; letter-spacing: 0.5px;
                 line-height: 1.65;
                 padding: 10px 12px;
             }
@@ -6519,7 +6545,7 @@ body.layout-nook #nav-wrapper {
             border: 1px solid #fde047;
         }
         .passport-player-dept {
-            font-size: 12px;
+            font-size: 11px; letter-spacing: 0.5px;
             font-weight: 700;
             color: #5d4037;
             margin: 3px 0 8px;
@@ -6551,7 +6577,7 @@ body.layout-nook #nav-wrapper {
             min-width: 0;
         }
         .passport-level-title {
-            font-size: 12px;
+            font-size: 11px; letter-spacing: 0.5px;
             font-weight: 800;
             color: #1b5e20;
             margin-bottom: 4px;
@@ -6732,7 +6758,7 @@ body.layout-nook #nav-wrapper {
             margin-top: 1px;
         }
         .ach-badge-state {
-            font-size: 12px;
+            font-size: 11px; letter-spacing: 0.5px;
             font-weight: 900;
             color: #1b5e20;
             flex-shrink: 0;
@@ -6742,6 +6768,112 @@ body.layout-nook #nav-wrapper {
         }
 
 
+
+/* ══════ 選手證與成就 (Passport) ══════ */
+.passport-card {
+    background: #fbf8f0;
+    border: 2px solid #ecd8b8;
+    border-radius: 16px;
+    padding: 16px;
+    margin-top: 12px;
+}
+.passport-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 20px;
+}
+.passport-avatar {
+    width: 72px;
+    height: 72px;
+    background: #ffffff;
+    border: 3px solid #40916c;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 40px;
+    box-shadow: 0 4px 10px rgba(64, 145, 108, 0.2);
+}
+.passport-info {
+    flex: 1;
+}
+.passport-info h3 {
+    margin: 0 0 4px 0;
+    font-size: 18px;
+    color: #2b1d14;
+    font-weight: 800;
+}
+.passport-dept {
+    font-size: 12px;
+    color: #795548;
+    margin-bottom: 8px;
+    font-weight: 700;
+}
+.passport-level-box {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.level-badge {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 900;
+    padding: 3px 8px;
+    border-radius: 12px;
+    box-shadow: 0 2px 4px rgba(245, 158, 11, 0.3);
+}
+.exp-bar-container {
+    flex: 1;
+    height: 8px;
+    background: #e6dfcc;
+    border-radius: 4px;
+    overflow: hidden;
+}
+.exp-bar-fill {
+    height: 100%;
+    background: #40916c;
+    border-radius: 4px;
+    transition: width 0.3s ease;
+}
+.achievements-section h4 {
+    margin: 0 0 10px 0;
+    font-size: 14px;
+    color: #2b1d14;
+    border-bottom: 2px dashed #ebd8bc;
+    padding-bottom: 6px;
+}
+.achievements-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+    gap: 8px;
+}
+.achievement-badge {
+    background: #ffffff;
+    border: 1.5px solid #d4c5b0;
+    border-radius: 8px;
+    padding: 8px 6px;
+    font-size: 11px;
+    font-weight: 800;
+    color: #4a3728;
+    text-align: center;
+    box-shadow: 0 2px 0 #ecd8b8;
+    cursor: help;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.achievement-badge:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px rgba(0,0,0,0.06), 0 2px 0 #40916c;
+    border-color: #40916c;
+}
+.achievement-badge.locked {
+    background: #e6dfcc;
+    color: #a0937d;
+    border-color: #d4c5b0;
+    filter: grayscale(100%);
+    box-shadow: none;
+}
 
 
     </style>
@@ -6844,8 +6976,32 @@ body.layout-nook #nav-wrapper {
                 <button type="button" class="profile-nav-tab" id="ptab-btn-edit" onclick="switchProfileTab('edit')">✏️ 編輯資料 / 學號綁定</button>
             </div>
 
+            
             <!-- 頁籤 1: 選手證與成就 (預設展開) -->
-            <div id="passport-tab-content" style="display:block;"></div>
+            <div id="passport-tab-content" style="display:block;">
+                <div class="passport-card">
+                    <div class="passport-header">
+                        <div class="passport-avatar" id="passport-avatar-display">😎</div>
+                        <div class="passport-info">
+                            <h3 id="passport-name-display">興大匹克球神</h3>
+                            <div class="passport-dept" id="passport-dept-display">未設定系所 · 國立中興大學</div>
+                            <div class="passport-level-box">
+                                <div class="level-badge">Lv <span id="passport-level-num">1</span></div>
+                                <div class="exp-bar-container"><div class="exp-bar-fill" style="width: 25%;"></div></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="achievements-section">
+                        <h4>🏅 特殊成就徽章</h4>
+                        <div class="achievements-grid">
+                            <div class="achievement-badge locked" title="完成 10 場對牆特訓">🧱 牆島大師</div>
+                            <div class="achievement-badge" title="戰勝中興黑天鵝">🦢 降鵝勇士</div>
+                            <div class="achievement-badge" title="完成隱藏挑戰：揚州炒飯 (中興大學傳說彩蛋！)">🍚 揚州炒飯大師</div>
+                            <div class="achievement-badge locked" title="解鎖全部科普卡片">📚 科普學者</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
             <!-- 頁籤 2: 編輯個人資料與綁定學號 (保留完整 DOM 元素) -->
             <div id="profile-edit-content" style="display:none;">
@@ -7272,7 +7428,7 @@ body.layout-nook #nav-wrapper {
             <div id="rtab-pane-physics" class="rules-tab-pane" style="display:none;">
                 <div class="rules-grid">
                     <!-- 科普抽屜 1: 馬格努斯效應 (預設展開) -->
-                    <div class="science-drawer open" id="drawer-phys-1">
+                    <div class="science-drawer" id="drawer-phys-1">
                         <div class="drawer-header" onclick="toggleScienceDrawer('drawer-phys-1')">
                             <div class="drawer-header-left">
                                 <span class="drawer-badge">科普 01</span>
@@ -7383,10 +7539,11 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
 
                             <div style="margin-top:10px;display:flex;flex-direction:column;gap:10px;">
                                 <!-- 細項 1 -->
-                                <div class="science-box">
-                                    <div style="font-weight:800;color:#1b5e20;font-size:13px;margin-bottom:4px;">
+                                <details class="science-box" style="cursor:pointer; margin-bottom:10px;">
+<summary style="font-weight:800;color:#1b5e20;font-size:13px;margin-bottom:4px;">
+                                        ① m · (dv/dt) ── 慣性與合加速度項 (Inertia & Acceleration</summary>                               <div style="font-weight:800;color:#1b5e20;font-size:13px;margin-bottom:4px;">
                                         ① m · (dv/dt) ── 慣性與合加速度項 (Inertia & Acceleration)
-                                    </div>
+</details>
                                     <div style="font-size:12px;line-height:1.65;color:#3d2d22;">
                                         • <b>m（球體質量 / Mass）</b>：標準值 <b>26.0 g (0.026 kg)</b>（USA Pickleball 官方規範 22.1 ~ 26.5 g）。質量輕意味著微小的氣動力就能顯著改變飛行軌跡。<br>
                                         • <b>dv/dt = a（瞬時加速度向量 / Acceleration）</b>：單位為 m/s²，代表球體在 X, Y, Z 三維軸向上每秒速度的向量變化量。
@@ -7394,20 +7551,22 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
                                 </div>
 
                                 <!-- 細項 2 -->
-                                <div class="science-box">
-                                    <div style="font-weight:800;color:#2e7d32;font-size:13px;margin-bottom:4px;">
+                                <details class="science-box" style="cursor:pointer; margin-bottom:10px;">
+<summary style="font-weight:800;color:#2e7d32;font-size:13px;margin-bottom:4px;">
+                                        ② F_gravity = m · g ── 垂直重力下墜項 (Gravity</summary>                               <div style="font-weight:800;color:#2e7d32;font-size:13px;margin-bottom:4px;">
                                         ② F_gravity = m · g ── 垂直重力下墜項 (Gravity)
-                                    </div>
+</details>
                                     <div style="font-size:12px;line-height:1.65;color:#3d2d22;">
                                         • <b>g（重力加速度向量）</b>：定義為 <b>(0, -9.81, 0) m/s²</b>，永遠朝向 Y 軸負方向（垂直朝向地心）。若無空氣外力，球體將呈標準古典拋物線運動。
                                     </div>
                                 </div>
 
                                 <!-- 細項 3 -->
-                                <div class="science-box">
-                                    <div style="font-weight:800;color:#c86446;font-size:13px;margin-bottom:4px;">
+                                <details class="science-box" style="cursor:pointer; margin-bottom:10px;">
+<summary style="font-weight:800;color:#c86446;font-size:13px;margin-bottom:4px;">
+                                        ③ F_drag = -½ · Cd · ρ · A · |v| · v ── 二次方空氣阻力項 (Quadratic Drag</summary>                               <div style="font-weight:800;color:#c86446;font-size:13px;margin-bottom:4px;">
                                         ③ F_drag = -½ · Cd · ρ · A · |v| · v ── 二次方空氣阻力項 (Quadratic Drag)
-                                    </div>
+</details>
                                     <div style="font-size:12px;line-height:1.65;color:#3d2d22;">
                                         • <b>負號（-）</b>：阻力方向永遠與前進速度向量 v <b>嚴格相反</b>，專職消耗球體動能。<br>
                                         • <b>Cd（形狀阻力係數 / Drag Coefficient）</b>：基準值 <b>0.58</b>。光滑球體僅約 0.45，但匹克球表面有 <b>26~40 個孔洞</b>，高速運動引發強烈的<b>邊界層紊流脫離 (Turbulent Wake Separation)</b>，形成巨大壓差阻力。<br>
@@ -7418,10 +7577,11 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
                                 </div>
 
                                 <!-- 細項 4 -->
-                                <div class="science-box">
-                                    <div style="font-weight:800;color:#854d0e;font-size:13px;margin-bottom:4px;">
+                                <details class="science-box" style="cursor:pointer; margin-bottom:10px;">
+<summary style="font-weight:800;color:#854d0e;font-size:13px;margin-bottom:4px;">
+                                        ④ F_Magnus = ½ · CL · ρ · A · |v|² · ((ω × v) / |ω × v|) ── 馬格努斯旋轉偏折力項 (Magnus Force</summary>                               <div style="font-weight:800;color:#854d0e;font-size:13px;margin-bottom:4px;">
                                         ④ F_Magnus = ½ · CL · ρ · A · |v|² · ((ω × v) / |ω × v|) ── 馬格努斯旋轉偏折力項 (Magnus Force)
-                                    </div>
+</details>
                                     <div style="font-size:12px;line-height:1.65;color:#3d2d22;">
                                         • <b>ω（自旋角速度向量 / Angular Velocity）</b>：單位 rad/s，旋轉軸方向依循右手定則。<br>
                                         • <b>ω × v（向量外積 / Cross Product）</b>：外積方向<b>同時垂直於自轉軸與飛行速度</b>！在數學上精確解釋了三大實戰球路：<br>
@@ -7433,10 +7593,11 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
                                 </div>
 
                                 <!-- 細項 5 -->
-                                <div class="science-box">
-                                    <div style="font-weight:800;color:#2b1d14;font-size:13px;margin-bottom:4px;">
+                                <details class="science-box" style="cursor:pointer; margin-bottom:10px;">
+<summary style="font-weight:800;color:#2b1d14;font-size:13px;margin-bottom:4px;">
+                                        ⑤ dω/dt = -β_perforated · ω ── 多孔角動量自旋阻尼衰減項 (Spin Dissipation</summary>                               <div style="font-weight:800;color:#2b1d14;font-size:13px;margin-bottom:4px;">
                                         ⑤ dω/dt = -β_perforated · ω ── 多孔角動量自旋阻尼衰減項 (Spin Dissipation)
-                                    </div>
+</details>
                                     <div style="font-size:12px;line-height:1.65;color:#3d2d22;">
                                         • <b>β_perforated（多孔空氣剪切阻尼係數）</b>：取值 <b>0.35 s⁻¹</b>。<br>
                                         • <b>物理意義</b>：空氣高速穿梭貫穿球體的 26~40 個孔洞時，球內腔與外側氣流產生強烈剪切摩擦，使自旋角速度以指數形式衰減 ω(t) = ω₀ · e^(-β·t)。<br>
@@ -7497,10 +7658,11 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
 
                             <div style="margin-top:10px;display:flex;flex-direction:column;gap:10px;">
                                 <!-- 區塊 1: 普林斯頓大學 FlyWire 開源計劃介紹 -->
-                                <div class="science-box">
-                                    <div style="font-weight:800;color:#1b5e20;font-size:13px;margin-bottom:6px;display:flex;align-items:center;gap:6px;">
+                                <details class="science-box" style="cursor:pointer; margin-bottom:10px;">
+<summary style="font-weight:800;color:#1b5e20;font-size:13px;margin-bottom:6px;display:flex;align-items:center;gap:6px;">
+                                        <span>🌐</span> 普林斯頓大學 FlyWire 開源計劃與公共神經資料庫 (Princeton FlyWire Consortium</summary>                               <div style="font-weight:800;color:#1b5e20;font-size:13px;margin-bottom:6px;display:flex;align-items:center;gap:6px;">
                                         <span>🌐</span> 普林斯頓大學 FlyWire 開源計劃與公共神經資料庫 (Princeton FlyWire Consortium)
-                                    </div>
+</details>
                                     <div style="font-size:12px;line-height:1.7;color:#3d2d22;">
                                         • <b>創舉與歷史里程碑</b>：由普林斯頓大學 <b>H. Sebastian Seung 教授</b>（計算神經科學先驅）與 <b>Mala Murthy 教授</b>（神經生物學與聲學行為權威）領銜，聯合英國劍橋大學 MRC-LMB、HHMI Janelia 等全球數十所頂尖機構，於 2024 年 10 月以《Nature》封面特刊正式發布世界首座完整成年黑腹果蠅（<i>Drosophila melanogaster</i>）全腦接線圖（Wiring Diagram）。<br>
                                         • <b>大數據規模與解析度</b>：涵蓋 <b>139,255 個神經元</b>、超過 <b>5,450 萬個化學突觸</b> 與數百萬條微米級神經纖維，解析度精細至奈米級（4nm × 4nm × 40nm 序列切片穿透電子顯微鏡），徹底解密感官輸入至運動輸出的端到端迴路。<br>
@@ -7509,10 +7671,11 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
                                 </div>
 
                                 <!-- 區塊 2: 神經浮出之各項急轉與逃逸系統解析 -->
-                                <div class="science-box">
-                                    <div style="font-weight:800;color:#c86446;font-size:13px;margin-bottom:6px;display:flex;align-items:center;gap:6px;">
+                                <details class="science-box" style="cursor:pointer; margin-bottom:10px;">
+<summary style="font-weight:800;color:#c86446;font-size:13px;margin-bottom:6px;display:flex;align-items:center;gap:6px;">
+                                        <span>⚡</span> 神經浮出之各項急轉、避障與截擊系統迴路解析 (Emergent Neural Circuits</summary>                               <div style="font-weight:800;color:#c86446;font-size:13px;margin-bottom:6px;display:flex;align-items:center;gap:6px;">
                                         <span>⚡</span> 神經浮出之各項急轉、避障與截擊系統迴路解析 (Emergent Neural Circuits)
-                                    </div>
+</details>
                                     <div style="display:flex;flex-direction:column;gap:8px;font-size:12px;line-height:1.65;color:#3d2d22;">
                                         <div>
                                             <b style="color:#92400e;">① 視覺光學擴張率偵測層 (Optical Looming Detectors: LC4 & LPLC2)</b><br>
@@ -7537,10 +7700,11 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
                                 </div>
 
                                 <!-- 區塊 3: 匹克球遊戲引擎中的真實映射與配對應用 -->
-                                <div class="science-box">
-                                    <div style="font-weight:800;color:#1b5e20;font-size:13px;margin-bottom:6px;display:flex;align-items:center;gap:6px;">
+                                <details class="science-box" style="cursor:pointer; margin-bottom:10px;">
+<summary style="font-weight:800;color:#1b5e20;font-size:13px;margin-bottom:6px;display:flex;align-items:center;gap:6px;">
+                                        <span>🎮</span> 本專案引擎中的神經機制配對與對抗博弈 (In-Engine Neuromechanical Mapping</summary>                               <div style="font-weight:800;color:#1b5e20;font-size:13px;margin-bottom:6px;display:flex;align-items:center;gap:6px;">
                                         <span>🎮</span> 本專案引擎中的神經機制配對與對抗博弈 (In-Engine Neuromechanical Mapping)
-                                    </div>
+</details>
                                     <div style="display:flex;flex-direction:column;gap:6px;font-size:12px;line-height:1.65;color:#3d2d22;">
                                         <div>
                                             • <b>大力抽球與高速截擊配對 (GFS + DNa01 Counter-Drive)</b>：玩家以 $>9.2\,\text{m/s}$ 大力抽球時，遊戲以 $O(1)$ 演算球距與前進分速，觸發 <code>LOOMING_REFLEX</code>。蒼蠅振翅飆至 125Hz，以 $22\,\text{m/s}$ 瞬移，並啟動 DNa01 急轉向對角算法，呼叫 <code>solveArc</code> 內建 $1.25\times$ 高速初速，回擊壓在對手對角底線死角（$z \in [5.8\text{m}, 6.1\text{m}]$），精確懲罰無腦抽球！
@@ -7611,7 +7775,7 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
             <div id="rtab-pane-fly" class="rules-tab-pane" style="display:none;">
                 <div class="rules-grid">
                     <!-- 科普抽屜 1: FlyWire 全腦連接組介紹 (預設展開) -->
-                    <div class="science-drawer open" id="drawer-fly-1">
+                    <div class="science-drawer" id="drawer-fly-1">
                         <div class="drawer-header" onclick="toggleScienceDrawer('drawer-fly-1')">
                             <div class="drawer-header-left">
                                 <span class="drawer-badge" style="background:var(--accent);color:#0f172a;">文獻 01</span>
@@ -9285,6 +9449,20 @@ function apiGet(qs) {
         }
 
         function openProfileModal() {
+            // Update Passport UI
+            const avDisp = document.getElementById('passport-avatar-display');
+            const nmDisp = document.getElementById('passport-name-display');
+            const dpDisp = document.getElementById('passport-dept-display');
+            const lvDisp = document.getElementById('passport-level-num');
+            if(avDisp) avDisp.innerText = playerProfile.avatar || '😎';
+            if(nmDisp) nmDisp.innerText = playerProfile.nickname || '興大匹克球神';
+            if(dpDisp) dpDisp.innerText = (playerProfile.department || '未設定系所') + ' · 國立中興大學';
+            if(lvDisp) {
+                // simple mock level based on score/hits (if they exist)
+                let hits = (playerProfile.totalHits || 0);
+                lvDisp.innerText = 1 + Math.floor(hits / 50);
+            }
+
             buildEditDeptOptions();
             const isGuest = (playerProfile.sidPrefix === 'GUEST' || !playerProfile.sidPrefix || playerProfile.isGuest);
             
@@ -9667,6 +9845,76 @@ function apiGet(qs) {
             window.saveProfile = saveProfile;
             window.reopenLoginOverlay = reopenLoginOverlay;
             window.onEditSidInput = onEditSidInput;
+
+        // --- 自動補齊 HTML 事件綁定 (防止 Safari Early-Click ReferenceError) ---
+        if (typeof onSfxToggle === 'function') window.onSfxToggle = onSfxToggle;
+        if (typeof onVolInput === 'function') window.onVolInput = onVolInput;
+        if (typeof testSfx === 'function') window.testSfx = testSfx;
+        if (typeof closeAudioModal === 'function') window.closeAudioModal = closeAudioModal;
+        if (typeof closeTechModal === 'function') window.closeTechModal = closeTechModal;
+        if (typeof switchSocialTab === 'function') window.switchSocialTab = switchSocialTab;
+        if (typeof closeSocial === 'function') window.closeSocial = closeSocial;
+        if (typeof dismissFingerTutorial === 'function') window.dismissFingerTutorial = dismissFingerTutorial;
+        if (typeof triggerFingerDemoSwipe === 'function') window.triggerFingerDemoSwipe = triggerFingerDemoSwipe;
+        if (typeof exportAuditCSV === 'function') window.exportAuditCSV = exportAuditCSV;
+        if (typeof exportAuditJSON === 'function') window.exportAuditJSON = exportAuditJSON;
+        if (typeof clearAuditLog === 'function') window.clearAuditLog = clearAuditLog;
+        if (typeof closeAuditModal === 'function') window.closeAuditModal = closeAuditModal;
+        if (typeof openFriendIG === 'function') window.openFriendIG = openFriendIG;
+        if (typeof battleDigitalTwin === 'function') window.battleDigitalTwin = battleDigitalTwin;
+        if (typeof openMockChat === 'function') window.openMockChat = openMockChat;
+        if (typeof closeSocialCard === 'function') window.closeSocialCard = closeSocialCard;
+        if (typeof closeRulesModal === 'function') window.closeRulesModal = closeRulesModal;
+        if (typeof switchRulesModalTab === 'function') window.switchRulesModalTab = switchRulesModalTab;
+        if (typeof toggleScienceDrawer === 'function') window.toggleScienceDrawer = toggleScienceDrawer;
+        if (typeof togglePhysicsMode === 'function') window.togglePhysicsMode = togglePhysicsMode;
+        if (typeof closeMockChat === 'function') window.closeMockChat = closeMockChat;
+        if (typeof openAudioModal === 'function') window.openAudioModal = openAudioModal;
+        if (typeof openSocial === 'function') window.openSocial = openSocial;
+        if (typeof openRulesModal === 'function') window.openRulesModal = openRulesModal;
+        if (typeof openAuditModal === 'function') window.openAuditModal = openAuditModal;
+        if (typeof nextSpotlightStep === 'function') window.nextSpotlightStep = nextSpotlightStep;
+        if (typeof dismissSpotlightTour === 'function') window.dismissSpotlightTour = dismissSpotlightTour;
+        if (typeof dismissRotatePrompt === 'function') window.dismissRotatePrompt = dismissRotatePrompt;
+        if (typeof setDifficulty === 'function') window.setDifficulty = setDifficulty;
+        if (typeof toggleNavMinimize === 'function') window.toggleNavMinimize = toggleNavMinimize;
+        if (typeof toggleNavMenu === 'function') window.toggleNavMenu = toggleNavMenu;
+        if (typeof forfeitMatch === 'function') window.forfeitMatch = forfeitMatch;
+        if (typeof switchSettingsTab === 'function') window.switchSettingsTab = switchSettingsTab;
+        if (typeof cycleCamView === 'function') window.cycleCamView = cycleCamView;
+        if (typeof enterCamEdit === 'function') window.enterCamEdit = enterCamEdit;
+        if (typeof cycleCardScaleQuick === 'function') window.cycleCardScaleQuick = cycleCardScaleQuick;
+        if (typeof cycleRefereeModeQuick === 'function') window.cycleRefereeModeQuick = cycleRefereeModeQuick;
+        if (typeof cycleJoySpeedQuick === 'function') window.cycleJoySpeedQuick = cycleJoySpeedQuick;
+        if (typeof showFingerTutorial === 'function') window.showFingerTutorial = showFingerTutorial;
+        if (typeof startSpotlightTour === 'function') window.startSpotlightTour = startSpotlightTour;
+        if (typeof syncDigitalTwin === 'function') window.syncDigitalTwin = syncDigitalTwin;
+        if (typeof switchStage === 'function') window.switchStage = switchStage;
+        if (typeof replayDemo === 'function') window.replayDemo = replayDemo;
+        if (typeof toggleWebcamAI === 'function') window.toggleWebcamAI = toggleWebcamAI;
+        if (typeof cycleAimModeQuick === 'function') window.cycleAimModeQuick = cycleAimModeQuick;
+        if (typeof cycleTeachLevelQuick === 'function') window.cycleTeachLevelQuick = cycleTeachLevelQuick;
+        if (typeof cycleDifficultyQuick === 'function') window.cycleDifficultyQuick = cycleDifficultyQuick;
+        if (typeof toggleNetAssist === 'function') window.toggleNetAssist = toggleNetAssist;
+        if (typeof cyclePerfQuick === 'function') window.cyclePerfQuick = cyclePerfQuick;
+        if (typeof openSettingsSub === 'function') window.openSettingsSub = openSettingsSub;
+        if (typeof toggleLayoutPreview === 'function') window.toggleLayoutPreview = toggleLayoutPreview;
+        if (typeof setCardScale === 'function') window.setCardScale = setCardScale;
+        if (typeof resetCardScales === 'function') window.resetCardScales = resetCardScales;
+        if (typeof setAimMode === 'function') window.setAimMode = setAimMode;
+        if (typeof toggleAimInvert === 'function') window.toggleAimInvert = toggleAimInvert;
+        if (typeof setTeachLevel === 'function') window.setTeachLevel = setTeachLevel;
+        if (typeof applyPerfPreset === 'function') window.applyPerfPreset = applyPerfPreset;
+        if (typeof openTechModal === 'function') window.openTechModal = openTechModal;
+        if (typeof importMotionModel === 'function') window.importMotionModel = importMotionModel;
+        if (typeof exportMotionModel === 'function') window.exportMotionModel = exportMotionModel;
+        if (typeof resetMotionModel === 'function') window.resetMotionModel = resetMotionModel;
+        if (typeof onCoachFileSelected === 'function') window.onCoachFileSelected = onCoachFileSelected;
+        if (typeof resetCamCustom === 'function') window.resetCamCustom = resetCamCustom;
+        if (typeof exitCamEdit === 'function') window.exitCamEdit = exitCamEdit;
+        if (typeof skipDemo === 'function') window.skipDemo = skipDemo;
+        if (typeof toggleHelpCollapse === 'function') window.toggleHelpCollapse = toggleHelpCollapse;
+
             window.onEditDeptSelect = onEditDeptSelect;
 
             window.__openProfileModal = openProfileModal;

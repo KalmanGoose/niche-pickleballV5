@@ -1032,6 +1032,9 @@
             -webkit-backdrop-filter: blur(16px);
             transition: opacity 0.22s cubic-bezier(0.16, 1, 0.3, 1), transform 0.24s cubic-bezier(0.16, 1, 0.3, 1);
             max-width: min(92vw, 460px);
+            word-break: break-word;
+            white-space: pre-wrap;
+            text-align: center;
             box-sizing: border-box;
             text-align: center;
         }
