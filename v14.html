@@ -310,14 +310,14 @@
                 <div class="pref-row" style="margin-top:6px;">
                     <div style="display:flex;flex-direction:column;text-align:left;">
                         <span class="pref-label">📢 語音裁判大聲公</span>
-                        <small style="font-size:11px;color:#7a6b58;margin-top:2px;">站遠 3 公尺也能聽清判決與比分 (TTS 語音)</small>
+                        <small style="font-size:11px;color:#7a6b58;margin-top:2px;">站遠 3 公尺也能聽清判決與比分 (TTS 語音，預設關閉)</small>
                     </div>
                     <label class="switch">
-                        <input type="checkbox" id="pref-tts" onchange="onTtsToggle(this.checked)" checked>
+                        <input type="checkbox" id="pref-tts" onchange="onTtsToggle(this.checked)">
                         <span class="slider-ui"></span>
                     </label>
                 </div>
-                <div id="tts-voice-options" style="margin-top:8px;background:rgba(255,255,255,0.7);border:1.5px solid #dec8a7;border-radius:12px;padding:10px 12px;text-align:left;">
+                <div id="tts-voice-options" style="margin-top:8px;background:rgba(255,255,255,0.7);border:1.5px solid #dec8a7;border-radius:12px;padding:10px 12px;text-align:left;opacity:0.5;pointer-events:none;transition:opacity .2s ease;">
                     <div style="font-size:12px;font-weight:800;color:#3d2b1f;margin-bottom:6px;display:flex;align-items:center;justify-content:space-between;">
                         <span>🎙️ 裁判音色風格</span>
                         <small id="tts-current-voice-name" style="font-size:10.5px;color:#2e7d32;font-weight:700;">🌸 甜美親切 (溫柔學姐)</small>

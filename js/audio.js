@@ -1,12 +1,22 @@
 /* ═══════════════════════════════════════════════════════════════════
    NCHU Pickleball V5 - 音效系統與 Web Audio 合成器 (Audio System)
    ═══════════════════════════════════════════════════════════════════ */
-        const AUDIO_PREFS = { sfxOn: true, master: 0.8, vibrateOn: true, ttsOn: true, ttsVoiceStyle: 'sweet', ttsVoiceUri: '' };
-        const PREF_KEY = 'nchu_pb_audio';
+        const AUDIO_PREFS = { sfxOn: true, master: 0.8, vibrateOn: true, ttsOn: false, ttsVoiceStyle: 'sweet', ttsVoiceUri: '' };
+        const PREF_KEY = 'nchu_pb_audio_v2';
         function loadAudioPrefs() {
             try {
-                const raw = localStorage.getItem(PREF_KEY);
-                if (raw) {
+                let raw = localStorage.getItem(PREF_KEY);
+                if (!raw) {
+                    const oldRaw = localStorage.getItem('nchu_pb_audio');
+                    if (oldRaw) {
+                        const oldO = JSON.parse(oldRaw);
+                        if (typeof oldO.sfxOn === 'boolean') AUDIO_PREFS.sfxOn = oldO.sfxOn;
+                        if (typeof oldO.master === 'number') AUDIO_PREFS.master = Math.min(1, Math.max(0, oldO.master));
+                        if (typeof oldO.vibrateOn === 'boolean') AUDIO_PREFS.vibrateOn = oldO.vibrateOn;
+                        AUDIO_PREFS.ttsOn = false;
+                        saveAudioPrefs();
+                    }
+                } else {
                     const o = JSON.parse(raw);
                     if (typeof o.sfxOn === 'boolean') AUDIO_PREFS.sfxOn = o.sfxOn;
                     if (typeof o.master === 'number') AUDIO_PREFS.master = Math.min(1, Math.max(0, o.master));
@@ -28,7 +38,12 @@
             if (rg) { rg.value = Math.round(AUDIO_PREFS.master * 100); rg.disabled = !AUDIO_PREFS.sfxOn; }
             if (nm) nm.innerText = Math.round(AUDIO_PREFS.master * 100) + '%';
             const tts = document.getElementById('pref-tts');
-            if (tts) tts.checked = AUDIO_PREFS.ttsOn !== false;
+            if (tts) tts.checked = !!AUDIO_PREFS.ttsOn;
+            const ttsOptions = document.getElementById('tts-voice-options');
+            if (ttsOptions) {
+                ttsOptions.style.opacity = AUDIO_PREFS.ttsOn ? '1' : '0.5';
+                ttsOptions.style.pointerEvents = AUDIO_PREFS.ttsOn ? 'auto' : 'none';
+            }
             if (vb) {
                 vb.checked = AUDIO_PREFS.vibrateOn;
                 if (vbHint) {
@@ -177,7 +192,13 @@
             AUDIO_PREFS.ttsOn = !!on;
             saveAudioPrefs();
             syncAudioUI();
-            if (on) speakReferee("語音裁判已就緒，祝你比賽順利！");
+            if (on) {
+                speakReferee("語音裁判已就緒，祝你比賽順利！");
+            } else {
+                if (typeof window !== "undefined" && window.speechSynthesis) {
+                    try { window.speechSynthesis.cancel(); } catch (e) {}
+                }
+            }
         }
         function setTtsVoiceStyle(style) {
             AUDIO_PREFS.ttsVoiceStyle = style;
@@ -188,7 +209,9 @@
                 coach: "各就各位！比分零比零，發球開始！",
                 goose: "呱呱！發球養成零比零，看我的旋風回擊呱！"
             };
-            speakReferee(demoPhrases[style] || demoPhrases.sweet);
+            if (AUDIO_PREFS.ttsOn) {
+                speakReferee(demoPhrases[style] || demoPhrases.sweet);
+            }
             if (typeof toast === 'function') {
                 const styleNames = { sweet: "🌸 甜美親切 (溫柔學姐)", coach: "🎾 熱血裁判 (宏亮果斷)", goose: "🪿 俏皮神鵝 (中興村長)" };
                 toast('🎙️ 已切換裁判音色', styleNames[style] || style);
@@ -197,7 +220,9 @@
         function onTtsVoiceSelect(uri) {
             AUDIO_PREFS.ttsVoiceUri = uri || '';
             saveAudioPrefs();
-            speakReferee("語音引擎切換完成，祝你比賽順利！");
+            if (AUDIO_PREFS.ttsOn) {
+                speakReferee("語音引擎切換完成，祝你比賽順利！");
+            }
         }
         function testTts() {
             const style = AUDIO_PREFS.ttsVoiceStyle || 'sweet';
@@ -206,11 +231,15 @@
                 coach: "各就各位！比分零比零，發球開始！",
                 goose: "呱呱！發球養成零比零，看我的旋風回擊呱！"
             };
+            if (!AUDIO_PREFS.ttsOn) {
+                if (typeof toast === "function") toast("📢 語音裁判目前為關閉狀態", "若需使用請先開啟上方「語音裁判大聲公」開關");
+                return;
+            }
             speakReferee(demoPhrases[style] || demoPhrases.sweet);
             if (typeof toast === "function") toast("📢 裁判語音試聽", "正在以精緻人聲朗讀匹克球比分");
         }
         function speakReferee(text, lang = "zh-TW") {
-            if (AUDIO_PREFS.ttsOn === false) return;
+            if (!AUDIO_PREFS.ttsOn) return;
             if (typeof window === "undefined" || !window.speechSynthesis) return;
             try {
                 window.speechSynthesis.cancel();
