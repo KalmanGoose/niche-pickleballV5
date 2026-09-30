@@ -284,8 +284,12 @@
             buildAimZones(); buildRingPool();
             if (typeof FunMode !== 'undefined' && FunMode.init) FunMode.init();
         }
+        let fillLight = null, rimLight = null, hemiLight = null;
+        let stadiumLights = [];
+
         function buildLights() {
-            scene.add(new THREE.HemisphereLight(0xf8f3e6, 0x476b38, GRADE.hemiI * 0.85));
+            hemiLight = new THREE.HemisphereLight(0xf8f3e6, 0x476b38, GRADE.hemiI * 0.85);
+            scene.add(hemiLight);
             sunKey = new THREE.DirectionalLight(0xfff7e6, GRADE.sunI);
             const key = sunKey;
             key.position.set(8, 15, 9); key.castShadow = true;
@@ -296,11 +300,77 @@
             key.shadow.camera.near = 1; key.shadow.camera.far = 42;
             key.shadow.bias = -0.0012; key.shadow.radius = 3;
             scene.add(key);
-            const fill = new THREE.DirectionalLight(0xdcebf7, GRADE.fillI * 0.80);
-            fill.position.set(-9, 6, 7); scene.add(fill);
-            const rim = new THREE.DirectionalLight(0xfef3c7, GRADE.rimI * 0.70);
-            rim.position.set(-2, 5, -13); scene.add(rim);
+            fillLight = new THREE.DirectionalLight(0xdcebf7, GRADE.fillI * 0.80);
+            fillLight.position.set(-9, 6, 7); scene.add(fillLight);
+            rimLight = new THREE.DirectionalLight(0xfef3c7, GRADE.rimI * 0.70);
+            rimLight.position.set(-2, 5, -13); scene.add(rimLight);
+            applyEnvironmentLighting();
         }
+
+        function applyEnvironmentLighting(forcedHour) {
+            if (!sunKey || !fillLight || !rimLight || !hemiLight) return "☀️ 正午晴空";
+            const now = new Date();
+            const h = (typeof forcedHour === "number") ? forcedHour : (now.getHours() + now.getMinutes() / 60);
+
+            if (h >= 6 && h < 10.5) {
+                hemiLight.color.setHex(0xfef3c7);
+                hemiLight.groundColor.setHex(0x386641);
+                sunKey.color.setHex(0xffedd5);
+                sunKey.position.set(12, 11, 8);
+                sunKey.intensity = GRADE.sunI * 0.92;
+                fillLight.color.setHex(0xdbeafe);
+                rimLight.color.setHex(0xfef08a);
+                if (ren) ren.toneMappingExposure = GRADE.exposure * 0.98;
+                return "🌅 湖畔晨曦";
+            } else if (h >= 10.5 && h < 16.5) {
+                hemiLight.color.setHex(0xf8f3e6);
+                hemiLight.groundColor.setHex(0x476b38);
+                sunKey.color.setHex(0xfff7e6);
+                sunKey.position.set(8, 16, 9);
+                sunKey.intensity = GRADE.sunI;
+                fillLight.color.setHex(0xdcebf7);
+                rimLight.color.setHex(0xfef3c7);
+                if (ren) ren.toneMappingExposure = GRADE.exposure;
+                return "☀️ 正午晴空";
+            } else if (h >= 16.5 && h < 18.75) {
+                hemiLight.color.setHex(0xfde047);
+                hemiLight.groundColor.setHex(0x713f12);
+                sunKey.color.setHex(0xf97316);
+                sunKey.position.set(-14, 7, 10);
+                sunKey.intensity = GRADE.sunI * 1.15;
+                fillLight.color.setHex(0xa855f7);
+                rimLight.color.setHex(0xfbbf24);
+                if (ren) ren.toneMappingExposure = GRADE.exposure * 1.05;
+                return "🌇 中興湖晚霞";
+            } else {
+                hemiLight.color.setHex(0x1e293b);
+                hemiLight.groundColor.setHex(0x0f172a);
+                sunKey.color.setHex(0x94a3b8);
+                sunKey.position.set(0, 18, 0);
+                sunKey.intensity = 0.35;
+                fillLight.color.setHex(0x38bdf8);
+                rimLight.color.setHex(0x6366f1);
+                if (ren) ren.toneMappingExposure = GRADE.exposure * 1.12;
+                if (stadiumLights.length === 0 && window.THREE) {
+                    const corners = [
+                        [-HALF_W - 1.2, 5.5, -HALF_L - 1.0],
+                        [HALF_W + 1.2, 5.5, -HALF_L - 1.0],
+                        [-HALF_W - 1.2, 5.5, HALF_L + 1.0],
+                        [HALF_W + 1.2, 5.5, HALF_L + 1.0]
+                    ];
+                    corners.forEach(([x, y, z]) => {
+                        const sl = new THREE.SpotLight(0xfef9c3, 1.4, 22, Math.PI / 4, 0.4, 1.2);
+                        sl.position.set(x, y, z);
+                        sl.target.position.set(x * 0.3, 0, z * 0.3);
+                        scene.add(sl);
+                        scene.add(sl.target);
+                        stadiumLights.push(sl);
+                    });
+                }
+                return "🌙 夜間球場星空";
+            }
+        }
+        window.applyEnvironmentLighting = applyEnvironmentLighting;
         let scoreboard3DMesh = null, scoreboard3DTex = null;
         function updateScore3D() {
             if (!scoreboard3DTex) return;
@@ -3237,6 +3307,7 @@ function updateGuides(dt) {
             }
         });
 
+        let loopLowFpsCount = 0, loopEcoActive = false;
         function loop(timestamp) {
             requestAnimationFrame(loop);
             if (isLoopSuspended) return; // ★ 模式大廳或全屏 Modal 開啟時，3D 迴圈 100% 休眠省電！
@@ -3249,6 +3320,26 @@ function updateGuides(dt) {
             }
             let dt = (now - last) / 1000; last = now;
             if (dt > 0.05) dt = 0.05;
+            
+            // ★ 動態熱管理與降溫保護 (Thermal Eco Mode)
+            if (typeof webcamActive !== "undefined" && webcamActive) {
+                const curFps = 1 / (dt || 0.016);
+                if (curFps < 38) {
+                    loopLowFpsCount++;
+                    if (loopLowFpsCount > 90 && !loopEcoActive) {
+                        loopEcoActive = true;
+                        if (typeof setEcoMode === "function") setEcoMode(true);
+                        if (ren && ren.shadowMap) ren.shadowMap.autoUpdate = false;
+                        if (typeof toast === "function") toast("❄️ 已啟動體感動態降溫模式", "智慧調整運算負擔，保護手機不發燙");
+                    }
+                } else if (curFps > 52 && loopEcoActive) {
+                    loopLowFpsCount = 0;
+                    loopEcoActive = false;
+                    if (typeof setEcoMode === "function") setEcoMode(false);
+                    if (ren && ren.shadowMap) ren.shadowMap.autoUpdate = true;
+                }
+            }
+
 
             if (pLock > 0) pLock = Math.max(0, pLock - dt);
             if (gLock > 0) gLock = Math.max(0, gLock - dt);

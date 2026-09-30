@@ -2726,3 +2726,64 @@ body.layout-nook #nav-wrapper {
     visibility: hidden !important;
     opacity: 0 !important;
 }
+/* ═══════════════════════════════════════════════════════════════════
+   📺 體感 3 公尺巨無霸 HUD (Distant / TV Mode)
+   當開啟 WebcamAI 時自動啟用，保證玩家站立 2~3 米外清晰辨識
+   ═══════════════════════════════════════════════════════════════════ */
+body.distant-hud-active #referee-announcement {
+    max-width: min(95vw, 680px) !important;
+    padding: 12px 28px !important;
+    border-radius: 99px !important;
+    box-shadow: 0 14px 40px rgba(0, 0, 0, 0.40), 0 3px 0 #2e7d32 !important;
+    border: 3px solid #2e7d32 !important;
+    top: calc(76px + env(safe-area-inset-top)) !important;
+}
+body.distant-hud-active #ref-title {
+    font-size: 24px !important;
+    font-weight: 900 !important;
+    letter-spacing: 0.5px !important;
+}
+body.distant-hud-active #ref-detail {
+    font-size: 15px !important;
+    font-weight: 800 !important;
+}
+body.distant-hud-active #score-pill,
+body.distant-hud-active #dynamic-stage-pill {
+    transform: translateX(-50%) scale(1.35) !important;
+    transform-origin: top center !important;
+}
+body.distant-hud-active .hud-pill small,
+body.distant-hud-active #subbar-ai-btn {
+    font-size: 13px !important;
+    font-weight: 900 !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   🍃 中興湖風向風速儀標籤 (Wind Indicator)
+   ═══════════════════════════════════════════════════════════════════ */
+#wind-hud {
+    position: absolute;
+    top: calc(14px + env(safe-area-inset-top));
+    right: 76px;
+    background: rgba(254, 252, 247, 0.92);
+    border: 1.5px solid #ecd8b8;
+    border-radius: 20px;
+    padding: 4px 10px;
+    font-size: 11px;
+    font-weight: 800;
+    color: #2e7d32;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+    pointer-events: none;
+    z-index: 120;
+    transition: opacity 0.3s ease;
+}
+#wind-hud.hidden {
+    opacity: 0;
+}
+#wind-arrow {
+    display: inline-block;
+    transition: transform 0.5s ease;
+}

@@ -1,3 +1,11 @@
+
+        let ecoModeActive = false;
+        function setEcoMode(active) {
+            ecoModeActive = !!active;
+            frameSkip = ecoModeActive ? 3 : (PERF_PRESETS[perfLevel].skip || 1);
+        }
+        window.setEcoMode = setEcoMode;
+
 /* ═══════════════════════════════════════════════════════════════════
    NCHU Pickleball V5 - 數位孿生、特徵雷達與雲端審計 (Social & Digital Twin)
    ═══════════════════════════════════════════════════════════════════ */
@@ -551,7 +559,15 @@
                     if (servePrepared) { updateAimFromLeftHand(lW, tc.x, dt); updateAimFromTorso(dt); }
                     updateServeFSM(lm, dt);
 
+                    
                     const shD = Math.abs(shA - lastShoulderAngle), elD = Math.abs(elA - lastWristAngle);
+                    // ★ 防抖手作弊檢測 (Kinetic Chain Anti-Wiggle Guard)
+                    const isWristWiggle = (KIN.vPeak > SFSM.TH_V * 1.15 && shD < 14 && elD < 18);
+                    if (isWristWiggle) {
+                        power = Math.min(power * 0.35, POWER_W.min * 1.15);
+                        if (Math.random() < 0.25) toast("⚠️ 偵測到手腕微抖作弊", "請帶動肩膀與腰腹動力鏈完整揮拍！");
+                    }
+
                     const realSwing = (KIN.vPeak >= SFSM.TH_V * tScale() * 0.75 || shD > 30 || elD > 40)
                         && SWING.path > SFSM.TH_D * tScale() * 0.5;
                     if (state === 'RALLY' && realSwing && swingT <= 0 && !locked) {
@@ -575,6 +591,8 @@
             });
             cameraUtils.start().then(() => {
                 webcamActive = true; servePrepared = false; btn.innerText = '📷 體感: 開'; syncAimPips();
+                document.body.classList.add('distant-hud-active');
+                if (typeof speakReferee === 'function') speakReferee('體感模式已啟動，請退後三公尺開打！');
                 toast('體感 AI 已啟動', '預設 🔒 自動對角,先專心練揮拍時機');
                 syncSubbarStates();
             }).catch(err => {
@@ -599,6 +617,7 @@
         function stopWebcamAI() {
             webcamActive = false;
             servePrepared = true;
+            document.body.classList.remove('distant-hud-active');
             if (cameraUtils) cameraUtils.stop();
             const video = document.getElementById('webcam-video');
             if (video && video.srcObject) {

@@ -1,3 +1,37 @@
+
+/* ═══════ 中興湖即時環境風力向量 (NCHU Lake Wind Vector) ═══════ */
+const WIND = {
+    enabled: true,
+    x: 0.75,          // 橫向微風 (m/s)
+    z: -0.35,         // 縱向微風 (m/s)
+    speed: 0.83,
+    directionDeg: 310,
+    gustT: 0,
+    update: function(dt) {
+        this.gustT += dt * 0.45;
+        const baseSpeed = 1.1 + Math.sin(this.gustT) * 0.45 + Math.cos(this.gustT * 1.8) * 0.25;
+        const angle = 290 + Math.sin(this.gustT * 0.6) * 25;
+        const rad = angle * Math.PI / 180;
+        this.x = Math.sin(rad) * baseSpeed;
+        this.z = Math.cos(rad) * baseSpeed;
+        this.speed = Math.hypot(this.x, this.z);
+        this.directionDeg = angle;
+    }
+};
+
+function updateWindHud() {
+    const el = document.getElementById("wind-hud");
+    const arrow = document.getElementById("wind-arrow");
+    const txt = document.getElementById("wind-txt");
+    if (!el || !WIND.enabled) {
+        if (el) el.classList.add("hidden");
+        return;
+    }
+    el.classList.remove("hidden");
+    if (arrow) arrow.style.transform = "rotate(" + Math.round(WIND.directionDeg) + "deg)";
+    if (txt) txt.innerText = "湖風 " + WIND.speed.toFixed(1) + " m/s";
+}
+
 /* ═══════════════════════════════════════════════════════════════════
    NCHU Pickleball V5 - 3D 物理引擎 (Physics Engine)
    積分器：半隱式 Euler (Symplectic Euler)，固定步長 h = 1/120 s
@@ -32,6 +66,11 @@ const BALL_VIS = { base: 1, item: 1, glow: 8 };
 /** 共用速度積分（不含碰撞、不改位置）。回傳衰減後的 spin */
 function integrateVel(vel, spin, h, mode) {
     vel.y -= GRAVITY * h;
+    if (WIND.enabled) {
+        // 中興湖穿孔球空氣動力學微風偏轉
+        vel.x += WIND.x * 0.048 * h;
+        vel.z += WIND.z * 0.048 * h;
+    }
 
     if (mode === PHYSICS_MODES.ACADEMIC) {
         // ① 二次方阻力 a = −k|v|v，隱式形式：不會讓速度反向
@@ -160,8 +199,10 @@ class Physics {
         const bs = THREE.MathUtils.lerp(BALL_R * 3.1, BALL_R * 6.4, hh / 3.2);
         ballBlob.scale.set(bs, bs, 1);
         ballBlob.material.opacity = THREE.MathUtils.lerp(0.5, 0.09, hh / 3.2);
+        updateWindHud();
     }
-    setPos(x, y, z) { this.pos.set(x, y, z); this.prevPos.copy(this.pos); if (ball) this.sync(); }
+    setPos(x, y, z) { this.pos.set(x, y, z); this.prevPos.copy(this.pos);
+        if (WIND.enabled) WIND.update(dt); if (ball) this.sync(); }
     reset(x, y, z) {
         this.setPos(x, y, z);
         this.prevPos.copy(this.pos);
@@ -437,4 +478,9 @@ function syncPhysicsModeUI() {
         modalBtn.style.background = isAcad ? 'rgba(129, 140, 248, 0.2)' : 'rgba(56, 189, 248, 0.15)';
         modalBtn.style.borderColor = isAcad ? '#818cf8' : '#38bdf8';
     }
+}
+
+if (typeof window !== "undefined") {
+    window.WIND = WIND;
+    window.updateWindHud = updateWindHud;
 }

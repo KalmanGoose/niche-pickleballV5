@@ -13,6 +13,24 @@
     <meta http-equiv="Expires" content="0">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>NCHU Pickleball Lab · 中興大學匹克鵝打秋 (v5.2.0)</title>
+
+    <!-- ═══════ PWA 漸進式網頁應用與離線球場支援 ═══════ -->
+    <link rel="manifest" href="./manifest.json">
+    <meta name="theme-color" content="#2e7d32">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="中興匹克球">
+    <link rel="apple-touch-icon" href="images/pickleball_lab_logo.jpg">
+    <script>
+        if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('./sw.js').catch(function(e) {
+                    console.log('[PWA] Service Worker reg skipped:', e);
+                });
+            });
+        }
+    </script>
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.3.1675466862/camera_utils.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/pose.js" crossorigin="anonymous"></script>
@@ -26,8 +44,8 @@
                 'handleLogin', 'handleGuestPlay', 'handleQuickStart', 'showFullLoginForm',
                 'setNick', 'closeProfileModal', 'saveProfile', 'openProfileModal',
                 'closeRulesModal', 'switchRulesModalTab', 'openAudioModal', 'closeAudioModal',
-                'openModeHub', 'closeModeHub', 'toggleNookPhone', 'testSfx', 'testVibrate',
-                'onSfxToggle', 'onVolInput', 'onVibrateToggle', 'switchAvatarMode'
+                'openModeHub', 'closeModeHub', 'toggleNookPhone', 'testSfx', 'testVibrate', 'testTts',
+                'onSfxToggle', 'onVolInput', 'onVibrateToggle', 'onTtsToggle', 'switchAvatarMode'
             ];
             window._pendingAction = null;
             earlyStubNames.forEach(function(name) {
@@ -2948,6 +2966,68 @@ body.layout-nook #nav-wrapper {
     visibility: hidden !important;
     opacity: 0 !important;
 }
+/* ═══════════════════════════════════════════════════════════════════
+   📺 體感 3 公尺巨無霸 HUD (Distant / TV Mode)
+   當開啟 WebcamAI 時自動啟用，保證玩家站立 2~3 米外清晰辨識
+   ═══════════════════════════════════════════════════════════════════ */
+body.distant-hud-active #referee-announcement {
+    max-width: min(95vw, 680px) !important;
+    padding: 12px 28px !important;
+    border-radius: 99px !important;
+    box-shadow: 0 14px 40px rgba(0, 0, 0, 0.40), 0 3px 0 #2e7d32 !important;
+    border: 3px solid #2e7d32 !important;
+    top: calc(76px + env(safe-area-inset-top)) !important;
+}
+body.distant-hud-active #ref-title {
+    font-size: 24px !important;
+    font-weight: 900 !important;
+    letter-spacing: 0.5px !important;
+}
+body.distant-hud-active #ref-detail {
+    font-size: 15px !important;
+    font-weight: 800 !important;
+}
+body.distant-hud-active #score-pill,
+body.distant-hud-active #dynamic-stage-pill {
+    transform: translateX(-50%) scale(1.35) !important;
+    transform-origin: top center !important;
+}
+body.distant-hud-active .hud-pill small,
+body.distant-hud-active #subbar-ai-btn {
+    font-size: 13px !important;
+    font-weight: 900 !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   🍃 中興湖風向風速儀標籤 (Wind Indicator)
+   ═══════════════════════════════════════════════════════════════════ */
+#wind-hud {
+    position: absolute;
+    top: calc(14px + env(safe-area-inset-top));
+    right: 76px;
+    background: rgba(254, 252, 247, 0.92);
+    border: 1.5px solid #ecd8b8;
+    border-radius: 20px;
+    padding: 4px 10px;
+    font-size: 11px;
+    font-weight: 800;
+    color: #2e7d32;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+    pointer-events: none;
+    z-index: 120;
+    transition: opacity 0.3s ease;
+}
+#wind-hud.hidden {
+    opacity: 0;
+}
+#wind-arrow {
+    display: inline-block;
+    transition: transform 0.5s ease;
+}
+
 
 /* ─── nav.css ─── */
 /* ═══════════════════════════════════════════════════════════════════
@@ -7100,9 +7180,20 @@ body.layout-nook #nav-wrapper {
                         <span class="slider-ui"></span>
                     </label>
                 </div>
-                <div style="display:flex;gap:8px;margin-top:12px;">
-                    <button class="btn-test" style="flex:1;margin-top:0;" onclick="testSfx()">▶ 試聽擊球音</button>
-                    <button class="btn-test" style="flex:1;margin-top:0;" onclick="testVibrate()">📳 試震一下</button>
+                <div class="pref-row" style="margin-top:6px;">
+                    <div style="display:flex;flex-direction:column;text-align:left;">
+                        <span class="pref-label">📢 語音裁判大聲公</span>
+                        <small style="font-size:11px;color:#7a6b58;margin-top:2px;">站遠 3 公尺也能聽清判決與比分 (TTS 語音)</small>
+                    </div>
+                    <label class="switch">
+                        <input type="checkbox" id="pref-tts" onchange="onTtsToggle(this.checked)" checked>
+                        <span class="slider-ui"></span>
+                    </label>
+                </div>
+                <div style="display:flex;gap:6px;margin-top:12px;flex-wrap:wrap;">
+                    <button class="btn-test" style="flex:1;min-width:90px;margin-top:0;" onclick="testSfx()">▶ 擊球音</button>
+                    <button class="btn-test" style="flex:1;min-width:90px;margin-top:0;" onclick="testVibrate()">📳 試震</button>
+                    <button class="btn-test" style="flex:1;min-width:90px;margin-top:0;" onclick="testTts()">📢 試聽語音</button>
                 </div>
             </div>
             <button class="btn-main" onclick="closeAudioModal()">完成</button>
@@ -8433,6 +8524,12 @@ I_syn(t) = w_syn · x · u · (dθ/dt)</div>
             <span class="dsp-stage-txt" id="dsp-stage">第 1 關 · 發球養成</span>
             <span class="dsp-divider"></span>
             <span class="dsp-score-txt" id="dsp-score">0 - 0</span>
+        </div>
+
+        <!-- 🍃 中興湖風向風速儀 (#wind-hud) -->
+        <div id="wind-hud" title="中興湖即時微風偏轉物理 (Wiffle Ball Aerodynamics)">
+            <span id="wind-arrow">🍃</span>
+            <span id="wind-txt">湖風 1.2 m/s</span>
         </div>
 
         <!-- 🍃 NookPhone 懸浮小葉子按鈕 (#nook-fab) -->
@@ -9917,6 +10014,14 @@ function apiGet(qs) {
 
             window.onEditDeptSelect = onEditDeptSelect;
 
+        if (typeof onTtsToggle === "function") window.onTtsToggle = onTtsToggle;
+        if (typeof testTts === "function") window.testTts = testTts;
+        if (typeof speakReferee === "function") window.speakReferee = speakReferee;
+        if (typeof applyEnvironmentLighting === "function") window.applyEnvironmentLighting = applyEnvironmentLighting;
+        if (typeof setEcoMode === "function") window.setEcoMode = setEcoMode;
+        if (typeof updateWindHud === "function") window.updateWindHud = updateWindHud;
+
+
             window.__openProfileModal = openProfileModal;
             window.__closeProfileModal = closeProfileModal;
             window.__saveProfile = saveProfile;
@@ -9942,7 +10047,7 @@ function apiGet(qs) {
 /* ═══════════════════════════════════════════════════════════════════
    NCHU Pickleball V5 - 音效系統與 Web Audio 合成器 (Audio System)
    ═══════════════════════════════════════════════════════════════════ */
-        const AUDIO_PREFS = { sfxOn: true, master: 0.8, vibrateOn: true };
+        const AUDIO_PREFS = { sfxOn: true, master: 0.8, vibrateOn: true, ttsOn: true };
         const PREF_KEY = 'nchu_pb_audio';
         function loadAudioPrefs() {
             try {
@@ -9952,6 +10057,7 @@ function apiGet(qs) {
                     if (typeof o.sfxOn === 'boolean') AUDIO_PREFS.sfxOn = o.sfxOn;
                     if (typeof o.master === 'number') AUDIO_PREFS.master = Math.min(1, Math.max(0, o.master));
                     if (typeof o.vibrateOn === 'boolean') AUDIO_PREFS.vibrateOn = o.vibrateOn;
+                    if (typeof o.ttsOn === 'boolean') AUDIO_PREFS.ttsOn = o.ttsOn;
                 }
             } catch (e) { }
         }
@@ -9964,6 +10070,8 @@ function apiGet(qs) {
             if (cb) cb.checked = AUDIO_PREFS.sfxOn;
             if (rg) { rg.value = Math.round(AUDIO_PREFS.master * 100); rg.disabled = !AUDIO_PREFS.sfxOn; }
             if (nm) nm.innerText = Math.round(AUDIO_PREFS.master * 100) + '%';
+            const tts = document.getElementById('pref-tts');
+            if (tts) tts.checked = AUDIO_PREFS.ttsOn !== false;
             if (vb) {
                 vb.checked = AUDIO_PREFS.vibrateOn;
                 if (vbHint) {
@@ -9983,6 +10091,32 @@ function apiGet(qs) {
                 Haptic.drive();
             }
         }
+        
+        function onTtsToggle(on) {
+            AUDIO_PREFS.ttsOn = !!on;
+            saveAudioPrefs();
+            syncAudioUI();
+            if (on) speakReferee("語音裁判已就緒！");
+        }
+        function testTts() {
+            speakReferee("發球！中興大學零比零！");
+            if (typeof toast === "function") toast("📢 語音播報測試", "已調用瀏覽器 TTS 語音朗讀");
+        }
+        function speakReferee(text, lang = "zh-TW") {
+            if (AUDIO_PREFS.ttsOn === false) return;
+            if (typeof window === "undefined" || !window.speechSynthesis) return;
+            try {
+                window.speechSynthesis.cancel();
+                const clean = text.replace(/^[^w一-龥]+/, "").replace(/[()（）]/g, " ").trim();
+                if (!clean) return;
+                const utter = new SpeechSynthesisUtterance(clean);
+                utter.rate = 1.18;
+                utter.pitch = 1.05;
+                utter.lang = lang;
+                window.speechSynthesis.speak(utter);
+            } catch (e) {}
+        }
+
         function onVolInput(v) {
             AUDIO_PREFS.master = Math.min(1, Math.max(0, v / 100));
             document.getElementById('pref-vol-num').innerText = Math.round(AUDIO_PREFS.master * 100) + '%';
@@ -10050,6 +10184,9 @@ function apiGet(qs) {
             window.Haptic = Haptic;
             window.testVibrate = testVibrate;
             window.onVibrateToggle = onVibrateToggle;
+            window.onTtsToggle = onTtsToggle;
+            window.testTts = testTts;
+            window.speakReferee = speakReferee;
         }
 
         /* ═══════ 常數與狀態 ═══════ */
@@ -10141,6 +10278,40 @@ function apiGet(qs) {
 
 
 /* ─── physics.js ─── */
+
+/* ═══════ 中興湖即時環境風力向量 (NCHU Lake Wind Vector) ═══════ */
+const WIND = {
+    enabled: true,
+    x: 0.75,          // 橫向微風 (m/s)
+    z: -0.35,         // 縱向微風 (m/s)
+    speed: 0.83,
+    directionDeg: 310,
+    gustT: 0,
+    update: function(dt) {
+        this.gustT += dt * 0.45;
+        const baseSpeed = 1.1 + Math.sin(this.gustT) * 0.45 + Math.cos(this.gustT * 1.8) * 0.25;
+        const angle = 290 + Math.sin(this.gustT * 0.6) * 25;
+        const rad = angle * Math.PI / 180;
+        this.x = Math.sin(rad) * baseSpeed;
+        this.z = Math.cos(rad) * baseSpeed;
+        this.speed = Math.hypot(this.x, this.z);
+        this.directionDeg = angle;
+    }
+};
+
+function updateWindHud() {
+    const el = document.getElementById("wind-hud");
+    const arrow = document.getElementById("wind-arrow");
+    const txt = document.getElementById("wind-txt");
+    if (!el || !WIND.enabled) {
+        if (el) el.classList.add("hidden");
+        return;
+    }
+    el.classList.remove("hidden");
+    if (arrow) arrow.style.transform = "rotate(" + Math.round(WIND.directionDeg) + "deg)";
+    if (txt) txt.innerText = "湖風 " + WIND.speed.toFixed(1) + " m/s";
+}
+
 /* ═══════════════════════════════════════════════════════════════════
    NCHU Pickleball V5 - 3D 物理引擎 (Physics Engine)
    積分器：半隱式 Euler (Symplectic Euler)，固定步長 h = 1/120 s
@@ -10175,6 +10346,11 @@ const BALL_VIS = { base: 1, item: 1, glow: 8 };
 /** 共用速度積分（不含碰撞、不改位置）。回傳衰減後的 spin */
 function integrateVel(vel, spin, h, mode) {
     vel.y -= GRAVITY * h;
+    if (WIND.enabled) {
+        // 中興湖穿孔球空氣動力學微風偏轉
+        vel.x += WIND.x * 0.048 * h;
+        vel.z += WIND.z * 0.048 * h;
+    }
 
     if (mode === PHYSICS_MODES.ACADEMIC) {
         // ① 二次方阻力 a = −k|v|v，隱式形式：不會讓速度反向
@@ -10303,8 +10479,10 @@ class Physics {
         const bs = THREE.MathUtils.lerp(BALL_R * 3.1, BALL_R * 6.4, hh / 3.2);
         ballBlob.scale.set(bs, bs, 1);
         ballBlob.material.opacity = THREE.MathUtils.lerp(0.5, 0.09, hh / 3.2);
+        updateWindHud();
     }
-    setPos(x, y, z) { this.pos.set(x, y, z); this.prevPos.copy(this.pos); if (ball) this.sync(); }
+    setPos(x, y, z) { this.pos.set(x, y, z); this.prevPos.copy(this.pos);
+        if (WIND.enabled) WIND.update(dt); if (ball) this.sync(); }
     reset(x, y, z) {
         this.setPos(x, y, z);
         this.prevPos.copy(this.pos);
@@ -10580,6 +10758,11 @@ function syncPhysicsModeUI() {
         modalBtn.style.background = isAcad ? 'rgba(129, 140, 248, 0.2)' : 'rgba(56, 189, 248, 0.15)';
         modalBtn.style.borderColor = isAcad ? '#818cf8' : '#38bdf8';
     }
+}
+
+if (typeof window !== "undefined") {
+    window.WIND = WIND;
+    window.updateWindHud = updateWindHud;
 }
 
 
@@ -10914,6 +11097,7 @@ function syncPhysicsModeUI() {
             if (dEl) dEl.innerText = detail || '';
             if (isFault) el.classList.add('fault'); else el.classList.remove('fault');
             el.classList.add('show');
+            if (typeof speakReferee === 'function') speakReferee(title);
             if (refT) clearTimeout(refT);
             refT = setTimeout(() => el.classList.remove('show'), 2200);
         }
@@ -12581,199 +12765,6 @@ function syncPhysicsModeUI() {
     }
 
     // ══════════════════════════════════════════════════════════════
-    // 🧊 3D 微型旋轉公仔台 (Micro Three.js Scene)
-    // ══════════════════════════════════════════════════════════════
-    class ThreeMiniDoll {
-        constructor(containerEl) {
-            this.container = containerEl;
-            this.animId = null;
-            this.isDragging = false;
-            this.prevPointerX = 0;
-            this.rotY = 0;
-            this.targetRotY = 0;
-            this.clock = (window.THREE ? new window.THREE.Clock() : null);
-            this.init();
-        }
-
-        init() {
-            if (!window.THREE) return;
-            const w = this.container.clientWidth || 170;
-            const h = this.container.clientHeight || 200;
-
-            this.scene = new window.THREE.Scene();
-            this.camera = new window.THREE.PerspectiveCamera(40, w / h, 0.1, 50);
-            this.camera.position.set(0, 0.95, 3.2);
-
-            this.renderer = new window.THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'low-power' });
-            this.renderer.setSize(w, h);
-            this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-            this.renderer.outputEncoding = window.THREE.sRGBEncoding;
-
-            this.container.innerHTML = '';
-            this.container.appendChild(this.renderer.domElement);
-
-            // 柔和光照
-            const hemi = new window.THREE.HemisphereLight(0xffffff, 0xdec8a7, 0.9);
-            this.scene.add(hemi);
-            const dir = new window.THREE.DirectionalLight(0xfff7ed, 1.2);
-            dir.position.set(2, 4, 3);
-            this.scene.add(dir);
-
-            // 旋轉角色主 Group
-            this.dollGroup = new window.THREE.Group();
-            this.scene.add(this.dollGroup);
-
-            // 建造小人偶模型
-            this.buildModel();
-
-            // 綁定手指/滑鼠拖曳旋轉
-            this.bindEvents();
-
-            // 啟動渲染
-            this.animate = this.animate.bind(this);
-            this.animate();
-        }
-
-        buildModel() {
-            const THREE = window.THREE;
-
-            // 1. 底盤投影圓盤
-            const shadowGeo = new THREE.CylinderGeometry(0.75, 0.75, 0.02, 24);
-            const shadowMat = new THREE.MeshBasicMaterial({ color: 0xdec8a7, transparent: true, opacity: 0.6 });
-            const shadowMesh = new THREE.Mesh(shadowGeo, shadowMat);
-            shadowMesh.position.y = -0.52;
-            this.dollGroup.add(shadowMesh);
-
-            // 2. 身體 (中興綠運動球衣)
-            const bodyMat = new THREE.MeshStandardMaterial({ color: 0x1b5e20, roughness: 0.6 });
-            const bodyGeo = new THREE.CylinderGeometry(0.24, 0.28, 0.55, 12);
-            this.bodyMesh = new THREE.Mesh(bodyGeo, bodyMat);
-            this.bodyMesh.position.y = 0.18;
-            this.dollGroup.add(this.bodyMesh);
-
-            // 3. 白色運動短褲
-            const pantsMat = new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.7 });
-            const pantsGeo = new THREE.CylinderGeometry(0.28, 0.29, 0.22, 12);
-            const pantsMesh = new THREE.Mesh(pantsGeo, pantsMat);
-            pantsMesh.position.y = -0.15;
-            this.dollGroup.add(pantsMesh);
-
-            // 4. 雙腿與運動鞋
-            const skinMat = new THREE.MeshStandardMaterial({ color: 0xfcd34d, roughness: 0.7 });
-            const shoeMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.5 });
-            for (const sx of [-0.12, 0.12]) {
-                const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.32, 8), skinMat);
-                leg.position.set(sx, -0.32, 0);
-                this.dollGroup.add(leg);
-
-                const shoe = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.08, 0.22), shoeMat);
-                shoe.position.set(sx, -0.48, 0.04);
-                this.dollGroup.add(shoe);
-            }
-
-            // 5. 頭部 (Q版大頭)
-            const headGeo = new THREE.SphereGeometry(0.38, 16, 16);
-            this.headMesh = new THREE.Mesh(headGeo, skinMat);
-            this.headMesh.position.y = 0.72;
-            this.dollGroup.add(this.headMesh);
-
-            // 髮型 (自然深棕短髮)
-            const hairMat = new THREE.MeshStandardMaterial({ color: 0x4a2e18, roughness: 0.8 });
-            const hairGeo = new THREE.SphereGeometry(0.40, 16, 16, 0, Math.PI * 2, 0, Math.PI * 0.55);
-            const hairMesh = new THREE.Mesh(hairGeo, hairMat);
-            hairMesh.position.set(0, 0.78, 0);
-            this.dollGroup.add(hairMesh);
-
-            // 6. 右手拿著匹克球拍
-            const armR = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.36, 8), skinMat);
-            armR.position.set(0.34, 0.20, 0.12);
-            armR.rotation.z = -Math.PI / 4;
-            armR.rotation.x = Math.PI / 6;
-            this.dollGroup.add(armR);
-
-            // 匹克球拍 Group
-            this.paddleGroup = new THREE.Group();
-            this.paddleGroup.position.set(0.48, 0.28, 0.22);
-            this.paddleGroup.rotation.z = -Math.PI / 6;
-            this.dollGroup.add(this.paddleGroup);
-
-            // 握把
-            const handle = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 0.18, 8),
-                new THREE.MeshStandardMaterial({ color: 0x78350f, roughness: 0.8 }));
-            this.paddleGroup.add(handle);
-
-            // 拍面 (金黃色)
-            const paddleFace = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.32, 0.02),
-                new THREE.MeshStandardMaterial({ color: 0xf59e0b, roughness: 0.4 }));
-            paddleFace.position.y = 0.22;
-            this.paddleGroup.add(paddleFace);
-
-            // 左手
-            const armL = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.34, 8), skinMat);
-            armL.position.set(-0.32, 0.18, 0.05);
-            armL.rotation.z = Math.PI / 4;
-            this.dollGroup.add(armL);
-        }
-
-        bindEvents() {
-            const el = this.renderer.domElement;
-            const onDown = (clientX) => {
-                this.isDragging = true;
-                this.prevPointerX = clientX;
-            };
-            const onMove = (clientX) => {
-                if (!this.isDragging) return;
-                const deltaX = clientX - this.prevPointerX;
-                this.prevPointerX = clientX;
-                this.targetRotY += deltaX * 0.015;
-            };
-            const onUp = () => {
-                this.isDragging = false;
-            };
-
-            el.addEventListener('mousedown', (e) => onDown(e.clientX));
-            window.addEventListener('mousemove', (e) => onMove(e.clientX));
-            window.addEventListener('mouseup', onUp);
-
-            el.addEventListener('touchstart', (e) => {
-                if (e.touches.length > 0) onDown(e.touches[0].clientX);
-            }, { passive: true });
-            window.addEventListener('touchmove', (e) => {
-                if (e.touches.length > 0) onMove(e.touches[0].clientX);
-            }, { passive: true });
-            window.addEventListener('touchend', onUp);
-        }
-
-        animate() {
-            this.animId = requestAnimationFrame(this.animate);
-            if (!this.clock) return;
-            const t = this.clock.getElapsedTime();
-
-            // 平滑旋轉跟隨
-            this.rotY += (this.targetRotY - this.rotY) * 0.12;
-
-            // 待機輕微自動呼吸上下浮動
-            if (!this.isDragging) {
-                this.dollGroup.position.y = Math.sin(t * 2.2) * 0.035;
-                if (this.paddleGroup) {
-                    this.paddleGroup.rotation.x = Math.sin(t * 2.5) * 0.12;
-                }
-            }
-            this.dollGroup.rotation.y = this.rotY;
-
-            this.renderer.render(this.scene, this.camera);
-        }
-
-        destroy() {
-            if (this.animId) cancelAnimationFrame(this.animId);
-            this.animId = null;
-            if (this.renderer && this.renderer.domElement && this.renderer.domElement.parentNode) {
-                this.renderer.domElement.parentNode.removeChild(this.renderer.domElement);
-            }
-        }
-    }
-
-    // ══════════════════════════════════════════════════════════════
     // 🪪 渲染個人選手證主面板
     // ══════════════════════════════════════════════════════════════
     function renderPassportView() {
@@ -12801,19 +12792,15 @@ function syncPhysicsModeUI() {
                             <div class="passport-sub">NCHU PICKLEBALL PLAYER PASSPORT</div>
                         </div>
                     </div>
-                    <div class="passport-mode-switcher">
-                        <button type="button" class="btn-avatar-mode ${currentAvatarMode === '2D' ? 'on' : ''}" onclick="switchAvatarMode('2D')">🎨 2D插畫</button>
-                        <button type="button" class="btn-avatar-mode ${currentAvatarMode === '3D' ? 'on' : ''}" onclick="switchAvatarMode('3D')">🧊 3D公仔</button>
                     </div>
-                </div>
 
                 <!-- 人偶與基本資料水平區塊 -->
                 <div class="passport-hero-row">
                     <!-- 左側人偶展示台 -->
                     <div class="passport-doll-box">
                         <div id="passport-avatar-2d" style="display:${currentAvatarMode === '2D' ? 'block' : 'none'};"></div>
-                        <div id="passport-avatar-3d" style="display:${currentAvatarMode === '3D' ? 'block' : 'none'};width:170px;height:200px;"></div>
-                        <div class="avatar-tip-caption">${currentAvatarMode === '3D' ? '👆 手指拖曳可 360° 旋轉' : '🍃 2D 待機呼吸浮動中'}</div>
+                        
+                        <div class="avatar-tip-caption">🍃 中興島民選手待命中</div>
                     </div>
 
                     <!-- 右側球員資訊與等級 -->
@@ -12900,55 +12887,12 @@ function syncPhysicsModeUI() {
         `;
 
         // 依據目前模式啟動人偶渲染
-        if (currentAvatarMode === '2D') {
-            render2DAvatar();
-        } else {
-            init3DAvatar();
-        }
+        render2DAvatar();
     }
 
-    function init3DAvatar() {
-        if (threeMini) {
-            threeMini.destroy();
-            threeMini = null;
-        }
-        const box = document.getElementById('passport-avatar-3d');
-        if (box && window.THREE) {
-            threeMini = new ThreeMiniDoll(box);
-        }
-    }
-
-    // ── 雙模切換 ──
     function switchAvatarMode(mode) {
-        currentAvatarMode = mode;
-        try { localStorage.setItem(AVATAR_MODE_KEY, mode); } catch (e) {}
-
-        const b2d = document.getElementById('passport-avatar-2d');
-        const b3d = document.getElementById('passport-avatar-3d');
-        const btns = document.querySelectorAll('.btn-avatar-mode');
-
-        btns.forEach(btn => {
-            btn.classList.toggle('on', btn.innerText.includes(mode));
-        });
-
-        if (mode === '2D') {
-            if (threeMini) { threeMini.destroy(); threeMini = null; }
-            if (b3d) b3d.style.display = 'none';
-            if (b2d) {
-                b2d.style.display = 'block';
-                render2DAvatar();
-            }
-        } else {
-            if (b2d) b2d.style.display = 'none';
-            if (b3d) {
-                b3d.style.display = 'block';
-                init3DAvatar();
-            }
-        }
-        const tip = document.querySelector('.avatar-tip-caption');
-        if (tip) {
-            tip.innerText = (mode === '3D' ? '👆 手指拖曳可 360° 旋轉' : '🍃 2D 待機呼吸浮動中');
-        }
+        currentAvatarMode = "2D";
+        render2DAvatar();
     }
 
     // ── 選手證與編輯分頁切換 ──
@@ -12967,18 +12911,11 @@ function syncPhysicsModeUI() {
 
         if (tab === 'passport') {
             renderPassportView();
-        } else {
-            if (threeMini) { threeMini.destroy(); threeMini = null; }
         }
     }
 
     // ── 關閉個人檔案時徹底休眠 ──
-    function suspendProfileAvatar() {
-        if (threeMini) {
-            threeMini.destroy();
-            threeMini = null;
-        }
-    }
+    function suspendProfileAvatar() {}
 
     // ── 全域注入 ──
     window.renderPassportView = renderPassportView;
@@ -14565,6 +14502,14 @@ function cycleTeachLevelQuick() {
 
 
 /* ─── social.js ─── */
+
+        let ecoModeActive = false;
+        function setEcoMode(active) {
+            ecoModeActive = !!active;
+            frameSkip = ecoModeActive ? 3 : (PERF_PRESETS[perfLevel].skip || 1);
+        }
+        window.setEcoMode = setEcoMode;
+
 /* ═══════════════════════════════════════════════════════════════════
    NCHU Pickleball V5 - 數位孿生、特徵雷達與雲端審計 (Social & Digital Twin)
    ═══════════════════════════════════════════════════════════════════ */
@@ -15118,7 +15063,15 @@ function cycleTeachLevelQuick() {
                     if (servePrepared) { updateAimFromLeftHand(lW, tc.x, dt); updateAimFromTorso(dt); }
                     updateServeFSM(lm, dt);
 
+                    
                     const shD = Math.abs(shA - lastShoulderAngle), elD = Math.abs(elA - lastWristAngle);
+                    // ★ 防抖手作弊檢測 (Kinetic Chain Anti-Wiggle Guard)
+                    const isWristWiggle = (KIN.vPeak > SFSM.TH_V * 1.15 && shD < 14 && elD < 18);
+                    if (isWristWiggle) {
+                        power = Math.min(power * 0.35, POWER_W.min * 1.15);
+                        if (Math.random() < 0.25) toast("⚠️ 偵測到手腕微抖作弊", "請帶動肩膀與腰腹動力鏈完整揮拍！");
+                    }
+
                     const realSwing = (KIN.vPeak >= SFSM.TH_V * tScale() * 0.75 || shD > 30 || elD > 40)
                         && SWING.path > SFSM.TH_D * tScale() * 0.5;
                     if (state === 'RALLY' && realSwing && swingT <= 0 && !locked) {
@@ -15142,6 +15095,8 @@ function cycleTeachLevelQuick() {
             });
             cameraUtils.start().then(() => {
                 webcamActive = true; servePrepared = false; btn.innerText = '📷 體感: 開'; syncAimPips();
+                document.body.classList.add('distant-hud-active');
+                if (typeof speakReferee === 'function') speakReferee('體感模式已啟動，請退後三公尺開打！');
                 toast('體感 AI 已啟動', '預設 🔒 自動對角,先專心練揮拍時機');
                 syncSubbarStates();
             }).catch(err => {
@@ -15166,6 +15121,7 @@ function cycleTeachLevelQuick() {
         function stopWebcamAI() {
             webcamActive = false;
             servePrepared = true;
+            document.body.classList.remove('distant-hud-active');
             if (cameraUtils) cameraUtils.stop();
             const video = document.getElementById('webcam-video');
             if (video && video.srcObject) {
@@ -18002,8 +17958,12 @@ function cycleTeachLevelQuick() {
             buildAimZones(); buildRingPool();
             if (typeof FunMode !== 'undefined' && FunMode.init) FunMode.init();
         }
+        let fillLight = null, rimLight = null, hemiLight = null;
+        let stadiumLights = [];
+
         function buildLights() {
-            scene.add(new THREE.HemisphereLight(0xf8f3e6, 0x476b38, GRADE.hemiI * 0.85));
+            hemiLight = new THREE.HemisphereLight(0xf8f3e6, 0x476b38, GRADE.hemiI * 0.85);
+            scene.add(hemiLight);
             sunKey = new THREE.DirectionalLight(0xfff7e6, GRADE.sunI);
             const key = sunKey;
             key.position.set(8, 15, 9); key.castShadow = true;
@@ -18014,11 +17974,77 @@ function cycleTeachLevelQuick() {
             key.shadow.camera.near = 1; key.shadow.camera.far = 42;
             key.shadow.bias = -0.0012; key.shadow.radius = 3;
             scene.add(key);
-            const fill = new THREE.DirectionalLight(0xdcebf7, GRADE.fillI * 0.80);
-            fill.position.set(-9, 6, 7); scene.add(fill);
-            const rim = new THREE.DirectionalLight(0xfef3c7, GRADE.rimI * 0.70);
-            rim.position.set(-2, 5, -13); scene.add(rim);
+            fillLight = new THREE.DirectionalLight(0xdcebf7, GRADE.fillI * 0.80);
+            fillLight.position.set(-9, 6, 7); scene.add(fillLight);
+            rimLight = new THREE.DirectionalLight(0xfef3c7, GRADE.rimI * 0.70);
+            rimLight.position.set(-2, 5, -13); scene.add(rimLight);
+            applyEnvironmentLighting();
         }
+
+        function applyEnvironmentLighting(forcedHour) {
+            if (!sunKey || !fillLight || !rimLight || !hemiLight) return "☀️ 正午晴空";
+            const now = new Date();
+            const h = (typeof forcedHour === "number") ? forcedHour : (now.getHours() + now.getMinutes() / 60);
+
+            if (h >= 6 && h < 10.5) {
+                hemiLight.color.setHex(0xfef3c7);
+                hemiLight.groundColor.setHex(0x386641);
+                sunKey.color.setHex(0xffedd5);
+                sunKey.position.set(12, 11, 8);
+                sunKey.intensity = GRADE.sunI * 0.92;
+                fillLight.color.setHex(0xdbeafe);
+                rimLight.color.setHex(0xfef08a);
+                if (ren) ren.toneMappingExposure = GRADE.exposure * 0.98;
+                return "🌅 湖畔晨曦";
+            } else if (h >= 10.5 && h < 16.5) {
+                hemiLight.color.setHex(0xf8f3e6);
+                hemiLight.groundColor.setHex(0x476b38);
+                sunKey.color.setHex(0xfff7e6);
+                sunKey.position.set(8, 16, 9);
+                sunKey.intensity = GRADE.sunI;
+                fillLight.color.setHex(0xdcebf7);
+                rimLight.color.setHex(0xfef3c7);
+                if (ren) ren.toneMappingExposure = GRADE.exposure;
+                return "☀️ 正午晴空";
+            } else if (h >= 16.5 && h < 18.75) {
+                hemiLight.color.setHex(0xfde047);
+                hemiLight.groundColor.setHex(0x713f12);
+                sunKey.color.setHex(0xf97316);
+                sunKey.position.set(-14, 7, 10);
+                sunKey.intensity = GRADE.sunI * 1.15;
+                fillLight.color.setHex(0xa855f7);
+                rimLight.color.setHex(0xfbbf24);
+                if (ren) ren.toneMappingExposure = GRADE.exposure * 1.05;
+                return "🌇 中興湖晚霞";
+            } else {
+                hemiLight.color.setHex(0x1e293b);
+                hemiLight.groundColor.setHex(0x0f172a);
+                sunKey.color.setHex(0x94a3b8);
+                sunKey.position.set(0, 18, 0);
+                sunKey.intensity = 0.35;
+                fillLight.color.setHex(0x38bdf8);
+                rimLight.color.setHex(0x6366f1);
+                if (ren) ren.toneMappingExposure = GRADE.exposure * 1.12;
+                if (stadiumLights.length === 0 && window.THREE) {
+                    const corners = [
+                        [-HALF_W - 1.2, 5.5, -HALF_L - 1.0],
+                        [HALF_W + 1.2, 5.5, -HALF_L - 1.0],
+                        [-HALF_W - 1.2, 5.5, HALF_L + 1.0],
+                        [HALF_W + 1.2, 5.5, HALF_L + 1.0]
+                    ];
+                    corners.forEach(([x, y, z]) => {
+                        const sl = new THREE.SpotLight(0xfef9c3, 1.4, 22, Math.PI / 4, 0.4, 1.2);
+                        sl.position.set(x, y, z);
+                        sl.target.position.set(x * 0.3, 0, z * 0.3);
+                        scene.add(sl);
+                        scene.add(sl.target);
+                        stadiumLights.push(sl);
+                    });
+                }
+                return "🌙 夜間球場星空";
+            }
+        }
+        window.applyEnvironmentLighting = applyEnvironmentLighting;
         let scoreboard3DMesh = null, scoreboard3DTex = null;
         function updateScore3D() {
             if (!scoreboard3DTex) return;
@@ -20955,6 +20981,7 @@ function updateGuides(dt) {
             }
         });
 
+        let loopLowFpsCount = 0, loopEcoActive = false;
         function loop(timestamp) {
             requestAnimationFrame(loop);
             if (isLoopSuspended) return; // ★ 模式大廳或全屏 Modal 開啟時，3D 迴圈 100% 休眠省電！
@@ -20967,6 +20994,26 @@ function updateGuides(dt) {
             }
             let dt = (now - last) / 1000; last = now;
             if (dt > 0.05) dt = 0.05;
+            
+            // ★ 動態熱管理與降溫保護 (Thermal Eco Mode)
+            if (typeof webcamActive !== "undefined" && webcamActive) {
+                const curFps = 1 / (dt || 0.016);
+                if (curFps < 38) {
+                    loopLowFpsCount++;
+                    if (loopLowFpsCount > 90 && !loopEcoActive) {
+                        loopEcoActive = true;
+                        if (typeof setEcoMode === "function") setEcoMode(true);
+                        if (ren && ren.shadowMap) ren.shadowMap.autoUpdate = false;
+                        if (typeof toast === "function") toast("❄️ 已啟動體感動態降溫模式", "智慧調整運算負擔，保護手機不發燙");
+                    }
+                } else if (curFps > 52 && loopEcoActive) {
+                    loopLowFpsCount = 0;
+                    loopEcoActive = false;
+                    if (typeof setEcoMode === "function") setEcoMode(false);
+                    if (ren && ren.shadowMap) ren.shadowMap.autoUpdate = true;
+                }
+            }
+
 
             if (pLock > 0) pLock = Math.max(0, pLock - dt);
             if (gLock > 0) gLock = Math.max(0, gLock - dt);

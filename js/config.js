@@ -1044,6 +1044,14 @@ function apiGet(qs) {
 
             window.onEditDeptSelect = onEditDeptSelect;
 
+        if (typeof onTtsToggle === "function") window.onTtsToggle = onTtsToggle;
+        if (typeof testTts === "function") window.testTts = testTts;
+        if (typeof speakReferee === "function") window.speakReferee = speakReferee;
+        if (typeof applyEnvironmentLighting === "function") window.applyEnvironmentLighting = applyEnvironmentLighting;
+        if (typeof setEcoMode === "function") window.setEcoMode = setEcoMode;
+        if (typeof updateWindHud === "function") window.updateWindHud = updateWindHud;
+
+
             window.__openProfileModal = openProfileModal;
             window.__closeProfileModal = closeProfileModal;
             window.__saveProfile = saveProfile;

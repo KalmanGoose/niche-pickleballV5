@@ -14,3 +14,32 @@
 **測試驗證**：
 1. 透過 Node.js 進行最嚴格的 Strict Mode 沙盒模擬載入，無任何未宣告變數報錯。
 2. `node scripts/self-test.js` 全數 99 項測試 100% 通過。
+
+## 第 18 階段：個人公仔輕量化、PWA離線球場、語音裁判與中興湖環境物理 (v5.9.1)
+**變更摘要**：
+- **個人檔案 3D 公仔徹底移除**：依照要求，砍除 `js/profile_card.js` 中龐大的 `ThreeMiniDoll` 次級 WebGL 場景與雙模切換鈕，全面回歸純淨、零 GPU 負擔的 2D 手繪島民選手風格，節省超過 200 行代碼與大幅降低行動裝置記憶體。
+- **PWA 離線快取支援 (Service Worker & Manifest)**：
+  - 新增根目錄 `sw.js` 與 `manifest.json`。
+  - 將 3D 核心庫、MediaPipe 體感權重、圖檔音效與主程式全面納入快取，支援戶外斷網 100% 離線開啟與手機「加入主畫面」全螢幕安裝。
+- **體感 3 公尺巨無霸 HUD (Distant / TV Mode)**：
+  - 開啟相機體感時，自動切換 `body.distant-hud-active` 巨無霸視野。
+  - 比分與裁判判決膠囊放大 1.35x ~ 1.7x，高對比陰影，保證玩家後退 2~3 米揮拍依然清晰可讀。
+- **語音裁判大聲公 (Web Speech API TTS)**：
+  - 於 `js/audio.js` 實裝 `speakReferee(text)`，判決出界、換發球或得分時由手機即時人聲朗讀。
+  - 於系統音效設定新增 `📢 語音裁判大聲公` 開關與「試聽語音」功能。
+- **動力鏈防抖作弊檢測 (Kinetic Chain Anti-Wiggle Guard)**：
+  - 在 `js/social.js` 捕捉揮拍時，檢測手腕位移與肩肘角速度。若判定為靠近鏡頭純抖手腕，強制壓制球速並提示「請帶動肩膀與腰腹動力鏈完整揮拍」。
+- **動態熱管理 (Thermal Eco Mode)**：
+  - 於 `js/game.js` 實裝滾動 FPS 監控。若體感模式下畫面掉幀超過門檻，自動啟動 Eco Mode 降頻 MediaPipe 與關閉即時陰影，防止夏天戶外 iPhone 過熱降頻。
+- **中興湖真實時間光影 (Real-Time Day/Night/Sunset)**：
+  - 依據玩家真實時間自動切換：06:00~10:30 晨曦朝陽、10:30~16:30 正午艷陽、16:30~18:45 黃昏晚霞、18:45~06:00 夜間球場 4 盞高亮四角探照燈。
+- **中興湖穿孔球微風物理 (Wind Vector Aerodynamics)**：
+  - 在 `js/physics.js` 實裝微風向量 `WIND`，計算多孔穿透阻力產生的自然微風偏轉，並於頂部藥丸旁增設即時風向風速儀 (`#wind-hud`)。
+
+**測試驗證**：
+1. `node scripts/build-single.js` 單檔打包無誤。
+2. `node scripts/strict-check.js` 嚴格模式 0 未宣告變數。
+3. `node scripts/self-test.js` 全數 99 項測試 100% 通過。
+4. `node scripts/physics-sim.js` 82 項物理動力學全數 PASS。
+5. `node scripts/benchmark-performance.js` 10,000 幀極限效能零洩漏全數 PASS。
+6. `git grep "動森"` 檢測：0 殘留。

@@ -328,6 +328,7 @@
             if (dEl) dEl.innerText = detail || '';
             if (isFault) el.classList.add('fault'); else el.classList.remove('fault');
             el.classList.add('show');
+            if (typeof speakReferee === 'function') speakReferee(title);
             if (refT) clearTimeout(refT);
             refT = setTimeout(() => el.classList.remove('show'), 2200);
         }

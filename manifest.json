@@ -1,0 +1,18 @@
+{
+  "name": "中興匹克球 N-GO",
+  "short_name": "中興匹克球",
+  "description": "國立中興大學中興湖 · 3D體感與果蠅大腦AI匹克球遊戲",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#fbf8f0",
+  "theme_color": "#2e7d32",
+  "icons": [
+    {
+      "src": "images/pickleball_lab_logo.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg",
+      "purpose": "any maskable"
+    }
+  ]
+}

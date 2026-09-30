@@ -1,7 +1,7 @@
 /* ═══════════════════════════════════════════════════════════════════
    NCHU Pickleball V5 - 音效系統與 Web Audio 合成器 (Audio System)
    ═══════════════════════════════════════════════════════════════════ */
-        const AUDIO_PREFS = { sfxOn: true, master: 0.8, vibrateOn: true };
+        const AUDIO_PREFS = { sfxOn: true, master: 0.8, vibrateOn: true, ttsOn: true };
         const PREF_KEY = 'nchu_pb_audio';
         function loadAudioPrefs() {
             try {
@@ -11,6 +11,7 @@
                     if (typeof o.sfxOn === 'boolean') AUDIO_PREFS.sfxOn = o.sfxOn;
                     if (typeof o.master === 'number') AUDIO_PREFS.master = Math.min(1, Math.max(0, o.master));
                     if (typeof o.vibrateOn === 'boolean') AUDIO_PREFS.vibrateOn = o.vibrateOn;
+                    if (typeof o.ttsOn === 'boolean') AUDIO_PREFS.ttsOn = o.ttsOn;
                 }
             } catch (e) { }
         }
@@ -23,6 +24,8 @@
             if (cb) cb.checked = AUDIO_PREFS.sfxOn;
             if (rg) { rg.value = Math.round(AUDIO_PREFS.master * 100); rg.disabled = !AUDIO_PREFS.sfxOn; }
             if (nm) nm.innerText = Math.round(AUDIO_PREFS.master * 100) + '%';
+            const tts = document.getElementById('pref-tts');
+            if (tts) tts.checked = AUDIO_PREFS.ttsOn !== false;
             if (vb) {
                 vb.checked = AUDIO_PREFS.vibrateOn;
                 if (vbHint) {
@@ -42,6 +45,32 @@
                 Haptic.drive();
             }
         }
+        
+        function onTtsToggle(on) {
+            AUDIO_PREFS.ttsOn = !!on;
+            saveAudioPrefs();
+            syncAudioUI();
+            if (on) speakReferee("語音裁判已就緒！");
+        }
+        function testTts() {
+            speakReferee("發球！中興大學零比零！");
+            if (typeof toast === "function") toast("📢 語音播報測試", "已調用瀏覽器 TTS 語音朗讀");
+        }
+        function speakReferee(text, lang = "zh-TW") {
+            if (AUDIO_PREFS.ttsOn === false) return;
+            if (typeof window === "undefined" || !window.speechSynthesis) return;
+            try {
+                window.speechSynthesis.cancel();
+                const clean = text.replace(/^[^w一-龥]+/, "").replace(/[()（）]/g, " ").trim();
+                if (!clean) return;
+                const utter = new SpeechSynthesisUtterance(clean);
+                utter.rate = 1.18;
+                utter.pitch = 1.05;
+                utter.lang = lang;
+                window.speechSynthesis.speak(utter);
+            } catch (e) {}
+        }
+
         function onVolInput(v) {
             AUDIO_PREFS.master = Math.min(1, Math.max(0, v / 100));
             document.getElementById('pref-vol-num').innerText = Math.round(AUDIO_PREFS.master * 100) + '%';
@@ -109,6 +138,9 @@
             window.Haptic = Haptic;
             window.testVibrate = testVibrate;
             window.onVibrateToggle = onVibrateToggle;
+            window.onTtsToggle = onTtsToggle;
+            window.testTts = testTts;
+            window.speakReferee = speakReferee;
         }
 
         /* ═══════ 常數與狀態 ═══════ */

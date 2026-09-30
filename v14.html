@@ -13,6 +13,24 @@
     <meta http-equiv="Expires" content="0">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>NCHU Pickleball Lab · 中興大學匹克鵝打秋 (v5.2.0)</title>
+
+    <!-- ═══════ PWA 漸進式網頁應用與離線球場支援 ═══════ -->
+    <link rel="manifest" href="./manifest.json">
+    <meta name="theme-color" content="#2e7d32">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="中興匹克球">
+    <link rel="apple-touch-icon" href="images/pickleball_lab_logo.jpg">
+    <script>
+        if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('./sw.js').catch(function(e) {
+                    console.log('[PWA] Service Worker reg skipped:', e);
+                });
+            });
+        }
+    </script>
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.3.1675466862/camera_utils.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/pose.js" crossorigin="anonymous"></script>
@@ -26,8 +44,8 @@
                 'handleLogin', 'handleGuestPlay', 'handleQuickStart', 'showFullLoginForm',
                 'setNick', 'closeProfileModal', 'saveProfile', 'openProfileModal',
                 'closeRulesModal', 'switchRulesModalTab', 'openAudioModal', 'closeAudioModal',
-                'openModeHub', 'closeModeHub', 'toggleNookPhone', 'testSfx', 'testVibrate',
-                'onSfxToggle', 'onVolInput', 'onVibrateToggle', 'switchAvatarMode'
+                'openModeHub', 'closeModeHub', 'toggleNookPhone', 'testSfx', 'testVibrate', 'testTts',
+                'onSfxToggle', 'onVolInput', 'onVibrateToggle', 'onTtsToggle', 'switchAvatarMode'
             ];
             window._pendingAction = null;
             earlyStubNames.forEach(function(name) {
@@ -274,9 +292,20 @@
                         <span class="slider-ui"></span>
                     </label>
                 </div>
-                <div style="display:flex;gap:8px;margin-top:12px;">
-                    <button class="btn-test" style="flex:1;margin-top:0;" onclick="testSfx()">▶ 試聽擊球音</button>
-                    <button class="btn-test" style="flex:1;margin-top:0;" onclick="testVibrate()">📳 試震一下</button>
+                <div class="pref-row" style="margin-top:6px;">
+                    <div style="display:flex;flex-direction:column;text-align:left;">
+                        <span class="pref-label">📢 語音裁判大聲公</span>
+                        <small style="font-size:11px;color:#7a6b58;margin-top:2px;">站遠 3 公尺也能聽清判決與比分 (TTS 語音)</small>
+                    </div>
+                    <label class="switch">
+                        <input type="checkbox" id="pref-tts" onchange="onTtsToggle(this.checked)" checked>
+                        <span class="slider-ui"></span>
+                    </label>
+                </div>
+                <div style="display:flex;gap:6px;margin-top:12px;flex-wrap:wrap;">
+                    <button class="btn-test" style="flex:1;min-width:90px;margin-top:0;" onclick="testSfx()">▶ 擊球音</button>
+                    <button class="btn-test" style="flex:1;min-width:90px;margin-top:0;" onclick="testVibrate()">📳 試震</button>
+                    <button class="btn-test" style="flex:1;min-width:90px;margin-top:0;" onclick="testTts()">📢 試聽語音</button>
                 </div>
             </div>
             <button class="btn-main" onclick="closeAudioModal()">完成</button>
@@ -1607,6 +1636,12 @@ I_syn(t) = w_syn · x · u · (dθ/dt)</div>
             <span class="dsp-stage-txt" id="dsp-stage">第 1 關 · 發球養成</span>
             <span class="dsp-divider"></span>
             <span class="dsp-score-txt" id="dsp-score">0 - 0</span>
+        </div>
+
+        <!-- 🍃 中興湖風向風速儀 (#wind-hud) -->
+        <div id="wind-hud" title="中興湖即時微風偏轉物理 (Wiffle Ball Aerodynamics)">
+            <span id="wind-arrow">🍃</span>
+            <span id="wind-txt">湖風 1.2 m/s</span>
         </div>
 
         <!-- 🍃 NookPhone 懸浮小葉子按鈕 (#nook-fab) -->
