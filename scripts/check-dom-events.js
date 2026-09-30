@@ -5,8 +5,11 @@ const html = fs.readFileSync(path.join(__dirname, '../v14.html'), 'utf8');
 const regex = /on[a-z]+\s*=\s*["']([a-zA-Z_$][0-9a-zA-Z_$]*)\s*\(/g;
 let match;
 const fns = new Set();
+const JS_KEYWORDS = new Set(['if', 'for', 'while', 'switch', 'return', 'void', 'typeof', 'function', 'var', 'let', 'const']);
 while ((match = regex.exec(html)) !== null) {
-    fns.add(match[1]);
+    if (!JS_KEYWORDS.has(match[1])) {
+        fns.add(match[1]);
+    }
 }
 console.log("Found DOM event handlers:", Array.from(fns));
 

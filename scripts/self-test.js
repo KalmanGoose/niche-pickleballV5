@@ -481,6 +481,105 @@ try {
     assert(false, "2.5D 球場與神經小模型檢測異常", e.message);
 }
 
+// ═══════════════════════════════════════════════════════════
+// [12/12] HTML 結構完整性驗證 (HTML Structure Integrity Validation)
+// ═══════════════════════════════════════════════════════════
+console.log("\n▶ [12/12] HTML 結構完整性驗證 (HTML Structure Integrity Validation)...");
+try {
+    const v14ForStruct = fs.readFileSync(path.resolve(__dirname, "../v14.html"), "utf8");
+
+    // ── 12-1: 關鍵標籤開閉平衡檢測 (Tag Balance Check) ──
+    function countTag(src, tag) {
+        const openRe = new RegExp(`<${tag}[\\s>]`, "gi");
+        const closeRe = new RegExp(`</${tag}>`, "gi");
+        const openCount = (src.match(openRe) || []).length;
+        const closeCount = (src.match(closeRe) || []).length;
+        return { open: openCount, close: closeCount };
+    }
+    const criticalTags = ["details", "summary", "section", "dialog", "table", "thead", "tbody", "tr"];
+    for (const tag of criticalTags) {
+        const { open, close } = countTag(v14ForStruct, tag);
+        assert(open === close,
+            `HTML 標籤 <${tag}> 開閉數量平衡 (開: ${open}, 閉: ${close})`,
+            `開啟 ${open} 個 vs 閉合 ${close} 個`);
+    }
+
+    // ── 12-2: 嚴禁 <details> 過早閉合導致內容孤立 (Anti-Orphan Guard) ──
+    const detailsBlocks = [...v14ForStruct.matchAll(/<details[\s>][\s\S]*?<\/details>/gi)];
+    let earlyCloseCount = 0;
+    for (const m of detailsBlocks) {
+        const block = m[0];
+        // 如果 details 內文（扣除 summary）少於 20 個字，極大概率是過早閉合
+        const withoutSummary = block.replace(/<summary[\s\S]*?<\/summary>/gi, "");
+        const textContent = withoutSummary.replace(/<[^>]+>/g, "").trim();
+        if (textContent.length < 20) earlyCloseCount++;
+    }
+    assert(earlyCloseCount === 0,
+        `<details> 區塊無過早閉合致內容孤立 (Anti-Orphan Guard)`,
+        `發現 ${earlyCloseCount} 個可疑的空 details 區塊`);
+
+    // ── 12-3: science-box 元素必須為 <div>，嚴禁 <details> (防止回歸) ──
+    const scienceBoxDetails = (v14ForStruct.match(/<details[^>]*class="[^"]*science-box/g) || []).length;
+    assert(scienceBoxDetails === 0,
+        `science-box 元素全部為 <div>，嚴禁 <details>（防止 refactor.py 回歸）`,
+        `仍有 ${scienceBoxDetails} 個 <details class="science-box">`);
+
+    // ── 12-4: 巢狀深度健全性 (Nesting Depth Sanity) ──
+    let maxDepth = 0, currentDepth = 0;
+    const tagRe = /<(\/?)div[\s>]/gi;
+    let tagMatch;
+    while ((tagMatch = tagRe.exec(v14ForStruct)) !== null) {
+        if (tagMatch[1] === '/') { currentDepth--; }
+        else { currentDepth++; if (currentDepth > maxDepth) maxDepth = currentDepth; }
+    }
+    assert(maxDepth <= 25,
+        `HTML div 巢狀深度健全 (最大深度: ${maxDepth}，上限 25 層)`,
+        `巢狀深度達 ${maxDepth} 層，可能存在未閉合標籤殘留`);
+    assert(currentDepth === 0,
+        `HTML div 標籤開閉完全平衡 (淨剩餘: ${currentDepth})`,
+        `div 開閉不平衡，淨剩餘 ${currentDepth} 個未閉合標籤`);
+
+    // ── 12-5: 禁止殘留未解析之生硬 LaTeX 語法 (Anti-Raw LaTeX Guard) ──
+    const rawLatexMatch = v14ForStruct.match(/(\$[^\$\n]{2,}\$|\\text\{|\\frac\{)/g) || [];
+    assert(rawLatexMatch.length === 0,
+        `HTML 內文字杜絕未解析之原生 LaTeX 符號 (Anti-Raw LaTeX Guard)`,
+        `發現殘留 LaTeX 語法: ${rawLatexMatch.slice(0, 3).join(", ")}`);
+
+    // ── 12-6: 手機直立端響應式覆蓋檢測 (Mobile CSS Responsiveness) ──
+    const modalsCss = fs.readFileSync(path.resolve(__dirname, "../css/modals.css"), "utf8");
+    const hasRulesModalMobile = modalsCss.includes("#rules-modal .modal-card") && modalsCss.includes(".drawer-header");
+    assert(hasRulesModalMobile,
+        `css/modals.css 包含規則手冊與科普抽屜手機直立端響應式樣式 (@media max-width: 680px)`);
+
+    // ── 12-7: 全站 HTML DOM 事件處理器 100% 綁定檢測 (DOM Event Handlers Binding) ──
+    const domEventRegex = /on[a-z]+\s*=\s*["']([a-zA-Z_$][0-9a-zA-Z_$]*)\s*\(/g;
+    const domFns = new Set();
+    const JS_KEYWORDS = new Set(['if', 'for', 'while', 'switch', 'return', 'void', 'typeof', 'function', 'var', 'let', 'const']);
+    let domMatch;
+    while ((domMatch = domEventRegex.exec(v14ForStruct)) !== null) {
+        if (!JS_KEYWORDS.has(domMatch[1])) {
+            domFns.add(domMatch[1]);
+        }
+    }
+    const allJs = [
+        'config.js', 'audio.js', 'physics.js', 'referee.js', 'motion.js',
+        'hub_sandbox.js', 'profile_card.js', 'ui.js', 'social.js',
+        'fly_connectome.js', 'pickle_neural_policy.js', 'fun_mode.js', 'game.js'
+    ].map(f => fs.readFileSync(path.resolve(__dirname, '../js', f), 'utf8')).join('\n');
+    const unbound = [];
+    for (const fn of domFns) {
+        if (!allJs.includes(`window.${fn}`) && !allJs.includes(`window['${fn}']`) && !allJs.includes(`window["${fn}"]`)) {
+            unbound.push(fn);
+        }
+    }
+    assert(unbound.length === 0,
+        `HTML 內所有 ${domFns.size} 個 onclick 事件函式均顯式綁定至 window (無遺漏)`,
+        `未綁定函式: ${unbound.join(", ")}`);
+
+} catch (e) {
+    assert(false, "HTML 結構完整性驗證異常", e.message);
+}
+
 // ── 總結 ──
 console.log("\n═══════════════════════════════════════════════════════════");
 if (failed === 0) {

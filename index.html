@@ -6419,6 +6419,70 @@ body.distant-hud-active #subbar-ai-btn {
                 min-width: 100%;
                 padding: 11px;
             }
+
+            /* ── 📖 規則手冊與科普抽屜手機端極致最佳化 ── */
+            #rules-modal .modal-card {
+                width: 95vw !important;
+                max-width: 95vw !important;
+                padding: 16px 12px !important;
+                max-height: 90dvh !important;
+            }
+            #rules-modal .rules-header {
+                padding-bottom: 10px !important;
+                margin-bottom: 12px !important;
+            }
+            #rules-modal .rules-header h2 {
+                font-size: 19px !important;
+            }
+            #rules-modal .rules-grid {
+                grid-template-columns: 1fr !important;
+                gap: 10px !important;
+            }
+            .science-drawer {
+                border-radius: 12px !important;
+            }
+            .drawer-header {
+                padding: 10px 12px !important;
+                gap: 8px !important;
+                flex-wrap: wrap !important;
+            }
+            .drawer-header-left {
+                gap: 8px !important;
+                flex: 1 1 70% !important;
+                min-width: 0 !important;
+            }
+            .drawer-badge {
+                font-size: 9.5px !important;
+                padding: 2px 6px !important;
+            }
+            .drawer-title {
+                font-size: 13px !important;
+                line-height: 1.35 !important;
+                word-break: break-word !important;
+            }
+            .drawer-sub {
+                font-size: 10.5px !important;
+                line-height: 1.35 !important;
+                word-break: break-word !important;
+            }
+            .drawer-toggle-btn {
+                font-size: 10px !important;
+                padding: 3px 8px !important;
+                align-self: flex-start !important;
+            }
+            .drawer-content {
+                padding: 10px 12px 14px !important;
+            }
+            .rules-footer-bar {
+                flex-direction: column !important;
+                align-items: stretch !important;
+                gap: 10px !important;
+                padding-top: 12px !important;
+            }
+            .rules-footer-bar .btn {
+                width: 100% !important;
+                padding: 10px 16px !important;
+            }
         }
 
         /* ══════════════════════════════════════════════════════════════
@@ -7242,7 +7306,7 @@ body.distant-hud-active #subbar-ai-btn {
 
                 <div class="tech-h">🌪️ 匹克球空氣動力學與旋球物理 (馬格努斯效應)</div>
                 <p class="tech-p">
-                    球體飛行軌跡由<b>重力</b>、<b>平方空氣阻力</b>與<b>馬格努斯力 (Magnus Force)</b> $\vec{F}_M \propto (\vec{\omega} \times \vec{v})$ 共同主導。
+                    球體飛行軌跡由<b>重力</b>、<b>平方空氣阻力</b>與<b>馬格努斯力 (Magnus Force)</b> <b>F</b><sub>M</sub> ∝ (<b>ω</b> × <b>v</b>) 共同主導。
                     匹克球特有的 26~40 個穿孔結構在球後方引發早期紊流分離（Turbulent Wake Separation），產生高壓差阻力與角動量自然耗散特性，兼顧體感可控性與物理真實度。
                     <button type="button" class="btn" onclick="closeTechModal(); openRulesModal('physics');" style="display:inline-flex;align-items:center;gap:4px;padding:3px 8px;font-size:11px;margin-top:6px;background:rgba(56,189,248,0.2);color:var(--accent);border:1px solid var(--accent);border-radius:6px;cursor:pointer;">
                         📖 閱讀流體力學生活科普與 5 大學術文獻 ↗
@@ -7630,11 +7694,10 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
 
                             <div style="margin-top:10px;display:flex;flex-direction:column;gap:10px;">
                                 <!-- 細項 1 -->
-                                <details class="science-box" style="cursor:pointer; margin-bottom:10px;">
-<summary style="font-weight:800;color:#1b5e20;font-size:13px;margin-bottom:4px;">
-                                        ① m · (dv/dt) ── 慣性與合加速度項 (Inertia & Acceleration</summary>                               <div style="font-weight:800;color:#1b5e20;font-size:13px;margin-bottom:4px;">
+                                <div class="science-box" style="margin-bottom:10px;">
+                                    <div style="font-weight:800;color:#1b5e20;font-size:13px;margin-bottom:4px;">
                                         ① m · (dv/dt) ── 慣性與合加速度項 (Inertia & Acceleration)
-</details>
+                                    </div>
                                     <div style="font-size:12px;line-height:1.65;color:#3d2d22;">
                                         • <b>m（球體質量 / Mass）</b>：標準值 <b>26.0 g (0.026 kg)</b>（USA Pickleball 官方規範 22.1 ~ 26.5 g）。質量輕意味著微小的氣動力就能顯著改變飛行軌跡。<br>
                                         • <b>dv/dt = a（瞬時加速度向量 / Acceleration）</b>：單位為 m/s²，代表球體在 X, Y, Z 三維軸向上每秒速度的向量變化量。
@@ -7642,22 +7705,20 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
                                 </div>
 
                                 <!-- 細項 2 -->
-                                <details class="science-box" style="cursor:pointer; margin-bottom:10px;">
-<summary style="font-weight:800;color:#2e7d32;font-size:13px;margin-bottom:4px;">
-                                        ② F_gravity = m · g ── 垂直重力下墜項 (Gravity</summary>                               <div style="font-weight:800;color:#2e7d32;font-size:13px;margin-bottom:4px;">
+                                <div class="science-box" style="margin-bottom:10px;">
+                                    <div style="font-weight:800;color:#2e7d32;font-size:13px;margin-bottom:4px;">
                                         ② F_gravity = m · g ── 垂直重力下墜項 (Gravity)
-</details>
+                                    </div>
                                     <div style="font-size:12px;line-height:1.65;color:#3d2d22;">
                                         • <b>g（重力加速度向量）</b>：定義為 <b>(0, -9.81, 0) m/s²</b>，永遠朝向 Y 軸負方向（垂直朝向地心）。若無空氣外力，球體將呈標準古典拋物線運動。
                                     </div>
                                 </div>
 
                                 <!-- 細項 3 -->
-                                <details class="science-box" style="cursor:pointer; margin-bottom:10px;">
-<summary style="font-weight:800;color:#c86446;font-size:13px;margin-bottom:4px;">
-                                        ③ F_drag = -½ · Cd · ρ · A · |v| · v ── 二次方空氣阻力項 (Quadratic Drag</summary>                               <div style="font-weight:800;color:#c86446;font-size:13px;margin-bottom:4px;">
+                                <div class="science-box" style="margin-bottom:10px;">
+                                    <div style="font-weight:800;color:#c86446;font-size:13px;margin-bottom:4px;">
                                         ③ F_drag = -½ · Cd · ρ · A · |v| · v ── 二次方空氣阻力項 (Quadratic Drag)
-</details>
+                                    </div>
                                     <div style="font-size:12px;line-height:1.65;color:#3d2d22;">
                                         • <b>負號（-）</b>：阻力方向永遠與前進速度向量 v <b>嚴格相反</b>，專職消耗球體動能。<br>
                                         • <b>Cd（形狀阻力係數 / Drag Coefficient）</b>：基準值 <b>0.58</b>。光滑球體僅約 0.45，但匹克球表面有 <b>26~40 個孔洞</b>，高速運動引發強烈的<b>邊界層紊流脫離 (Turbulent Wake Separation)</b>，形成巨大壓差阻力。<br>
@@ -7668,11 +7729,10 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
                                 </div>
 
                                 <!-- 細項 4 -->
-                                <details class="science-box" style="cursor:pointer; margin-bottom:10px;">
-<summary style="font-weight:800;color:#854d0e;font-size:13px;margin-bottom:4px;">
-                                        ④ F_Magnus = ½ · CL · ρ · A · |v|² · ((ω × v) / |ω × v|) ── 馬格努斯旋轉偏折力項 (Magnus Force</summary>                               <div style="font-weight:800;color:#854d0e;font-size:13px;margin-bottom:4px;">
+                                <div class="science-box" style="margin-bottom:10px;">
+                                    <div style="font-weight:800;color:#854d0e;font-size:13px;margin-bottom:4px;">
                                         ④ F_Magnus = ½ · CL · ρ · A · |v|² · ((ω × v) / |ω × v|) ── 馬格努斯旋轉偏折力項 (Magnus Force)
-</details>
+                                    </div>
                                     <div style="font-size:12px;line-height:1.65;color:#3d2d22;">
                                         • <b>ω（自旋角速度向量 / Angular Velocity）</b>：單位 rad/s，旋轉軸方向依循右手定則。<br>
                                         • <b>ω × v（向量外積 / Cross Product）</b>：外積方向<b>同時垂直於自轉軸與飛行速度</b>！在數學上精確解釋了三大實戰球路：<br>
@@ -7684,11 +7744,10 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
                                 </div>
 
                                 <!-- 細項 5 -->
-                                <details class="science-box" style="cursor:pointer; margin-bottom:10px;">
-<summary style="font-weight:800;color:#2b1d14;font-size:13px;margin-bottom:4px;">
-                                        ⑤ dω/dt = -β_perforated · ω ── 多孔角動量自旋阻尼衰減項 (Spin Dissipation</summary>                               <div style="font-weight:800;color:#2b1d14;font-size:13px;margin-bottom:4px;">
+                                <div class="science-box" style="margin-bottom:10px;">
+                                    <div style="font-weight:800;color:#2b1d14;font-size:13px;margin-bottom:4px;">
                                         ⑤ dω/dt = -β_perforated · ω ── 多孔角動量自旋阻尼衰減項 (Spin Dissipation)
-</details>
+                                    </div>
                                     <div style="font-size:12px;line-height:1.65;color:#3d2d22;">
                                         • <b>β_perforated（多孔空氣剪切阻尼係數）</b>：取值 <b>0.35 s⁻¹</b>。<br>
                                         • <b>物理意義</b>：空氣高速穿梭貫穿球體的 26~40 個孔洞時，球內腔與外側氣流產生強烈剪切摩擦，使自旋角速度以指數形式衰減 ω(t) = ω₀ · e^(-β·t)。<br>
@@ -7749,11 +7808,10 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
 
                             <div style="margin-top:10px;display:flex;flex-direction:column;gap:10px;">
                                 <!-- 區塊 1: 普林斯頓大學 FlyWire 開源計劃介紹 -->
-                                <details class="science-box" style="cursor:pointer; margin-bottom:10px;">
-<summary style="font-weight:800;color:#1b5e20;font-size:13px;margin-bottom:6px;display:flex;align-items:center;gap:6px;">
-                                        <span>🌐</span> 普林斯頓大學 FlyWire 開源計劃與公共神經資料庫 (Princeton FlyWire Consortium</summary>                               <div style="font-weight:800;color:#1b5e20;font-size:13px;margin-bottom:6px;display:flex;align-items:center;gap:6px;">
+                                <div class="science-box" style="margin-bottom:10px;">
+                                    <div style="font-weight:800;color:#1b5e20;font-size:13px;margin-bottom:6px;display:flex;align-items:center;gap:6px;">
                                         <span>🌐</span> 普林斯頓大學 FlyWire 開源計劃與公共神經資料庫 (Princeton FlyWire Consortium)
-</details>
+                                    </div>
                                     <div style="font-size:12px;line-height:1.7;color:#3d2d22;">
                                         • <b>創舉與歷史里程碑</b>：由普林斯頓大學 <b>H. Sebastian Seung 教授</b>（計算神經科學先驅）與 <b>Mala Murthy 教授</b>（神經生物學與聲學行為權威）領銜，聯合英國劍橋大學 MRC-LMB、HHMI Janelia 等全球數十所頂尖機構，於 2024 年 10 月以《Nature》封面特刊正式發布世界首座完整成年黑腹果蠅（<i>Drosophila melanogaster</i>）全腦接線圖（Wiring Diagram）。<br>
                                         • <b>大數據規模與解析度</b>：涵蓋 <b>139,255 個神經元</b>、超過 <b>5,450 萬個化學突觸</b> 與數百萬條微米級神經纖維，解析度精細至奈米級（4nm × 4nm × 40nm 序列切片穿透電子顯微鏡），徹底解密感官輸入至運動輸出的端到端迴路。<br>
@@ -7762,46 +7820,44 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
                                 </div>
 
                                 <!-- 區塊 2: 神經浮出之各項急轉與逃逸系統解析 -->
-                                <details class="science-box" style="cursor:pointer; margin-bottom:10px;">
-<summary style="font-weight:800;color:#c86446;font-size:13px;margin-bottom:6px;display:flex;align-items:center;gap:6px;">
-                                        <span>⚡</span> 神經浮出之各項急轉、避障與截擊系統迴路解析 (Emergent Neural Circuits</summary>                               <div style="font-weight:800;color:#c86446;font-size:13px;margin-bottom:6px;display:flex;align-items:center;gap:6px;">
+                                <div class="science-box" style="margin-bottom:10px;">
+                                    <div style="font-weight:800;color:#c86446;font-size:13px;margin-bottom:6px;display:flex;align-items:center;gap:6px;">
                                         <span>⚡</span> 神經浮出之各項急轉、避障與截擊系統迴路解析 (Emergent Neural Circuits)
-</details>
+                                    </div>
                                     <div style="display:flex;flex-direction:column;gap:8px;font-size:12px;line-height:1.65;color:#3d2d22;">
                                         <div>
                                             <b style="color:#92400e;">① 視覺光學擴張率偵測層 (Optical Looming Detectors: LC4 & LPLC2)</b><br>
-                                            果蠅視葉小葉深層（Lobula）的 <b>LC4</b>（柱狀小葉神經元 4）與 <b>LPLC2</b> 專司威脅逼近感測。其樹突具有極強側向抑制，僅對視野中呈徑向高速擴張（Radial Expansion）之暗點刺激產生動作電位，其放電頻率精準編碼逼近率 $\eta(t) = \frac{\dot{\theta}(t)}{\theta(t)} = \frac{v_{\text{rel}}}{d(t)}$。
+                                            果蠅視葉小葉深層（Lobula）的 <b>LC4</b>（柱狀小葉神經元 4）與 <b>LPLC2</b> 專司威脅逼近感測。其樹突具有極強側向抑制，僅對視野中呈徑向高速擴張（Radial Expansion）之暗點刺激產生動作電位，其放電頻率精準編碼逼近率 <i>η</i>(<i>t</i>) = <i>θ̇</i>(<i>t</i>) / <i>θ</i>(<i>t</i>) = <i>v</i><sub>rel</sub> / <i>d</i>(<i>t</i>)。
                                         </div>
                                         <div>
-                                            <b style="color:#92400e;">② 巨大纖維逃逸中樞 (Giant Fiber System, GFS: GF → TTMn / PSI)</b>
+                                             <b style="color:#92400e;">② 巨大纖維逃逸中樞 (Giant Fiber System, GFS: GF → TTMn / PSI)</b>
                                             <span style="font-size:11px;color:#c86446;font-weight:800;margin-left:4px;">🚲 aka 捷安特腳踏車神經（純屬諧音梗開玩笑亂講ㄉ不要寫在期末考卷上）</span><br>
                                             直徑達數微米的 <b>GF 下行神經元</b> 是昆蟲神經系統中反應最迅捷的「高速公路」（簡稱神經界的捷安特！）。GF 透過電突觸（Gap Junction）在 5~10ms 內直通胸部腹神經索（VNC），下游直接突觸連接：<br>
                                             - <b>TTMn (大轉子運動神經元)</b>：觸發中足大轉子伸肌爆發性伸展，產生逃逸起跳（Jump Evasion）。<br>
                                             - <b>PSI (外周突觸中間神經元) → DLMs (背縱肌肉)</b>：強制觸發雙翼急速下拍與升翅抑制，形成瞬間破空攔截。
                                         </div>
                                         <div>
-                                            <b style="color:#92400e;">③ 下行急轉非對稱轉向神經元 (Steering Descending Neurons: DNa01 / DNa02)</b><br>
-                                            Namiki et al. (2018) 與 FlyWire 下行神經元組證實，<b>DNa01</b> 與 <b>DNa02</b> 為控制飛行姿態橫擺（Yaw）與側傾（Roll）的主控開關。單側活化 DNa 會直接造成兩側雙翼振幅不對稱（Wing Stroke Amplitude Asymmetry, $\Delta \text{WSA}$），在 <b>小於 30 毫秒</b> 內產生超過 90°/s 的急劇空中變向橫切（Saccadic Emergency Turn）。
+                                             <b style="color:#92400e;">③ 下行急轉非對稱轉向神經元 (Steering Descending Neurons: DNa01 / DNa02)</b><br>
+                                            Namiki et al. (2018) 與 FlyWire 下行神經元組證實，<b>DNa01</b> 與 <b>DNa02</b> 為控制飛行姿態橫擺（Yaw）與側傾（Roll）的主控開關。單側活化 DNa 會直接造成兩側雙翼振幅不對稱（Wing Stroke Amplitude Asymmetry, ΔWSA），在 <b>小於 30 毫秒</b> 內產生超過 90°/s 的急劇空中變向橫切（Saccadic Emergency Turn）。
                                         </div>
                                         <div>
-                                            <b style="color:#92400e;">④ 複眼運動視盲漏洞 (Sensory Vulnerability & Motion Blindspot)</b><br>
+                                             <b style="color:#92400e;">④ 複眼運動視盲漏洞 (Sensory Vulnerability & Motion Blindspot)</b><br>
                                             LC4/LPLC2 迴路對慢速、平緩、無急劇擴張的光學位移（如微風吹拂或平滑拋物線）完全不響應；同時巨纖維系統缺乏對低頻刺激的積分能力。當來球為輕推小球（Dink）時，逃逸神經迴路完全靜默，致使蒼蠅因失去威脅特徵而產生感官視盲與飛行失速。
                                         </div>
                                     </div>
                                 </div>
 
                                 <!-- 區塊 3: 匹克球遊戲引擎中的真實映射與配對應用 -->
-                                <details class="science-box" style="cursor:pointer; margin-bottom:10px;">
-<summary style="font-weight:800;color:#1b5e20;font-size:13px;margin-bottom:6px;display:flex;align-items:center;gap:6px;">
-                                        <span>🎮</span> 本專案引擎中的神經機制配對與對抗博弈 (In-Engine Neuromechanical Mapping</summary>                               <div style="font-weight:800;color:#1b5e20;font-size:13px;margin-bottom:6px;display:flex;align-items:center;gap:6px;">
+                                <div class="science-box" style="margin-bottom:10px;">
+                                    <div style="font-weight:800;color:#1b5e20;font-size:13px;margin-bottom:6px;display:flex;align-items:center;gap:6px;">
                                         <span>🎮</span> 本專案引擎中的神經機制配對與對抗博弈 (In-Engine Neuromechanical Mapping)
-</details>
+                                    </div>
                                     <div style="display:flex;flex-direction:column;gap:6px;font-size:12px;line-height:1.65;color:#3d2d22;">
                                         <div>
-                                            • <b>大力抽球與高速截擊配對 (GFS + DNa01 Counter-Drive)</b>：玩家以 $>9.2\,\text{m/s}$ 大力抽球時，遊戲以 $O(1)$ 演算球距與前進分速，觸發 <code>LOOMING_REFLEX</code>。蒼蠅振翅飆至 125Hz，以 $22\,\text{m/s}$ 瞬移，並啟動 DNa01 急轉向對角算法，呼叫 <code>solveArc</code> 內建 $1.25\times$ 高速初速，回擊壓在對手對角底線死角（$z \in [5.8\text{m}, 6.1\text{m}]$），精確懲罰無腦抽球！
+                                            • <b>大力抽球與高速截擊配對 (GFS + DNa01 Counter-Drive)</b>：玩家以 &gt; 9.2 m/s 大力抽球時，遊戲以 <i>O</i>(1) 演算球距與前進分速，觸發 <code>LOOMING_REFLEX</code>。蒼蠅振翅飆至 125Hz，以 22 m/s 瞬移，並啟動 DNa01 急轉向對角算法，呼叫 <code>solveArc</code> 內建 1.25× 高速初速，回擊壓在對手對角底線死角（<i>z</i> ∈ [5.8m, 6.1m]），精確懲罰無腦抽球！
                                         </div>
                                         <div>
-                                            • <b>廚房區放小球與視盲破防配對 (Sensory Blindspot & Dink Advantage)</b>：玩家以 $<8.2\,\text{m/s}$ 輕推小球或打出第三拍吊球（3rd Shot Drop）入中興湖廚房區時，逼近率低於 $1.2$，巨纖維神經無法激發。蒼蠅陷入 <code>STUNNED</code>（複眼視盲墜地），高度掉至 $0.08\,\text{m}$ 側翻眩暈 2.2 秒，雙翼減速至 14Hz 且<b>完全無法揮拍</b>，球彈跳兩次玩家穩穩得分！
+                                            • <b>廚房區放小球與視盲破防配對 (Sensory Blindspot & Dink Advantage)</b>：玩家以 &lt; 8.2 m/s 輕推小球或打出第三拍吊球（3rd Shot Drop）入中興湖廚房區時，逼近率低於 1.2，巨纖維神經無法激發。蒼蠅陷入 <code>STUNNED</code>（複眼視盲墜地），高度掉至 0.08 m 側翻眩暈 2.2 秒，雙翼減速至 14Hz 且<b>完全無法揮拍</b>，球彈跳兩次玩家穩穩得分！
                                         </div>
                                     </div>
                                 </div>
