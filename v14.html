@@ -45,7 +45,7 @@
                 'setNick', 'closeProfileModal', 'saveProfile', 'openProfileModal',
                 'closeRulesModal', 'switchRulesModalTab', 'openAudioModal', 'closeAudioModal',
                 'openModeHub', 'closeModeHub', 'toggleNookPhone', 'testSfx', 'testVibrate', 'testTts',
-                'onSfxToggle', 'onVolInput', 'onVibrateToggle', 'onTtsToggle', 'switchAvatarMode'
+                'onSfxToggle', 'onVolInput', 'onVibrateToggle', 'onTtsToggle', 'setTtsVoiceStyle', 'onTtsVoiceSelect', 'switchAvatarMode'
             ];
             window._pendingAction = null;
             earlyStubNames.forEach(function(name) {
@@ -301,6 +301,23 @@
                         <input type="checkbox" id="pref-tts" onchange="onTtsToggle(this.checked)" checked>
                         <span class="slider-ui"></span>
                     </label>
+                </div>
+                <div id="tts-voice-options" style="margin-top:8px;background:rgba(255,255,255,0.7);border:1.5px solid #dec8a7;border-radius:12px;padding:10px 12px;text-align:left;">
+                    <div style="font-size:12px;font-weight:800;color:#3d2b1f;margin-bottom:6px;display:flex;align-items:center;justify-content:space-between;">
+                        <span>🎙️ 裁判音色風格</span>
+                        <small id="tts-current-voice-name" style="font-size:10.5px;color:#2e7d32;font-weight:700;">🌸 甜美親切 (溫柔學姐)</small>
+                    </div>
+                    <div style="display:flex;gap:6px;margin-bottom:8px;">
+                        <button type="button" class="btn-voice-style on" id="vstyle-sweet" onclick="setTtsVoiceStyle('sweet')">🌸 甜美學姐</button>
+                        <button type="button" class="btn-voice-style" id="vstyle-coach" onclick="setTtsVoiceStyle('coach')">🎾 熱血裁判</button>
+                        <button type="button" class="btn-voice-style" id="vstyle-goose" onclick="setTtsVoiceStyle('goose')">🪿 俏皮神鵝</button>
+                    </div>
+                    <div id="tts-voice-dropdown-row" style="display:flex;align-items:center;gap:6px;">
+                        <span style="font-size:11px;font-weight:700;color:#7a6b58;flex-shrink:0;">設備人聲:</span>
+                        <select id="pref-tts-voice-select" onchange="onTtsVoiceSelect(this.value)" style="flex:1;font-size:11px;padding:4px 6px;border-radius:6px;border:1.5px solid #dec8a7;background:#fff;color:#3d2b1f;font-weight:600;outline:none;">
+                            <option value="">✨ 智能最佳人聲 (推薦)</option>
+                        </select>
+                    </div>
                 </div>
                 <div style="display:flex;gap:6px;margin-top:12px;flex-wrap:wrap;">
                     <button class="btn-test" style="flex:1;min-width:90px;margin-top:0;" onclick="testSfx()">▶ 擊球音</button>

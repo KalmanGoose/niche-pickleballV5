@@ -293,6 +293,43 @@
             color: #fff
         }
 
+        .btn-voice-style {
+            flex: 1;
+            padding: 7px 4px;
+            font-size: 11px;
+            font-weight: 700;
+            border-radius: 9px;
+            border: 1.5px solid #dec8a7;
+            background: #fff;
+            color: #5a4a3a;
+            cursor: pointer;
+            transition: all .18s ease;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, .05);
+            white-space: nowrap;
+            text-align: center;
+        }
+
+        .btn-voice-style:hover {
+            background: #fbf7ee;
+            border-color: #8fb986;
+        }
+
+        .btn-voice-style.on {
+            background: #2e7d32;
+            border-color: #1b5e20;
+            color: #fff;
+            box-shadow: 0 2px 6px rgba(46, 125, 50, .28);
+        }
+
+        #pref-tts-voice-select {
+            cursor: pointer;
+            transition: border-color .18s ease;
+        }
+
+        #pref-tts-voice-select:focus {
+            border-color: #2e7d32 !important;
+        }
+
         /* ---------- 技術說明 ---------- */
         .tech-sec {
             max-height: 60vh;

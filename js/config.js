@@ -1045,6 +1045,8 @@ function apiGet(qs) {
             window.onEditDeptSelect = onEditDeptSelect;
 
         if (typeof onTtsToggle === "function") window.onTtsToggle = onTtsToggle;
+        if (typeof setTtsVoiceStyle === "function") window.setTtsVoiceStyle = setTtsVoiceStyle;
+        if (typeof onTtsVoiceSelect === "function") window.onTtsVoiceSelect = onTtsVoiceSelect;
         if (typeof testTts === "function") window.testTts = testTts;
         if (typeof speakReferee === "function") window.speakReferee = speakReferee;
         if (typeof applyEnvironmentLighting === "function") window.applyEnvironmentLighting = applyEnvironmentLighting;

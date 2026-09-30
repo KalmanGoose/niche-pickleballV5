@@ -1,7 +1,7 @@
 /* ═══════════════════════════════════════════════════════════════════
    NCHU Pickleball V5 - 音效系統與 Web Audio 合成器 (Audio System)
    ═══════════════════════════════════════════════════════════════════ */
-        const AUDIO_PREFS = { sfxOn: true, master: 0.8, vibrateOn: true, ttsOn: true };
+        const AUDIO_PREFS = { sfxOn: true, master: 0.8, vibrateOn: true, ttsOn: true, ttsVoiceStyle: 'sweet', ttsVoiceUri: '' };
         const PREF_KEY = 'nchu_pb_audio';
         function loadAudioPrefs() {
             try {
@@ -12,10 +12,13 @@
                     if (typeof o.master === 'number') AUDIO_PREFS.master = Math.min(1, Math.max(0, o.master));
                     if (typeof o.vibrateOn === 'boolean') AUDIO_PREFS.vibrateOn = o.vibrateOn;
                     if (typeof o.ttsOn === 'boolean') AUDIO_PREFS.ttsOn = o.ttsOn;
+                    if (typeof o.ttsVoiceStyle === 'string') AUDIO_PREFS.ttsVoiceStyle = o.ttsVoiceStyle;
+                    if (typeof o.ttsVoiceUri === 'string') AUDIO_PREFS.ttsVoiceUri = o.ttsVoiceUri;
                 }
             } catch (e) { }
         }
         function saveAudioPrefs() { try { localStorage.setItem(PREF_KEY, JSON.stringify(AUDIO_PREFS)); } catch (e) { } }
+        loadAudioPrefs();
         function syncAudioUI() {
             const cb = document.getElementById('pref-sfx'), rg = document.getElementById('pref-vol'),
                 nm = document.getElementById('pref-vol-num'),
@@ -35,6 +38,21 @@
                         : '此裝置不支援震動 API (iOS/Safari 以音效共振替代)';
                 }
             }
+            const style = AUDIO_PREFS.ttsVoiceStyle || 'sweet';
+            ['sweet', 'coach', 'goose'].forEach(s => {
+                const btn = document.getElementById('vstyle-' + s);
+                if (btn) btn.classList.toggle('on', s === style);
+            });
+            const curLabel = document.getElementById('tts-current-voice-name');
+            if (curLabel) {
+                const styleLabels = {
+                    sweet: '🌸 甜美親切 (溫柔學姐)',
+                    coach: '🎾 熱血裁判 (宏亮果斷)',
+                    goose: '🪿 俏皮神鵝 (中興村長)'
+                };
+                curLabel.innerText = styleLabels[style] || '🌸 甜美親切';
+            }
+            populateVoiceSelector();
         }
         function onSfxToggle(on) { AUDIO_PREFS.sfxOn = !!on; saveAudioPrefs(); syncAudioUI(); if (on) { S.init(); S.swap(); } }
         function onVibrateToggle(on) {
@@ -46,27 +64,180 @@
             }
         }
         
+        let cachedVoices = [];
+        function updateVoiceList() {
+            if (typeof window === "undefined" || !window.speechSynthesis) return;
+            try {
+                cachedVoices = window.speechSynthesis.getVoices() || [];
+                populateVoiceSelector();
+            } catch (e) {}
+        }
+        if (typeof window !== "undefined" && window.speechSynthesis) {
+            if (window.speechSynthesis.onvoiceschanged !== undefined) {
+                window.speechSynthesis.onvoiceschanged = updateVoiceList;
+            }
+            updateVoiceList();
+        }
+
+        function populateVoiceSelector() {
+            const sel = document.getElementById('pref-tts-voice-select');
+            if (!sel) return;
+            if (!cachedVoices || !cachedVoices.length) {
+                try {
+                    cachedVoices = window.speechSynthesis.getVoices() || [];
+                } catch (e) {}
+            }
+            const currentVal = AUDIO_PREFS.ttsVoiceUri || '';
+            const zhVoices = (cachedVoices || []).filter(v => v.lang && (
+                v.lang.toLowerCase().includes('zh') ||
+                v.lang.toLowerCase().includes('cmn')
+            ));
+            if (!zhVoices.length) return;
+            let html = '<option value="">✨ 智能最佳人聲 (推薦)</option>';
+            zhVoices.forEach(v => {
+                let label = v.name;
+                if (label.includes('Mei-Jia')) label = '🌸 美佳 Mei-Jia (台灣甜美女聲)';
+                else if (label.includes('HsiaoChen')) label = '🌸 曉臻 HsiaoChen (台灣自然女聲)';
+                else if (label.includes('YunJhe')) label = '🎾 雲哲 YunJhe (台灣自然男聲)';
+                else if (label.includes('Google 國語')) label = '🌟 Google 國語 (台灣標準)';
+                else if (label.includes('Ting-Ting')) label = '🌸 婷婷 Ting-Ting (標準女聲)';
+                else if (label.includes('Sinji')) label = '🎾 新吉 Sinji (台灣男聲)';
+                else if (label.includes('HanHan')) label = '🌸 涵涵 HanHan (標準女聲)';
+                const isSel = (v.voiceURI === currentVal || v.name === currentVal) ? ' selected' : '';
+                html += '<option value="' + (v.voiceURI || v.name) + '"' + isSel + '>' + label + '</option>';
+            });
+            sel.innerHTML = html;
+        }
+
+        function findBestVoice(preferredStyle) {
+            if (!cachedVoices.length && typeof window !== "undefined" && window.speechSynthesis) {
+                try { cachedVoices = window.speechSynthesis.getVoices() || []; } catch (e) {}
+            }
+            if (!cachedVoices || !cachedVoices.length) return null;
+
+            if (AUDIO_PREFS.ttsVoiceUri) {
+                const matched = cachedVoices.find(v => v.voiceURI === AUDIO_PREFS.ttsVoiceUri || v.name === AUDIO_PREFS.ttsVoiceUri);
+                if (matched) return matched;
+            }
+
+            const zhVoices = cachedVoices.filter(v => v.lang && (
+                v.lang.toLowerCase().includes('zh') ||
+                v.lang.toLowerCase().includes('cmn')
+            ));
+            if (!zhVoices.length) return cachedVoices[0] || null;
+
+            const femaleKeywords = ['mei-jia', 'hsiaochen', 'ting-ting', 'yuna', 'hanhan', 'xiaoxiao', 'female', '女', 'sweet'];
+            const maleKeywords = ['yunjhe', 'danny', 'kangkang', 'yunxi', 'male', '男', 'coach', 'sinji'];
+
+            const sorted = [...zhVoices].sort((a, b) => {
+                const aName = (a.name || '').toLowerCase();
+                const bName = (b.name || '').toLowerCase();
+                const aLang = (a.lang || '').toLowerCase();
+                const bLang = (b.lang || '').toLowerCase();
+
+                const aTw = (aLang.includes('tw') || aLang.includes('hant')) ? 100 : 0;
+                const bTw = (bLang.includes('tw') || bLang.includes('hant')) ? 100 : 0;
+
+                const aQuality = (aName.includes('natural') || aName.includes('enhanced') || aName.includes('premium') || aName.includes('neural')) ? 50 : 0;
+                const bQuality = (bName.includes('natural') || bName.includes('enhanced') || bName.includes('premium') || bName.includes('neural')) ? 50 : 0;
+
+                let aStyle = 0, bStyle = 0;
+                if (preferredStyle === 'coach') {
+                    if (maleKeywords.some(k => aName.includes(k))) aStyle = 30;
+                    if (maleKeywords.some(k => bName.includes(k))) bStyle = 30;
+                } else {
+                    if (femaleKeywords.some(k => aName.includes(k))) aStyle = 30;
+                    if (femaleKeywords.some(k => bName.includes(k))) bStyle = 30;
+                }
+                return (bTw + bQuality + bStyle) - (aTw + aQuality + aStyle);
+            });
+            return sorted[0];
+        }
+
+        function naturalizePickleballSpeech(text) {
+            if (!text) return "";
+            let s = String(text);
+            s = s.replace(/[（(][^）)]*[）)]/g, " ");
+            s = s.replace(/(\d+)\s*[-－—]\s*(\d+)/g, "$1 比 $2");
+            const numZh = ["零", "一", "二", "三", "四", "五", "六", "七", "八", "九", "十"];
+            s = s.replace(/第\s*(\d+)\s*關/g, (m, n) => "第" + (numZh[+n] || n) + "關");
+            s = s.replace(/\bSide[- ]?out\b/gi, "換發球！Side-out");
+            s = s.replace(/\bDink\b/gi, "放短小球");
+            s = s.replace(/\bDrop\b/gi, "第三拍吊球");
+            s = s.replace(/\bDrive\b/gi, "平抽球");
+            s = s.replace(/\bFault\b/gi, "違規失誤");
+            s = s.replace(/<[^>]+>/g, " ");
+            s = s.replace(/[*#_`~]/g, " ");
+            s = s.replace(/[!！]+/g, "！");
+            s = s.replace(/[,，]+/g, "，");
+            return s.trim();
+        }
+
         function onTtsToggle(on) {
             AUDIO_PREFS.ttsOn = !!on;
             saveAudioPrefs();
             syncAudioUI();
-            if (on) speakReferee("語音裁判已就緒！");
+            if (on) speakReferee("語音裁判已就緒，祝你比賽順利！");
+        }
+        function setTtsVoiceStyle(style) {
+            AUDIO_PREFS.ttsVoiceStyle = style;
+            saveAudioPrefs();
+            syncAudioUI();
+            const demoPhrases = {
+                sweet: "發球！中興大學零比零，祝你打出精彩好球！",
+                coach: "各就各位！比分零比零，發球開始！",
+                goose: "呱呱！發球養成零比零，看我的旋風回擊呱！"
+            };
+            speakReferee(demoPhrases[style] || demoPhrases.sweet);
+            if (typeof toast === 'function') {
+                const styleNames = { sweet: "🌸 甜美親切 (溫柔學姐)", coach: "🎾 熱血裁判 (宏亮果斷)", goose: "🪿 俏皮神鵝 (中興村長)" };
+                toast('🎙️ 已切換裁判音色', styleNames[style] || style);
+            }
+        }
+        function onTtsVoiceSelect(uri) {
+            AUDIO_PREFS.ttsVoiceUri = uri || '';
+            saveAudioPrefs();
+            speakReferee("語音引擎切換完成，祝你比賽順利！");
         }
         function testTts() {
-            speakReferee("發球！中興大學零比零！");
-            if (typeof toast === "function") toast("📢 語音播報測試", "已調用瀏覽器 TTS 語音朗讀");
+            const style = AUDIO_PREFS.ttsVoiceStyle || 'sweet';
+            const demoPhrases = {
+                sweet: "發球！中興大學零比零，祝你打出精彩好球！",
+                coach: "各就各位！比分零比零，發球開始！",
+                goose: "呱呱！發球養成零比零，看我的旋風回擊呱！"
+            };
+            speakReferee(demoPhrases[style] || demoPhrases.sweet);
+            if (typeof toast === "function") toast("📢 裁判語音試聽", "正在以精緻人聲朗讀匹克球比分");
         }
         function speakReferee(text, lang = "zh-TW") {
             if (AUDIO_PREFS.ttsOn === false) return;
             if (typeof window === "undefined" || !window.speechSynthesis) return;
             try {
                 window.speechSynthesis.cancel();
-                const clean = text.replace(/^[^w一-龥]+/, "").replace(/[()（）]/g, " ").trim();
-                if (!clean) return;
-                const utter = new SpeechSynthesisUtterance(clean);
-                utter.rate = 1.18;
-                utter.pitch = 1.05;
-                utter.lang = lang;
+                const speechText = naturalizePickleballSpeech(text);
+                if (!speechText) return;
+                const utter = new SpeechSynthesisUtterance(speechText);
+                const style = AUDIO_PREFS.ttsVoiceStyle || 'sweet';
+                const bestVoice = findBestVoice(style);
+                if (bestVoice) {
+                    utter.voice = bestVoice;
+                    utter.lang = bestVoice.lang || lang;
+                } else {
+                    utter.lang = lang;
+                }
+
+                if (style === 'coach') {
+                    utter.pitch = 0.90;
+                    utter.rate = 1.06;
+                } else if (style === 'goose') {
+                    utter.pitch = 1.28;
+                    utter.rate = 1.10;
+                } else { // 'sweet'
+                    utter.pitch = 1.10;
+                    utter.rate = 1.02;
+                }
+
+                utter.volume = Math.min(1, Math.max(0.2, (AUDIO_PREFS.master || 0.8) * 1.2));
                 window.speechSynthesis.speak(utter);
             } catch (e) {}
         }
@@ -139,8 +310,15 @@
             window.testVibrate = testVibrate;
             window.onVibrateToggle = onVibrateToggle;
             window.onTtsToggle = onTtsToggle;
+            window.setTtsVoiceStyle = setTtsVoiceStyle;
+            window.onTtsVoiceSelect = onTtsVoiceSelect;
             window.testTts = testTts;
             window.speakReferee = speakReferee;
+            window.loadAudioPrefs = loadAudioPrefs;
+            window.saveAudioPrefs = saveAudioPrefs;
+            window.syncAudioUI = syncAudioUI;
+            window.__setTtsVoiceStyle = setTtsVoiceStyle;
+            window.__onTtsVoiceSelect = onTtsVoiceSelect;
         }
 
         /* ═══════ 常數與狀態 ═══════ */

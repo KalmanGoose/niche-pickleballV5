@@ -336,6 +336,23 @@ try {
     assert(vHist.length === 4 && vHist[0] === 12 && vHist[1] === 22 && Array.isArray(vHist[2]) && vHist[2][0] === 25 && Array.isArray(vHist[3]) && vHist[3][0] === 50,
         "Haptic 震動曲線符合 4 段式規格 (放短 12ms / 平抽 22ms / 殺球 [25,15,45] / 失誤 [50,30,50])");
 
+    // 3.5. 裁判語音人聲引擎升級與比分語調自然化 (TTS Naturalization & Voice Personas)
+    assert(audioSrc.includes("setTtsVoiceStyle") && audioSrc.includes("naturalizePickleballSpeech") && audioSrc.includes("findBestVoice"),
+        "js/audio.js 包含 TTS 裁判音色風格 (甜美學姐/熱血裁判/俏皮神鵝) 與比分語調自然化轉換");
+    assert(v14Html.includes('id="tts-voice-options"') && v14Html.includes('id="pref-tts-voice-select"') && v14Html.includes('vstyle-sweet'),
+        "設定彈窗包含裁判音色風格選擇按鈕與設備人聲下拉選單");
+
+    // naturalizePickleballSpeech 單元邏輯模擬測試
+    const ttsSandbox = {
+        document: { getElementById: () => null },
+        localStorage: { getItem: () => null, setItem: () => null },
+        window: {}
+    };
+    vm.runInNewContext(audioSrc + "; ttsSandbox.naturalize = naturalizePickleballSpeech;", { ...ttsSandbox, ttsSandbox });
+    const nat = ttsSandbox.naturalize;
+    assert(typeof nat === 'function' && nat("1 - 0") === "1 比 0" && nat("第 1 關") === "第一關" && nat("Side-out").includes("換發球"),
+        "naturalizePickleballSpeech 成功將比分連字號轉換為「比」，杜絕「一減零」破音瑕疵");
+
     // 4. 球場柔和光照與自然大地色盤
     assert(gameSrc.includes("ACESFilmicToneMapping") && gameSrc.includes("0x2e8352") && gameSrc.includes("0xc86446"),
         "js/game.js 包含 ACESFilmic 色調映射、草坪綠 (0x2e8352) 與暖陶土 (0xc86446)");
