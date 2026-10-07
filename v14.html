@@ -13,6 +13,18 @@
     <meta http-equiv="Expires" content="0">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>NCHU Pickleball Lab · 中興大學匹克鵝打秋 (v5.2.0)</title>
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.getRegistrations().then(function(regs) {
+                for (var i = 0; i < regs.length; i++) regs[i].unregister();
+            });
+        }
+        if ('caches' in window) {
+            caches.keys().then(function(keys) {
+                for (var i = 0; i < keys.length; i++) caches.delete(keys[i]);
+            });
+        }
+    </script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.3.1675466862/camera_utils.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/pose.js" crossorigin="anonymous"></script>
