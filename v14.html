@@ -13,18 +13,24 @@
     <meta http-equiv="Expires" content="0">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>NCHU Pickleball Lab · 中興大學匹克鵝打秋 (v5.2.0)</title>
+
+    <!-- ═══════ PWA 漸進式網頁應用與離線球場支援 ═══════ -->
+    <link rel="manifest" href="./manifest.json">
+    <meta name="theme-color" content="#2e7d32">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="中興匹克球">
+    <link rel="apple-touch-icon" href="images/pickleball_lab_logo.jpg">
     <script>
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.getRegistrations().then(function(regs) {
-                for (var i = 0; i < regs.length; i++) regs[i].unregister();
-            });
-        }
-        if ('caches' in window) {
-            caches.keys().then(function(keys) {
-                for (var i = 0; i < keys.length; i++) caches.delete(keys[i]);
+        if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('./sw.js').catch(function(e) {
+                    console.log('[PWA] Service Worker reg skipped:', e);
+                });
             });
         }
     </script>
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.3.1675466862/camera_utils.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/pose.js" crossorigin="anonymous"></script>
@@ -38,8 +44,8 @@
                 'handleLogin', 'handleGuestPlay', 'handleQuickStart', 'showFullLoginForm',
                 'setNick', 'closeProfileModal', 'saveProfile', 'openProfileModal',
                 'closeRulesModal', 'switchRulesModalTab', 'openAudioModal', 'closeAudioModal',
-                'openModeHub', 'closeModeHub', 'toggleNookPhone', 'testSfx', 'testVibrate',
-                'onSfxToggle', 'onVolInput', 'onVibrateToggle', 'switchAvatarMode'
+                'openModeHub', 'closeModeHub', 'toggleNookPhone', 'testSfx', 'testVibrate', 'testTts',
+                'onSfxToggle', 'onVolInput', 'onVibrateToggle', 'onTtsToggle', 'setTtsVoiceStyle', 'onTtsVoiceSelect', 'switchAvatarMode'
             ];
             window._pendingAction = null;
             earlyStubNames.forEach(function(name) {
@@ -67,9 +73,9 @@
 <body class="layout-v4 login-open">
 
     <!-- ══════ 登入 ══════ -->
-    <div id="login-overlay" class="modal-overlay">
+    <div id="login-overlay" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="login-dialog-title">
         <div class="modal-card">
-            <h2>🏓 國立中興大學 · 匹克球特訓營</h2>
+            <h2 id="login-dialog-title">🏓 國立中興大學 · 匹克球特訓營</h2>
             <p>歡迎來到中興湖!小心會追人的匹克鵝(我真的看過學長在那邊跌倒),買不到的中興奶茶、還沒嗑到的揚州炒飯,接著挑戰匹克鵝大魔王 🪿</p>
 
             <!-- 老玩家快速開局視圖 -->
@@ -123,6 +129,7 @@
                     <label>遊戲暱稱(可隨時修改)</label>
                     <input type="text" id="user-nick" value="叫獸aka愛叫的野獸" placeholder="自訂或點下方梗圖">
                     <div class="preset-tags">
+                        <span class="preset-tag" onclick="setNick('揚州炒飯超級好吃')">🍚 揚州炒飯超級好吃</span>
                         <span class="preset-tag" onclick="setNick('呱')">呱</span>
                         <span class="preset-tag" onclick="setNick('馬某人')">馬某人</span>
                         <span class="preset-tag" onclick="setNick('黑天鵝')">黑天鵝</span>
@@ -149,11 +156,11 @@
 
     <!-- ══════ 球員設定 ══════ -->
     <!-- ══════ 🍃 島民 / 球員個人設定與學號綁定 ══════ -->
-    <div id="profile-modal" class="modal-overlay" style="display:none;">
+    <div id="profile-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="profile-dialog-title" style="display:none;">
         <div class="modal-card">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-                <h2 style="margin:0;font-size:18px;color:#2b1d14;">😎 個人球員檔案</h2>
-                <button type="button" class="btn-close-profile" onclick="closeProfileModal()">✕</button>
+                <h2 id="profile-dialog-title" style="margin:0;font-size:18px;color:#2b1d14;">😎 個人球員檔案</h2>
+                <button type="button" class="btn-close-profile" onclick="closeProfileModal()" aria-label="關閉個人球員檔案">✕</button>
             </div>
 
             <!-- 頂部頁籤導航：選手證 vs 編輯資料 -->
@@ -162,8 +169,32 @@
                 <button type="button" class="profile-nav-tab" id="ptab-btn-edit" onclick="switchProfileTab('edit')">✏️ 編輯資料 / 學號綁定</button>
             </div>
 
+            
             <!-- 頁籤 1: 選手證與成就 (預設展開) -->
-            <div id="passport-tab-content" style="display:block;"></div>
+            <div id="passport-tab-content" style="display:block;">
+                <div class="passport-card">
+                    <div class="passport-header">
+                        <div class="passport-avatar" id="passport-avatar-display">😎</div>
+                        <div class="passport-info">
+                            <h3 id="passport-name-display">興大匹克球神</h3>
+                            <div class="passport-dept" id="passport-dept-display">未設定系所 · 國立中興大學</div>
+                            <div class="passport-level-box">
+                                <div class="level-badge">Lv <span id="passport-level-num">1</span></div>
+                                <div class="exp-bar-container"><div class="exp-bar-fill" style="width: 25%;"></div></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="achievements-section">
+                        <h4>🏅 特殊成就徽章</h4>
+                        <div class="achievements-grid">
+                            <div class="achievement-badge locked" title="完成 10 場對牆特訓">🧱 牆島大師</div>
+                            <div class="achievement-badge" title="戰勝中興黑天鵝">🦢 降鵝勇士</div>
+                            <div class="achievement-badge" title="完成隱藏挑戰：揚州炒飯 (中興大學傳說彩蛋！)">🍚 揚州炒飯大師</div>
+                            <div class="achievement-badge locked" title="解鎖全部科普卡片">📚 科普學者</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
             <!-- 頁籤 2: 編輯個人資料與綁定學號 (保留完整 DOM 元素) -->
             <div id="profile-edit-content" style="display:none;">
@@ -215,6 +246,20 @@
                 <div class="input-group">
                     <label>遊戲暱稱</label>
                     <input type="text" id="edit-nick" placeholder="自訂您的球場暱稱">
+                    <div class="preset-tags">
+                        <span class="preset-tag" onclick="setNick('揚州炒飯超級好吃')">🍚 揚州炒飯超級好吃</span>
+                        <span class="preset-tag" onclick="setNick('呱')">呱</span>
+                        <span class="preset-tag" onclick="setNick('馬某人')">馬某人</span>
+                        <span class="preset-tag" onclick="setNick('黑天鵝')">黑天鵝</span>
+                        <span class="preset-tag" onclick="setNick('張麻子')">張麻子</span>
+                        <span class="preset-tag" onclick="setNick('湯師爺')">湯師爺</span>
+                        <span class="preset-tag" onclick="setNick('我是叫獸')">我是叫獸</span>
+                        <span class="preset-tag" onclick="setNick('叫獸aka愛叫的野獸')">叫獸aka愛叫的野獸</span>
+                        <span class="preset-tag" onclick="setNick('煞氣a捕夢網')">煞氣a捕夢網</span>
+                        <span class="preset-tag" onclick="setNick('呂允才不是你寶寶')">呂允才不是你寶寶 ㄌㄩㄝ</span>
+                        <span class="preset-tag" onclick="setNick('大風起兮雲飛揚')">大風起兮雲飛揚</span>
+                        <span class="preset-tag" onclick="setNick('嘿嘿我是黃四郎')">嘿嘿我是黃四郎</span>
+                    </div>
                 </div>
 
                 <div class="input-group">
@@ -229,15 +274,16 @@
                     <button type="button" class="btn-main" id="edit-save-btn" style="margin-top:0;flex:2;" onclick="saveProfile()">💾 保存修改</button>
                 </div>
 
+                <button type="button" class="btn-sub" onclick="closeProfileModal();replayFirstPlayOnboarding();" style="width:100%;margin-top:8px;">📖 重看新手引導</button>
                 <button type="button" class="btn-reopen-login" onclick="reopenLoginOverlay()">🔄 重新進入登入開局畫面</button>
             </div>
         </div>
     </div>
 
     <!-- ══════ 音效與觸覺震動設定 ══════ -->
-    <div id="audio-modal" class="modal-overlay" style="display:none;">
+    <div id="audio-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="audio-dialog-title" style="display:none;">
         <div class="modal-card">
-            <h2>🎶 音效與震動設定</h2>
+            <h2 id="audio-dialog-title">🎶 音效與震動設定</h2>
             <p>設定會自動記憶到本機，打球更具手感。</p>
             <div class="input-group">
                 <div class="pref-row">
@@ -262,9 +308,37 @@
                         <span class="slider-ui"></span>
                     </label>
                 </div>
-                <div style="display:flex;gap:8px;margin-top:12px;">
-                    <button class="btn-test" style="flex:1;margin-top:0;" onclick="testSfx()">▶ 試聽擊球音</button>
-                    <button class="btn-test" style="flex:1;margin-top:0;" onclick="testVibrate()">📳 試震一下</button>
+                <div class="pref-row" style="margin-top:6px;">
+                    <div style="display:flex;flex-direction:column;text-align:left;">
+                        <span class="pref-label">📢 語音裁判大聲公</span>
+                        <small style="font-size:11px;color:#7a6b58;margin-top:2px;">站遠 3 公尺也能聽清判決與比分 (TTS 語音，預設關閉)</small>
+                    </div>
+                    <label class="switch">
+                        <input type="checkbox" id="pref-tts" onchange="onTtsToggle(this.checked)">
+                        <span class="slider-ui"></span>
+                    </label>
+                </div>
+                <div id="tts-voice-options" style="margin-top:8px;background:rgba(255,255,255,0.7);border:1.5px solid #dec8a7;border-radius:12px;padding:10px 12px;text-align:left;opacity:0.5;pointer-events:none;transition:opacity .2s ease;">
+                    <div style="font-size:12px;font-weight:800;color:#3d2b1f;margin-bottom:6px;display:flex;align-items:center;justify-content:space-between;">
+                        <span>🎙️ 裁判音色風格</span>
+                        <small id="tts-current-voice-name" style="font-size:10.5px;color:#2e7d32;font-weight:700;">🌸 甜美親切 (溫柔學姐)</small>
+                    </div>
+                    <div style="display:flex;gap:6px;margin-bottom:8px;">
+                        <button type="button" class="btn-voice-style on" id="vstyle-sweet" onclick="setTtsVoiceStyle('sweet')">🌸 甜美學姐</button>
+                        <button type="button" class="btn-voice-style" id="vstyle-coach" onclick="setTtsVoiceStyle('coach')">🎾 熱血裁判</button>
+                        <button type="button" class="btn-voice-style" id="vstyle-goose" onclick="setTtsVoiceStyle('goose')">🪿 俏皮神鵝</button>
+                    </div>
+                    <div id="tts-voice-dropdown-row" style="display:flex;align-items:center;gap:6px;">
+                        <span style="font-size:11px;font-weight:700;color:#7a6b58;flex-shrink:0;">設備人聲:</span>
+                        <select id="pref-tts-voice-select" onchange="onTtsVoiceSelect(this.value)" style="flex:1;font-size:11px;padding:4px 6px;border-radius:6px;border:1.5px solid #dec8a7;background:#fff;color:#3d2b1f;font-weight:600;outline:none;">
+                            <option value="">✨ 智能最佳人聲 (推薦)</option>
+                        </select>
+                    </div>
+                </div>
+                <div style="display:flex;gap:6px;margin-top:12px;flex-wrap:wrap;">
+                    <button class="btn-test" style="flex:1;min-width:90px;margin-top:0;" onclick="testSfx()">▶ 擊球音</button>
+                    <button class="btn-test" style="flex:1;min-width:90px;margin-top:0;" onclick="testVibrate()">📳 試震</button>
+                    <button class="btn-test" style="flex:1;min-width:90px;margin-top:0;" onclick="testTts()">📢 試聽語音</button>
                 </div>
             </div>
             <button class="btn-main" onclick="closeAudioModal()">完成</button>
@@ -313,7 +387,7 @@
 
                 <div class="tech-h">🌪️ 匹克球空氣動力學與旋球物理 (馬格努斯效應)</div>
                 <p class="tech-p">
-                    球體飛行軌跡由<b>重力</b>、<b>平方空氣阻力</b>與<b>馬格努斯力 (Magnus Force)</b> $\vec{F}_M \propto (\vec{\omega} \times \vec{v})$ 共同主導。
+                    球體飛行軌跡由<b>重力</b>、<b>平方空氣阻力</b>與<b>馬格努斯力 (Magnus Force)</b> <b>F</b><sub>M</sub> ∝ (<b>ω</b> × <b>v</b>) 共同主導。
                     匹克球特有的 26~40 個穿孔結構在球後方引發早期紊流分離（Turbulent Wake Separation），產生高壓差阻力與角動量自然耗散特性，兼顧體感可控性與物理真實度。
                     <button type="button" class="btn" onclick="closeTechModal(); openRulesModal('physics');" style="display:inline-flex;align-items:center;gap:4px;padding:3px 8px;font-size:11px;margin-top:6px;background:rgba(56,189,248,0.2);color:var(--accent);border:1px solid var(--accent);border-radius:6px;cursor:pointer;">
                         📖 閱讀流體力學生活科普與 5 大學術文獻 ↗
@@ -590,7 +664,7 @@
             <div id="rtab-pane-physics" class="rules-tab-pane" style="display:none;">
                 <div class="rules-grid">
                     <!-- 科普抽屜 1: 馬格努斯效應 (預設展開) -->
-                    <div class="science-drawer open" id="drawer-phys-1">
+                    <div class="science-drawer" id="drawer-phys-1">
                         <div class="drawer-header" onclick="toggleScienceDrawer('drawer-phys-1')">
                             <div class="drawer-header-left">
                                 <span class="drawer-badge">科普 01</span>
@@ -701,7 +775,7 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
 
                             <div style="margin-top:10px;display:flex;flex-direction:column;gap:10px;">
                                 <!-- 細項 1 -->
-                                <div class="science-box">
+                                <div class="science-box" style="margin-bottom:10px;">
                                     <div style="font-weight:800;color:#1b5e20;font-size:13px;margin-bottom:4px;">
                                         ① m · (dv/dt) ── 慣性與合加速度項 (Inertia & Acceleration)
                                     </div>
@@ -712,7 +786,7 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
                                 </div>
 
                                 <!-- 細項 2 -->
-                                <div class="science-box">
+                                <div class="science-box" style="margin-bottom:10px;">
                                     <div style="font-weight:800;color:#2e7d32;font-size:13px;margin-bottom:4px;">
                                         ② F_gravity = m · g ── 垂直重力下墜項 (Gravity)
                                     </div>
@@ -722,7 +796,7 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
                                 </div>
 
                                 <!-- 細項 3 -->
-                                <div class="science-box">
+                                <div class="science-box" style="margin-bottom:10px;">
                                     <div style="font-weight:800;color:#c86446;font-size:13px;margin-bottom:4px;">
                                         ③ F_drag = -½ · Cd · ρ · A · |v| · v ── 二次方空氣阻力項 (Quadratic Drag)
                                     </div>
@@ -736,7 +810,7 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
                                 </div>
 
                                 <!-- 細項 4 -->
-                                <div class="science-box">
+                                <div class="science-box" style="margin-bottom:10px;">
                                     <div style="font-weight:800;color:#854d0e;font-size:13px;margin-bottom:4px;">
                                         ④ F_Magnus = ½ · CL · ρ · A · |v|² · ((ω × v) / |ω × v|) ── 馬格努斯旋轉偏折力項 (Magnus Force)
                                     </div>
@@ -751,7 +825,7 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
                                 </div>
 
                                 <!-- 細項 5 -->
-                                <div class="science-box">
+                                <div class="science-box" style="margin-bottom:10px;">
                                     <div style="font-weight:800;color:#2b1d14;font-size:13px;margin-bottom:4px;">
                                         ⑤ dω/dt = -β_perforated · ω ── 多孔角動量自旋阻尼衰減項 (Spin Dissipation)
                                     </div>
@@ -815,7 +889,7 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
 
                             <div style="margin-top:10px;display:flex;flex-direction:column;gap:10px;">
                                 <!-- 區塊 1: 普林斯頓大學 FlyWire 開源計劃介紹 -->
-                                <div class="science-box">
+                                <div class="science-box" style="margin-bottom:10px;">
                                     <div style="font-weight:800;color:#1b5e20;font-size:13px;margin-bottom:6px;display:flex;align-items:center;gap:6px;">
                                         <span>🌐</span> 普林斯頓大學 FlyWire 開源計劃與公共神經資料庫 (Princeton FlyWire Consortium)
                                     </div>
@@ -827,44 +901,44 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
                                 </div>
 
                                 <!-- 區塊 2: 神經浮出之各項急轉與逃逸系統解析 -->
-                                <div class="science-box">
+                                <div class="science-box" style="margin-bottom:10px;">
                                     <div style="font-weight:800;color:#c86446;font-size:13px;margin-bottom:6px;display:flex;align-items:center;gap:6px;">
                                         <span>⚡</span> 神經浮出之各項急轉、避障與截擊系統迴路解析 (Emergent Neural Circuits)
                                     </div>
                                     <div style="display:flex;flex-direction:column;gap:8px;font-size:12px;line-height:1.65;color:#3d2d22;">
                                         <div>
                                             <b style="color:#92400e;">① 視覺光學擴張率偵測層 (Optical Looming Detectors: LC4 & LPLC2)</b><br>
-                                            果蠅視葉小葉深層（Lobula）的 <b>LC4</b>（柱狀小葉神經元 4）與 <b>LPLC2</b> 專司威脅逼近感測。其樹突具有極強側向抑制，僅對視野中呈徑向高速擴張（Radial Expansion）之暗點刺激產生動作電位，其放電頻率精準編碼逼近率 $\eta(t) = \frac{\dot{\theta}(t)}{\theta(t)} = \frac{v_{\text{rel}}}{d(t)}$。
+                                            果蠅視葉小葉深層（Lobula）的 <b>LC4</b>（柱狀小葉神經元 4）與 <b>LPLC2</b> 專司威脅逼近感測。其樹突具有極強側向抑制，僅對視野中呈徑向高速擴張（Radial Expansion）之暗點刺激產生動作電位，其放電頻率精準編碼逼近率 <i>η</i>(<i>t</i>) = <i>θ̇</i>(<i>t</i>) / <i>θ</i>(<i>t</i>) = <i>v</i><sub>rel</sub> / <i>d</i>(<i>t</i>)。
                                         </div>
                                         <div>
-                                            <b style="color:#92400e;">② 巨大纖維逃逸中樞 (Giant Fiber System, GFS: GF → TTMn / PSI)</b>
+                                             <b style="color:#92400e;">② 巨大纖維逃逸中樞 (Giant Fiber System, GFS: GF → TTMn / PSI)</b>
                                             <span style="font-size:11px;color:#c86446;font-weight:800;margin-left:4px;">🚲 aka 捷安特腳踏車神經（純屬諧音梗開玩笑亂講ㄉ不要寫在期末考卷上）</span><br>
                                             直徑達數微米的 <b>GF 下行神經元</b> 是昆蟲神經系統中反應最迅捷的「高速公路」（簡稱神經界的捷安特！）。GF 透過電突觸（Gap Junction）在 5~10ms 內直通胸部腹神經索（VNC），下游直接突觸連接：<br>
                                             - <b>TTMn (大轉子運動神經元)</b>：觸發中足大轉子伸肌爆發性伸展，產生逃逸起跳（Jump Evasion）。<br>
                                             - <b>PSI (外周突觸中間神經元) → DLMs (背縱肌肉)</b>：強制觸發雙翼急速下拍與升翅抑制，形成瞬間破空攔截。
                                         </div>
                                         <div>
-                                            <b style="color:#92400e;">③ 下行急轉非對稱轉向神經元 (Steering Descending Neurons: DNa01 / DNa02)</b><br>
-                                            Namiki et al. (2018) 與 FlyWire 下行神經元組證實，<b>DNa01</b> 與 <b>DNa02</b> 為控制飛行姿態橫擺（Yaw）與側傾（Roll）的主控開關。單側活化 DNa 會直接造成兩側雙翼振幅不對稱（Wing Stroke Amplitude Asymmetry, $\Delta \text{WSA}$），在 <b>小於 30 毫秒</b> 內產生超過 90°/s 的急劇空中變向橫切（Saccadic Emergency Turn）。
+                                             <b style="color:#92400e;">③ 下行急轉非對稱轉向神經元 (Steering Descending Neurons: DNa01 / DNa02)</b><br>
+                                            Namiki et al. (2018) 與 FlyWire 下行神經元組證實，<b>DNa01</b> 與 <b>DNa02</b> 為控制飛行姿態橫擺（Yaw）與側傾（Roll）的主控開關。單側活化 DNa 會直接造成兩側雙翼振幅不對稱（Wing Stroke Amplitude Asymmetry, ΔWSA），在 <b>小於 30 毫秒</b> 內產生超過 90°/s 的急劇空中變向橫切（Saccadic Emergency Turn）。
                                         </div>
                                         <div>
-                                            <b style="color:#92400e;">④ 複眼運動視盲漏洞 (Sensory Vulnerability & Motion Blindspot)</b><br>
+                                             <b style="color:#92400e;">④ 複眼運動視盲漏洞 (Sensory Vulnerability & Motion Blindspot)</b><br>
                                             LC4/LPLC2 迴路對慢速、平緩、無急劇擴張的光學位移（如微風吹拂或平滑拋物線）完全不響應；同時巨纖維系統缺乏對低頻刺激的積分能力。當來球為輕推小球（Dink）時，逃逸神經迴路完全靜默，致使蒼蠅因失去威脅特徵而產生感官視盲與飛行失速。
                                         </div>
                                     </div>
                                 </div>
 
                                 <!-- 區塊 3: 匹克球遊戲引擎中的真實映射與配對應用 -->
-                                <div class="science-box">
+                                <div class="science-box" style="margin-bottom:10px;">
                                     <div style="font-weight:800;color:#1b5e20;font-size:13px;margin-bottom:6px;display:flex;align-items:center;gap:6px;">
                                         <span>🎮</span> 本專案引擎中的神經機制配對與對抗博弈 (In-Engine Neuromechanical Mapping)
                                     </div>
                                     <div style="display:flex;flex-direction:column;gap:6px;font-size:12px;line-height:1.65;color:#3d2d22;">
                                         <div>
-                                            • <b>大力抽球與高速截擊配對 (GFS + DNa01 Counter-Drive)</b>：玩家以 $>9.2\,\text{m/s}$ 大力抽球時，遊戲以 $O(1)$ 演算球距與前進分速，觸發 <code>LOOMING_REFLEX</code>。蒼蠅振翅飆至 125Hz，以 $22\,\text{m/s}$ 瞬移，並啟動 DNa01 急轉向對角算法，呼叫 <code>solveArc</code> 內建 $1.25\times$ 高速初速，回擊壓在對手對角底線死角（$z \in [5.8\text{m}, 6.1\text{m}]$），精確懲罰無腦抽球！
+                                            • <b>大力抽球與高速截擊配對 (GFS + DNa01 Counter-Drive)</b>：玩家以 &gt; 9.2 m/s 大力抽球時，遊戲以 <i>O</i>(1) 演算球距與前進分速，觸發 <code>LOOMING_REFLEX</code>。蒼蠅振翅飆至 125Hz，以 22 m/s 瞬移，並啟動 DNa01 急轉向對角算法，呼叫 <code>solveArc</code> 內建 1.25× 高速初速，回擊壓在對手對角底線死角（<i>z</i> ∈ [5.8m, 6.1m]），精確懲罰無腦抽球！
                                         </div>
                                         <div>
-                                            • <b>廚房區放小球與視盲破防配對 (Sensory Blindspot & Dink Advantage)</b>：玩家以 $<8.2\,\text{m/s}$ 輕推小球或打出第三拍吊球（3rd Shot Drop）入中興湖廚房區時，逼近率低於 $1.2$，巨纖維神經無法激發。蒼蠅陷入 <code>STUNNED</code>（複眼視盲墜地），高度掉至 $0.08\,\text{m}$ 側翻眩暈 2.2 秒，雙翼減速至 14Hz 且<b>完全無法揮拍</b>，球彈跳兩次玩家穩穩得分！
+                                            • <b>廚房區放小球與視盲破防配對 (Sensory Blindspot & Dink Advantage)</b>：玩家以 &lt; 8.2 m/s 輕推小球或打出第三拍吊球（3rd Shot Drop）入中興湖廚房區時，逼近率低於 1.2，巨纖維神經無法激發。蒼蠅陷入 <code>STUNNED</code>（複眼視盲墜地），高度掉至 0.08 m 側翻眩暈 2.2 秒，雙翼減速至 14Hz 且<b>完全無法揮拍</b>，球彈跳兩次玩家穩穩得分！
                                         </div>
                                     </div>
                                 </div>
@@ -929,7 +1003,7 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
             <div id="rtab-pane-fly" class="rules-tab-pane" style="display:none;">
                 <div class="rules-grid">
                     <!-- 科普抽屜 1: FlyWire 全腦連接組介紹 (預設展開) -->
-                    <div class="science-drawer open" id="drawer-fly-1">
+                    <div class="science-drawer" id="drawer-fly-1">
                         <div class="drawer-header" onclick="toggleScienceDrawer('drawer-fly-1')">
                             <div class="drawer-header-left">
                                 <span class="drawer-badge" style="background:var(--accent);color:#0f172a;">文獻 01</span>
@@ -1280,6 +1354,16 @@ I_syn(t) = w_syn · x · u · (dθ/dt)</div>
                 </div>
             </div>
 
+            <!-- ★ 首頁雙入口 (Hero Actions: 立即玩 vs 體感練習) -->
+            <div class="hub-hero-actions">
+                <button type="button" class="hub-hero-btn btn-play-now" onclick="hubPlayNow()" title="直接進入匹克球正式比賽">
+                    🎾 立即玩 (Play Now)
+                </button>
+                <button type="button" class="hub-hero-btn btn-practice" onclick="hubMotionPractice()" title="進入對牆特訓模式體驗體感推球">
+                    🧱 體感練習 (Practice)
+                </button>
+            </div>
+
             <!-- 2.5D 校園大地圖沙盤視口 (.hub-map-viewport) -->
             <div class="hub-map-viewport" id="hub-map-viewport">
                 <!-- 🍃 中興湖校園手繪大地圖 (無雜字純淨超高解析底圖) -->
@@ -1389,10 +1473,16 @@ I_syn(t) = w_syn · x · u · (dθ/dt)</div>
                     <div class="map-pin-pill">📚 圖書館 · 規則文獻</div>
                 </div>
 
-                <!-- 6. 湖心設施: 水上小碼頭 (棧橋入口，避開球場與選手) -->
-                <div class="map-pin" id="pin-dock" style="top:40.5%; left:73.5%;" onclick="openDockPicker()" title="水上匹克小碼頭 · 5 大關卡闖關歷險">
+                <!-- 6. 湖心設施: 水上小碼頭 (棧橋入口，避開上方球場與選手) -->
+                <div class="map-pin" id="pin-dock" style="top:42%; left:76%;" onclick="openDockPicker()" title="水上匹克小碼頭 · 5 大關卡闖關歷險">
                     <span class="map-pin-glow" style="width:48px;height:48px;background:radial-gradient(circle, rgba(249,115,22,0.65) 0%, rgba(249,115,22,0) 70%);"></span>
                     <div class="map-pin-pill pill-dock">🎾 水上小碼頭 · 闖關歷險</div>
+                </div>
+
+                <!-- 6.5. 湖邊設施: 狐狸體感特訓入口 (體感匹克球) -->
+                <div class="map-pin" id="pin-fox-motion" style="top:64%; left:27%;" onclick="startFoxMotionPractice()" title="小狐狸體感特訓 · 體感匹克球">
+                    <span class="map-pin-glow" style="width:48px;height:48px;background:radial-gradient(circle, rgba(234,88,12,0.65) 0%, rgba(234,88,12,0) 70%);"></span>
+                    <div class="map-pin-pill pill-fox">📷 狐狸 · 體感匹克球</div>
                 </div>
 
                 <!-- 7. 湖邊設施: 對牆練習木牆 -->
@@ -1440,6 +1530,57 @@ I_syn(t) = w_syn · x · u · (dθ/dt)</div>
             <!-- 大地圖底部資訊條 -->
             <div class="hub-map-footer">
                 🍃 國立中興大學中興湖 · 校園導覽地圖 · 零個資隱私安全運算
+            </div>
+        </div>
+    </div>
+
+    <!-- ══════ 🍃 首次遊玩 3-Step 新手引導彈窗 (#first-play-onboarding-modal) ══════ -->
+    <div id="first-play-onboarding-modal" class="modal-overlay auth-overlay" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="onboarding-title">
+        <div class="modal-card auth-card onboarding-card" style="max-width:440px;width:92%;text-align:center;">
+            <div class="onboarding-header">
+                <span class="onboarding-step-badge" id="onboarding-step-badge">STEP 1/3</span>
+                <button type="button" class="onboarding-skip-btn" id="onboarding-skip-btn" onclick="skipFirstPlayOnboarding()">✕ 略過教學</button>
+            </div>
+            <div class="onboarding-pills" id="onboarding-pills">
+                <span class="onboarding-pill on">1. 控制方式</span>
+                <span class="onboarding-pill">2. 推球技巧</span>
+                <span class="onboarding-pill">3. 對牆目標</span>
+            </div>
+            <h2 id="onboarding-title" class="onboarding-title">選擇您的操作方式</h2>
+            <div id="onboarding-desc" class="onboarding-desc">
+                可以使用滑鼠/觸控按住拖曳揮拍，或開啟相機體驗全身肢體體感推球！
+            </div>
+            <div style="display:flex;gap:10px;justify-content:center;">
+                <button type="button" id="onboarding-next-btn" class="hub-hero-btn btn-play-now" style="width:100%;max-width:280px;" onclick="nextOnboardingStep()">
+                    下一步 ▶
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══════ 🍃 對牆特訓 3 連擊結算卡 (#practice-settlement-modal) ══════ -->
+    <div id="practice-settlement-modal" class="modal-overlay auth-overlay" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="practice-settlement-title">
+        <div class="modal-card auth-card settlement-card" style="max-width:420px;width:90%;text-align:center;">
+            <div class="settlement-badge">🎉 特訓目標達成</div>
+            <h2 id="practice-settlement-title" class="settlement-title">連續回擊 3 次完成！</h2>
+            <p class="settlement-sub">恭喜掌握對牆連續推球節奏，球感大幅提升！</p>
+            <div class="settlement-stats-grid">
+                <div class="settlement-stat-box">
+                    <div id="practice-result-combo" class="stat-num">3 次</div>
+                    <div class="stat-label">連續回擊次數</div>
+                </div>
+                <div class="settlement-stat-box">
+                    <div id="practice-result-score" class="stat-num">15 分</div>
+                    <div class="stat-label">本次特訓得分</div>
+                </div>
+            </div>
+            <div style="display:flex;gap:10px;justify-content:center;">
+                <button type="button" id="practice-retry-btn" class="hub-hero-btn btn-practice" onclick="handlePracticeRetry()">
+                    🔄 再次練習
+                </button>
+                <button type="button" id="practice-exit-btn" class="hub-hero-btn btn-play-now" onclick="handlePracticeExitToHub()">
+                    🏠 回模式大廳 (Esc)
+                </button>
             </div>
         </div>
     </div>
@@ -1589,10 +1730,32 @@ I_syn(t) = w_syn · x · u · (dθ/dt)</div>
             <span class="dsp-score-txt" id="dsp-score">0 - 0</span>
         </div>
 
+        <!-- 🍃 對牆特訓與引導單一提示欄 (#practice-instruction-bar) -->
+        <div id="practice-instruction-bar" class="practice-hint-bar" style="display:none;" role="status" aria-live="polite">
+            <div class="hint-content">
+                <span id="practice-bar-target" class="hint-target">🎯 對牆特訓：目標 3 連擊 · 目前連擊：0 / 3</span>
+                <span class="hint-divider">|</span>
+                <span id="practice-bar-status" class="hint-status">🖱️ 手動模式：按住並向上滑動推球！</span>
+                <button type="button" id="practice-bar-fallback-btn" class="hint-fallback-btn" style="display:none;" onclick="fallbackToManualMode()">✕ 關閉相機並改用手動</button>
+            </div>
+        </div>
+
+        <!-- 🍃 中興湖風向風速儀 (#wind-hud) -->
+        <div id="wind-hud" title="中興湖即時微風偏轉物理 (Wiffle Ball Aerodynamics)">
+            <span id="wind-arrow">🍃</span>
+            <span id="wind-txt">湖風 1.2 m/s</span>
+        </div>
+
         <!-- 🍃 NookPhone 懸浮小葉子按鈕 (#nook-fab) -->
         <div id="nook-fab" onclick="toggleNookPhone(true)" title="開啟 NookPhone 快捷選單">
             <span class="nook-fab-leaf">🍃</span>
             <span class="nook-fab-lbl">Nook</span>
+        </div>
+
+        <!-- 🍃 體感相機懸浮快捷按鈕 (#quick-camera-fab) -->
+        <div id="quick-camera-fab" onclick="toggleWebcamAI()" title="切換體感相機模式 (開啟/關閉相機)">
+            <span class="cam-fab-icon" id="quick-cam-icon">📷</span>
+            <span class="cam-fab-lbl" id="quick-cam-lbl">體感</span>
         </div>
 
         <!-- 虛擬搖桿 + ★手機視角高低鈕 -->

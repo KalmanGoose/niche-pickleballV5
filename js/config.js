@@ -226,7 +226,12 @@ function apiGet(qs) {
             document.querySelectorAll('#edit-avatar-grid .avatar-opt').forEach(o => o.classList.remove('selected'));
             el.classList.add('selected'); playerProfile.avatar = em;
         }
-        function setNick(t) { document.getElementById('user-nick').value = t; }
+        function setNick(t) {
+            const un = document.getElementById('user-nick');
+            const en = document.getElementById('edit-nick');
+            if (un) un.value = t;
+            if (en) en.value = t;
+        }
 
         /* ═══════ 身分編號 (方案 B: 裝置綁定唯一 ID) ═══════ */
         const ID_KEY = 'nchu_pb_identity';
@@ -259,6 +264,9 @@ function apiGet(qs) {
             playerId: null, avatar: '🪿', sidPrefix: '', deptCode: '',
             department: '', grade: '', entryYear: '', nickname: '叫獸aka愛叫的野獸', sessionId: null
         };
+        if (typeof window !== 'undefined') {
+            window.playerProfile = playerProfile;
+        }
 
         /* ═══════ 教練模式與參數熱抽換 (Dual-Track Model) ═══════ */
         const MODEL_STORAGE_KEY = 'nchu_custom_motion_model';
@@ -444,6 +452,7 @@ function apiGet(qs) {
                 checkAdminAccess(playerProfile.nickname);
 
                 updateWhoLabel(playerProfile.nickname, playerProfile.avatar);
+                window.playerProfile = playerProfile;
                 document.getElementById('login-overlay').style.display = 'none';
                 document.body.classList.remove('login-open');
                 clearKeys();
@@ -467,6 +476,7 @@ function apiGet(qs) {
             playerProfile.ig = '';
             playerProfile.sessionId = 'S-' + Date.now().toString(36);
             checkAdminAccess(playerProfile.nickname);
+            window.playerProfile = playerProfile;
 
             updateWhoLabel(playerProfile.nickname, playerProfile.avatar);
             const overlay = document.getElementById('login-overlay');
@@ -475,7 +485,7 @@ function apiGet(qs) {
             document.body.classList.remove('demo-mode-active');
             clearKeys();
             S.init();
-            toast('👋 歡迎訪客！', '已進入模式大廳');
+            toast('👋 歡迎訪客！', '建議先用手機搖桿熟悉規則，可按右上角 📷 隨時切換體感！');
             switchStage(1);
             if (typeof openModeHub === 'function') openModeHub();
         }
@@ -515,11 +525,12 @@ function apiGet(qs) {
             });
 
             updateWhoLabel(playerProfile.nickname, playerProfile.avatar);
+            window.playerProfile = playerProfile;
             document.getElementById('login-overlay').style.display = 'none';
             document.body.classList.remove('login-open');
             clearKeys();
             S.init();
-            toast('👋 歡迎,' + playerProfile.department, '編號 ' + playerProfile.playerId);
+            toast('👋 歡迎,' + playerProfile.department, '建議先用手機搖桿熟悉規則，可按右上角 📷 切換體感！');
             switchStage(1);
             if (typeof openModeHub === 'function') openModeHub();
         }
@@ -576,6 +587,21 @@ function apiGet(qs) {
         }
 
         function openProfileModal() {
+            window.playerProfile = playerProfile;
+            // Update Passport UI
+            const avDisp = document.getElementById('passport-avatar-display');
+            const nmDisp = document.getElementById('passport-name-display');
+            const dpDisp = document.getElementById('passport-dept-display');
+            const lvDisp = document.getElementById('passport-level-num');
+            if(avDisp) avDisp.innerText = playerProfile.avatar || '😎';
+            if(nmDisp) nmDisp.innerText = playerProfile.nickname || '興大匹克球神';
+            if(dpDisp) dpDisp.innerText = (playerProfile.department || '未設定系所') + ' · 國立中興大學';
+            if(lvDisp) {
+                // simple mock level based on score/hits (if they exist)
+                let hits = (playerProfile.totalHits || 0);
+                lvDisp.innerText = 1 + Math.floor(hits / 50);
+            }
+
             buildEditDeptOptions();
             const isGuest = (playerProfile.sidPrefix === 'GUEST' || !playerProfile.sidPrefix || playerProfile.isGuest);
             
@@ -706,6 +732,10 @@ function apiGet(qs) {
             sv.entryYear = playerProfile.entryYear;
             sv.ig = playerProfile.ig;
             saveIdentity(sv);
+            window.playerProfile = playerProfile;
+            if (typeof renderPassportView === 'function') {
+                renderPassportView();
+            }
             closeProfileModal();
 
             const hubAv = document.getElementById('hub-avatar');
@@ -754,7 +784,7 @@ function apiGet(qs) {
 /* ═══════ 賽場尺寸、物理常數與 AI 難度常數 ═══════ */
         const IS_MOBILE = (typeof navigator !== 'undefined' && /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) || (typeof window !== 'undefined' && window.innerWidth < 820);
         const GRADE = { exposure: 0.95, hemiI: 0.90, sunI: 1.25, fillI: 0.35, rimI: 0.25, fogNear: 34, fogFar: 98 };
-        const COURT_W = 6.10, COURT_L = 13.41, HALF_L = COURT_L / 2;
+        const COURT_W = 6.10, COURT_L = 13.41, HALF_L = COURT_L / 2, HALF_W = COURT_W / 2;
         const KITCHEN_D = 2.13, NET_H = 0.914, GRAVITY = 9.81;
         const BALL_R = 0.14, NET_CLEAR = NET_H + BALL_R + 0.14, SERVE_MAX_H = 1.15;
         const REST_Y = 0.55, REST_XZ = 0.68, DEAD_VY = 0.80;
@@ -956,9 +986,90 @@ function apiGet(qs) {
             window.openProfileModal = openProfileModal;
             window.closeProfileModal = closeProfileModal;
             window.saveProfile = saveProfile;
+            window.playerProfile = playerProfile;
             window.reopenLoginOverlay = reopenLoginOverlay;
             window.onEditSidInput = onEditSidInput;
+
+        // --- 自動補齊 HTML 事件綁定 (防止 Safari Early-Click ReferenceError) ---
+        if (typeof onSfxToggle === 'function') window.onSfxToggle = onSfxToggle;
+        if (typeof onVolInput === 'function') window.onVolInput = onVolInput;
+        if (typeof testSfx === 'function') window.testSfx = testSfx;
+        if (typeof closeAudioModal === 'function') window.closeAudioModal = closeAudioModal;
+        if (typeof closeTechModal === 'function') window.closeTechModal = closeTechModal;
+        if (typeof switchSocialTab === 'function') window.switchSocialTab = switchSocialTab;
+        if (typeof closeSocial === 'function') window.closeSocial = closeSocial;
+        if (typeof dismissFingerTutorial === 'function') window.dismissFingerTutorial = dismissFingerTutorial;
+        if (typeof triggerFingerDemoSwipe === 'function') window.triggerFingerDemoSwipe = triggerFingerDemoSwipe;
+        if (typeof exportAuditCSV === 'function') window.exportAuditCSV = exportAuditCSV;
+        if (typeof exportAuditJSON === 'function') window.exportAuditJSON = exportAuditJSON;
+        if (typeof clearAuditLog === 'function') window.clearAuditLog = clearAuditLog;
+        if (typeof closeAuditModal === 'function') window.closeAuditModal = closeAuditModal;
+        if (typeof openFriendIG === 'function') window.openFriendIG = openFriendIG;
+        if (typeof battleDigitalTwin === 'function') window.battleDigitalTwin = battleDigitalTwin;
+        if (typeof openMockChat === 'function') window.openMockChat = openMockChat;
+        if (typeof closeSocialCard === 'function') window.closeSocialCard = closeSocialCard;
+        if (typeof closeRulesModal === 'function') window.closeRulesModal = closeRulesModal;
+        if (typeof switchRulesModalTab === 'function') window.switchRulesModalTab = switchRulesModalTab;
+        if (typeof toggleScienceDrawer === 'function') window.toggleScienceDrawer = toggleScienceDrawer;
+        if (typeof togglePhysicsMode === 'function') window.togglePhysicsMode = togglePhysicsMode;
+        if (typeof closeMockChat === 'function') window.closeMockChat = closeMockChat;
+        if (typeof openAudioModal === 'function') window.openAudioModal = openAudioModal;
+        if (typeof openSocial === 'function') window.openSocial = openSocial;
+        if (typeof openRulesModal === 'function') window.openRulesModal = openRulesModal;
+        if (typeof openAuditModal === 'function') window.openAuditModal = openAuditModal;
+        if (typeof nextSpotlightStep === 'function') window.nextSpotlightStep = nextSpotlightStep;
+        if (typeof dismissSpotlightTour === 'function') window.dismissSpotlightTour = dismissSpotlightTour;
+        if (typeof dismissRotatePrompt === 'function') window.dismissRotatePrompt = dismissRotatePrompt;
+        if (typeof setDifficulty === 'function') window.setDifficulty = setDifficulty;
+        if (typeof toggleNavMinimize === 'function') window.toggleNavMinimize = toggleNavMinimize;
+        if (typeof toggleNavMenu === 'function') window.toggleNavMenu = toggleNavMenu;
+        if (typeof forfeitMatch === 'function') window.forfeitMatch = forfeitMatch;
+        if (typeof switchSettingsTab === 'function') window.switchSettingsTab = switchSettingsTab;
+        if (typeof cycleCamView === 'function') window.cycleCamView = cycleCamView;
+        if (typeof enterCamEdit === 'function') window.enterCamEdit = enterCamEdit;
+        if (typeof cycleCardScaleQuick === 'function') window.cycleCardScaleQuick = cycleCardScaleQuick;
+        if (typeof cycleRefereeModeQuick === 'function') window.cycleRefereeModeQuick = cycleRefereeModeQuick;
+        if (typeof cycleJoySpeedQuick === 'function') window.cycleJoySpeedQuick = cycleJoySpeedQuick;
+        if (typeof showFingerTutorial === 'function') window.showFingerTutorial = showFingerTutorial;
+        if (typeof startSpotlightTour === 'function') window.startSpotlightTour = startSpotlightTour;
+        if (typeof syncDigitalTwin === 'function') window.syncDigitalTwin = syncDigitalTwin;
+        if (typeof switchStage === 'function') window.switchStage = switchStage;
+        if (typeof replayDemo === 'function') window.replayDemo = replayDemo;
+        if (typeof toggleWebcamAI === 'function') window.toggleWebcamAI = toggleWebcamAI;
+        if (typeof cycleAimModeQuick === 'function') window.cycleAimModeQuick = cycleAimModeQuick;
+        if (typeof cycleTeachLevelQuick === 'function') window.cycleTeachLevelQuick = cycleTeachLevelQuick;
+        if (typeof cycleDifficultyQuick === 'function') window.cycleDifficultyQuick = cycleDifficultyQuick;
+        if (typeof toggleNetAssist === 'function') window.toggleNetAssist = toggleNetAssist;
+        if (typeof cyclePerfQuick === 'function') window.cyclePerfQuick = cyclePerfQuick;
+        if (typeof openSettingsSub === 'function') window.openSettingsSub = openSettingsSub;
+        if (typeof toggleLayoutPreview === 'function') window.toggleLayoutPreview = toggleLayoutPreview;
+        if (typeof setCardScale === 'function') window.setCardScale = setCardScale;
+        if (typeof resetCardScales === 'function') window.resetCardScales = resetCardScales;
+        if (typeof setAimMode === 'function') window.setAimMode = setAimMode;
+        if (typeof toggleAimInvert === 'function') window.toggleAimInvert = toggleAimInvert;
+        if (typeof setTeachLevel === 'function') window.setTeachLevel = setTeachLevel;
+        if (typeof applyPerfPreset === 'function') window.applyPerfPreset = applyPerfPreset;
+        if (typeof openTechModal === 'function') window.openTechModal = openTechModal;
+        if (typeof importMotionModel === 'function') window.importMotionModel = importMotionModel;
+        if (typeof exportMotionModel === 'function') window.exportMotionModel = exportMotionModel;
+        if (typeof resetMotionModel === 'function') window.resetMotionModel = resetMotionModel;
+        if (typeof onCoachFileSelected === 'function') window.onCoachFileSelected = onCoachFileSelected;
+        if (typeof resetCamCustom === 'function') window.resetCamCustom = resetCamCustom;
+        if (typeof exitCamEdit === 'function') window.exitCamEdit = exitCamEdit;
+        if (typeof skipDemo === 'function') window.skipDemo = skipDemo;
+        if (typeof toggleHelpCollapse === 'function') window.toggleHelpCollapse = toggleHelpCollapse;
+
             window.onEditDeptSelect = onEditDeptSelect;
+
+        if (typeof onTtsToggle === "function") window.onTtsToggle = onTtsToggle;
+        if (typeof setTtsVoiceStyle === "function") window.setTtsVoiceStyle = setTtsVoiceStyle;
+        if (typeof onTtsVoiceSelect === "function") window.onTtsVoiceSelect = onTtsVoiceSelect;
+        if (typeof testTts === "function") window.testTts = testTts;
+        if (typeof speakReferee === "function") window.speakReferee = speakReferee;
+        if (typeof applyEnvironmentLighting === "function") window.applyEnvironmentLighting = applyEnvironmentLighting;
+        if (typeof setEcoMode === "function") window.setEcoMode = setEcoMode;
+        if (typeof updateWindHud === "function") window.updateWindHud = updateWindHud;
+
 
             window.__openProfileModal = openProfileModal;
             window.__closeProfileModal = closeProfileModal;

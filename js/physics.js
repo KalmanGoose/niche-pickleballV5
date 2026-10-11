@@ -1,3 +1,37 @@
+
+/* ═══════ 中興湖即時環境風力向量 (NCHU Lake Wind Vector) ═══════ */
+const WIND = {
+    enabled: true,
+    x: 0.75,          // 橫向微風 (m/s)
+    z: -0.35,         // 縱向微風 (m/s)
+    speed: 0.83,
+    directionDeg: 310,
+    gustT: 0,
+    update: function(dt) {
+        this.gustT += dt * 0.45;
+        const baseSpeed = 1.1 + Math.sin(this.gustT) * 0.45 + Math.cos(this.gustT * 1.8) * 0.25;
+        const angle = 290 + Math.sin(this.gustT * 0.6) * 25;
+        const rad = angle * Math.PI / 180;
+        this.x = Math.sin(rad) * baseSpeed;
+        this.z = Math.cos(rad) * baseSpeed;
+        this.speed = Math.hypot(this.x, this.z);
+        this.directionDeg = angle;
+    }
+};
+
+function updateWindHud() {
+    const el = document.getElementById("wind-hud");
+    const arrow = document.getElementById("wind-arrow");
+    const txt = document.getElementById("wind-txt");
+    if (!el || !WIND.enabled) {
+        if (el) el.classList.add("hidden");
+        return;
+    }
+    el.classList.remove("hidden");
+    if (arrow) arrow.style.transform = "rotate(" + Math.round(WIND.directionDeg) + "deg)";
+    if (txt) txt.innerText = "湖風 " + WIND.speed.toFixed(1) + " m/s";
+}
+
 /* ═══════════════════════════════════════════════════════════════════
    NCHU Pickleball V5 - 3D 物理引擎 (Physics Engine)
    積分器：半隱式 Euler (Symplectic Euler)，固定步長 h = 1/120 s
@@ -18,8 +52,8 @@ const MAGNUS_K    = 0.5 * AIR_DENSITY * BALL_AREA / BALL_MASS;           // ≈ 
 
 /* 假設值：多孔球缺乏公開風洞資料，以遊戲手感校正 */
 const OMEGA_MAX = 80;      // spin = ±1 對應 80 rad/s（約 760 rpm）
-const CL_SLOPE  = 0.8;     // C_L ≈ 0.8 · S，S = R·|ω| / |v|
-const CL_MAX    = 0.25;
+const CL_SLOPE  = 0.65;    // C_L ≈ 0.65 · S (溫和柔順的馬格努斯曲率)
+const CL_MAX    = 0.20;
 
 const SPIN_DECAY_FAST  = 0.14;   // 1/s
 const SPIN_DECAY_ACAD  = 0.35;   // 1/s
@@ -32,6 +66,11 @@ const BALL_VIS = { base: 1, item: 1, glow: 8 };
 /** 共用速度積分（不含碰撞、不改位置）。回傳衰減後的 spin */
 function integrateVel(vel, spin, h, mode) {
     vel.y -= GRAVITY * h;
+    if (WIND.enabled) {
+        // 中興湖穿孔球空氣動力學微風偏轉
+        vel.x += WIND.x * 0.048 * h;
+        vel.z += WIND.z * 0.048 * h;
+    }
 
     if (mode === PHYSICS_MODES.ACADEMIC) {
         // ① 二次方阻力 a = −k|v|v，隱式形式：不會讓速度反向
@@ -57,10 +96,10 @@ function integrateVel(vel, spin, h, mode) {
         return spin * Math.exp(-SPIN_DECAY_ACAD * h);
     }
 
-    // ── FAST：與原版 step() 逐行等價 ──
+    // ── FAST：經驗側向加速度（溫和馬格努斯效應，手感穩定不過甩） ──
     if (Math.abs(spin) > 0.04) {
         const spdForward = Math.min(12, Math.max(2, Math.abs(vel.z)));
-        const magnusAcc = spin * 3.6 * (0.80 + 0.20 * (spdForward / 8.0));
+        const magnusAcc = spin * 2.6 * (0.80 + 0.20 * (spdForward / 8.0));
         vel.x += magnusAcc * h;
         spin *= (1 - SPIN_DECAY_FAST * h);
     }
@@ -123,8 +162,9 @@ class Physics {
         this.spin = 0;
     }
     sync() {
+        if (typeof ball === 'undefined' || !ball || typeof ballGlow === 'undefined' || !ballGlow) return;
         const k = BALL_VIS.base * BALL_VIS.item;
-        const sq = ballSquash;
+        const sq = (typeof ballSquash !== 'undefined') ? ballSquash : 0;
         ball.position.copy(this.pos);
         ball.scale.set(k * (1 + sq * 0.26), k * (1 - sq * 0.34), k * (1 + sq * 0.26));
         ballGlow.position.copy(this.pos);
@@ -139,37 +179,47 @@ class Physics {
         } else {
             ballGlow.material.color.set(0xdcff6a);
         }
-        for (let i = ballTrail.length - 1; i > 0; i--) ballTrail[i].p.copy(ballTrail[i - 1].p);
-        ballTrail[0].p.copy(this.pos);
-        const on = spd > 2.8;
-        for (let i = 0; i < ballTrail.length; i++) {
-            const tr = ballTrail[i], f = 1 - i / ballTrail.length;
-            tr.spr.position.copy(tr.p);
-            const sc = BALL_R * (hasCurve ? 5.2 : 3.8) * f;
-            tr.spr.scale.set(sc, sc, 1);
-            if (hasCurve) {
-                tr.spr.material.color.set(this.spin > 0 ? 0xf6c445 : 0x2d6a4f);
-                tr.spr.material.opacity = on ? (0.48 * f) : 0;
-            } else {
-                tr.spr.material.color.set(0xdcff6a);
-                tr.spr.material.opacity = on ? (0.24 * f * f) : 0;
+        if (typeof ballTrail !== 'undefined' && ballTrail && ballTrail.length > 0) {
+            for (let i = ballTrail.length - 1; i > 0; i--) ballTrail[i].p.copy(ballTrail[i - 1].p);
+            ballTrail[0].p.copy(this.pos);
+            const on = spd > 2.8;
+            for (let i = 0; i < ballTrail.length; i++) {
+                const tr = ballTrail[i], f = 1 - i / ballTrail.length;
+                tr.spr.position.copy(tr.p);
+                const sc = BALL_R * (hasCurve ? 5.2 : 3.8) * f;
+                tr.spr.scale.set(sc, sc, 1);
+                if (hasCurve) {
+                    tr.spr.material.color.set(this.spin > 0 ? 0xf6c445 : 0x2d6a4f);
+                    tr.spr.material.opacity = on ? (0.48 * f) : 0;
+                } else {
+                    tr.spr.material.color.set(0xdcff6a);
+                    tr.spr.material.opacity = on ? (0.24 * f * f) : 0;
+                }
             }
         }
-        ballBlob.position.set(this.pos.x, 0.014, this.pos.z);
-        const hh = THREE.MathUtils.clamp(this.pos.y, 0, 3.2);
-        const bs = THREE.MathUtils.lerp(BALL_R * 3.1, BALL_R * 6.4, hh / 3.2);
-        ballBlob.scale.set(bs, bs, 1);
-        ballBlob.material.opacity = THREE.MathUtils.lerp(0.5, 0.09, hh / 3.2);
+        if (typeof ballBlob !== 'undefined' && ballBlob) {
+            ballBlob.position.set(this.pos.x, 0.014, this.pos.z);
+            const hh = THREE.MathUtils.clamp(this.pos.y, 0, 3.2);
+            const bs = THREE.MathUtils.lerp(BALL_R * 3.1, BALL_R * 6.4, hh / 3.2);
+            ballBlob.scale.set(bs, bs, 1);
+            ballBlob.material.opacity = THREE.MathUtils.lerp(0.5, 0.09, hh / 3.2);
+        }
+        updateWindHud();
     }
-    setPos(x, y, z) { this.pos.set(x, y, z); this.prevPos.copy(this.pos); if (ball) this.sync(); }
+    setPos(x, y, z) {
+        this.pos.set(x, y, z);
+        this.prevPos.copy(this.pos);
+        if (typeof ball !== 'undefined' && ball) this.sync();
+    }
     reset(x, y, z) {
         this.setPos(x, y, z);
         this.prevPos.copy(this.pos);
         this.vel.set(0, 0, 0);
         this.spin = 0;
-        if (ball) ball.rotation.set(0, 0, 0);
+        if (typeof ball !== 'undefined' && ball) ball.rotation.set(0, 0, 0);
     }
     update(dt) {
+        if (WIND.enabled) WIND.update(dt);
         if (state === 'SERVE_READY' || state === 'FAULT' || state === 'OVER' || state === 'CLEARED') {
             this.prevPos.copy(this.pos);
             this.sync();
@@ -186,7 +236,7 @@ class Physics {
     step(h) {
         const pz = this.pos.z, py = this.pos.y;
         this.spin = integrateVel(this.vel, this.spin, h, currentPhysicsMode);
-        if (ball) {
+        if (typeof ball !== 'undefined' && ball) {
             ball.rotation.x -= this.vel.z * 3.6 * h;
             ball.rotation.y += this.spin * 16.0 * h;
         }
@@ -324,6 +374,7 @@ function swatterHunting() { return typeof FunMode !== 'undefined' && FunMode.act
 
 function onNet() {
     if (demoOn || swatterHunting()) return;
+    if(typeof popFloatText === 'function') popFloatText(PH.pos.x, PH.pos.y, PH.pos.z, 'NET');
     if (scoring()) endRally(lastHitter === 'GOOSE' ? 'PLAYER' : 'GOOSE', '掛網', '球沒過網');
     else fail('掛網', '擊球點再放低一點,往前送出去');
 }
@@ -331,9 +382,33 @@ function onBounce() {
     if (demoOn || swatterHunting()) return;
     bounces++;
     const x = PH.pos.x, z = PH.pos.z;
-    if (bounces === 1) {
-        const inCourt = Math.abs(x) <= COURT_W / 2 + BALL_R && Math.abs(z) <= HALF_L + BALL_R;
+    const inCourt = Math.abs(x) <= COURT_W / 2 + BALL_R && Math.abs(z) <= HALF_L + BALL_R;
+
+    // ★ 🧱 對牆特訓模式 (Mode A) 獨立落地規則：
+    // 每次彈跳皆嚴格檢驗是否在場內；出界立即可靠結算；場內反彈（無論何處、無論第幾跳）皆豁免發球落點與未過網，允許自由連續練習！
+    if (typeof isWallPractice !== 'undefined' && isWallPractice) {
         if (!inCourt) {
+            if (typeof popFloatText === 'function') popFloatText(x, 0.05, z, 'OUT');
+            const finalCombo = typeof wallCombo !== 'undefined' ? wallCombo : 0;
+            const finalScore = typeof pScore !== 'undefined' ? pScore : 0;
+            state = 'CLEARED';
+            freeze();
+            clearTimers();
+            locked = true;
+            if (typeof S !== 'undefined' && S.fault) S.fault();
+            if (typeof toast === 'function') toast('🧱 練習球出界', `特訓結算：最高連擊 ${finalCombo} 次`);
+            if (typeof showPracticeSettlementModal === 'function') {
+                showPracticeSettlementModal(finalCombo, finalScore);
+            }
+            return;
+        }
+        if (state === 'SERVE_AIR') state = 'RALLY';
+        return;
+    }
+
+    if (bounces === 1) {
+        if (!inCourt) {
+            if(typeof popFloatText === 'function') popFloatText(x, 0.05, z, 'OUT');
             if (state === 'SERVE_AIR') serveFail('發球出界', '力道略減,看落點圈瞄準對角區');
             else if (scoring()) endRally(lastHitter === 'GOOSE' ? 'PLAYER' : 'GOOSE', '界外球', '第一次落地必須在白線內');
             else fail('界外球', lastHitter === 'GOOSE' ? '對手打出界,重新開始' : '控制力道與方向');
@@ -357,6 +432,21 @@ function onBounce() {
 }
 function onDead() {
     if (demoOn || swatterHunting()) return;
+    // ★ 🧱 對牆特訓模式：練習球完全停止滾動時可靠結算
+    if (typeof isWallPractice !== 'undefined' && isWallPractice) {
+        const finalCombo = typeof wallCombo !== 'undefined' ? wallCombo : 0;
+        const finalScore = typeof pScore !== 'undefined' ? pScore : 0;
+        state = 'CLEARED';
+        freeze();
+        clearTimers();
+        locked = true;
+        if (typeof S !== 'undefined' && S.fault) S.fault();
+        if (typeof toast === 'function') toast('🧱 球已停止', `特訓結算：最高連擊 ${finalCombo} 次`);
+        if (typeof showPracticeSettlementModal === 'function') {
+            showPracticeSettlementModal(finalCombo, finalScore);
+        }
+        return;
+    }
     if (scoring()) {
         if (lastHitter === 'PLAYER' && PH.pos.z < 0) endRally('PLAYER', '得分', '球已停止');
         else if (lastHitter === 'GOOSE' && PH.pos.z > 0) endRally('GOOSE', '失分', '球已停止');
@@ -437,4 +527,9 @@ function syncPhysicsModeUI() {
         modalBtn.style.background = isAcad ? 'rgba(129, 140, 248, 0.2)' : 'rgba(56, 189, 248, 0.15)';
         modalBtn.style.borderColor = isAcad ? '#818cf8' : '#38bdf8';
     }
+}
+
+if (typeof window !== "undefined") {
+    window.WIND = WIND;
+    window.updateWindHud = updateWindHud;
 }

@@ -975,7 +975,9 @@ function cycleTeachLevelQuick() {
 
 /* ═══════ 彈窗控制器、HUD 面板自由拖曳與卡片縮放手柄 ═══════ */
         const MODAL_IDS = ['login-overlay', 'profile-modal', 'audio-modal', 'tech-modal', 'social-modal',
-            'audit-modal', 'social-card-modal', 'mock-chat-modal', 'rules-modal', 'item-cards-modal'];
+            'audit-modal', 'social-card-modal', 'mock-chat-modal', 'rules-modal', 'item-cards-modal',
+            'first-play-onboarding-modal', 'practice-settlement-modal'];
+        window.MODAL_IDS = MODAL_IDS;
         function isTypingTarget(e) {
             const t = e.target;
             if (!t) return false;
@@ -1568,3 +1570,322 @@ function cycleTeachLevelQuick() {
         window.closeDockPicker = closeDockPicker;
         window.selectDockStage = selectDockStage;
         window.startDockQuest = startDockQuest;
+
+        /* ═══════════════════════════════════════════════════════════
+           🍃 TASK-V8-605: 首次遊玩引導、對牆特訓結算與單一提示管理器 (UX Controller)
+           ═══════════════════════════════════════════════════════════ */
+        let isOnboardingActive = false;
+        let onboardingCurrentStep = 0;
+
+        const ONBOARDING_STEPS = [
+            {
+                badge: '步驟 1 / 3 · 控制選擇',
+                title: '🎮 選擇控制方式',
+                desc: '💡 <b>新手遊玩建議</b>：建議先使用<b>手機虛擬搖桿 / 觸控滑動</b>熟悉匹克球的雙彈跳與廚房區規則！<br>• <b>手動模式</b>（推薦起步）：按住滑鼠或手機虛擬搖桿，滑動推球體驗走位。<br>• <b>體感模式</b>（隨時切換）：熟悉規則後，可隨時點擊畫面右上角小小的 <b>📷 體感相機按鈕</b>，在鏡頭前揮拍打球！<br><i>（若相機未開啟或無人體，系統將始終自動維持手動暢玩）</i>',
+                btnText: '下一步：揮拍技巧 ▸'
+            },
+            {
+                badge: '步驟 2 / 3 · 揮拍技巧',
+                title: '🎾 基礎推球與揮拍技巧',
+                desc: '匹克球講求節奏與平穩推送：<br>• <b>推球發球</b>：按住並向上滑動（或手臂由下往上送出），拍面低於腰部輕輕向上推動。<br>• <b>弧線過網</b>：將球平穩送出，避免過度用力出界。',
+                btnText: '下一步：特訓目標 ▸'
+            },
+            {
+                badge: '步驟 3 / 3 · 特訓目標',
+                title: '🧱 練習目標：對牆 3 連擊',
+                desc: '現在進入<b>「對牆特訓」</b>練習場！<br>• 瞄準前方的特訓木牆反覆推球。<br>• 只要達成<b>連續回擊 3 次 (3 Combos)</b> 即可完成特訓！',
+                btnText: '開始特訓 🚀'
+            }
+        ];
+
+        function checkFirstPlayOnboarding() {
+            try {
+                const done = localStorage.getItem('nchu_first_play_v8_done');
+                if (done === '1') return;
+            } catch (e) {}
+            startFirstPlayOnboarding(false);
+        }
+
+        function startFirstPlayOnboarding(force) {
+            if (!force) {
+                try {
+                    const done = localStorage.getItem('nchu_first_play_v8_done');
+                    if (done === '1') return;
+                } catch (e) {}
+            }
+            isOnboardingActive = true;
+            onboardingCurrentStep = 0;
+            if (typeof freeze === 'function') freeze();
+            if (typeof clearTimers === 'function') clearTimers();
+            if (typeof state !== 'undefined') state = 'CLEARED';
+            if (typeof locked !== 'undefined') locked = true;
+            const m = document.getElementById('first-play-onboarding-modal');
+            if (m) {
+                m.style.display = 'flex';
+                renderOnboardingStep(0);
+                const nextBtn = document.getElementById('onboarding-next-btn');
+                if (nextBtn) nextBtn.focus();
+            }
+            updatePracticeInstructionBar();
+        }
+
+        function renderOnboardingStep(idx) {
+            if (idx < 0 || idx >= ONBOARDING_STEPS.length) return;
+            onboardingCurrentStep = idx;
+            const step = ONBOARDING_STEPS[idx];
+            const badge = document.getElementById('onboarding-step-badge');
+            const title = document.getElementById('onboarding-title');
+            const desc = document.getElementById('onboarding-desc');
+            const nextBtn = document.getElementById('onboarding-next-btn');
+            const pills = document.querySelectorAll('#onboarding-pills .onboarding-pill');
+
+            if (badge) badge.innerText = step.badge;
+            if (title) title.innerText = step.title;
+            if (desc) desc.innerHTML = step.desc;
+            if (nextBtn) nextBtn.innerText = step.btnText;
+            pills.forEach((p, i) => {
+                p.classList.toggle('on', i === idx);
+            });
+        }
+
+        function nextOnboardingStep() {
+            if (!isOnboardingActive) return;
+            if (onboardingCurrentStep < ONBOARDING_STEPS.length - 1) {
+                renderOnboardingStep(onboardingCurrentStep + 1);
+            } else {
+                dismissFirstPlayOnboarding();
+            }
+        }
+
+        function dismissFirstPlayOnboarding() {
+            isOnboardingActive = false;
+            try {
+                localStorage.setItem('nchu_first_play_v8_done', '1');
+            } catch (e) {}
+            const m = document.getElementById('first-play-onboarding-modal');
+            if (m) m.style.display = 'none';
+            if (typeof locked !== 'undefined') locked = false;
+            if (typeof resetServe === 'function') {
+                resetServe();
+            }
+            updatePracticeInstructionBar();
+            if (typeof toast === 'function') {
+                const inPrac = (typeof isWallPractice !== 'undefined' && isWallPractice);
+                toast(inPrac ? '🧱 特訓開始！' : '🎾 教學結束！', inPrac ? '瞄準木牆紅線上方連續回擊 3 次！' : '準備發球開局！');
+            }
+        }
+
+        function skipFirstPlayOnboarding() {
+            dismissFirstPlayOnboarding();
+        }
+
+        function replayFirstPlayOnboarding() {
+            startFirstPlayOnboarding(true);
+        }
+
+        /* ── 對牆特訓 3 連擊結算卡控制器 ── */
+        function showPracticeSettlementModal(combo, score) {
+            const m = document.getElementById('practice-settlement-modal');
+            if (!m) return;
+            const comboEl = document.getElementById('practice-result-combo');
+            const scoreEl = document.getElementById('practice-result-score');
+            if (comboEl) comboEl.innerText = `${combo} 次`;
+            if (scoreEl) scoreEl.innerText = `${score} 分`;
+            m.style.display = 'flex';
+            const retryBtn = document.getElementById('practice-retry-btn');
+            if (retryBtn) retryBtn.focus();
+        }
+
+        function closePracticeSettlementModal() {
+            const m = document.getElementById('practice-settlement-modal');
+            if (m) m.style.display = 'none';
+        }
+
+        function handlePracticeRetry() {
+            closePracticeSettlementModal();
+            if (typeof retryWallPractice === 'function') {
+                retryWallPractice();
+            }
+        }
+
+        function handlePracticeExitToHub() {
+            closePracticeSettlementModal();
+            if (typeof exitWallPracticeToHub === 'function') {
+                exitWallPracticeToHub();
+            }
+        }
+
+        /* ── 單一提示管理器 (Practice Instruction Bar) ── */
+        let practiceHintTimer = null;
+        function updatePracticeInstructionBar() {
+            const bar = document.getElementById('practice-instruction-bar');
+            if (!bar) return;
+            const inPractice = (typeof isWallPractice !== 'undefined' && isWallPractice);
+            const inOnboarding = !!isOnboardingActive;
+
+            if (!inPractice && !inOnboarding) {
+                bar.style.display = 'none';
+                if (practiceHintTimer) {
+                    clearInterval(practiceHintTimer);
+                    practiceHintTimer = null;
+                }
+                return;
+            }
+            if (!practiceHintTimer) {
+                practiceHintTimer = setInterval(() => {
+                    updatePracticeInstructionBar();
+                }, 400);
+            }
+            bar.style.display = 'flex';
+            const targetTxt = document.getElementById('practice-bar-target');
+            const statusTxt = document.getElementById('practice-bar-status');
+            const fallbackBtn = document.getElementById('practice-bar-fallback-btn');
+
+            const combo = (typeof wallCombo === 'number') ? wallCombo : 0;
+            if (targetTxt) {
+                targetTxt.innerText = `🎯 對牆特訓：目標 3 連擊 · 目前連擊：${combo} / 3`;
+            }
+
+            let camInfo = { status: 'STOPPED', hasPoseData: false, keypointsPresent: false, isStale: false, reason: 'stopped' };
+            if (typeof getMotionTrackingStatus === 'function') {
+                camInfo = getMotionTrackingStatus();
+            } else if (typeof webcamActive !== 'undefined' && webcamActive) {
+                camInfo.status = 'ACTIVE';
+            }
+
+            if (camInfo.status === 'ACTIVE') {
+                if (camInfo.hasPoseData && camInfo.keypointsPresent && !camInfo.isStale) {
+                    if (statusTxt) statusTxt.innerText = '📷 體感模式：有姿態資料 · 向上揮拍推球';
+                    if (fallbackBtn) fallbackBtn.style.display = 'none';
+                } else {
+                    if (statusTxt) statusTxt.innerText = '📷 未偵測到人體姿態';
+                    if (fallbackBtn) {
+                        fallbackBtn.style.display = 'inline-block';
+                        fallbackBtn.innerText = '✕ 關閉相機並改用手動';
+                    }
+                }
+            } else if (camInfo.status === 'STARTING') {
+                if (statusTxt) statusTxt.innerText = '📷 相機啟動中，請稍候...';
+                if (fallbackBtn) fallbackBtn.style.display = 'none';
+            } else {
+                if (statusTxt) statusTxt.innerText = '🖱️ 手動模式：按住並向上滑動推球！';
+                if (fallbackBtn) fallbackBtn.style.display = 'none';
+            }
+        }
+
+        function fallbackToManualMode() {
+            if (typeof stopWebcamAI === 'function') {
+                stopWebcamAI();
+            }
+            updatePracticeInstructionBar();
+            if (typeof toast === 'function') {
+                toast('已切換為手動操作', '按住並向上滑動發球推球！');
+            }
+        }
+
+        /* ── 首頁雙入口 ── */
+        function hubPlayNow() {
+            closeModeHub();
+            if (typeof switchStage === 'function') switchStage(1);
+        }
+
+        function hubMotionPractice() {
+            closeModeHub();
+            if (typeof startWallPractice === 'function') {
+                startWallPractice();
+                checkFirstPlayOnboarding();
+            }
+        }
+
+        /* ── 彈窗焦點陷阱與鍵盤守衛 ── */
+        document.addEventListener('keydown', (e) => {
+            const setModal = document.getElementById('practice-settlement-modal');
+            if (setModal && setModal.style.display !== 'flex' && setModal.style.display !== '') {
+                // not visible
+            } else if (setModal && setModal.style.display === 'flex') {
+                if (e.key === 'Escape') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handlePracticeExitToHub();
+                    return;
+                }
+                if (e.key === ' ' || e.key === 'Enter') {
+                    const activeEl = document.activeElement;
+                    if (activeEl && setModal.contains(activeEl) && activeEl.tagName === 'BUTTON') {
+                        e.stopPropagation();
+                    } else {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handlePracticeRetry();
+                    }
+                    return;
+                }
+                if (e.key === 'Tab') {
+                    const focusable = setModal.querySelectorAll('button:not([disabled])');
+                    if (focusable.length > 0) {
+                        const first = focusable[0];
+                        const last = focusable[focusable.length - 1];
+                        if (e.shiftKey && document.activeElement === first) {
+                            e.preventDefault();
+                            last.focus();
+                        } else if (!e.shiftKey && document.activeElement === last) {
+                            e.preventDefault();
+                            first.focus();
+                        }
+                    }
+                }
+            }
+
+            const onbModal = document.getElementById('first-play-onboarding-modal');
+            if (onbModal && onbModal.style.display === 'flex') {
+                if (e.key === 'Escape') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    skipFirstPlayOnboarding();
+                    return;
+                }
+                if (e.key === ' ' || e.key === 'Enter') {
+                    const activeEl = document.activeElement;
+                    if (activeEl && onbModal.contains(activeEl) && activeEl.tagName === 'BUTTON') {
+                        e.stopPropagation();
+                    } else {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        nextOnboardingStep();
+                    }
+                    return;
+                }
+                if (e.key === 'Tab') {
+                    const focusable = onbModal.querySelectorAll('button:not([disabled])');
+                    if (focusable.length > 0) {
+                        const first = focusable[0];
+                        const last = focusable[focusable.length - 1];
+                        if (e.shiftKey && document.activeElement === first) {
+                            e.preventDefault();
+                            last.focus();
+                        } else if (!e.shiftKey && document.activeElement === last) {
+                            e.preventDefault();
+                            first.focus();
+                        }
+                    }
+                }
+            }
+        });
+
+        window.checkFirstPlayOnboarding = checkFirstPlayOnboarding;
+        window.startFirstPlayOnboarding = startFirstPlayOnboarding;
+        window.nextOnboardingStep = nextOnboardingStep;
+        window.dismissFirstPlayOnboarding = dismissFirstPlayOnboarding;
+        window.skipFirstPlayOnboarding = skipFirstPlayOnboarding;
+        window.replayFirstPlayOnboarding = replayFirstPlayOnboarding;
+        window.showPracticeSettlementModal = showPracticeSettlementModal;
+        window.closePracticeSettlementModal = closePracticeSettlementModal;
+        window.handlePracticeRetry = handlePracticeRetry;
+        window.handlePracticeExitToHub = handlePracticeExitToHub;
+        window.updatePracticeInstructionBar = updatePracticeInstructionBar;
+        window.fallbackToManualMode = fallbackToManualMode;
+        window.hubPlayNow = hubPlayNow;
+        window.hubMotionPractice = hubMotionPractice;
+        window.isOnboardingActive = () => isOnboardingActive;
+        window.getOnboardingStep = () => onboardingCurrentStep;
+        window.anyModalOpen = anyModalOpen;

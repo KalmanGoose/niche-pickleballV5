@@ -93,6 +93,7 @@
             "🐰 兔兔：看我輕巧放短，再伺機在廚房線前打出追身球！"
         ],
         court_sw: [
+            "🦊 狐狸：想體驗真實體感揮拍嗎？點擊旁邊的【📷 狐狸 · 體感匹克球】按鈕，隨時開啟鏡頭！",
             "🦊 狐狸：近網切球 (Dink) 要放鬆手腕，輕輕推過網帶！",
             "🐧 企鵝：看我的反手提拉！球在廚房線前剛剛好落地！",
             "🏓 雙方切磋中！第二球場是選手們每天清晨的特訓秘密基地～",
@@ -347,10 +348,15 @@
             }
         } catch (e) {}
 
-        bubble.innerText = text;
+        if (actorId === 'court_sw') {
+            bubble.innerHTML = `<div style="font-weight:700;">${text}</div><button type="button" class="bubble-act-btn" onclick="startFoxMotionPractice(); if(event)event.stopPropagation();">📷 進入體感特訓</button>`;
+        } else {
+            bubble.innerText = text;
+        }
         targetActor.appendChild(bubble);
 
-        // 2.8 秒後平滑淡出消失
+        // 2.8 秒後平滑淡出消失 (若有按鈕稍長一些 3.8s)
+        const bubbleLife = (actorId === 'court_sw') ? 3800 : 2800;
         setTimeout(() => {
             if (bubble.parentNode) {
                 bubble.style.transition = 'opacity 0.2s ease, transform 0.2s ease';
@@ -363,7 +369,22 @@
                     if (bubble.parentNode) bubble.parentNode.removeChild(bubble);
                 }, 220);
             }
-        }, 2800);
+        }, bubbleLife);
+    }
+
+    // 小狐狸特訓：開啟體感匹克球特訓模式
+    function startFoxMotionPractice() {
+        if (typeof closeModeHub === 'function') closeModeHub();
+        if (typeof startWallPractice === 'function') {
+            startWallPractice();
+        }
+        if (typeof startWebcamAI === 'function') {
+            const isCamActive = (typeof isWebcamActive === 'function') ? isWebcamActive() : false;
+            if (!isCamActive) startWebcamAI();
+        }
+        if (typeof toast === 'function') {
+            toast('🦊 小狐狸：體感特訓啟動！', '站在鏡頭前，揮動手臂推拍對抗特訓木牆！');
+        }
     }
 
     // 微視差追蹤
@@ -417,11 +438,13 @@
     }
 
     // 匯出全域介面
+    window.startFoxMotionPractice = startFoxMotionPractice;
     window.HubSandbox = {
         start: start,
         stop: stop,
         isRunning: function() { return isRunning; },
-        interactActor: interactActor
+        interactActor: interactActor,
+        startFoxMotionPractice: startFoxMotionPractice
     };
 
 })(window);

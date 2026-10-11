@@ -1,3 +1,11 @@
+
+        let ecoModeActive = false;
+        function setEcoMode(active) {
+            ecoModeActive = !!active;
+            frameSkip = ecoModeActive ? 3 : (PERF_PRESETS[perfLevel].skip || 1);
+        }
+        window.setEcoMode = setEcoMode;
+
 /* ═══════════════════════════════════════════════════════════════════
    NCHU Pickleball V5 - 數位孿生、特徵雷達與雲端審計 (Social & Digital Twin)
    ═══════════════════════════════════════════════════════════════════ */
@@ -400,10 +408,15 @@
                 padY = THREE.MathUtils.clamp(padY, 0.22, 2.0);
                 return;
             }
-            let wantX = 0;
+            let wantX = (typeof RIGHT !== 'undefined' && typeof RIGHT.padXFree === 'number') ? RIGHT.padXFree : 0;
             if (state === 'RALLY' || state === 'SERVE_AIR') {
-                if (PH.vel.z > 0) wantX = THREE.MathUtils.clamp(PH.pos.x - pPos.x, -0.95, 0.95);
-                else wantX = padX * 0.9;
+                if (PH.vel.z > 0) {
+                    const ballRelX = THREE.MathUtils.clamp(PH.pos.x - pPos.x, -0.95, 0.95);
+                    // 柔和磁吸輔助：以真人手部 (65%) 為主導，輔以 35% 迎球導引，不再 100% 強行吸球
+                    wantX = wantX * 0.65 + ballRelX * 0.35;
+                } else {
+                    wantX = wantX * 0.85;
+                }
             }
             padX += (wantX - padX) * Math.min(1, dt * 12);
             padY += (RIGHT.padYTarget - padY) * Math.min(1, dt * 9);
@@ -440,8 +453,10 @@
             }
         }
         function syncAimPips() {
-            D.aimPips.forEach((p, i) => p.classList.toggle('on', i === AIM.idx));
-            if (D.aimName) D.aimName.innerText = AIM_NAMES[AIM.idx];
+            if (typeof D !== 'undefined' && D && Array.isArray(D.aimPips)) {
+                D.aimPips.forEach((p, i) => p.classList.toggle('on', i === AIM.idx));
+            }
+            if (typeof D !== 'undefined' && D && D.aimName && typeof AIM !== 'undefined') D.aimName.innerText = AIM_NAMES[AIM.idx];
         }
         function setAimMode(m) {
             AIM.mode = m; AIM.idx = 2; AIM.cand = 2; AIM.dwell = 0;
@@ -456,22 +471,157 @@
             AIM.invert = !AIM.invert;
             toast('左右方向已' + (AIM.invert ? '反轉' : '還原'), '若動作方向與選格相反就切這個');
         }
-        function toggleWebcamAI() { if (!webcamActive) startWebcamAI(); else stopWebcamAI(); }
+        let webcamStarting = false;
+        let webcamLaunchToken = 0;
+        let lastCameraError = null;
+        let lastPoseTimestamp = 0;
+        let lastPoseSnapshot = {
+            hasPoseData: false,
+            keypointsPresent: false,
+            lastSeenTime: 0
+        };
+
+        function getWebcamStatus() {
+            if (webcamActive) return 'ACTIVE';
+            if (webcamStarting) return 'STARTING';
+            return 'STOPPED';
+        }
+
+        // ★ TASK-V8-606: 體感短效揮拍事件 (250ms 生存期、擊球單次消耗、單一動作僅發單一事件直至結束再武裝)
+        let swingEventGen = 0;
+        let currentSwingEvent = null;
+        let swingArmed = true;
+
+        function rearmSwing() {
+            swingArmed = true;
+        }
+
+        function isSwingArmed() {
+            return swingArmed;
+        }
+
+        function registerSwingEvent(proxySpeed, now) {
+            if (!swingArmed) return null;
+            swingArmed = false;
+            swingEventGen++;
+            currentSwingEvent = {
+                generation: swingEventGen,
+                t: (typeof now === 'number') ? now : performance.now(),
+                proxySpeed: (typeof proxySpeed === 'number') ? proxySpeed : 1.0,
+                consumed: false
+            };
+            if (typeof window !== 'undefined') window.currentSwingEvent = currentSwingEvent;
+            return currentSwingEvent;
+        }
+
+        function revokeSwingEvent() {
+            if (currentSwingEvent) {
+                currentSwingEvent.consumed = true;
+                currentSwingEvent = null;
+            }
+            if (typeof window !== 'undefined') window.currentSwingEvent = null;
+            swingArmed = true;
+        }
+
+        function consumeSwingEvent() {
+            if (currentSwingEvent && !currentSwingEvent.consumed) {
+                currentSwingEvent.consumed = true;
+                const ev = currentSwingEvent;
+                currentSwingEvent = null;
+                if (typeof window !== 'undefined') window.currentSwingEvent = null;
+                return ev;
+            }
+            return null;
+        }
+
+        window.registerSwingEvent = registerSwingEvent;
+        window.revokeSwingEvent = revokeSwingEvent;
+        window.consumeSwingEvent = consumeSwingEvent;
+        window.rearmSwing = rearmSwing;
+        window.isSwingArmed = isSwingArmed;
+        window.currentSwingEvent = null;
+
+        function getMotionTrackingStatus() {
+            const status = getWebcamStatus();
+            const now = performance.now();
+            const isStale = (now - lastPoseTimestamp) > 400;
+            const hasFreshPose = status === 'ACTIVE' && lastPoseSnapshot.hasPoseData && !isStale;
+            const keypointsOk = hasFreshPose && lastPoseSnapshot.keypointsPresent;
+
+            let reason = 'stopped';
+            if (status === 'STARTING') reason = 'starting';
+            else if (status === 'ACTIVE') {
+                if (!lastPoseSnapshot.hasPoseData) reason = 'no-body';
+                else if (isStale) reason = 'stale';
+                else if (!keypointsOk) reason = 'missing-keypoints';
+                else reason = 'ok';
+            } else if (lastCameraError) {
+                reason = 'error';
+            }
+
+            return {
+                status: status,
+                error: lastCameraError,
+                hasPoseData: hasFreshPose,
+                keypointsPresent: keypointsOk,
+                isStale: isStale,
+                reason: reason
+            };
+        }
+
+        function updateQuickCameraFab() {
+            const fab = document.getElementById('quick-camera-fab');
+            const lbl = document.getElementById('quick-cam-lbl');
+            const icon = document.getElementById('quick-cam-icon');
+            if (!fab) return;
+            if (webcamActive) {
+                fab.classList.add('active');
+                if (lbl) lbl.innerText = '體感ON';
+                if (icon) icon.innerText = '🟢';
+            } else if (webcamStarting) {
+                fab.classList.remove('active');
+                if (lbl) lbl.innerText = '啟動中';
+                if (icon) icon.innerText = '⏳';
+            } else {
+                fab.classList.remove('active');
+                if (lbl) lbl.innerText = '體感';
+                if (icon) icon.innerText = '📷';
+            }
+        }
+
+        function toggleWebcamAI() {
+            if (webcamStarting) {
+                stopWebcamAI();
+                return;
+            }
+            if (!webcamActive) startWebcamAI();
+            else stopWebcamAI();
+        }
         let lastWristAngle = 0, lastShoulderAngle = 0;
+        let calibProgress = 0, lastCalibTime = 0;
+        let activeVideoElement = null;
 
         function startWebcamAI() {
             const btn = document.getElementById('ai-toggle-btn');
+            if (webcamStarting || webcamActive) return;
             if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-                btn.innerText = '📷 體感: 不支援';
+                if (btn) btn.innerText = '📷 體感: 不支援';
+                lastCameraError = 'NotSupportedError';
                 toast('此環境無法使用相機', '請用 https:// 或 http://localhost 開啟,不要用 file://');
                 return;
             }
-            btn.innerText = '⏳ 啟動中…'; S.init();
+            const currentLaunchToken = ++webcamLaunchToken;
+            webcamStarting = true;
+            lastCameraError = null;
+            if (btn) btn.innerText = '⏳ 啟動中…';
+            updateQuickCameraFab();
+            if (typeof S !== 'undefined' && S.init) S.init();
             const skelCanvas = document.getElementById('skeleton-canvas');
-            skelCanvas.style.display = 'block';
-            document.getElementById('calibration-box').style.display = 'flex';
-            D.waistRow.style.display = 'flex';
-            setStanceRowVisible(true);
+            if (skelCanvas) skelCanvas.style.display = 'block';
+            const cb = document.getElementById('calibration-box');
+            if (cb) cb.style.display = 'flex';
+            if (typeof D !== 'undefined' && D.waistRow) D.waistRow.style.display = 'flex';
+            if (typeof setStanceRowVisible === 'function') setStanceRowVisible(true);
 
             if (!poseInstance) {
                 poseInstance = new Pose({ locateFile: f => 'https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/' + f });
@@ -483,6 +633,7 @@
                 const video = document.getElementById('webcam-video');
 
                 poseInstance.onResults(res => {
+                    if (!webcamActive) return;
                     if (skelCanvas.width !== skelCanvas.clientWidth) {
                         skelCanvas.width = skelCanvas.clientWidth;
                         skelCanvas.height = skelCanvas.clientHeight;
@@ -490,40 +641,85 @@
                     cx.save();
                     cx.clearRect(0, 0, skelCanvas.width, skelCanvas.height);
                     cx.scale(-1, 1); cx.translate(-skelCanvas.width, 0);
-                    if (video.readyState >= 2) cx.drawImage(video, 0, 0, skelCanvas.width, skelCanvas.height);
+                    const drawVid = activeVideoElement || video || document.getElementById('webcam-video');
+                    if (drawVid && drawVid.readyState >= 2) cx.drawImage(drawVid, 0, 0, skelCanvas.width, skelCanvas.height);
                     cx.restore();
-                    if (!res.poseLandmarks) return;
+                    if (!res.poseLandmarks) {
+                        lastPoseSnapshot = { hasPoseData: false, keypointsPresent: false, lastSeenTime: performance.now() };
+                        revokeSwingEvent();
+                        lastWristPos = { relX: undefined, relY: undefined, relZ: undefined, t: 0 };
+                        lastWristAngle = undefined;
+                        lastShoulderAngle = undefined;
+                        swingArmed = true;
+                        if (typeof updatePracticeInstructionBar === 'function') updatePracticeInstructionBar();
+                        return;
+                    }
 
                     const rawLm = res.poseLandmarks;
                     const lm = (typeof filterLandmarks === 'function') ? filterLandmarks(rawLm, performance.now()) : rawLm;
                     const rS = lm[12], rE = lm[14], rW = lm[16], rH = lm[24];
-                    const lS = lm[11], lW = lm[15];
+                    const lS = lm[11], lW = lm[15], lH = lm[23];
+                    const hasKeypoints = !!(rS && rE && rW && rH && lS);
+                    const visRS = (rS && typeof rS.visibility === 'number') ? rS.visibility : 1.0;
+                    const visLS = (lS && typeof lS.visibility === 'number') ? lS.visibility : 1.0;
+                    const hasVisiblePerson = hasKeypoints && (visRS >= 0.45 && visLS >= 0.45);
+
+                    if (!hasVisiblePerson) {
+                        lastPoseSnapshot = { hasPoseData: false, keypointsPresent: false, lastSeenTime: performance.now() };
+                        revokeSwingEvent();
+                        lastWristPos = { relX: undefined, relY: undefined, relZ: undefined, t: 0 };
+                        lastWristAngle = undefined;
+                        lastShoulderAngle = undefined;
+                        swingArmed = true;
+                        cx.clearRect(0, 0, skelCanvas.width, skelCanvas.height);
+                        if (typeof updatePracticeInstructionBar === 'function') updatePracticeInstructionBar();
+                        return;
+                    }
+
+                    lastPoseTimestamp = performance.now();
+                    lastPoseSnapshot = {
+                        hasPoseData: true,
+                        keypointsPresent: true,
+                        lastSeenTime: lastPoseTimestamp
+                    };
+                    if (typeof updatePracticeInstructionBar === 'function') updatePracticeInstructionBar();
                     drawSkeleton(cx, lm, skelCanvas.width, skelCanvas.height);
                     updateShoulderWidth(lS, rS);
                     updateBodyScale(rS, rH);
-                    updateTorsoYaw(lS, rS);
+                    updateTorsoYaw(lS, rS, lH, rH);
                     updatePalmOpen(lm);
                     updateStance(lm);
                     waistLevel = wristLevel(rW, rH);
                     RIGHT.padYTarget = levelToWorldY(waistLevel);
 
                     if (!servePrepared) {
+                        const now = performance.now();
+                        let dt = lastCalibTime ? (now - lastCalibTime) / 1000 : 0.033;
+                        if (dt > 0.1) dt = 0.1;
+                        lastCalibTime = now;
+
                         if (lW && lS && lW.y < lS.y) {
-                            if (!calibT0) calibT0 = performance.now();
-                            const elapsed = (performance.now() - calibT0) / 1000;
-                            document.getElementById('calib-text').innerHTML =
-                                '✋ 保持左手舉高… (' + Math.max(0, 1.5 - elapsed).toFixed(1) + 's)';
-                            if (elapsed >= 1.5) {
-                                servePrepared = true;
-                                calibT0 = 0;
-                                document.getElementById('calibration-box').style.display = 'none';
-                                toast('✅ 左手解鎖完成!', '拍面低於腰 → 向上推拍 → 收拍抬過肩');
-                            }
+                            calibProgress += dt;
                         } else {
-                            calibT0 = 0;
-                            document.getElementById('calib-text').innerHTML =
-                                '✋ 請將【左手】舉高過頭<br>維持 1.5 秒解鎖球場!';
+                            calibProgress -= dt * 1.5;
                         }
+                        calibProgress = Math.max(0, Math.min(calibProgress, 0.6));
+
+                        if (calibProgress >= 0.58) { // small tolerance for floating point
+                            servePrepared = true;
+                            calibProgress = 0;
+                            lastCalibTime = 0;
+                            document.getElementById('calibration-box').style.display = 'none';
+                            toast('✅ 左手解鎖完成!', '拍面低於腰 → 向上推拍 → 收拍抬過肩');
+                        } else if (calibProgress > 0.05) {
+                            document.getElementById('calib-text').innerHTML =
+                                '✋ 保持左手舉高… (' + Math.max(0, 0.6 - calibProgress).toFixed(1) + 's)';
+                        } else {
+                            document.getElementById('calib-text').innerHTML =
+                                '✋ 請將【左手】舉高過頭<br>維持 0.6 秒解鎖球場!';
+                        }
+                    } else {
+                        lastCalibTime = 0;
                     }
 
                     if (!(rS && rE && rW && rH)) return;
@@ -531,17 +727,31 @@
                     RIGHT.padXFree = THREE.MathUtils.clamp((0.5 - rW.x) * 2.8, -0.95, 0.95);
 
                     const now = performance.now();
-                    const dt = Math.max(0.01, (now - lastWristPos.t) / 1000);
+                    const isResumeFrame = (lastWristPos.relX === undefined || lastWristPos.t === 0 || (now - lastWristPos.t) > 350);
+                    const dt = isResumeFrame ? 0.033 : Math.max(0.01, (now - lastWristPos.t) / 1000);
                     const tc = { x: (lS.x + rS.x) / 2, y: (lS.y + rS.y) / 2, z: ((lS.z || 0) + (rS.z || 0)) / 2 };
                     const SW = NORM.ready ? NORM.W : 1;
                     const relX = (rW.x - tc.x) / SW, relY = (rW.y - tc.y) / SW, relZ = ((rW.z || 0) - tc.z) / SW;
-                    const lx = lastWristPos.relX !== undefined ? lastWristPos.relX : relX;
-                    const ly = lastWristPos.relY !== undefined ? lastWristPos.relY : relY;
-                    const lz = lastWristPos.relZ !== undefined ? lastWristPos.relZ : relZ;
 
-                    const step = nd(relX - lx, relY - ly, relZ - lz);
+                    // ★ TASK-V8-606: 重新入鏡跳躍防護 (Resume Frame Guard)
+                    // 姿態中斷後第一幀僅初始化參考基準，跳過差分位移與動力學計算，杜絕假性爆發揮拍！
+                    if (isResumeFrame) {
+                        lastWristPos = { relX: relX, relY: relY, relZ: relZ, t: now };
+                        lastWristAngle = elA;
+                        lastShoulderAngle = shA;
+                        return;
+                    }
+
+                    const lx = lastWristPos.relX, ly = lastWristPos.relY, lz = lastWristPos.relZ;
+                    const dRelX = relX - lx, dRelY = relY - ly, dRelZ = relZ - lz;
+                    const step = nd(dRelX, dRelY, dRelZ);
                     updateKinematics(step, dt);
                     accumulateSwing(step, dt);
+
+                    // ★ TASK-V8-606: 揮拍意圖評估 (無量綱方向位移與速度門檻)
+                    const hasStrokeIntent = (typeof evalStrokeIntent === 'function')
+                        ? evalStrokeIntent(dRelX, dRelY, dRelZ, KIN.vPeak)
+                        : (KIN.vPeak >= 0.85 && (dRelZ < -0.025 || dRelY < -0.025 || Math.abs(dRelX) > 0.045));
 
                     power = hitPower(KIN.vPeak, SWING.path);
                     const pct = THREE.MathUtils.clamp((power - POWER_W.min) / (POWER_W.max - POWER_W.min) * 100, 0, 100);
@@ -551,11 +761,26 @@
                     if (servePrepared) { updateAimFromLeftHand(lW, tc.x, dt); updateAimFromTorso(dt); }
                     updateServeFSM(lm, dt);
 
-                    const shD = Math.abs(shA - lastShoulderAngle), elD = Math.abs(elA - lastWristAngle);
-                    const realSwing = (KIN.vPeak >= SFSM.TH_V * tScale() * 0.75 || shD > 30 || elD > 40)
-                        && SWING.path > SFSM.TH_D * tScale() * 0.5;
-                    if (state === 'RALLY' && realSwing && swingT <= 0 && !locked) {
-                        swingT = 0.22; swingP = power; tryHit(); resetSwing();
+                    const shD = Math.abs(shA - (lastShoulderAngle !== undefined ? lastShoulderAngle : shA));
+                    const elD = Math.abs(elA - (lastWristAngle !== undefined ? lastWristAngle : elA));
+                    // ★ 防抖手作弊檢測已移除：舊版單幀角度差分會誤判所有正常揮拍
+
+                    // ★ TASK-V8-606: 體感主動揮拍意圖事件生成 (杜絕手臂微動/轉體誤判為自動接球)
+                    // 嚴格要求符合 evalStrokeIntent 定義之速度 (vPeak >= 0.85) 與方向位移 (推拍 dy/dz < -0.025 或刷拍 |dx| > 0.045)
+                    // 徹底移除舊版單純關節角度位移 (shD > 30, elD > 40) 導致之「球來自動接球」誤觸發！
+                    const isSwingMotion = hasStrokeIntent && !locked;
+                    if (isSwingMotion) {
+                        if (swingArmed) {
+                            registerSwingEvent(KIN.vPeak, now);
+                            swingArmed = false;
+                            tryHit();
+                        } else {
+                            // 同一揮拍動作持續中：不重複註冊新事件，但允許 tryHit 判定擊球
+                            tryHit();
+                        }
+                    } else {
+                        // 只要未處於前向出拍狀態 (如引拍、收拍、停頓)，立即就緒重新武裝，確保向前揮擊必定觸發！
+                        swingArmed = true;
                     }
                     kcPush(now, torsoYawDeg(), shA, elA);
                     lastWristPos = { relX: relX, relY: relY, relZ: relZ, t: now };
@@ -563,23 +788,90 @@
                 });
             }
 
-            const video = document.getElementById('webcam-video');
+            // 隔離每次相機啟動的影片來源，杜絕共用 video 元素遭晚到回呼覆蓋串流
+            const launchVideo = (typeof document !== 'undefined' && document.createElement)
+                ? document.createElement('video')
+                : (document.getElementById('webcam-video') || {});
+            launchVideo.playsInline = true;
+            launchVideo.muted = true;
+            launchVideo.width = 320;
+            launchVideo.height = 240;
+
             let fc = 0;
-            cameraUtils = new Camera(video, {
+            const instanceCamera = new Camera(launchVideo, {
                 onFrame: async () => {
                     fc++;
-                    if (fc % frameSkip === 0 && webcamActive && poseInstance)
-                        await poseInstance.send({ image: video });
+                    if (fc % frameSkip === 0 && webcamActive && poseInstance && cameraUtils === instanceCamera)
+                        await poseInstance.send({ image: launchVideo });
                 },
                 width: 320, height: 240
             });
-            cameraUtils.start().then(() => {
-                webcamActive = true; servePrepared = false; btn.innerText = '📷 體感: 開'; syncAimPips();
+            cameraUtils = instanceCamera;
+            instanceCamera.start().then(() => {
+                if (currentLaunchToken !== webcamLaunchToken || !webcamStarting) {
+                    try { instanceCamera.stop(); } catch (e) {}
+                    if (launchVideo && launchVideo.srcObject && launchVideo.srcObject.getTracks) {
+                        launchVideo.srcObject.getTracks().forEach(t => t.stop());
+                        launchVideo.srcObject = null;
+                    }
+                    if (cameraUtils === instanceCamera) {
+                        cameraUtils = null;
+                        if (activeVideoElement === launchVideo) activeVideoElement = null;
+                        const v = document.getElementById('webcam-video');
+                        if (v && v.srcObject && v.srcObject.getTracks) {
+                            v.srcObject.getTracks().forEach(t => t.stop());
+                            v.srcObject = null;
+                        }
+                    }
+                    return;
+                }
+                cameraUtils = instanceCamera;
+                activeVideoElement = launchVideo;
+                const domVideo = document.getElementById('webcam-video');
+                if (domVideo) {
+                    domVideo.srcObject = launchVideo.srcObject;
+                    if (typeof domVideo.play === 'function') domVideo.play().catch(() => {});
+                }
+                webcamStarting = false;
+                webcamActive = true;
+                servePrepared = false;
+                if (btn) btn.innerText = '📷 體感: 開';
+                updateQuickCameraFab();
+                syncAimPips();
+                document.body.classList.add('distant-hud-active');
+                if (typeof speakReferee === 'function') speakReferee('體感模式已啟動，請退後三公尺開打！');
                 toast('體感 AI 已啟動', '預設 🔒 自動對角,先專心練揮拍時機');
                 syncSubbarStates();
+                if (typeof updatePracticeInstructionBar === 'function') updatePracticeInstructionBar();
             }).catch(err => {
+                if (launchVideo && launchVideo.srcObject && launchVideo.srcObject.getTracks) {
+                    launchVideo.srcObject.getTracks().forEach(t => t.stop());
+                    launchVideo.srcObject = null;
+                }
+                if (currentLaunchToken !== webcamLaunchToken) {
+                    try { instanceCamera.stop(); } catch (e) {}
+                    if (cameraUtils === instanceCamera) {
+                        cameraUtils = null;
+                    }
+                    return;
+                }
+                webcamStarting = false;
+                webcamActive = false;
+                updateQuickCameraFab();
+                if (cameraUtils === instanceCamera) {
+                    cameraUtils = null;
+                }
+                if (activeVideoElement === launchVideo) {
+                    activeVideoElement = null;
+                }
+                const domVideo = document.getElementById('webcam-video');
+                if (domVideo && domVideo.srcObject && domVideo.srcObject.getTracks) {
+                    domVideo.srcObject.getTracks().forEach(t => t.stop());
+                    domVideo.srcObject = null;
+                }
                 console.error(err);
                 const name = (err && err.name) || String(err);
+                lastCameraError = name;
                 const msg = {
                     NotAllowedError: '剛才按了「封鎖」→ 點網址列相機圖示改成允許,再重載',
                     NotFoundError: '找不到鏡頭 → 確認外接攝影機已插上',
@@ -587,19 +879,41 @@
                     OverconstrainedError: '鏡頭不支援 320x240 解析度',
                     SecurityError: '需要 https:// 或 localhost 環境'
                 }[name] || name;
-                btn.innerText = '📷 體感: 失敗';
+                if (btn) btn.innerText = '📷 體感: 失敗';
                 skelCanvas.style.display = 'none';
-                D.waistRow.style.display = 'none';
-                setStanceRowVisible(false);
-                document.getElementById('calibration-box').style.display = 'none';
+                if (typeof D !== 'undefined' && D.waistRow) D.waistRow.style.display = 'none';
+                if (typeof setStanceRowVisible === 'function') setStanceRowVisible(false);
+                const cb = document.getElementById('calibration-box');
+                if (cb) cb.style.display = 'none';
                 toast('體感啟動失敗', msg);
                 syncSubbarStates();
+                if (typeof updatePracticeInstructionBar === 'function') updatePracticeInstructionBar();
             });
         }
         function stopWebcamAI() {
+            webcamLaunchToken++;
+            webcamStarting = false;
             webcamActive = false;
+            lastCameraError = null;
+            lastPoseTimestamp = 0;
+            lastPoseSnapshot = { hasPoseData: false, keypointsPresent: false, lastSeenTime: 0 };
+            revokeSwingEvent();
+            lastWristPos = { relX: undefined, relY: undefined, relZ: undefined, t: 0 };
+            lastWristAngle = undefined;
+            lastShoulderAngle = undefined;
             servePrepared = true;
-            if (cameraUtils) cameraUtils.stop();
+            document.body.classList.remove('distant-hud-active');
+            if (cameraUtils) {
+                try { cameraUtils.stop(); } catch (e) {}
+                cameraUtils = null;
+            }
+            if (activeVideoElement) {
+                if (activeVideoElement.srcObject && activeVideoElement.srcObject.getTracks) {
+                    activeVideoElement.srcObject.getTracks().forEach(t => t.stop());
+                }
+                activeVideoElement.srcObject = null;
+                activeVideoElement = null;
+            }
             const video = document.getElementById('webcam-video');
             if (video && video.srcObject) {
                 const st = video.srcObject;
@@ -608,16 +922,44 @@
             }
             const sc = document.getElementById('skeleton-canvas');
             if (sc) { sc.getContext('2d').clearRect(0, 0, sc.width, sc.height); sc.style.display = 'none'; }
-            document.getElementById('ai-toggle-btn').innerText = '📷 體感: 關';
-            document.getElementById('calibration-box').style.display = 'none';
-            D.waistRow.style.display = 'none';
-            setStanceRowVisible(false);
-            D.aimHud.classList.remove('on');
-            aimZoneMeshes.forEach(m => m.visible = false);
+            const btn = document.getElementById('ai-toggle-btn');
+            if (btn) btn.innerText = '📷 體感: 關';
+            updateQuickCameraFab();
+            const cb = document.getElementById('calibration-box');
+            if (cb) cb.style.display = 'none';
+            if (typeof D !== 'undefined' && D.waistRow) D.waistRow.style.display = 'none';
+            if (typeof setStanceRowVisible === 'function') setStanceRowVisible(false);
+            if (typeof D !== 'undefined' && D.aimHud) D.aimHud.classList.remove('on');
+            if (typeof aimZoneMeshes !== 'undefined') aimZoneMeshes.forEach(m => m.visible = false);
             resetServeFSM(); kcReset();
             stanceOK = false;
             toast('體感 AI 已關閉', '已切換回滑鼠/鍵盤控制');
             syncSubbarStates();
+            if (typeof updatePracticeInstructionBar === 'function') updatePracticeInstructionBar();
+        }
+
+        window.getWebcamStatus = getWebcamStatus;
+        window.getMotionTrackingStatus = getMotionTrackingStatus;
+        window.isWebcamStarting = () => webcamStarting;
+        window.isWebcamActive = () => webcamActive;
+        window.toggleWebcamAI = toggleWebcamAI;
+        window.startWebcamAI = startWebcamAI;
+        window.stopWebcamAI = stopWebcamAI;
+        window.updateQuickCameraFab = updateQuickCameraFab;
+        window.getActiveVideoElement = () => activeVideoElement;
+
+        if (typeof module !== 'undefined' && module.exports) {
+            module.exports = {
+                getWebcamStatus,
+                getMotionTrackingStatus,
+                getActiveVideoElement: () => activeVideoElement,
+                isWebcamStarting: () => webcamStarting,
+                isWebcamActive: () => webcamActive,
+                toggleWebcamAI,
+                startWebcamAI,
+                stopWebcamAI,
+                updateQuickCameraFab
+            };
         }
 
         /* ═══════════════════════════════════════════════

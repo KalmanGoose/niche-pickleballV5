@@ -197,7 +197,29 @@
                 if (SWING.idle > 0.35) resetSwing();
             }
         }
-        function resetSwing() { SWING.path = 0; SWING.peakV = 0; SWING.active = false; SWING.idle = 0; KIN.vPeak = 0; KIN.vEMA = 0; }
+        // ★ TASK-V8-606: 體感揮拍意圖無量綱啟發式代理指標 (Dimensionless Kinematic Proxy)
+        // 依據任務規範：此數值為基於常規化軀幹尺度的速度代理指標，非經標定之物理 m/s
+        const SWING_PROXY_V_THRESH = 0.85;
+
+        /**
+         * 判定手腕運動是否符合自然前推/向上/側推之揮拍意圖 (無量綱運動學啟發式)
+         * @param {number} relDx 橫向相對位移 (相對於軀幹中心/肩寬)
+         * @param {number} relDy 縱向相對位移 (螢幕座標，負值為向上)
+         * @param {number} relDz 深度相對位移 (負值為朝向鏡頭前推)
+         * @param {number} [proxyV] 當前運動學速度代理指標 (KIN.vPeak)
+         * @returns {boolean}
+         */
+        function evalStrokeIntent(relDx, relDy, relDz, proxyV) {
+            const v = (typeof proxyV === 'number') ? proxyV : KIN.vPeak;
+            if (v < SWING_PROXY_V_THRESH) return false;
+            // 前推 (向鏡頭 dz < -0.025)、向上推 (螢幕 y 減小 dy < -0.025)、橫向側刷 (|dx| > 0.045)
+            const isIntentionalDirection = (relDz < -0.025) || (relDy < -0.025) || (Math.abs(relDx) > 0.045);
+            return isIntentionalDirection;
+        }
+
+        function resetSwing() {
+            SWING.path = 0; SWING.peakV = 0; SWING.active = false; SWING.idle = 0; KIN.vPeak = 0; KIN.vEMA = 0;
+        }
 
         const POWER_W = { a: 0.4, d: 0.6, vScale: 11, dScale: 30, min: 18, max: 92 };
         function hitPower(vPeak, pathNorm) {
@@ -307,14 +329,17 @@
             commitAimIdx(AIM.raw * (AIM.zones - 1), dt);
         }
         const YAW = { wMax: 0, ema: 0, DEAD: 0.14, SPAN: 0.55 };
-        function updateTorsoYaw(lS, rS) {
+        function updateTorsoYaw(lS, rS, lH, rH) {
             if (!lS || !rS) return;
             const w = Math.hypot(lS.x - rS.x, lS.y - rS.y);
             YAW.wMax = Math.max(YAW.wMax * 0.999, w);
             if (YAW.wMax < 0.04) return;
             const cosY = THREE.MathUtils.clamp(w / YAW.wMax, 0, 1);
             const mag = Math.sqrt(Math.max(0, 1 - cosY * cosY));
-            const sign = Math.sign((rS.z || 0) - (lS.z || 0)) || 1;
+            const shoulderDz = (rS.z || 0) - (lS.z || 0);
+            const hipDz = (lH && rH) ? ((rH.z || 0) - (lH.z || 0)) : shoulderDz;
+            const combinedDz = shoulderDz * 0.60 + hipDz * 0.40;
+            const sign = Math.sign(combinedDz) || 1;
             YAW.ema = YAW.ema * 0.8 + (sign * mag) * 0.2;
         }
         function updateAimFromTorso(dt) {
@@ -1005,9 +1030,22 @@
         window.updateStance = updateStance;
         window.NORM = NORM;
         window.BODY = BODY;
+        window.evalStrokeIntent = evalStrokeIntent;
+        window.SWING_PROXY_V_THRESH = SWING_PROXY_V_THRESH;
+        window.resetSwing = resetSwing;
+        window.nd = nd;
+        window.aimTargetX = aimTargetX;
+        window.torsoYawDeg = torsoYawDeg;
+        window.YAW = YAW;
+        window.AIM = AIM;
 
         if (typeof module !== 'undefined' && module.exports) {
             module.exports = {
+                nd,
+                aimTargetX,
+                torsoYawDeg,
+                YAW,
+                AIM,
                 OneEuroFilter,
                 filterLandmarks,
                 calculateAngle,
@@ -1016,6 +1054,8 @@
                 updateKinematics,
                 accumulateSwing,
                 resetSwing,
+                evalStrokeIntent,
+                SWING_PROXY_V_THRESH,
                 gradeChain,
                 kcPush,
                 kcReset,

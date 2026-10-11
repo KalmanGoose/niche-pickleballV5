@@ -13,18 +13,24 @@
     <meta http-equiv="Expires" content="0">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>NCHU Pickleball Lab · 中興大學匹克鵝打秋 (v5.2.0)</title>
+
+    <!-- ═══════ PWA 漸進式網頁應用與離線球場支援 ═══════ -->
+    <link rel="manifest" href="./manifest.json">
+    <meta name="theme-color" content="#2e7d32">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="中興匹克球">
+    <link rel="apple-touch-icon" href="images/pickleball_lab_logo.jpg">
     <script>
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.getRegistrations().then(function(regs) {
-                for (var i = 0; i < regs.length; i++) regs[i].unregister();
-            });
-        }
-        if ('caches' in window) {
-            caches.keys().then(function(keys) {
-                for (var i = 0; i < keys.length; i++) caches.delete(keys[i]);
+        if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('./sw.js').catch(function(e) {
+                    console.log('[PWA] Service Worker reg skipped:', e);
+                });
             });
         }
     </script>
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.3.1675466862/camera_utils.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/pose.js" crossorigin="anonymous"></script>
@@ -38,8 +44,8 @@
                 'handleLogin', 'handleGuestPlay', 'handleQuickStart', 'showFullLoginForm',
                 'setNick', 'closeProfileModal', 'saveProfile', 'openProfileModal',
                 'closeRulesModal', 'switchRulesModalTab', 'openAudioModal', 'closeAudioModal',
-                'openModeHub', 'closeModeHub', 'toggleNookPhone', 'testSfx', 'testVibrate',
-                'onSfxToggle', 'onVolInput', 'onVibrateToggle', 'switchAvatarMode'
+                'openModeHub', 'closeModeHub', 'toggleNookPhone', 'testSfx', 'testVibrate', 'testTts',
+                'onSfxToggle', 'onVolInput', 'onVibrateToggle', 'onTtsToggle', 'setTtsVoiceStyle', 'onTtsVoiceSelect', 'switchAvatarMode'
             ];
             window._pendingAction = null;
             earlyStubNames.forEach(function(name) {
@@ -1243,6 +1249,9 @@
             -webkit-backdrop-filter: blur(16px);
             transition: opacity 0.22s cubic-bezier(0.16, 1, 0.3, 1), transform 0.24s cubic-bezier(0.16, 1, 0.3, 1);
             max-width: min(92vw, 460px);
+            word-break: break-word;
+            white-space: pre-wrap;
+            text-align: center;
             box-sizing: border-box;
             text-align: center;
         }
@@ -2561,6 +2570,46 @@ body.layout-nook #nav-wrapper {
 .nook-fab-leaf { font-size: 20px; line-height: 1; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.2)); }
 .nook-fab-lbl { font-size: 8px; font-weight: 900; color: #fcfbf7; letter-spacing: -0.2px; margin-top: 1px; }
 
+/* 頂部快速切換體感相機按鈕 (Quick Camera FAB) */
+#quick-camera-fab {
+    position: fixed;
+    top: calc(10px + env(safe-area-inset-top));
+    right: 64px;
+    z-index: 110;
+    width: 44px;
+    height: 44px;
+    border-radius: 99px;
+    background: #fbfbf9;
+    border: 2.5px solid #ecd8b8;
+    box-shadow: 0 4px 14px rgba(60, 40, 20, 0.18), 0 3px 0 #bfa07a;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    user-select: none;
+    transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+#quick-camera-fab:hover {
+    transform: scale(1.08) translateY(-2px);
+    box-shadow: 0 6px 18px rgba(60, 40, 20, 0.25), 0 4px 0 #bfa07a;
+    background: #ffffff;
+}
+#quick-camera-fab:active {
+    transform: scale(0.96) translateY(3px);
+    box-shadow: 0 0 0 transparent;
+}
+#quick-camera-fab.active {
+    background: #059669;
+    border-color: #a7f3d0;
+    box-shadow: 0 4px 14px rgba(5, 150, 105, 0.45), 0 3px 0 #047857;
+}
+#quick-camera-fab.active .cam-fab-lbl {
+    color: #ecfdf5;
+}
+.cam-fab-icon { font-size: 18px; line-height: 1; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.2)); }
+.cam-fab-lbl { font-size: 8px; font-weight: 900; color: #5a4230; letter-spacing: -0.2px; margin-top: 1px; }
+
 /* ══════ 🍃 旗艦智慧手機真機外觀 (#nook-phone-modal) ══════ */
 #nook-phone-modal {
     position: fixed;
@@ -2934,6 +2983,68 @@ body.layout-nook #nav-wrapper {
     visibility: hidden !important;
     opacity: 0 !important;
 }
+/* ═══════════════════════════════════════════════════════════════════
+   📺 體感 3 公尺巨無霸 HUD (Distant / TV Mode)
+   當開啟 WebcamAI 時自動啟用，保證玩家站立 2~3 米外清晰辨識
+   ═══════════════════════════════════════════════════════════════════ */
+body.distant-hud-active #referee-announcement {
+    max-width: min(95vw, 680px) !important;
+    padding: 12px 28px !important;
+    border-radius: 99px !important;
+    box-shadow: 0 14px 40px rgba(0, 0, 0, 0.40), 0 3px 0 #2e7d32 !important;
+    border: 3px solid #2e7d32 !important;
+    top: calc(76px + env(safe-area-inset-top)) !important;
+}
+body.distant-hud-active #ref-title {
+    font-size: 24px !important;
+    font-weight: 900 !important;
+    letter-spacing: 0.5px !important;
+}
+body.distant-hud-active #ref-detail {
+    font-size: 15px !important;
+    font-weight: 800 !important;
+}
+body.distant-hud-active #score-pill,
+body.distant-hud-active #dynamic-stage-pill {
+    transform: translateX(-50%) scale(1.35) !important;
+    transform-origin: top center !important;
+}
+body.distant-hud-active .hud-pill small,
+body.distant-hud-active #subbar-ai-btn {
+    font-size: 13px !important;
+    font-weight: 900 !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   🍃 中興湖風向風速儀標籤 (Wind Indicator)
+   ═══════════════════════════════════════════════════════════════════ */
+#wind-hud {
+    position: fixed;
+    top: calc(12px + env(safe-area-inset-top));
+    left: 14px;
+    background: rgba(254, 252, 247, 0.92);
+    border: 1.5px solid #ecd8b8;
+    border-radius: 20px;
+    padding: 4px 9px;
+    font-size: 11px;
+    font-weight: 800;
+    color: #2e7d32;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+    pointer-events: none;
+    z-index: 120;
+    transition: opacity 0.3s ease;
+}
+#wind-hud.hidden {
+    opacity: 0;
+}
+#wind-arrow {
+    display: inline-block;
+    transition: transform 0.5s ease;
+}
+
 
 /* ─── nav.css ─── */
 /* ═══════════════════════════════════════════════════════════════════
@@ -3334,7 +3445,7 @@ body.layout-nook #nav-wrapper {
 
         .modal-card p {
             color: var(--dim);
-            font-size: 12px;
+            font-size: 11px; letter-spacing: 0.5px;
             line-height: 1.5;
             margin-bottom: 18px
         }
@@ -3434,6 +3545,21 @@ body.layout-nook #nav-wrapper {
         .preset-tag:hover {
             background: rgba(129, 140, 248, .2);
             color: #fff
+        }
+
+        #profile-modal .preset-tag {
+            background: #ffffff;
+            border: 1.5px solid #dec8a7;
+            color: #5a4a3a;
+            font-weight: 700;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        }
+
+        #profile-modal .preset-tag:hover {
+            background: #fbf7ee;
+            border-color: #2e7d32;
+            color: #2e7d32;
+            box-shadow: 0 2px 6px rgba(46, 125, 50, 0.15);
         }
 
         .sid-msg {
@@ -3592,6 +3718,43 @@ body.layout-nook #nav-wrapper {
             color: #fff
         }
 
+        .btn-voice-style {
+            flex: 1;
+            padding: 7px 4px;
+            font-size: 11px;
+            font-weight: 700;
+            border-radius: 9px;
+            border: 1.5px solid #dec8a7;
+            background: #fff;
+            color: #5a4a3a;
+            cursor: pointer;
+            transition: all .18s ease;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, .05);
+            white-space: nowrap;
+            text-align: center;
+        }
+
+        .btn-voice-style:hover {
+            background: #fbf7ee;
+            border-color: #8fb986;
+        }
+
+        .btn-voice-style.on {
+            background: #2e7d32;
+            border-color: #1b5e20;
+            color: #fff;
+            box-shadow: 0 2px 6px rgba(46, 125, 50, .28);
+        }
+
+        #pref-tts-voice-select {
+            cursor: pointer;
+            transition: border-color .18s ease;
+        }
+
+        #pref-tts-voice-select:focus {
+            border-color: #2e7d32 !important;
+        }
+
         /* ---------- 技術說明 ---------- */
         .tech-sec {
             max-height: 60vh;
@@ -3661,7 +3824,7 @@ body.layout-nook #nav-wrapper {
             border: 0;
             background: transparent;
             color: var(--dim);
-            font-size: 12px;
+            font-size: 11px; letter-spacing: 0.5px;
             font-weight: 700;
             border-radius: 7px;
             cursor: pointer;
@@ -3694,7 +3857,7 @@ body.layout-nook #nav-wrapper {
 
         .lb-rank {
             width: 30px;
-            font-size: 12px;
+            font-size: 11px; letter-spacing: 0.5px;
             font-weight: 800;
             flex-shrink: 0;
             text-align: center
@@ -3711,7 +3874,7 @@ body.layout-nook #nav-wrapper {
         }
 
         .lb-nick {
-            font-size: 12px;
+            font-size: 11px; letter-spacing: 0.5px;
             font-weight: 800;
             color: var(--txt);
             white-space: nowrap;
@@ -3973,7 +4136,7 @@ body.layout-nook #nav-wrapper {
             border: 1px solid var(--line);
             border-radius: 20px;
             padding: 4px 12px;
-            font-size: 12px;
+            font-size: 11px; letter-spacing: 0.5px;
             font-weight: 800;
             color: var(--accent);
             backdrop-filter: blur(8px);
@@ -4004,7 +4167,7 @@ body.layout-nook #nav-wrapper {
             border: 1px solid rgba(56, 189, 248, 0.35);
             border-radius: 22px;
             padding: 6px 14px;
-            font-size: 12px;
+            font-size: 11px; letter-spacing: 0.5px;
             font-weight: 800;
             color: var(--accent);
             backdrop-filter: blur(10px);
@@ -4192,7 +4355,7 @@ body.layout-nook #nav-wrapper {
             padding: 10px 14px;
             border-radius: 4px 10px 10px 4px;
             margin: 10px 0;
-            font-size: 12px;
+            font-size: 11px; letter-spacing: 0.5px;
             line-height: 1.65;
             color: #2b1d14;
             box-shadow: 0 1px 3px rgba(46, 125, 50, 0.06);
@@ -4277,7 +4440,7 @@ body.layout-nook #nav-wrapper {
             background: rgba(255, 255, 255, 0.08);
             border: 1px solid rgba(255, 255, 255, 0.12);
             color: #cbd5e1;
-            font-size: 12px;
+            font-size: 11px; letter-spacing: 0.5px;
             font-weight: 700;
             cursor: pointer;
             transition: all 0.2s ease;
@@ -4653,19 +4816,19 @@ body.layout-nook #nav-wrapper {
             to { transform: scale(1); opacity: 1; }
         }
         .hub-map-topbar {
-            position: absolute;
-            top: 10px;
-            left: 10px;
-            right: 10px;
+            position: relative;
             display: flex;
             align-items: center;
             justify-content: space-between;
             gap: 8px;
-            padding: 0;
-            background: transparent;
-            border: none;
+            padding: 8px 12px 6px;
+            background: #fdfbf7;
+            border-bottom: 1.5px solid #ebd9c0;
             z-index: 30;
-            pointer-events: none;
+            pointer-events: auto;
+            flex-shrink: 0;
+            box-sizing: border-box;
+            width: 100%;
         }
         .hub-map-topbar > * {
             pointer-events: auto;
@@ -4719,7 +4882,8 @@ body.layout-nook #nav-wrapper {
         }
         .hub-map-viewport {
             width: 100%;
-            height: 100%;
+            flex: 1;
+            min-height: 0;
             position: relative;
             overflow: hidden;
             background: #74c69d;
@@ -4854,10 +5018,10 @@ body.layout-nook #nav-wrapper {
             z-index: 40 !important;
         }
 
-        /* 東北第一球場 (Bear vs Bunny) */
+        /* 東北第一球場 (Bear vs Bunny: 往上方延伸，與東側水上小碼頭拉開充足空間) */
         #court-duel-ne {
-            left: 54%;
-            top: 42%;
+            left: 50%;
+            top: 32%;
             width: 17%;
             height: 9%;
         }
@@ -5074,7 +5238,7 @@ body.layout-nook #nav-wrapper {
             border: 2px solid #5a4230;
             border-radius: 16px;
             padding: 8px 13px;
-            font-size: 12px;
+            font-size: 11px; letter-spacing: 0.5px;
             font-weight: 800;
             color: #2b1d14;
             box-shadow: 0 6px 18px rgba(0, 0, 0, 0.22), 0 2px 0 #5a4230;
@@ -5082,7 +5246,7 @@ body.layout-nook #nav-wrapper {
             word-break: break-word;
             text-align: left;
             line-height: 1.5;
-            max-width: min(220px, 58vw);
+            max-width: min(200px, 60vw);
             min-width: 130px;
             width: max-content;
             box-sizing: border-box;
@@ -5195,6 +5359,33 @@ body.layout-nook #nav-wrapper {
             box-shadow: 0 4px 12px rgba(194, 65, 12, 0.3), 0 2.5px 0 #c2410c;
             font-size: 11.5px;
             padding: 4px 10px;
+        }
+        .pill-fox {
+            background: #fff7ed;
+            border-color: #ea580c;
+            color: #c2410c;
+            box-shadow: 0 4px 12px rgba(234, 88, 12, 0.35), 0 2.5px 0 #ea580c;
+            font-size: 11.5px;
+            padding: 4px 10px;
+            font-weight: 900;
+        }
+        .bubble-act-btn {
+            display: inline-block;
+            margin-top: 6px;
+            padding: 4px 10px;
+            background: #ea580c;
+            color: #ffffff;
+            border: none;
+            border-radius: 99px;
+            font-size: 11px;
+            font-weight: 800;
+            cursor: pointer;
+            box-shadow: 0 2px 6px rgba(234, 88, 12, 0.4);
+            transition: transform 0.15s ease, background 0.15s ease;
+        }
+        .bubble-act-btn:hover {
+            background: #c2410c;
+            transform: scale(1.05);
         }
         .pill-chaos { background: #fef2f2; border-color: #b91c1c; color: #991b1b; }
         .pill-wall { background: #fffbe6; border-color: #b45309; color: #92400e; }
@@ -5325,7 +5516,7 @@ body.layout-nook #nav-wrapper {
             color: #2b6cb0;
             padding: 10px;
             border-radius: 14px;
-            font-size: 12px;
+            font-size: 11px; letter-spacing: 0.5px;
             font-weight: 800;
             cursor: pointer;
             box-shadow: 0 2px 0 #d9c49f;
@@ -5546,7 +5737,7 @@ body.layout-nook #nav-wrapper {
             letter-spacing: 0.3px;
         }
         .mode-card-desc {
-            font-size: 12px;
+            font-size: 11px; letter-spacing: 0.5px;
             color: #6b5543;
             line-height: 1.5;
             margin-bottom: 14px;
@@ -5882,7 +6073,7 @@ body.layout-nook #nav-wrapper {
             border-radius: 14px;
             padding: 10px 14px;
             margin-bottom: 14px;
-            font-size: 12px;
+            font-size: 11px; letter-spacing: 0.5px;
             color: #8d6e63;
             line-height: 1.5;
         }
@@ -6234,10 +6425,13 @@ body.layout-nook #nav-wrapper {
                 border: none !important;
             }
             .hub-map-topbar {
-                top: 8px !important;
-                left: 8px !important;
-                right: 8px !important;
+                position: relative !important;
+                top: auto !important;
+                left: auto !important;
+                right: auto !important;
+                padding: 6px 8px 4px !important;
                 gap: 5px !important;
+                border-bottom: 1.5px solid #ebd9c0 !important;
             }
             .mode-hub-profile {
                 max-width: 44% !important;
@@ -6309,7 +6503,7 @@ body.layout-nook #nav-wrapper {
                 font-size: 16px;
             }
             .hub-community-body {
-                font-size: 12px;
+                font-size: 11px; letter-spacing: 0.5px;
                 line-height: 1.65;
                 padding: 10px 12px;
             }
@@ -6324,6 +6518,70 @@ body.layout-nook #nav-wrapper {
             .hub-social-btn {
                 min-width: 100%;
                 padding: 11px;
+            }
+
+            /* ── 📖 規則手冊與科普抽屜手機端極致最佳化 ── */
+            #rules-modal .modal-card {
+                width: 95vw !important;
+                max-width: 95vw !important;
+                padding: 16px 12px !important;
+                max-height: 90dvh !important;
+            }
+            #rules-modal .rules-header {
+                padding-bottom: 10px !important;
+                margin-bottom: 12px !important;
+            }
+            #rules-modal .rules-header h2 {
+                font-size: 19px !important;
+            }
+            #rules-modal .rules-grid {
+                grid-template-columns: 1fr !important;
+                gap: 10px !important;
+            }
+            .science-drawer {
+                border-radius: 12px !important;
+            }
+            .drawer-header {
+                padding: 10px 12px !important;
+                gap: 8px !important;
+                flex-wrap: wrap !important;
+            }
+            .drawer-header-left {
+                gap: 8px !important;
+                flex: 1 1 70% !important;
+                min-width: 0 !important;
+            }
+            .drawer-badge {
+                font-size: 9.5px !important;
+                padding: 2px 6px !important;
+            }
+            .drawer-title {
+                font-size: 13px !important;
+                line-height: 1.35 !important;
+                word-break: break-word !important;
+            }
+            .drawer-sub {
+                font-size: 10.5px !important;
+                line-height: 1.35 !important;
+                word-break: break-word !important;
+            }
+            .drawer-toggle-btn {
+                font-size: 10px !important;
+                padding: 3px 8px !important;
+                align-self: flex-start !important;
+            }
+            .drawer-content {
+                padding: 10px 12px 14px !important;
+            }
+            .rules-footer-bar {
+                flex-direction: column !important;
+                align-items: stretch !important;
+                gap: 10px !important;
+                padding-top: 12px !important;
+            }
+            .rules-footer-bar .btn {
+                width: 100% !important;
+                padding: 10px 16px !important;
             }
         }
 
@@ -6531,7 +6789,7 @@ body.layout-nook #nav-wrapper {
             border: 1px solid #fde047;
         }
         .passport-player-dept {
-            font-size: 12px;
+            font-size: 11px; letter-spacing: 0.5px;
             font-weight: 700;
             color: #5d4037;
             margin: 3px 0 8px;
@@ -6563,7 +6821,7 @@ body.layout-nook #nav-wrapper {
             min-width: 0;
         }
         .passport-level-title {
-            font-size: 12px;
+            font-size: 11px; letter-spacing: 0.5px;
             font-weight: 800;
             color: #1b5e20;
             margin-bottom: 4px;
@@ -6744,7 +7002,7 @@ body.layout-nook #nav-wrapper {
             margin-top: 1px;
         }
         .ach-badge-state {
-            font-size: 12px;
+            font-size: 11px; letter-spacing: 0.5px;
             font-weight: 900;
             color: #1b5e20;
             flex-shrink: 0;
@@ -6755,15 +7013,438 @@ body.layout-nook #nav-wrapper {
 
 
 
+/* ══════ 選手證與成就 (Passport) ══════ */
+.passport-card {
+    background: #fbf8f0;
+    border: 2px solid #ecd8b8;
+    border-radius: 16px;
+    padding: 16px;
+    margin-top: 12px;
+}
+.passport-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 20px;
+}
+.passport-avatar {
+    width: 72px;
+    height: 72px;
+    background: #ffffff;
+    border: 3px solid #40916c;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 40px;
+    box-shadow: 0 4px 10px rgba(64, 145, 108, 0.2);
+}
+.passport-info {
+    flex: 1;
+}
+.passport-info h3 {
+    margin: 0 0 4px 0;
+    font-size: 18px;
+    color: #2b1d14;
+    font-weight: 800;
+}
+.passport-dept {
+    font-size: 12px;
+    color: #795548;
+    margin-bottom: 8px;
+    font-weight: 700;
+}
+.passport-level-box {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.level-badge {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 900;
+    padding: 3px 8px;
+    border-radius: 12px;
+    box-shadow: 0 2px 4px rgba(245, 158, 11, 0.3);
+}
+.exp-bar-container {
+    flex: 1;
+    height: 8px;
+    background: #e6dfcc;
+    border-radius: 4px;
+    overflow: hidden;
+}
+.exp-bar-fill {
+    height: 100%;
+    background: #40916c;
+    border-radius: 4px;
+    transition: width 0.3s ease;
+}
+.achievements-section h4 {
+    margin: 0 0 10px 0;
+    font-size: 14px;
+    color: #2b1d14;
+    border-bottom: 2px dashed #ebd8bc;
+    padding-bottom: 6px;
+}
+.achievements-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+    gap: 8px;
+}
+.achievement-badge {
+    background: #ffffff;
+    border: 1.5px solid #d4c5b0;
+    border-radius: 8px;
+    padding: 8px 6px;
+    font-size: 11px;
+    font-weight: 800;
+    color: #4a3728;
+    text-align: center;
+    box-shadow: 0 2px 0 #ecd8b8;
+    cursor: help;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.achievement-badge:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px rgba(0,0,0,0.06), 0 2px 0 #40916c;
+    border-color: #40916c;
+}
+.achievement-badge.locked {
+    background: #e6dfcc;
+    color: #a0937d;
+    border-color: #d4c5b0;
+    filter: grayscale(100%);
+    box-shadow: none;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   🍃 TASK-V8-605: 首次遊玩引導、對牆特訓結算與單一提示樣式 (Onboarding & Practice UX)
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* 1. 首頁雙入口按鈕 (Mode Hub Hero Actions) */
+.hub-hero-actions {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    padding: 8px 16px 10px;
+    background: #fdfbf7;
+    border-bottom: 2px solid #e2d7c5;
+    z-index: 20;
+    flex-shrink: 0;
+    box-sizing: border-box;
+    width: 100%;
+}
+.hub-hero-btn {
+    flex: 1;
+    max-width: 220px;
+    min-height: 44px;
+    padding: 10px 16px;
+    border-radius: 14px;
+    font-size: 14px;
+    font-weight: 900;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: all 0.18s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 3px 0 rgba(0, 0, 0, 0.12);
+}
+.hub-hero-btn:focus-visible {
+    outline: 3px solid #2d6a4f;
+    outline-offset: 2px;
+}
+.hub-hero-btn.btn-play-now {
+    background: #2d6a4f;
+    color: #ffffff;
+    border-color: #1b4332;
+    box-shadow: 0 3px 0 #1b4332;
+}
+.hub-hero-btn.btn-play-now:hover {
+    background: #40916c;
+    transform: translateY(-1px);
+}
+.hub-hero-btn.btn-practice {
+    background: #d97736;
+    color: #ffffff;
+    border-color: #b35920;
+    box-shadow: 0 3px 0 #b35920;
+}
+.hub-hero-btn.btn-practice:hover {
+    background: #e68e4f;
+    transform: translateY(-1px);
+}
+
+/* 2. 首次遊玩引導與特訓彈窗通用遮罩 (Onboarding & Settlement Overlay) */
+.auth-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 10010;
+    background: rgba(2, 6, 23, 0.82);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    box-sizing: border-box;
+}
+.auth-card {
+    background: var(--panel-solid, #fdfbf7);
+    border-radius: 20px;
+    box-sizing: border-box;
+    box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.7);
+    max-height: 92vh;
+    overflow-y: auto;
+    margin: auto;
+    padding: 24px;
+}
+
+.onboarding-card {
+    background: #fdfbf7;
+    border: 3px solid #85694f;
+    border-radius: 20px;
+    color: #3d2b1f;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35), 0 4px 0 #694f38;
+    padding: 24px;
+    box-sizing: border-box;
+    margin: auto;
+}
+.onboarding-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+.onboarding-step-badge {
+    background: #e8f5e9;
+    color: #2e7d32;
+    border: 1px solid #c8e6c9;
+    padding: 3px 10px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 800;
+}
+.onboarding-skip-btn {
+    background: transparent;
+    border: none;
+    color: #85694f;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    min-height: 44px;
+    min-width: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+}
+.onboarding-skip-btn:focus-visible {
+    outline: 2px solid #85694f;
+}
+.onboarding-title,
+#first-play-onboarding-modal h2 {
+    color: #3d2b1f !important;
+    font-size: 19px !important;
+    font-weight: 900 !important;
+    margin: 8px 0 10px 0;
+}
+.onboarding-desc {
+    color: #5c4331;
+    font-size: 13.5px;
+    line-height: 1.6;
+    background: rgba(230, 223, 204, 0.45);
+    padding: 14px 16px;
+    border-radius: 12px;
+    margin-bottom: 16px;
+    text-align: left;
+}
+.onboarding-pills {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 18px;
+}
+.onboarding-pill {
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 800;
+    background: #e6dfcc;
+    color: #7d6b56;
+}
+.onboarding-pill.on {
+    background: #2d6a4f;
+    color: #ffffff;
+}
+
+/* 3. 對牆特訓 3 連擊結算卡 (Practice Settlement Modal) */
+.settlement-card {
+    background: #fdfbf7;
+    border: 3px solid #d97736;
+    border-radius: 20px;
+    color: #3d2b1f;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35), 0 4px 0 #b35920;
+    padding: 24px;
+    box-sizing: border-box;
+    margin: auto;
+}
+.settlement-badge {
+    display: inline-block;
+    background: #fef3c7;
+    color: #b45309;
+    border: 1px solid #fde68a;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 900;
+    margin-bottom: 10px;
+}
+.settlement-title,
+#practice-settlement-modal h2 {
+    color: #2b1f14 !important;
+    font-size: 21px !important;
+    font-weight: 900 !important;
+    margin: 4px 0 8px 0;
+}
+.settlement-sub,
+#practice-settlement-modal p {
+    color: #705844 !important;
+    font-size: 13px !important;
+    font-weight: 700 !important;
+    margin-bottom: 16px;
+}
+.settlement-stats-grid {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 20px;
+}
+.settlement-stat-box {
+    flex: 1;
+    background: #f4ede2;
+    border: 1.5px solid #dfd3c3;
+    border-radius: 12px;
+    padding: 12px 8px;
+    text-align: center;
+}
+.settlement-stat-box .stat-num {
+    font-size: 24px;
+    font-weight: 900;
+    color: #d97736;
+}
+.settlement-stat-box .stat-label {
+    font-size: 11px;
+    font-weight: 800;
+    color: #705844;
+    margin-top: 2px;
+}
+
+/* 4. 練習與引導單一提示欄 (Practice Instruction Bar) */
+.practice-hint-bar {
+    position: fixed;
+    top: 56px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 999;
+    background: rgba(253, 251, 247, 0.96);
+    border: 2px solid #85694f;
+    border-radius: 24px;
+    padding: 6px 16px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.16), 0 2px 0 #694f38;
+    backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    max-width: min(94vw, 560px);
+}
+.practice-hint-bar .hint-content {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12.5px;
+    font-weight: 800;
+    color: #3d2b1f;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+.practice-hint-bar .hint-target {
+    color: #d97736;
+}
+.practice-hint-bar .hint-divider {
+    color: #b5a494;
+}
+.practice-hint-bar .hint-status {
+    color: #2d6a4f;
+}
+.practice-hint-bar .hint-fallback-btn {
+    background: #ef4444;
+    color: #ffffff;
+    border: none;
+    border-radius: 12px;
+    padding: 4px 10px;
+    font-size: 11.5px;
+    font-weight: 900;
+    cursor: pointer;
+    min-height: 36px;
+    box-shadow: 0 2px 0 #b91c1c;
+    transition: transform 0.1s ease;
+}
+.practice-hint-bar .hint-fallback-btn:hover {
+    background: #dc2626;
+    transform: translateY(-1px);
+}
+.practice-hint-bar .hint-fallback-btn:focus-visible {
+    outline: 2px solid #ffffff;
+    outline-offset: 1px;
+}
+
+/* 5. 響應式螢幕調適 */
+@media (max-width: 680px) {
+    .hub-hero-actions {
+        padding: 8px 12px;
+        gap: 8px;
+    }
+    .hub-hero-btn {
+        font-size: 13px;
+        min-height: 44px;
+        padding: 8px 10px;
+    }
+    .practice-hint-bar {
+        top: 50px;
+        padding: 6px 12px;
+        font-size: 11px;
+    }
+    .practice-hint-bar .hint-content {
+        font-size: 11px;
+        gap: 6px;
+    }
+}
+@media (max-width: 480px) {
+    .hub-hero-actions {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 6px;
+        padding: 6px 10px 8px;
+    }
+    .hub-hero-btn {
+        max-width: 100%;
+        min-height: 44px;
+        font-size: 13px;
+        padding: 6px 10px;
+    }
+}
+
 
     </style>
 </head>
 <body class="layout-v4 login-open">
 
     <!-- ══════ 登入 ══════ -->
-    <div id="login-overlay" class="modal-overlay">
+    <div id="login-overlay" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="login-dialog-title">
         <div class="modal-card">
-            <h2>🏓 國立中興大學 · 匹克球特訓營</h2>
+            <h2 id="login-dialog-title">🏓 國立中興大學 · 匹克球特訓營</h2>
             <p>歡迎來到中興湖!小心會追人的匹克鵝(我真的看過學長在那邊跌倒),買不到的中興奶茶、還沒嗑到的揚州炒飯,接著挑戰匹克鵝大魔王 🪿</p>
 
             <!-- 老玩家快速開局視圖 -->
@@ -6817,6 +7498,7 @@ body.layout-nook #nav-wrapper {
                     <label>遊戲暱稱(可隨時修改)</label>
                     <input type="text" id="user-nick" value="叫獸aka愛叫的野獸" placeholder="自訂或點下方梗圖">
                     <div class="preset-tags">
+                        <span class="preset-tag" onclick="setNick('揚州炒飯超級好吃')">🍚 揚州炒飯超級好吃</span>
                         <span class="preset-tag" onclick="setNick('呱')">呱</span>
                         <span class="preset-tag" onclick="setNick('馬某人')">馬某人</span>
                         <span class="preset-tag" onclick="setNick('黑天鵝')">黑天鵝</span>
@@ -6843,11 +7525,11 @@ body.layout-nook #nav-wrapper {
 
     <!-- ══════ 球員設定 ══════ -->
     <!-- ══════ 🍃 島民 / 球員個人設定與學號綁定 ══════ -->
-    <div id="profile-modal" class="modal-overlay" style="display:none;">
+    <div id="profile-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="profile-dialog-title" style="display:none;">
         <div class="modal-card">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-                <h2 style="margin:0;font-size:18px;color:#2b1d14;">😎 個人球員檔案</h2>
-                <button type="button" class="btn-close-profile" onclick="closeProfileModal()">✕</button>
+                <h2 id="profile-dialog-title" style="margin:0;font-size:18px;color:#2b1d14;">😎 個人球員檔案</h2>
+                <button type="button" class="btn-close-profile" onclick="closeProfileModal()" aria-label="關閉個人球員檔案">✕</button>
             </div>
 
             <!-- 頂部頁籤導航：選手證 vs 編輯資料 -->
@@ -6856,8 +7538,32 @@ body.layout-nook #nav-wrapper {
                 <button type="button" class="profile-nav-tab" id="ptab-btn-edit" onclick="switchProfileTab('edit')">✏️ 編輯資料 / 學號綁定</button>
             </div>
 
+            
             <!-- 頁籤 1: 選手證與成就 (預設展開) -->
-            <div id="passport-tab-content" style="display:block;"></div>
+            <div id="passport-tab-content" style="display:block;">
+                <div class="passport-card">
+                    <div class="passport-header">
+                        <div class="passport-avatar" id="passport-avatar-display">😎</div>
+                        <div class="passport-info">
+                            <h3 id="passport-name-display">興大匹克球神</h3>
+                            <div class="passport-dept" id="passport-dept-display">未設定系所 · 國立中興大學</div>
+                            <div class="passport-level-box">
+                                <div class="level-badge">Lv <span id="passport-level-num">1</span></div>
+                                <div class="exp-bar-container"><div class="exp-bar-fill" style="width: 25%;"></div></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="achievements-section">
+                        <h4>🏅 特殊成就徽章</h4>
+                        <div class="achievements-grid">
+                            <div class="achievement-badge locked" title="完成 10 場對牆特訓">🧱 牆島大師</div>
+                            <div class="achievement-badge" title="戰勝中興黑天鵝">🦢 降鵝勇士</div>
+                            <div class="achievement-badge" title="完成隱藏挑戰：揚州炒飯 (中興大學傳說彩蛋！)">🍚 揚州炒飯大師</div>
+                            <div class="achievement-badge locked" title="解鎖全部科普卡片">📚 科普學者</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
             <!-- 頁籤 2: 編輯個人資料與綁定學號 (保留完整 DOM 元素) -->
             <div id="profile-edit-content" style="display:none;">
@@ -6909,6 +7615,20 @@ body.layout-nook #nav-wrapper {
                 <div class="input-group">
                     <label>遊戲暱稱</label>
                     <input type="text" id="edit-nick" placeholder="自訂您的球場暱稱">
+                    <div class="preset-tags">
+                        <span class="preset-tag" onclick="setNick('揚州炒飯超級好吃')">🍚 揚州炒飯超級好吃</span>
+                        <span class="preset-tag" onclick="setNick('呱')">呱</span>
+                        <span class="preset-tag" onclick="setNick('馬某人')">馬某人</span>
+                        <span class="preset-tag" onclick="setNick('黑天鵝')">黑天鵝</span>
+                        <span class="preset-tag" onclick="setNick('張麻子')">張麻子</span>
+                        <span class="preset-tag" onclick="setNick('湯師爺')">湯師爺</span>
+                        <span class="preset-tag" onclick="setNick('我是叫獸')">我是叫獸</span>
+                        <span class="preset-tag" onclick="setNick('叫獸aka愛叫的野獸')">叫獸aka愛叫的野獸</span>
+                        <span class="preset-tag" onclick="setNick('煞氣a捕夢網')">煞氣a捕夢網</span>
+                        <span class="preset-tag" onclick="setNick('呂允才不是你寶寶')">呂允才不是你寶寶 ㄌㄩㄝ</span>
+                        <span class="preset-tag" onclick="setNick('大風起兮雲飛揚')">大風起兮雲飛揚</span>
+                        <span class="preset-tag" onclick="setNick('嘿嘿我是黃四郎')">嘿嘿我是黃四郎</span>
+                    </div>
                 </div>
 
                 <div class="input-group">
@@ -6923,15 +7643,16 @@ body.layout-nook #nav-wrapper {
                     <button type="button" class="btn-main" id="edit-save-btn" style="margin-top:0;flex:2;" onclick="saveProfile()">💾 保存修改</button>
                 </div>
 
+                <button type="button" class="btn-sub" onclick="closeProfileModal();replayFirstPlayOnboarding();" style="width:100%;margin-top:8px;">📖 重看新手引導</button>
                 <button type="button" class="btn-reopen-login" onclick="reopenLoginOverlay()">🔄 重新進入登入開局畫面</button>
             </div>
         </div>
     </div>
 
     <!-- ══════ 音效與觸覺震動設定 ══════ -->
-    <div id="audio-modal" class="modal-overlay" style="display:none;">
+    <div id="audio-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="audio-dialog-title" style="display:none;">
         <div class="modal-card">
-            <h2>🎶 音效與震動設定</h2>
+            <h2 id="audio-dialog-title">🎶 音效與震動設定</h2>
             <p>設定會自動記憶到本機，打球更具手感。</p>
             <div class="input-group">
                 <div class="pref-row">
@@ -6956,9 +7677,37 @@ body.layout-nook #nav-wrapper {
                         <span class="slider-ui"></span>
                     </label>
                 </div>
-                <div style="display:flex;gap:8px;margin-top:12px;">
-                    <button class="btn-test" style="flex:1;margin-top:0;" onclick="testSfx()">▶ 試聽擊球音</button>
-                    <button class="btn-test" style="flex:1;margin-top:0;" onclick="testVibrate()">📳 試震一下</button>
+                <div class="pref-row" style="margin-top:6px;">
+                    <div style="display:flex;flex-direction:column;text-align:left;">
+                        <span class="pref-label">📢 語音裁判大聲公</span>
+                        <small style="font-size:11px;color:#7a6b58;margin-top:2px;">站遠 3 公尺也能聽清判決與比分 (TTS 語音，預設關閉)</small>
+                    </div>
+                    <label class="switch">
+                        <input type="checkbox" id="pref-tts" onchange="onTtsToggle(this.checked)">
+                        <span class="slider-ui"></span>
+                    </label>
+                </div>
+                <div id="tts-voice-options" style="margin-top:8px;background:rgba(255,255,255,0.7);border:1.5px solid #dec8a7;border-radius:12px;padding:10px 12px;text-align:left;opacity:0.5;pointer-events:none;transition:opacity .2s ease;">
+                    <div style="font-size:12px;font-weight:800;color:#3d2b1f;margin-bottom:6px;display:flex;align-items:center;justify-content:space-between;">
+                        <span>🎙️ 裁判音色風格</span>
+                        <small id="tts-current-voice-name" style="font-size:10.5px;color:#2e7d32;font-weight:700;">🌸 甜美親切 (溫柔學姐)</small>
+                    </div>
+                    <div style="display:flex;gap:6px;margin-bottom:8px;">
+                        <button type="button" class="btn-voice-style on" id="vstyle-sweet" onclick="setTtsVoiceStyle('sweet')">🌸 甜美學姐</button>
+                        <button type="button" class="btn-voice-style" id="vstyle-coach" onclick="setTtsVoiceStyle('coach')">🎾 熱血裁判</button>
+                        <button type="button" class="btn-voice-style" id="vstyle-goose" onclick="setTtsVoiceStyle('goose')">🪿 俏皮神鵝</button>
+                    </div>
+                    <div id="tts-voice-dropdown-row" style="display:flex;align-items:center;gap:6px;">
+                        <span style="font-size:11px;font-weight:700;color:#7a6b58;flex-shrink:0;">設備人聲:</span>
+                        <select id="pref-tts-voice-select" onchange="onTtsVoiceSelect(this.value)" style="flex:1;font-size:11px;padding:4px 6px;border-radius:6px;border:1.5px solid #dec8a7;background:#fff;color:#3d2b1f;font-weight:600;outline:none;">
+                            <option value="">✨ 智能最佳人聲 (推薦)</option>
+                        </select>
+                    </div>
+                </div>
+                <div style="display:flex;gap:6px;margin-top:12px;flex-wrap:wrap;">
+                    <button class="btn-test" style="flex:1;min-width:90px;margin-top:0;" onclick="testSfx()">▶ 擊球音</button>
+                    <button class="btn-test" style="flex:1;min-width:90px;margin-top:0;" onclick="testVibrate()">📳 試震</button>
+                    <button class="btn-test" style="flex:1;min-width:90px;margin-top:0;" onclick="testTts()">📢 試聽語音</button>
                 </div>
             </div>
             <button class="btn-main" onclick="closeAudioModal()">完成</button>
@@ -7007,7 +7756,7 @@ body.layout-nook #nav-wrapper {
 
                 <div class="tech-h">🌪️ 匹克球空氣動力學與旋球物理 (馬格努斯效應)</div>
                 <p class="tech-p">
-                    球體飛行軌跡由<b>重力</b>、<b>平方空氣阻力</b>與<b>馬格努斯力 (Magnus Force)</b> $\vec{F}_M \propto (\vec{\omega} \times \vec{v})$ 共同主導。
+                    球體飛行軌跡由<b>重力</b>、<b>平方空氣阻力</b>與<b>馬格努斯力 (Magnus Force)</b> <b>F</b><sub>M</sub> ∝ (<b>ω</b> × <b>v</b>) 共同主導。
                     匹克球特有的 26~40 個穿孔結構在球後方引發早期紊流分離（Turbulent Wake Separation），產生高壓差阻力與角動量自然耗散特性，兼顧體感可控性與物理真實度。
                     <button type="button" class="btn" onclick="closeTechModal(); openRulesModal('physics');" style="display:inline-flex;align-items:center;gap:4px;padding:3px 8px;font-size:11px;margin-top:6px;background:rgba(56,189,248,0.2);color:var(--accent);border:1px solid var(--accent);border-radius:6px;cursor:pointer;">
                         📖 閱讀流體力學生活科普與 5 大學術文獻 ↗
@@ -7284,7 +8033,7 @@ body.layout-nook #nav-wrapper {
             <div id="rtab-pane-physics" class="rules-tab-pane" style="display:none;">
                 <div class="rules-grid">
                     <!-- 科普抽屜 1: 馬格努斯效應 (預設展開) -->
-                    <div class="science-drawer open" id="drawer-phys-1">
+                    <div class="science-drawer" id="drawer-phys-1">
                         <div class="drawer-header" onclick="toggleScienceDrawer('drawer-phys-1')">
                             <div class="drawer-header-left">
                                 <span class="drawer-badge">科普 01</span>
@@ -7395,7 +8144,7 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
 
                             <div style="margin-top:10px;display:flex;flex-direction:column;gap:10px;">
                                 <!-- 細項 1 -->
-                                <div class="science-box">
+                                <div class="science-box" style="margin-bottom:10px;">
                                     <div style="font-weight:800;color:#1b5e20;font-size:13px;margin-bottom:4px;">
                                         ① m · (dv/dt) ── 慣性與合加速度項 (Inertia & Acceleration)
                                     </div>
@@ -7406,7 +8155,7 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
                                 </div>
 
                                 <!-- 細項 2 -->
-                                <div class="science-box">
+                                <div class="science-box" style="margin-bottom:10px;">
                                     <div style="font-weight:800;color:#2e7d32;font-size:13px;margin-bottom:4px;">
                                         ② F_gravity = m · g ── 垂直重力下墜項 (Gravity)
                                     </div>
@@ -7416,7 +8165,7 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
                                 </div>
 
                                 <!-- 細項 3 -->
-                                <div class="science-box">
+                                <div class="science-box" style="margin-bottom:10px;">
                                     <div style="font-weight:800;color:#c86446;font-size:13px;margin-bottom:4px;">
                                         ③ F_drag = -½ · Cd · ρ · A · |v| · v ── 二次方空氣阻力項 (Quadratic Drag)
                                     </div>
@@ -7430,7 +8179,7 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
                                 </div>
 
                                 <!-- 細項 4 -->
-                                <div class="science-box">
+                                <div class="science-box" style="margin-bottom:10px;">
                                     <div style="font-weight:800;color:#854d0e;font-size:13px;margin-bottom:4px;">
                                         ④ F_Magnus = ½ · CL · ρ · A · |v|² · ((ω × v) / |ω × v|) ── 馬格努斯旋轉偏折力項 (Magnus Force)
                                     </div>
@@ -7445,7 +8194,7 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
                                 </div>
 
                                 <!-- 細項 5 -->
-                                <div class="science-box">
+                                <div class="science-box" style="margin-bottom:10px;">
                                     <div style="font-weight:800;color:#2b1d14;font-size:13px;margin-bottom:4px;">
                                         ⑤ dω/dt = -β_perforated · ω ── 多孔角動量自旋阻尼衰減項 (Spin Dissipation)
                                     </div>
@@ -7509,7 +8258,7 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
 
                             <div style="margin-top:10px;display:flex;flex-direction:column;gap:10px;">
                                 <!-- 區塊 1: 普林斯頓大學 FlyWire 開源計劃介紹 -->
-                                <div class="science-box">
+                                <div class="science-box" style="margin-bottom:10px;">
                                     <div style="font-weight:800;color:#1b5e20;font-size:13px;margin-bottom:6px;display:flex;align-items:center;gap:6px;">
                                         <span>🌐</span> 普林斯頓大學 FlyWire 開源計劃與公共神經資料庫 (Princeton FlyWire Consortium)
                                     </div>
@@ -7521,44 +8270,44 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
                                 </div>
 
                                 <!-- 區塊 2: 神經浮出之各項急轉與逃逸系統解析 -->
-                                <div class="science-box">
+                                <div class="science-box" style="margin-bottom:10px;">
                                     <div style="font-weight:800;color:#c86446;font-size:13px;margin-bottom:6px;display:flex;align-items:center;gap:6px;">
                                         <span>⚡</span> 神經浮出之各項急轉、避障與截擊系統迴路解析 (Emergent Neural Circuits)
                                     </div>
                                     <div style="display:flex;flex-direction:column;gap:8px;font-size:12px;line-height:1.65;color:#3d2d22;">
                                         <div>
                                             <b style="color:#92400e;">① 視覺光學擴張率偵測層 (Optical Looming Detectors: LC4 & LPLC2)</b><br>
-                                            果蠅視葉小葉深層（Lobula）的 <b>LC4</b>（柱狀小葉神經元 4）與 <b>LPLC2</b> 專司威脅逼近感測。其樹突具有極強側向抑制，僅對視野中呈徑向高速擴張（Radial Expansion）之暗點刺激產生動作電位，其放電頻率精準編碼逼近率 $\eta(t) = \frac{\dot{\theta}(t)}{\theta(t)} = \frac{v_{\text{rel}}}{d(t)}$。
+                                            果蠅視葉小葉深層（Lobula）的 <b>LC4</b>（柱狀小葉神經元 4）與 <b>LPLC2</b> 專司威脅逼近感測。其樹突具有極強側向抑制，僅對視野中呈徑向高速擴張（Radial Expansion）之暗點刺激產生動作電位，其放電頻率精準編碼逼近率 <i>η</i>(<i>t</i>) = <i>θ̇</i>(<i>t</i>) / <i>θ</i>(<i>t</i>) = <i>v</i><sub>rel</sub> / <i>d</i>(<i>t</i>)。
                                         </div>
                                         <div>
-                                            <b style="color:#92400e;">② 巨大纖維逃逸中樞 (Giant Fiber System, GFS: GF → TTMn / PSI)</b>
+                                             <b style="color:#92400e;">② 巨大纖維逃逸中樞 (Giant Fiber System, GFS: GF → TTMn / PSI)</b>
                                             <span style="font-size:11px;color:#c86446;font-weight:800;margin-left:4px;">🚲 aka 捷安特腳踏車神經（純屬諧音梗開玩笑亂講ㄉ不要寫在期末考卷上）</span><br>
                                             直徑達數微米的 <b>GF 下行神經元</b> 是昆蟲神經系統中反應最迅捷的「高速公路」（簡稱神經界的捷安特！）。GF 透過電突觸（Gap Junction）在 5~10ms 內直通胸部腹神經索（VNC），下游直接突觸連接：<br>
                                             - <b>TTMn (大轉子運動神經元)</b>：觸發中足大轉子伸肌爆發性伸展，產生逃逸起跳（Jump Evasion）。<br>
                                             - <b>PSI (外周突觸中間神經元) → DLMs (背縱肌肉)</b>：強制觸發雙翼急速下拍與升翅抑制，形成瞬間破空攔截。
                                         </div>
                                         <div>
-                                            <b style="color:#92400e;">③ 下行急轉非對稱轉向神經元 (Steering Descending Neurons: DNa01 / DNa02)</b><br>
-                                            Namiki et al. (2018) 與 FlyWire 下行神經元組證實，<b>DNa01</b> 與 <b>DNa02</b> 為控制飛行姿態橫擺（Yaw）與側傾（Roll）的主控開關。單側活化 DNa 會直接造成兩側雙翼振幅不對稱（Wing Stroke Amplitude Asymmetry, $\Delta \text{WSA}$），在 <b>小於 30 毫秒</b> 內產生超過 90°/s 的急劇空中變向橫切（Saccadic Emergency Turn）。
+                                             <b style="color:#92400e;">③ 下行急轉非對稱轉向神經元 (Steering Descending Neurons: DNa01 / DNa02)</b><br>
+                                            Namiki et al. (2018) 與 FlyWire 下行神經元組證實，<b>DNa01</b> 與 <b>DNa02</b> 為控制飛行姿態橫擺（Yaw）與側傾（Roll）的主控開關。單側活化 DNa 會直接造成兩側雙翼振幅不對稱（Wing Stroke Amplitude Asymmetry, ΔWSA），在 <b>小於 30 毫秒</b> 內產生超過 90°/s 的急劇空中變向橫切（Saccadic Emergency Turn）。
                                         </div>
                                         <div>
-                                            <b style="color:#92400e;">④ 複眼運動視盲漏洞 (Sensory Vulnerability & Motion Blindspot)</b><br>
+                                             <b style="color:#92400e;">④ 複眼運動視盲漏洞 (Sensory Vulnerability & Motion Blindspot)</b><br>
                                             LC4/LPLC2 迴路對慢速、平緩、無急劇擴張的光學位移（如微風吹拂或平滑拋物線）完全不響應；同時巨纖維系統缺乏對低頻刺激的積分能力。當來球為輕推小球（Dink）時，逃逸神經迴路完全靜默，致使蒼蠅因失去威脅特徵而產生感官視盲與飛行失速。
                                         </div>
                                     </div>
                                 </div>
 
                                 <!-- 區塊 3: 匹克球遊戲引擎中的真實映射與配對應用 -->
-                                <div class="science-box">
+                                <div class="science-box" style="margin-bottom:10px;">
                                     <div style="font-weight:800;color:#1b5e20;font-size:13px;margin-bottom:6px;display:flex;align-items:center;gap:6px;">
                                         <span>🎮</span> 本專案引擎中的神經機制配對與對抗博弈 (In-Engine Neuromechanical Mapping)
                                     </div>
                                     <div style="display:flex;flex-direction:column;gap:6px;font-size:12px;line-height:1.65;color:#3d2d22;">
                                         <div>
-                                            • <b>大力抽球與高速截擊配對 (GFS + DNa01 Counter-Drive)</b>：玩家以 $>9.2\,\text{m/s}$ 大力抽球時，遊戲以 $O(1)$ 演算球距與前進分速，觸發 <code>LOOMING_REFLEX</code>。蒼蠅振翅飆至 125Hz，以 $22\,\text{m/s}$ 瞬移，並啟動 DNa01 急轉向對角算法，呼叫 <code>solveArc</code> 內建 $1.25\times$ 高速初速，回擊壓在對手對角底線死角（$z \in [5.8\text{m}, 6.1\text{m}]$），精確懲罰無腦抽球！
+                                            • <b>大力抽球與高速截擊配對 (GFS + DNa01 Counter-Drive)</b>：玩家以 &gt; 9.2 m/s 大力抽球時，遊戲以 <i>O</i>(1) 演算球距與前進分速，觸發 <code>LOOMING_REFLEX</code>。蒼蠅振翅飆至 125Hz，以 22 m/s 瞬移，並啟動 DNa01 急轉向對角算法，呼叫 <code>solveArc</code> 內建 1.25× 高速初速，回擊壓在對手對角底線死角（<i>z</i> ∈ [5.8m, 6.1m]），精確懲罰無腦抽球！
                                         </div>
                                         <div>
-                                            • <b>廚房區放小球與視盲破防配對 (Sensory Blindspot & Dink Advantage)</b>：玩家以 $<8.2\,\text{m/s}$ 輕推小球或打出第三拍吊球（3rd Shot Drop）入中興湖廚房區時，逼近率低於 $1.2$，巨纖維神經無法激發。蒼蠅陷入 <code>STUNNED</code>（複眼視盲墜地），高度掉至 $0.08\,\text{m}$ 側翻眩暈 2.2 秒，雙翼減速至 14Hz 且<b>完全無法揮拍</b>，球彈跳兩次玩家穩穩得分！
+                                            • <b>廚房區放小球與視盲破防配對 (Sensory Blindspot & Dink Advantage)</b>：玩家以 &lt; 8.2 m/s 輕推小球或打出第三拍吊球（3rd Shot Drop）入中興湖廚房區時，逼近率低於 1.2，巨纖維神經無法激發。蒼蠅陷入 <code>STUNNED</code>（複眼視盲墜地），高度掉至 0.08 m 側翻眩暈 2.2 秒，雙翼減速至 14Hz 且<b>完全無法揮拍</b>，球彈跳兩次玩家穩穩得分！
                                         </div>
                                     </div>
                                 </div>
@@ -7623,7 +8372,7 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
             <div id="rtab-pane-fly" class="rules-tab-pane" style="display:none;">
                 <div class="rules-grid">
                     <!-- 科普抽屜 1: FlyWire 全腦連接組介紹 (預設展開) -->
-                    <div class="science-drawer open" id="drawer-fly-1">
+                    <div class="science-drawer" id="drawer-fly-1">
                         <div class="drawer-header" onclick="toggleScienceDrawer('drawer-fly-1')">
                             <div class="drawer-header-left">
                                 <span class="drawer-badge" style="background:var(--accent);color:#0f172a;">文獻 01</span>
@@ -7974,6 +8723,16 @@ I_syn(t) = w_syn · x · u · (dθ/dt)</div>
                 </div>
             </div>
 
+            <!-- ★ 首頁雙入口 (Hero Actions: 立即玩 vs 體感練習) -->
+            <div class="hub-hero-actions">
+                <button type="button" class="hub-hero-btn btn-play-now" onclick="hubPlayNow()" title="直接進入匹克球正式比賽">
+                    🎾 立即玩 (Play Now)
+                </button>
+                <button type="button" class="hub-hero-btn btn-practice" onclick="hubMotionPractice()" title="進入對牆特訓模式體驗體感推球">
+                    🧱 體感練習 (Practice)
+                </button>
+            </div>
+
             <!-- 2.5D 校園大地圖沙盤視口 (.hub-map-viewport) -->
             <div class="hub-map-viewport" id="hub-map-viewport">
                 <!-- 🍃 中興湖校園手繪大地圖 (無雜字純淨超高解析底圖) -->
@@ -8083,10 +8842,16 @@ I_syn(t) = w_syn · x · u · (dθ/dt)</div>
                     <div class="map-pin-pill">📚 圖書館 · 規則文獻</div>
                 </div>
 
-                <!-- 6. 湖心設施: 水上小碼頭 (棧橋入口，避開球場與選手) -->
-                <div class="map-pin" id="pin-dock" style="top:40.5%; left:73.5%;" onclick="openDockPicker()" title="水上匹克小碼頭 · 5 大關卡闖關歷險">
+                <!-- 6. 湖心設施: 水上小碼頭 (棧橋入口，避開上方球場與選手) -->
+                <div class="map-pin" id="pin-dock" style="top:42%; left:76%;" onclick="openDockPicker()" title="水上匹克小碼頭 · 5 大關卡闖關歷險">
                     <span class="map-pin-glow" style="width:48px;height:48px;background:radial-gradient(circle, rgba(249,115,22,0.65) 0%, rgba(249,115,22,0) 70%);"></span>
                     <div class="map-pin-pill pill-dock">🎾 水上小碼頭 · 闖關歷險</div>
+                </div>
+
+                <!-- 6.5. 湖邊設施: 狐狸體感特訓入口 (體感匹克球) -->
+                <div class="map-pin" id="pin-fox-motion" style="top:64%; left:27%;" onclick="startFoxMotionPractice()" title="小狐狸體感特訓 · 體感匹克球">
+                    <span class="map-pin-glow" style="width:48px;height:48px;background:radial-gradient(circle, rgba(234,88,12,0.65) 0%, rgba(234,88,12,0) 70%);"></span>
+                    <div class="map-pin-pill pill-fox">📷 狐狸 · 體感匹克球</div>
                 </div>
 
                 <!-- 7. 湖邊設施: 對牆練習木牆 -->
@@ -8134,6 +8899,57 @@ I_syn(t) = w_syn · x · u · (dθ/dt)</div>
             <!-- 大地圖底部資訊條 -->
             <div class="hub-map-footer">
                 🍃 國立中興大學中興湖 · 校園導覽地圖 · 零個資隱私安全運算
+            </div>
+        </div>
+    </div>
+
+    <!-- ══════ 🍃 首次遊玩 3-Step 新手引導彈窗 (#first-play-onboarding-modal) ══════ -->
+    <div id="first-play-onboarding-modal" class="modal-overlay auth-overlay" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="onboarding-title">
+        <div class="modal-card auth-card onboarding-card" style="max-width:440px;width:92%;text-align:center;">
+            <div class="onboarding-header">
+                <span class="onboarding-step-badge" id="onboarding-step-badge">STEP 1/3</span>
+                <button type="button" class="onboarding-skip-btn" id="onboarding-skip-btn" onclick="skipFirstPlayOnboarding()">✕ 略過教學</button>
+            </div>
+            <div class="onboarding-pills" id="onboarding-pills">
+                <span class="onboarding-pill on">1. 控制方式</span>
+                <span class="onboarding-pill">2. 推球技巧</span>
+                <span class="onboarding-pill">3. 對牆目標</span>
+            </div>
+            <h2 id="onboarding-title" class="onboarding-title">選擇您的操作方式</h2>
+            <div id="onboarding-desc" class="onboarding-desc">
+                可以使用滑鼠/觸控按住拖曳揮拍，或開啟相機體驗全身肢體體感推球！
+            </div>
+            <div style="display:flex;gap:10px;justify-content:center;">
+                <button type="button" id="onboarding-next-btn" class="hub-hero-btn btn-play-now" style="width:100%;max-width:280px;" onclick="nextOnboardingStep()">
+                    下一步 ▶
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══════ 🍃 對牆特訓 3 連擊結算卡 (#practice-settlement-modal) ══════ -->
+    <div id="practice-settlement-modal" class="modal-overlay auth-overlay" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="practice-settlement-title">
+        <div class="modal-card auth-card settlement-card" style="max-width:420px;width:90%;text-align:center;">
+            <div class="settlement-badge">🎉 特訓目標達成</div>
+            <h2 id="practice-settlement-title" class="settlement-title">連續回擊 3 次完成！</h2>
+            <p class="settlement-sub">恭喜掌握對牆連續推球節奏，球感大幅提升！</p>
+            <div class="settlement-stats-grid">
+                <div class="settlement-stat-box">
+                    <div id="practice-result-combo" class="stat-num">3 次</div>
+                    <div class="stat-label">連續回擊次數</div>
+                </div>
+                <div class="settlement-stat-box">
+                    <div id="practice-result-score" class="stat-num">15 分</div>
+                    <div class="stat-label">本次特訓得分</div>
+                </div>
+            </div>
+            <div style="display:flex;gap:10px;justify-content:center;">
+                <button type="button" id="practice-retry-btn" class="hub-hero-btn btn-practice" onclick="handlePracticeRetry()">
+                    🔄 再次練習
+                </button>
+                <button type="button" id="practice-exit-btn" class="hub-hero-btn btn-play-now" onclick="handlePracticeExitToHub()">
+                    🏠 回模式大廳 (Esc)
+                </button>
             </div>
         </div>
     </div>
@@ -8283,10 +9099,32 @@ I_syn(t) = w_syn · x · u · (dθ/dt)</div>
             <span class="dsp-score-txt" id="dsp-score">0 - 0</span>
         </div>
 
+        <!-- 🍃 對牆特訓與引導單一提示欄 (#practice-instruction-bar) -->
+        <div id="practice-instruction-bar" class="practice-hint-bar" style="display:none;" role="status" aria-live="polite">
+            <div class="hint-content">
+                <span id="practice-bar-target" class="hint-target">🎯 對牆特訓：目標 3 連擊 · 目前連擊：0 / 3</span>
+                <span class="hint-divider">|</span>
+                <span id="practice-bar-status" class="hint-status">🖱️ 手動模式：按住並向上滑動推球！</span>
+                <button type="button" id="practice-bar-fallback-btn" class="hint-fallback-btn" style="display:none;" onclick="fallbackToManualMode()">✕ 關閉相機並改用手動</button>
+            </div>
+        </div>
+
+        <!-- 🍃 中興湖風向風速儀 (#wind-hud) -->
+        <div id="wind-hud" title="中興湖即時微風偏轉物理 (Wiffle Ball Aerodynamics)">
+            <span id="wind-arrow">🍃</span>
+            <span id="wind-txt">湖風 1.2 m/s</span>
+        </div>
+
         <!-- 🍃 NookPhone 懸浮小葉子按鈕 (#nook-fab) -->
         <div id="nook-fab" onclick="toggleNookPhone(true)" title="開啟 NookPhone 快捷選單">
             <span class="nook-fab-leaf">🍃</span>
             <span class="nook-fab-lbl">Nook</span>
+        </div>
+
+        <!-- 🍃 體感相機懸浮快捷按鈕 (#quick-camera-fab) -->
+        <div id="quick-camera-fab" onclick="toggleWebcamAI()" title="切換體感相機模式 (開啟/關閉相機)">
+            <span class="cam-fab-icon" id="quick-cam-icon">📷</span>
+            <span class="cam-fab-lbl" id="quick-cam-lbl">體感</span>
         </div>
 
         <!-- 虛擬搖桿 + ★手機視角高低鈕 -->
@@ -8947,7 +9785,12 @@ function apiGet(qs) {
             document.querySelectorAll('#edit-avatar-grid .avatar-opt').forEach(o => o.classList.remove('selected'));
             el.classList.add('selected'); playerProfile.avatar = em;
         }
-        function setNick(t) { document.getElementById('user-nick').value = t; }
+        function setNick(t) {
+            const un = document.getElementById('user-nick');
+            const en = document.getElementById('edit-nick');
+            if (un) un.value = t;
+            if (en) en.value = t;
+        }
 
         /* ═══════ 身分編號 (方案 B: 裝置綁定唯一 ID) ═══════ */
         const ID_KEY = 'nchu_pb_identity';
@@ -8980,6 +9823,9 @@ function apiGet(qs) {
             playerId: null, avatar: '🪿', sidPrefix: '', deptCode: '',
             department: '', grade: '', entryYear: '', nickname: '叫獸aka愛叫的野獸', sessionId: null
         };
+        if (typeof window !== 'undefined') {
+            window.playerProfile = playerProfile;
+        }
 
         /* ═══════ 教練模式與參數熱抽換 (Dual-Track Model) ═══════ */
         const MODEL_STORAGE_KEY = 'nchu_custom_motion_model';
@@ -9165,6 +10011,7 @@ function apiGet(qs) {
                 checkAdminAccess(playerProfile.nickname);
 
                 updateWhoLabel(playerProfile.nickname, playerProfile.avatar);
+                window.playerProfile = playerProfile;
                 document.getElementById('login-overlay').style.display = 'none';
                 document.body.classList.remove('login-open');
                 clearKeys();
@@ -9188,6 +10035,7 @@ function apiGet(qs) {
             playerProfile.ig = '';
             playerProfile.sessionId = 'S-' + Date.now().toString(36);
             checkAdminAccess(playerProfile.nickname);
+            window.playerProfile = playerProfile;
 
             updateWhoLabel(playerProfile.nickname, playerProfile.avatar);
             const overlay = document.getElementById('login-overlay');
@@ -9196,7 +10044,7 @@ function apiGet(qs) {
             document.body.classList.remove('demo-mode-active');
             clearKeys();
             S.init();
-            toast('👋 歡迎訪客！', '已進入模式大廳');
+            toast('👋 歡迎訪客！', '建議先用手機搖桿熟悉規則，可按右上角 📷 隨時切換體感！');
             switchStage(1);
             if (typeof openModeHub === 'function') openModeHub();
         }
@@ -9236,11 +10084,12 @@ function apiGet(qs) {
             });
 
             updateWhoLabel(playerProfile.nickname, playerProfile.avatar);
+            window.playerProfile = playerProfile;
             document.getElementById('login-overlay').style.display = 'none';
             document.body.classList.remove('login-open');
             clearKeys();
             S.init();
-            toast('👋 歡迎,' + playerProfile.department, '編號 ' + playerProfile.playerId);
+            toast('👋 歡迎,' + playerProfile.department, '建議先用手機搖桿熟悉規則，可按右上角 📷 切換體感！');
             switchStage(1);
             if (typeof openModeHub === 'function') openModeHub();
         }
@@ -9297,6 +10146,21 @@ function apiGet(qs) {
         }
 
         function openProfileModal() {
+            window.playerProfile = playerProfile;
+            // Update Passport UI
+            const avDisp = document.getElementById('passport-avatar-display');
+            const nmDisp = document.getElementById('passport-name-display');
+            const dpDisp = document.getElementById('passport-dept-display');
+            const lvDisp = document.getElementById('passport-level-num');
+            if(avDisp) avDisp.innerText = playerProfile.avatar || '😎';
+            if(nmDisp) nmDisp.innerText = playerProfile.nickname || '興大匹克球神';
+            if(dpDisp) dpDisp.innerText = (playerProfile.department || '未設定系所') + ' · 國立中興大學';
+            if(lvDisp) {
+                // simple mock level based on score/hits (if they exist)
+                let hits = (playerProfile.totalHits || 0);
+                lvDisp.innerText = 1 + Math.floor(hits / 50);
+            }
+
             buildEditDeptOptions();
             const isGuest = (playerProfile.sidPrefix === 'GUEST' || !playerProfile.sidPrefix || playerProfile.isGuest);
             
@@ -9427,6 +10291,10 @@ function apiGet(qs) {
             sv.entryYear = playerProfile.entryYear;
             sv.ig = playerProfile.ig;
             saveIdentity(sv);
+            window.playerProfile = playerProfile;
+            if (typeof renderPassportView === 'function') {
+                renderPassportView();
+            }
             closeProfileModal();
 
             const hubAv = document.getElementById('hub-avatar');
@@ -9475,7 +10343,7 @@ function apiGet(qs) {
 /* ═══════ 賽場尺寸、物理常數與 AI 難度常數 ═══════ */
         const IS_MOBILE = (typeof navigator !== 'undefined' && /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) || (typeof window !== 'undefined' && window.innerWidth < 820);
         const GRADE = { exposure: 0.95, hemiI: 0.90, sunI: 1.25, fillI: 0.35, rimI: 0.25, fogNear: 34, fogFar: 98 };
-        const COURT_W = 6.10, COURT_L = 13.41, HALF_L = COURT_L / 2;
+        const COURT_W = 6.10, COURT_L = 13.41, HALF_L = COURT_L / 2, HALF_W = COURT_W / 2;
         const KITCHEN_D = 2.13, NET_H = 0.914, GRAVITY = 9.81;
         const BALL_R = 0.14, NET_CLEAR = NET_H + BALL_R + 0.14, SERVE_MAX_H = 1.15;
         const REST_Y = 0.55, REST_XZ = 0.68, DEAD_VY = 0.80;
@@ -9677,9 +10545,90 @@ function apiGet(qs) {
             window.openProfileModal = openProfileModal;
             window.closeProfileModal = closeProfileModal;
             window.saveProfile = saveProfile;
+            window.playerProfile = playerProfile;
             window.reopenLoginOverlay = reopenLoginOverlay;
             window.onEditSidInput = onEditSidInput;
+
+        // --- 自動補齊 HTML 事件綁定 (防止 Safari Early-Click ReferenceError) ---
+        if (typeof onSfxToggle === 'function') window.onSfxToggle = onSfxToggle;
+        if (typeof onVolInput === 'function') window.onVolInput = onVolInput;
+        if (typeof testSfx === 'function') window.testSfx = testSfx;
+        if (typeof closeAudioModal === 'function') window.closeAudioModal = closeAudioModal;
+        if (typeof closeTechModal === 'function') window.closeTechModal = closeTechModal;
+        if (typeof switchSocialTab === 'function') window.switchSocialTab = switchSocialTab;
+        if (typeof closeSocial === 'function') window.closeSocial = closeSocial;
+        if (typeof dismissFingerTutorial === 'function') window.dismissFingerTutorial = dismissFingerTutorial;
+        if (typeof triggerFingerDemoSwipe === 'function') window.triggerFingerDemoSwipe = triggerFingerDemoSwipe;
+        if (typeof exportAuditCSV === 'function') window.exportAuditCSV = exportAuditCSV;
+        if (typeof exportAuditJSON === 'function') window.exportAuditJSON = exportAuditJSON;
+        if (typeof clearAuditLog === 'function') window.clearAuditLog = clearAuditLog;
+        if (typeof closeAuditModal === 'function') window.closeAuditModal = closeAuditModal;
+        if (typeof openFriendIG === 'function') window.openFriendIG = openFriendIG;
+        if (typeof battleDigitalTwin === 'function') window.battleDigitalTwin = battleDigitalTwin;
+        if (typeof openMockChat === 'function') window.openMockChat = openMockChat;
+        if (typeof closeSocialCard === 'function') window.closeSocialCard = closeSocialCard;
+        if (typeof closeRulesModal === 'function') window.closeRulesModal = closeRulesModal;
+        if (typeof switchRulesModalTab === 'function') window.switchRulesModalTab = switchRulesModalTab;
+        if (typeof toggleScienceDrawer === 'function') window.toggleScienceDrawer = toggleScienceDrawer;
+        if (typeof togglePhysicsMode === 'function') window.togglePhysicsMode = togglePhysicsMode;
+        if (typeof closeMockChat === 'function') window.closeMockChat = closeMockChat;
+        if (typeof openAudioModal === 'function') window.openAudioModal = openAudioModal;
+        if (typeof openSocial === 'function') window.openSocial = openSocial;
+        if (typeof openRulesModal === 'function') window.openRulesModal = openRulesModal;
+        if (typeof openAuditModal === 'function') window.openAuditModal = openAuditModal;
+        if (typeof nextSpotlightStep === 'function') window.nextSpotlightStep = nextSpotlightStep;
+        if (typeof dismissSpotlightTour === 'function') window.dismissSpotlightTour = dismissSpotlightTour;
+        if (typeof dismissRotatePrompt === 'function') window.dismissRotatePrompt = dismissRotatePrompt;
+        if (typeof setDifficulty === 'function') window.setDifficulty = setDifficulty;
+        if (typeof toggleNavMinimize === 'function') window.toggleNavMinimize = toggleNavMinimize;
+        if (typeof toggleNavMenu === 'function') window.toggleNavMenu = toggleNavMenu;
+        if (typeof forfeitMatch === 'function') window.forfeitMatch = forfeitMatch;
+        if (typeof switchSettingsTab === 'function') window.switchSettingsTab = switchSettingsTab;
+        if (typeof cycleCamView === 'function') window.cycleCamView = cycleCamView;
+        if (typeof enterCamEdit === 'function') window.enterCamEdit = enterCamEdit;
+        if (typeof cycleCardScaleQuick === 'function') window.cycleCardScaleQuick = cycleCardScaleQuick;
+        if (typeof cycleRefereeModeQuick === 'function') window.cycleRefereeModeQuick = cycleRefereeModeQuick;
+        if (typeof cycleJoySpeedQuick === 'function') window.cycleJoySpeedQuick = cycleJoySpeedQuick;
+        if (typeof showFingerTutorial === 'function') window.showFingerTutorial = showFingerTutorial;
+        if (typeof startSpotlightTour === 'function') window.startSpotlightTour = startSpotlightTour;
+        if (typeof syncDigitalTwin === 'function') window.syncDigitalTwin = syncDigitalTwin;
+        if (typeof switchStage === 'function') window.switchStage = switchStage;
+        if (typeof replayDemo === 'function') window.replayDemo = replayDemo;
+        if (typeof toggleWebcamAI === 'function') window.toggleWebcamAI = toggleWebcamAI;
+        if (typeof cycleAimModeQuick === 'function') window.cycleAimModeQuick = cycleAimModeQuick;
+        if (typeof cycleTeachLevelQuick === 'function') window.cycleTeachLevelQuick = cycleTeachLevelQuick;
+        if (typeof cycleDifficultyQuick === 'function') window.cycleDifficultyQuick = cycleDifficultyQuick;
+        if (typeof toggleNetAssist === 'function') window.toggleNetAssist = toggleNetAssist;
+        if (typeof cyclePerfQuick === 'function') window.cyclePerfQuick = cyclePerfQuick;
+        if (typeof openSettingsSub === 'function') window.openSettingsSub = openSettingsSub;
+        if (typeof toggleLayoutPreview === 'function') window.toggleLayoutPreview = toggleLayoutPreview;
+        if (typeof setCardScale === 'function') window.setCardScale = setCardScale;
+        if (typeof resetCardScales === 'function') window.resetCardScales = resetCardScales;
+        if (typeof setAimMode === 'function') window.setAimMode = setAimMode;
+        if (typeof toggleAimInvert === 'function') window.toggleAimInvert = toggleAimInvert;
+        if (typeof setTeachLevel === 'function') window.setTeachLevel = setTeachLevel;
+        if (typeof applyPerfPreset === 'function') window.applyPerfPreset = applyPerfPreset;
+        if (typeof openTechModal === 'function') window.openTechModal = openTechModal;
+        if (typeof importMotionModel === 'function') window.importMotionModel = importMotionModel;
+        if (typeof exportMotionModel === 'function') window.exportMotionModel = exportMotionModel;
+        if (typeof resetMotionModel === 'function') window.resetMotionModel = resetMotionModel;
+        if (typeof onCoachFileSelected === 'function') window.onCoachFileSelected = onCoachFileSelected;
+        if (typeof resetCamCustom === 'function') window.resetCamCustom = resetCamCustom;
+        if (typeof exitCamEdit === 'function') window.exitCamEdit = exitCamEdit;
+        if (typeof skipDemo === 'function') window.skipDemo = skipDemo;
+        if (typeof toggleHelpCollapse === 'function') window.toggleHelpCollapse = toggleHelpCollapse;
+
             window.onEditDeptSelect = onEditDeptSelect;
+
+        if (typeof onTtsToggle === "function") window.onTtsToggle = onTtsToggle;
+        if (typeof setTtsVoiceStyle === "function") window.setTtsVoiceStyle = setTtsVoiceStyle;
+        if (typeof onTtsVoiceSelect === "function") window.onTtsVoiceSelect = onTtsVoiceSelect;
+        if (typeof testTts === "function") window.testTts = testTts;
+        if (typeof speakReferee === "function") window.speakReferee = speakReferee;
+        if (typeof applyEnvironmentLighting === "function") window.applyEnvironmentLighting = applyEnvironmentLighting;
+        if (typeof setEcoMode === "function") window.setEcoMode = setEcoMode;
+        if (typeof updateWindHud === "function") window.updateWindHud = updateWindHud;
+
 
             window.__openProfileModal = openProfileModal;
             window.__closeProfileModal = closeProfileModal;
@@ -9905,6 +10854,40 @@ function apiGet(qs) {
 
 
 /* ─── physics.js ─── */
+
+/* ═══════ 中興湖即時環境風力向量 (NCHU Lake Wind Vector) ═══════ */
+const WIND = {
+    enabled: true,
+    x: 0.75,          // 橫向微風 (m/s)
+    z: -0.35,         // 縱向微風 (m/s)
+    speed: 0.83,
+    directionDeg: 310,
+    gustT: 0,
+    update: function(dt) {
+        this.gustT += dt * 0.45;
+        const baseSpeed = 1.1 + Math.sin(this.gustT) * 0.45 + Math.cos(this.gustT * 1.8) * 0.25;
+        const angle = 290 + Math.sin(this.gustT * 0.6) * 25;
+        const rad = angle * Math.PI / 180;
+        this.x = Math.sin(rad) * baseSpeed;
+        this.z = Math.cos(rad) * baseSpeed;
+        this.speed = Math.hypot(this.x, this.z);
+        this.directionDeg = angle;
+    }
+};
+
+function updateWindHud() {
+    const el = document.getElementById("wind-hud");
+    const arrow = document.getElementById("wind-arrow");
+    const txt = document.getElementById("wind-txt");
+    if (!el || !WIND.enabled) {
+        if (el) el.classList.add("hidden");
+        return;
+    }
+    el.classList.remove("hidden");
+    if (arrow) arrow.style.transform = "rotate(" + Math.round(WIND.directionDeg) + "deg)";
+    if (txt) txt.innerText = "湖風 " + WIND.speed.toFixed(1) + " m/s";
+}
+
 /* ═══════════════════════════════════════════════════════════════════
    NCHU Pickleball V5 - 3D 物理引擎 (Physics Engine)
    積分器：半隱式 Euler (Symplectic Euler)，固定步長 h = 1/120 s
@@ -9925,8 +10908,8 @@ const MAGNUS_K    = 0.5 * AIR_DENSITY * BALL_AREA / BALL_MASS;           // ≈ 
 
 /* 假設值：多孔球缺乏公開風洞資料，以遊戲手感校正 */
 const OMEGA_MAX = 80;      // spin = ±1 對應 80 rad/s（約 760 rpm）
-const CL_SLOPE  = 0.8;     // C_L ≈ 0.8 · S，S = R·|ω| / |v|
-const CL_MAX    = 0.25;
+const CL_SLOPE  = 0.65;    // C_L ≈ 0.65 · S (溫和柔順的馬格努斯曲率)
+const CL_MAX    = 0.20;
 
 const SPIN_DECAY_FAST  = 0.14;   // 1/s
 const SPIN_DECAY_ACAD  = 0.35;   // 1/s
@@ -9939,6 +10922,11 @@ const BALL_VIS = { base: 1, item: 1, glow: 8 };
 /** 共用速度積分（不含碰撞、不改位置）。回傳衰減後的 spin */
 function integrateVel(vel, spin, h, mode) {
     vel.y -= GRAVITY * h;
+    if (WIND.enabled) {
+        // 中興湖穿孔球空氣動力學微風偏轉
+        vel.x += WIND.x * 0.048 * h;
+        vel.z += WIND.z * 0.048 * h;
+    }
 
     if (mode === PHYSICS_MODES.ACADEMIC) {
         // ① 二次方阻力 a = −k|v|v，隱式形式：不會讓速度反向
@@ -9964,10 +10952,10 @@ function integrateVel(vel, spin, h, mode) {
         return spin * Math.exp(-SPIN_DECAY_ACAD * h);
     }
 
-    // ── FAST：與原版 step() 逐行等價 ──
+    // ── FAST：經驗側向加速度（溫和馬格努斯效應，手感穩定不過甩） ──
     if (Math.abs(spin) > 0.04) {
         const spdForward = Math.min(12, Math.max(2, Math.abs(vel.z)));
-        const magnusAcc = spin * 3.6 * (0.80 + 0.20 * (spdForward / 8.0));
+        const magnusAcc = spin * 2.6 * (0.80 + 0.20 * (spdForward / 8.0));
         vel.x += magnusAcc * h;
         spin *= (1 - SPIN_DECAY_FAST * h);
     }
@@ -10030,8 +11018,9 @@ class Physics {
         this.spin = 0;
     }
     sync() {
+        if (typeof ball === 'undefined' || !ball || typeof ballGlow === 'undefined' || !ballGlow) return;
         const k = BALL_VIS.base * BALL_VIS.item;
-        const sq = ballSquash;
+        const sq = (typeof ballSquash !== 'undefined') ? ballSquash : 0;
         ball.position.copy(this.pos);
         ball.scale.set(k * (1 + sq * 0.26), k * (1 - sq * 0.34), k * (1 + sq * 0.26));
         ballGlow.position.copy(this.pos);
@@ -10046,37 +11035,47 @@ class Physics {
         } else {
             ballGlow.material.color.set(0xdcff6a);
         }
-        for (let i = ballTrail.length - 1; i > 0; i--) ballTrail[i].p.copy(ballTrail[i - 1].p);
-        ballTrail[0].p.copy(this.pos);
-        const on = spd > 2.8;
-        for (let i = 0; i < ballTrail.length; i++) {
-            const tr = ballTrail[i], f = 1 - i / ballTrail.length;
-            tr.spr.position.copy(tr.p);
-            const sc = BALL_R * (hasCurve ? 5.2 : 3.8) * f;
-            tr.spr.scale.set(sc, sc, 1);
-            if (hasCurve) {
-                tr.spr.material.color.set(this.spin > 0 ? 0xf6c445 : 0x2d6a4f);
-                tr.spr.material.opacity = on ? (0.48 * f) : 0;
-            } else {
-                tr.spr.material.color.set(0xdcff6a);
-                tr.spr.material.opacity = on ? (0.24 * f * f) : 0;
+        if (typeof ballTrail !== 'undefined' && ballTrail && ballTrail.length > 0) {
+            for (let i = ballTrail.length - 1; i > 0; i--) ballTrail[i].p.copy(ballTrail[i - 1].p);
+            ballTrail[0].p.copy(this.pos);
+            const on = spd > 2.8;
+            for (let i = 0; i < ballTrail.length; i++) {
+                const tr = ballTrail[i], f = 1 - i / ballTrail.length;
+                tr.spr.position.copy(tr.p);
+                const sc = BALL_R * (hasCurve ? 5.2 : 3.8) * f;
+                tr.spr.scale.set(sc, sc, 1);
+                if (hasCurve) {
+                    tr.spr.material.color.set(this.spin > 0 ? 0xf6c445 : 0x2d6a4f);
+                    tr.spr.material.opacity = on ? (0.48 * f) : 0;
+                } else {
+                    tr.spr.material.color.set(0xdcff6a);
+                    tr.spr.material.opacity = on ? (0.24 * f * f) : 0;
+                }
             }
         }
-        ballBlob.position.set(this.pos.x, 0.014, this.pos.z);
-        const hh = THREE.MathUtils.clamp(this.pos.y, 0, 3.2);
-        const bs = THREE.MathUtils.lerp(BALL_R * 3.1, BALL_R * 6.4, hh / 3.2);
-        ballBlob.scale.set(bs, bs, 1);
-        ballBlob.material.opacity = THREE.MathUtils.lerp(0.5, 0.09, hh / 3.2);
+        if (typeof ballBlob !== 'undefined' && ballBlob) {
+            ballBlob.position.set(this.pos.x, 0.014, this.pos.z);
+            const hh = THREE.MathUtils.clamp(this.pos.y, 0, 3.2);
+            const bs = THREE.MathUtils.lerp(BALL_R * 3.1, BALL_R * 6.4, hh / 3.2);
+            ballBlob.scale.set(bs, bs, 1);
+            ballBlob.material.opacity = THREE.MathUtils.lerp(0.5, 0.09, hh / 3.2);
+        }
+        updateWindHud();
     }
-    setPos(x, y, z) { this.pos.set(x, y, z); this.prevPos.copy(this.pos); if (ball) this.sync(); }
+    setPos(x, y, z) {
+        this.pos.set(x, y, z);
+        this.prevPos.copy(this.pos);
+        if (typeof ball !== 'undefined' && ball) this.sync();
+    }
     reset(x, y, z) {
         this.setPos(x, y, z);
         this.prevPos.copy(this.pos);
         this.vel.set(0, 0, 0);
         this.spin = 0;
-        if (ball) ball.rotation.set(0, 0, 0);
+        if (typeof ball !== 'undefined' && ball) ball.rotation.set(0, 0, 0);
     }
     update(dt) {
+        if (WIND.enabled) WIND.update(dt);
         if (state === 'SERVE_READY' || state === 'FAULT' || state === 'OVER' || state === 'CLEARED') {
             this.prevPos.copy(this.pos);
             this.sync();
@@ -10093,7 +11092,7 @@ class Physics {
     step(h) {
         const pz = this.pos.z, py = this.pos.y;
         this.spin = integrateVel(this.vel, this.spin, h, currentPhysicsMode);
-        if (ball) {
+        if (typeof ball !== 'undefined' && ball) {
             ball.rotation.x -= this.vel.z * 3.6 * h;
             ball.rotation.y += this.spin * 16.0 * h;
         }
@@ -10231,6 +11230,7 @@ function swatterHunting() { return typeof FunMode !== 'undefined' && FunMode.act
 
 function onNet() {
     if (demoOn || swatterHunting()) return;
+    if(typeof popFloatText === 'function') popFloatText(PH.pos.x, PH.pos.y, PH.pos.z, 'NET');
     if (scoring()) endRally(lastHitter === 'GOOSE' ? 'PLAYER' : 'GOOSE', '掛網', '球沒過網');
     else fail('掛網', '擊球點再放低一點,往前送出去');
 }
@@ -10238,9 +11238,33 @@ function onBounce() {
     if (demoOn || swatterHunting()) return;
     bounces++;
     const x = PH.pos.x, z = PH.pos.z;
-    if (bounces === 1) {
-        const inCourt = Math.abs(x) <= COURT_W / 2 + BALL_R && Math.abs(z) <= HALF_L + BALL_R;
+    const inCourt = Math.abs(x) <= COURT_W / 2 + BALL_R && Math.abs(z) <= HALF_L + BALL_R;
+
+    // ★ 🧱 對牆特訓模式 (Mode A) 獨立落地規則：
+    // 每次彈跳皆嚴格檢驗是否在場內；出界立即可靠結算；場內反彈（無論何處、無論第幾跳）皆豁免發球落點與未過網，允許自由連續練習！
+    if (typeof isWallPractice !== 'undefined' && isWallPractice) {
         if (!inCourt) {
+            if (typeof popFloatText === 'function') popFloatText(x, 0.05, z, 'OUT');
+            const finalCombo = typeof wallCombo !== 'undefined' ? wallCombo : 0;
+            const finalScore = typeof pScore !== 'undefined' ? pScore : 0;
+            state = 'CLEARED';
+            freeze();
+            clearTimers();
+            locked = true;
+            if (typeof S !== 'undefined' && S.fault) S.fault();
+            if (typeof toast === 'function') toast('🧱 練習球出界', `特訓結算：最高連擊 ${finalCombo} 次`);
+            if (typeof showPracticeSettlementModal === 'function') {
+                showPracticeSettlementModal(finalCombo, finalScore);
+            }
+            return;
+        }
+        if (state === 'SERVE_AIR') state = 'RALLY';
+        return;
+    }
+
+    if (bounces === 1) {
+        if (!inCourt) {
+            if(typeof popFloatText === 'function') popFloatText(x, 0.05, z, 'OUT');
             if (state === 'SERVE_AIR') serveFail('發球出界', '力道略減,看落點圈瞄準對角區');
             else if (scoring()) endRally(lastHitter === 'GOOSE' ? 'PLAYER' : 'GOOSE', '界外球', '第一次落地必須在白線內');
             else fail('界外球', lastHitter === 'GOOSE' ? '對手打出界,重新開始' : '控制力道與方向');
@@ -10264,6 +11288,21 @@ function onBounce() {
 }
 function onDead() {
     if (demoOn || swatterHunting()) return;
+    // ★ 🧱 對牆特訓模式：練習球完全停止滾動時可靠結算
+    if (typeof isWallPractice !== 'undefined' && isWallPractice) {
+        const finalCombo = typeof wallCombo !== 'undefined' ? wallCombo : 0;
+        const finalScore = typeof pScore !== 'undefined' ? pScore : 0;
+        state = 'CLEARED';
+        freeze();
+        clearTimers();
+        locked = true;
+        if (typeof S !== 'undefined' && S.fault) S.fault();
+        if (typeof toast === 'function') toast('🧱 球已停止', `特訓結算：最高連擊 ${finalCombo} 次`);
+        if (typeof showPracticeSettlementModal === 'function') {
+            showPracticeSettlementModal(finalCombo, finalScore);
+        }
+        return;
+    }
     if (scoring()) {
         if (lastHitter === 'PLAYER' && PH.pos.z < 0) endRally('PLAYER', '得分', '球已停止');
         else if (lastHitter === 'GOOSE' && PH.pos.z > 0) endRally('GOOSE', '失分', '球已停止');
@@ -10344,6 +11383,11 @@ function syncPhysicsModeUI() {
         modalBtn.style.background = isAcad ? 'rgba(129, 140, 248, 0.2)' : 'rgba(56, 189, 248, 0.15)';
         modalBtn.style.borderColor = isAcad ? '#818cf8' : '#38bdf8';
     }
+}
+
+if (typeof window !== "undefined") {
+    window.WIND = WIND;
+    window.updateWindHud = updateWindHud;
 }
 
 
@@ -10882,7 +11926,29 @@ function syncPhysicsModeUI() {
                 if (SWING.idle > 0.35) resetSwing();
             }
         }
-        function resetSwing() { SWING.path = 0; SWING.peakV = 0; SWING.active = false; SWING.idle = 0; KIN.vPeak = 0; KIN.vEMA = 0; }
+        // ★ TASK-V8-606: 體感揮拍意圖無量綱啟發式代理指標 (Dimensionless Kinematic Proxy)
+        // 依據任務規範：此數值為基於常規化軀幹尺度的速度代理指標，非經標定之物理 m/s
+        const SWING_PROXY_V_THRESH = 0.85;
+
+        /**
+         * 判定手腕運動是否符合自然前推/向上/側推之揮拍意圖 (無量綱運動學啟發式)
+         * @param {number} relDx 橫向相對位移 (相對於軀幹中心/肩寬)
+         * @param {number} relDy 縱向相對位移 (螢幕座標，負值為向上)
+         * @param {number} relDz 深度相對位移 (負值為朝向鏡頭前推)
+         * @param {number} [proxyV] 當前運動學速度代理指標 (KIN.vPeak)
+         * @returns {boolean}
+         */
+        function evalStrokeIntent(relDx, relDy, relDz, proxyV) {
+            const v = (typeof proxyV === 'number') ? proxyV : KIN.vPeak;
+            if (v < SWING_PROXY_V_THRESH) return false;
+            // 前推 (向鏡頭 dz < -0.025)、向上推 (螢幕 y 減小 dy < -0.025)、橫向側刷 (|dx| > 0.045)
+            const isIntentionalDirection = (relDz < -0.025) || (relDy < -0.025) || (Math.abs(relDx) > 0.045);
+            return isIntentionalDirection;
+        }
+
+        function resetSwing() {
+            SWING.path = 0; SWING.peakV = 0; SWING.active = false; SWING.idle = 0; KIN.vPeak = 0; KIN.vEMA = 0;
+        }
 
         const POWER_W = { a: 0.4, d: 0.6, vScale: 11, dScale: 30, min: 18, max: 92 };
         function hitPower(vPeak, pathNorm) {
@@ -10992,14 +12058,17 @@ function syncPhysicsModeUI() {
             commitAimIdx(AIM.raw * (AIM.zones - 1), dt);
         }
         const YAW = { wMax: 0, ema: 0, DEAD: 0.14, SPAN: 0.55 };
-        function updateTorsoYaw(lS, rS) {
+        function updateTorsoYaw(lS, rS, lH, rH) {
             if (!lS || !rS) return;
             const w = Math.hypot(lS.x - rS.x, lS.y - rS.y);
             YAW.wMax = Math.max(YAW.wMax * 0.999, w);
             if (YAW.wMax < 0.04) return;
             const cosY = THREE.MathUtils.clamp(w / YAW.wMax, 0, 1);
             const mag = Math.sqrt(Math.max(0, 1 - cosY * cosY));
-            const sign = Math.sign((rS.z || 0) - (lS.z || 0)) || 1;
+            const shoulderDz = (rS.z || 0) - (lS.z || 0);
+            const hipDz = (lH && rH) ? ((rH.z || 0) - (lH.z || 0)) : shoulderDz;
+            const combinedDz = shoulderDz * 0.60 + hipDz * 0.40;
+            const sign = Math.sign(combinedDz) || 1;
             YAW.ema = YAW.ema * 0.8 + (sign * mag) * 0.2;
         }
         function updateAimFromTorso(dt) {
@@ -11690,9 +12759,22 @@ function syncPhysicsModeUI() {
         window.updateStance = updateStance;
         window.NORM = NORM;
         window.BODY = BODY;
+        window.evalStrokeIntent = evalStrokeIntent;
+        window.SWING_PROXY_V_THRESH = SWING_PROXY_V_THRESH;
+        window.resetSwing = resetSwing;
+        window.nd = nd;
+        window.aimTargetX = aimTargetX;
+        window.torsoYawDeg = torsoYawDeg;
+        window.YAW = YAW;
+        window.AIM = AIM;
 
         if (typeof module !== 'undefined' && module.exports) {
             module.exports = {
+                nd,
+                aimTargetX,
+                torsoYawDeg,
+                YAW,
+                AIM,
                 OneEuroFilter,
                 filterLandmarks,
                 calculateAngle,
@@ -11701,6 +12783,8 @@ function syncPhysicsModeUI() {
                 updateKinematics,
                 accumulateSwing,
                 resetSwing,
+                evalStrokeIntent,
+                SWING_PROXY_V_THRESH,
                 gradeChain,
                 kcPush,
                 kcReset,
@@ -11816,6 +12900,7 @@ function syncPhysicsModeUI() {
             "🐰 兔兔：看我輕巧放短，再伺機在廚房線前打出追身球！"
         ],
         court_sw: [
+            "🦊 狐狸：想體驗真實體感揮拍嗎？點擊旁邊的【📷 狐狸 · 體感匹克球】按鈕，隨時開啟鏡頭！",
             "🦊 狐狸：近網切球 (Dink) 要放鬆手腕，輕輕推過網帶！",
             "🐧 企鵝：看我的反手提拉！球在廚房線前剛剛好落地！",
             "🏓 雙方切磋中！第二球場是選手們每天清晨的特訓秘密基地～",
@@ -12070,10 +13155,15 @@ function syncPhysicsModeUI() {
             }
         } catch (e) {}
 
-        bubble.innerText = text;
+        if (actorId === 'court_sw') {
+            bubble.innerHTML = `<div style="font-weight:700;">${text}</div><button type="button" class="bubble-act-btn" onclick="startFoxMotionPractice(); if(event)event.stopPropagation();">📷 進入體感特訓</button>`;
+        } else {
+            bubble.innerText = text;
+        }
         targetActor.appendChild(bubble);
 
-        // 2.8 秒後平滑淡出消失
+        // 2.8 秒後平滑淡出消失 (若有按鈕稍長一些 3.8s)
+        const bubbleLife = (actorId === 'court_sw') ? 3800 : 2800;
         setTimeout(() => {
             if (bubble.parentNode) {
                 bubble.style.transition = 'opacity 0.2s ease, transform 0.2s ease';
@@ -12086,7 +13176,22 @@ function syncPhysicsModeUI() {
                     if (bubble.parentNode) bubble.parentNode.removeChild(bubble);
                 }, 220);
             }
-        }, 2800);
+        }, bubbleLife);
+    }
+
+    // 小狐狸特訓：開啟體感匹克球特訓模式
+    function startFoxMotionPractice() {
+        if (typeof closeModeHub === 'function') closeModeHub();
+        if (typeof startWallPractice === 'function') {
+            startWallPractice();
+        }
+        if (typeof startWebcamAI === 'function') {
+            const isCamActive = (typeof isWebcamActive === 'function') ? isWebcamActive() : false;
+            if (!isCamActive) startWebcamAI();
+        }
+        if (typeof toast === 'function') {
+            toast('🦊 小狐狸：體感特訓啟動！', '站在鏡頭前，揮動手臂推拍對抗特訓木牆！');
+        }
     }
 
     // 微視差追蹤
@@ -12140,11 +13245,13 @@ function syncPhysicsModeUI() {
     }
 
     // 匯出全域介面
+    window.startFoxMotionPractice = startFoxMotionPractice;
     window.HubSandbox = {
         start: start,
         stop: stop,
         isRunning: function() { return isRunning; },
-        interactActor: interactActor
+        interactActor: interactActor,
+        startFoxMotionPractice: startFoxMotionPractice
     };
 
 })(window);
@@ -13733,7 +14840,9 @@ function cycleTeachLevelQuick() {
 
 /* ═══════ 彈窗控制器、HUD 面板自由拖曳與卡片縮放手柄 ═══════ */
         const MODAL_IDS = ['login-overlay', 'profile-modal', 'audio-modal', 'tech-modal', 'social-modal',
-            'audit-modal', 'social-card-modal', 'mock-chat-modal', 'rules-modal', 'item-cards-modal'];
+            'audit-modal', 'social-card-modal', 'mock-chat-modal', 'rules-modal', 'item-cards-modal',
+            'first-play-onboarding-modal', 'practice-settlement-modal'];
+        window.MODAL_IDS = MODAL_IDS;
         function isTypingTarget(e) {
             const t = e.target;
             if (!t) return false;
@@ -14327,8 +15436,335 @@ function cycleTeachLevelQuick() {
         window.selectDockStage = selectDockStage;
         window.startDockQuest = startDockQuest;
 
+        /* ═══════════════════════════════════════════════════════════
+           🍃 TASK-V8-605: 首次遊玩引導、對牆特訓結算與單一提示管理器 (UX Controller)
+           ═══════════════════════════════════════════════════════════ */
+        let isOnboardingActive = false;
+        let onboardingCurrentStep = 0;
+
+        const ONBOARDING_STEPS = [
+            {
+                badge: '步驟 1 / 3 · 控制選擇',
+                title: '🎮 選擇控制方式',
+                desc: '💡 <b>新手遊玩建議</b>：建議先使用<b>手機虛擬搖桿 / 觸控滑動</b>熟悉匹克球的雙彈跳與廚房區規則！<br>• <b>手動模式</b>（推薦起步）：按住滑鼠或手機虛擬搖桿，滑動推球體驗走位。<br>• <b>體感模式</b>（隨時切換）：熟悉規則後，可隨時點擊畫面右上角小小的 <b>📷 體感相機按鈕</b>，在鏡頭前揮拍打球！<br><i>（若相機未開啟或無人體，系統將始終自動維持手動暢玩）</i>',
+                btnText: '下一步：揮拍技巧 ▸'
+            },
+            {
+                badge: '步驟 2 / 3 · 揮拍技巧',
+                title: '🎾 基礎推球與揮拍技巧',
+                desc: '匹克球講求節奏與平穩推送：<br>• <b>推球發球</b>：按住並向上滑動（或手臂由下往上送出），拍面低於腰部輕輕向上推動。<br>• <b>弧線過網</b>：將球平穩送出，避免過度用力出界。',
+                btnText: '下一步：特訓目標 ▸'
+            },
+            {
+                badge: '步驟 3 / 3 · 特訓目標',
+                title: '🧱 練習目標：對牆 3 連擊',
+                desc: '現在進入<b>「對牆特訓」</b>練習場！<br>• 瞄準前方的特訓木牆反覆推球。<br>• 只要達成<b>連續回擊 3 次 (3 Combos)</b> 即可完成特訓！',
+                btnText: '開始特訓 🚀'
+            }
+        ];
+
+        function checkFirstPlayOnboarding() {
+            try {
+                const done = localStorage.getItem('nchu_first_play_v8_done');
+                if (done === '1') return;
+            } catch (e) {}
+            startFirstPlayOnboarding(false);
+        }
+
+        function startFirstPlayOnboarding(force) {
+            if (!force) {
+                try {
+                    const done = localStorage.getItem('nchu_first_play_v8_done');
+                    if (done === '1') return;
+                } catch (e) {}
+            }
+            isOnboardingActive = true;
+            onboardingCurrentStep = 0;
+            if (typeof freeze === 'function') freeze();
+            if (typeof clearTimers === 'function') clearTimers();
+            if (typeof state !== 'undefined') state = 'CLEARED';
+            if (typeof locked !== 'undefined') locked = true;
+            const m = document.getElementById('first-play-onboarding-modal');
+            if (m) {
+                m.style.display = 'flex';
+                renderOnboardingStep(0);
+                const nextBtn = document.getElementById('onboarding-next-btn');
+                if (nextBtn) nextBtn.focus();
+            }
+            updatePracticeInstructionBar();
+        }
+
+        function renderOnboardingStep(idx) {
+            if (idx < 0 || idx >= ONBOARDING_STEPS.length) return;
+            onboardingCurrentStep = idx;
+            const step = ONBOARDING_STEPS[idx];
+            const badge = document.getElementById('onboarding-step-badge');
+            const title = document.getElementById('onboarding-title');
+            const desc = document.getElementById('onboarding-desc');
+            const nextBtn = document.getElementById('onboarding-next-btn');
+            const pills = document.querySelectorAll('#onboarding-pills .onboarding-pill');
+
+            if (badge) badge.innerText = step.badge;
+            if (title) title.innerText = step.title;
+            if (desc) desc.innerHTML = step.desc;
+            if (nextBtn) nextBtn.innerText = step.btnText;
+            pills.forEach((p, i) => {
+                p.classList.toggle('on', i === idx);
+            });
+        }
+
+        function nextOnboardingStep() {
+            if (!isOnboardingActive) return;
+            if (onboardingCurrentStep < ONBOARDING_STEPS.length - 1) {
+                renderOnboardingStep(onboardingCurrentStep + 1);
+            } else {
+                dismissFirstPlayOnboarding();
+            }
+        }
+
+        function dismissFirstPlayOnboarding() {
+            isOnboardingActive = false;
+            try {
+                localStorage.setItem('nchu_first_play_v8_done', '1');
+            } catch (e) {}
+            const m = document.getElementById('first-play-onboarding-modal');
+            if (m) m.style.display = 'none';
+            if (typeof locked !== 'undefined') locked = false;
+            if (typeof resetServe === 'function') {
+                resetServe();
+            }
+            updatePracticeInstructionBar();
+            if (typeof toast === 'function') {
+                const inPrac = (typeof isWallPractice !== 'undefined' && isWallPractice);
+                toast(inPrac ? '🧱 特訓開始！' : '🎾 教學結束！', inPrac ? '瞄準木牆紅線上方連續回擊 3 次！' : '準備發球開局！');
+            }
+        }
+
+        function skipFirstPlayOnboarding() {
+            dismissFirstPlayOnboarding();
+        }
+
+        function replayFirstPlayOnboarding() {
+            startFirstPlayOnboarding(true);
+        }
+
+        /* ── 對牆特訓 3 連擊結算卡控制器 ── */
+        function showPracticeSettlementModal(combo, score) {
+            const m = document.getElementById('practice-settlement-modal');
+            if (!m) return;
+            const comboEl = document.getElementById('practice-result-combo');
+            const scoreEl = document.getElementById('practice-result-score');
+            if (comboEl) comboEl.innerText = `${combo} 次`;
+            if (scoreEl) scoreEl.innerText = `${score} 分`;
+            m.style.display = 'flex';
+            const retryBtn = document.getElementById('practice-retry-btn');
+            if (retryBtn) retryBtn.focus();
+        }
+
+        function closePracticeSettlementModal() {
+            const m = document.getElementById('practice-settlement-modal');
+            if (m) m.style.display = 'none';
+        }
+
+        function handlePracticeRetry() {
+            closePracticeSettlementModal();
+            if (typeof retryWallPractice === 'function') {
+                retryWallPractice();
+            }
+        }
+
+        function handlePracticeExitToHub() {
+            closePracticeSettlementModal();
+            if (typeof exitWallPracticeToHub === 'function') {
+                exitWallPracticeToHub();
+            }
+        }
+
+        /* ── 單一提示管理器 (Practice Instruction Bar) ── */
+        let practiceHintTimer = null;
+        function updatePracticeInstructionBar() {
+            const bar = document.getElementById('practice-instruction-bar');
+            if (!bar) return;
+            const inPractice = (typeof isWallPractice !== 'undefined' && isWallPractice);
+            const inOnboarding = !!isOnboardingActive;
+
+            if (!inPractice && !inOnboarding) {
+                bar.style.display = 'none';
+                if (practiceHintTimer) {
+                    clearInterval(practiceHintTimer);
+                    practiceHintTimer = null;
+                }
+                return;
+            }
+            if (!practiceHintTimer) {
+                practiceHintTimer = setInterval(() => {
+                    updatePracticeInstructionBar();
+                }, 400);
+            }
+            bar.style.display = 'flex';
+            const targetTxt = document.getElementById('practice-bar-target');
+            const statusTxt = document.getElementById('practice-bar-status');
+            const fallbackBtn = document.getElementById('practice-bar-fallback-btn');
+
+            const combo = (typeof wallCombo === 'number') ? wallCombo : 0;
+            if (targetTxt) {
+                targetTxt.innerText = `🎯 對牆特訓：目標 3 連擊 · 目前連擊：${combo} / 3`;
+            }
+
+            let camInfo = { status: 'STOPPED', hasPoseData: false, keypointsPresent: false, isStale: false, reason: 'stopped' };
+            if (typeof getMotionTrackingStatus === 'function') {
+                camInfo = getMotionTrackingStatus();
+            } else if (typeof webcamActive !== 'undefined' && webcamActive) {
+                camInfo.status = 'ACTIVE';
+            }
+
+            if (camInfo.status === 'ACTIVE') {
+                if (camInfo.hasPoseData && camInfo.keypointsPresent && !camInfo.isStale) {
+                    if (statusTxt) statusTxt.innerText = '📷 體感模式：有姿態資料 · 向上揮拍推球';
+                    if (fallbackBtn) fallbackBtn.style.display = 'none';
+                } else {
+                    if (statusTxt) statusTxt.innerText = '📷 未偵測到人體姿態';
+                    if (fallbackBtn) {
+                        fallbackBtn.style.display = 'inline-block';
+                        fallbackBtn.innerText = '✕ 關閉相機並改用手動';
+                    }
+                }
+            } else if (camInfo.status === 'STARTING') {
+                if (statusTxt) statusTxt.innerText = '📷 相機啟動中，請稍候...';
+                if (fallbackBtn) fallbackBtn.style.display = 'none';
+            } else {
+                if (statusTxt) statusTxt.innerText = '🖱️ 手動模式：按住並向上滑動推球！';
+                if (fallbackBtn) fallbackBtn.style.display = 'none';
+            }
+        }
+
+        function fallbackToManualMode() {
+            if (typeof stopWebcamAI === 'function') {
+                stopWebcamAI();
+            }
+            updatePracticeInstructionBar();
+            if (typeof toast === 'function') {
+                toast('已切換為手動操作', '按住並向上滑動發球推球！');
+            }
+        }
+
+        /* ── 首頁雙入口 ── */
+        function hubPlayNow() {
+            closeModeHub();
+            if (typeof switchStage === 'function') switchStage(1);
+        }
+
+        function hubMotionPractice() {
+            closeModeHub();
+            if (typeof startWallPractice === 'function') {
+                startWallPractice();
+                checkFirstPlayOnboarding();
+            }
+        }
+
+        /* ── 彈窗焦點陷阱與鍵盤守衛 ── */
+        document.addEventListener('keydown', (e) => {
+            const setModal = document.getElementById('practice-settlement-modal');
+            if (setModal && setModal.style.display !== 'flex' && setModal.style.display !== '') {
+                // not visible
+            } else if (setModal && setModal.style.display === 'flex') {
+                if (e.key === 'Escape') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handlePracticeExitToHub();
+                    return;
+                }
+                if (e.key === ' ' || e.key === 'Enter') {
+                    const activeEl = document.activeElement;
+                    if (activeEl && setModal.contains(activeEl) && activeEl.tagName === 'BUTTON') {
+                        e.stopPropagation();
+                    } else {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handlePracticeRetry();
+                    }
+                    return;
+                }
+                if (e.key === 'Tab') {
+                    const focusable = setModal.querySelectorAll('button:not([disabled])');
+                    if (focusable.length > 0) {
+                        const first = focusable[0];
+                        const last = focusable[focusable.length - 1];
+                        if (e.shiftKey && document.activeElement === first) {
+                            e.preventDefault();
+                            last.focus();
+                        } else if (!e.shiftKey && document.activeElement === last) {
+                            e.preventDefault();
+                            first.focus();
+                        }
+                    }
+                }
+            }
+
+            const onbModal = document.getElementById('first-play-onboarding-modal');
+            if (onbModal && onbModal.style.display === 'flex') {
+                if (e.key === 'Escape') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    skipFirstPlayOnboarding();
+                    return;
+                }
+                if (e.key === ' ' || e.key === 'Enter') {
+                    const activeEl = document.activeElement;
+                    if (activeEl && onbModal.contains(activeEl) && activeEl.tagName === 'BUTTON') {
+                        e.stopPropagation();
+                    } else {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        nextOnboardingStep();
+                    }
+                    return;
+                }
+                if (e.key === 'Tab') {
+                    const focusable = onbModal.querySelectorAll('button:not([disabled])');
+                    if (focusable.length > 0) {
+                        const first = focusable[0];
+                        const last = focusable[focusable.length - 1];
+                        if (e.shiftKey && document.activeElement === first) {
+                            e.preventDefault();
+                            last.focus();
+                        } else if (!e.shiftKey && document.activeElement === last) {
+                            e.preventDefault();
+                            first.focus();
+                        }
+                    }
+                }
+            }
+        });
+
+        window.checkFirstPlayOnboarding = checkFirstPlayOnboarding;
+        window.startFirstPlayOnboarding = startFirstPlayOnboarding;
+        window.nextOnboardingStep = nextOnboardingStep;
+        window.dismissFirstPlayOnboarding = dismissFirstPlayOnboarding;
+        window.skipFirstPlayOnboarding = skipFirstPlayOnboarding;
+        window.replayFirstPlayOnboarding = replayFirstPlayOnboarding;
+        window.showPracticeSettlementModal = showPracticeSettlementModal;
+        window.closePracticeSettlementModal = closePracticeSettlementModal;
+        window.handlePracticeRetry = handlePracticeRetry;
+        window.handlePracticeExitToHub = handlePracticeExitToHub;
+        window.updatePracticeInstructionBar = updatePracticeInstructionBar;
+        window.fallbackToManualMode = fallbackToManualMode;
+        window.hubPlayNow = hubPlayNow;
+        window.hubMotionPractice = hubMotionPractice;
+        window.isOnboardingActive = () => isOnboardingActive;
+        window.getOnboardingStep = () => onboardingCurrentStep;
+        window.anyModalOpen = anyModalOpen;
+
 
 /* ─── social.js ─── */
+
+        let ecoModeActive = false;
+        function setEcoMode(active) {
+            ecoModeActive = !!active;
+            frameSkip = ecoModeActive ? 3 : (PERF_PRESETS[perfLevel].skip || 1);
+        }
+        window.setEcoMode = setEcoMode;
+
 /* ═══════════════════════════════════════════════════════════════════
    NCHU Pickleball V5 - 數位孿生、特徵雷達與雲端審計 (Social & Digital Twin)
    ═══════════════════════════════════════════════════════════════════ */
@@ -14731,10 +16167,15 @@ function cycleTeachLevelQuick() {
                 padY = THREE.MathUtils.clamp(padY, 0.22, 2.0);
                 return;
             }
-            let wantX = 0;
+            let wantX = (typeof RIGHT !== 'undefined' && typeof RIGHT.padXFree === 'number') ? RIGHT.padXFree : 0;
             if (state === 'RALLY' || state === 'SERVE_AIR') {
-                if (PH.vel.z > 0) wantX = THREE.MathUtils.clamp(PH.pos.x - pPos.x, -0.95, 0.95);
-                else wantX = padX * 0.9;
+                if (PH.vel.z > 0) {
+                    const ballRelX = THREE.MathUtils.clamp(PH.pos.x - pPos.x, -0.95, 0.95);
+                    // 柔和磁吸輔助：以真人手部 (65%) 為主導，輔以 35% 迎球導引，不再 100% 強行吸球
+                    wantX = wantX * 0.65 + ballRelX * 0.35;
+                } else {
+                    wantX = wantX * 0.85;
+                }
             }
             padX += (wantX - padX) * Math.min(1, dt * 12);
             padY += (RIGHT.padYTarget - padY) * Math.min(1, dt * 9);
@@ -14771,8 +16212,10 @@ function cycleTeachLevelQuick() {
             }
         }
         function syncAimPips() {
-            D.aimPips.forEach((p, i) => p.classList.toggle('on', i === AIM.idx));
-            if (D.aimName) D.aimName.innerText = AIM_NAMES[AIM.idx];
+            if (typeof D !== 'undefined' && D && Array.isArray(D.aimPips)) {
+                D.aimPips.forEach((p, i) => p.classList.toggle('on', i === AIM.idx));
+            }
+            if (typeof D !== 'undefined' && D && D.aimName && typeof AIM !== 'undefined') D.aimName.innerText = AIM_NAMES[AIM.idx];
         }
         function setAimMode(m) {
             AIM.mode = m; AIM.idx = 2; AIM.cand = 2; AIM.dwell = 0;
@@ -14787,22 +16230,157 @@ function cycleTeachLevelQuick() {
             AIM.invert = !AIM.invert;
             toast('左右方向已' + (AIM.invert ? '反轉' : '還原'), '若動作方向與選格相反就切這個');
         }
-        function toggleWebcamAI() { if (!webcamActive) startWebcamAI(); else stopWebcamAI(); }
+        let webcamStarting = false;
+        let webcamLaunchToken = 0;
+        let lastCameraError = null;
+        let lastPoseTimestamp = 0;
+        let lastPoseSnapshot = {
+            hasPoseData: false,
+            keypointsPresent: false,
+            lastSeenTime: 0
+        };
+
+        function getWebcamStatus() {
+            if (webcamActive) return 'ACTIVE';
+            if (webcamStarting) return 'STARTING';
+            return 'STOPPED';
+        }
+
+        // ★ TASK-V8-606: 體感短效揮拍事件 (250ms 生存期、擊球單次消耗、單一動作僅發單一事件直至結束再武裝)
+        let swingEventGen = 0;
+        let currentSwingEvent = null;
+        let swingArmed = true;
+
+        function rearmSwing() {
+            swingArmed = true;
+        }
+
+        function isSwingArmed() {
+            return swingArmed;
+        }
+
+        function registerSwingEvent(proxySpeed, now) {
+            if (!swingArmed) return null;
+            swingArmed = false;
+            swingEventGen++;
+            currentSwingEvent = {
+                generation: swingEventGen,
+                t: (typeof now === 'number') ? now : performance.now(),
+                proxySpeed: (typeof proxySpeed === 'number') ? proxySpeed : 1.0,
+                consumed: false
+            };
+            if (typeof window !== 'undefined') window.currentSwingEvent = currentSwingEvent;
+            return currentSwingEvent;
+        }
+
+        function revokeSwingEvent() {
+            if (currentSwingEvent) {
+                currentSwingEvent.consumed = true;
+                currentSwingEvent = null;
+            }
+            if (typeof window !== 'undefined') window.currentSwingEvent = null;
+            swingArmed = true;
+        }
+
+        function consumeSwingEvent() {
+            if (currentSwingEvent && !currentSwingEvent.consumed) {
+                currentSwingEvent.consumed = true;
+                const ev = currentSwingEvent;
+                currentSwingEvent = null;
+                if (typeof window !== 'undefined') window.currentSwingEvent = null;
+                return ev;
+            }
+            return null;
+        }
+
+        window.registerSwingEvent = registerSwingEvent;
+        window.revokeSwingEvent = revokeSwingEvent;
+        window.consumeSwingEvent = consumeSwingEvent;
+        window.rearmSwing = rearmSwing;
+        window.isSwingArmed = isSwingArmed;
+        window.currentSwingEvent = null;
+
+        function getMotionTrackingStatus() {
+            const status = getWebcamStatus();
+            const now = performance.now();
+            const isStale = (now - lastPoseTimestamp) > 400;
+            const hasFreshPose = status === 'ACTIVE' && lastPoseSnapshot.hasPoseData && !isStale;
+            const keypointsOk = hasFreshPose && lastPoseSnapshot.keypointsPresent;
+
+            let reason = 'stopped';
+            if (status === 'STARTING') reason = 'starting';
+            else if (status === 'ACTIVE') {
+                if (!lastPoseSnapshot.hasPoseData) reason = 'no-body';
+                else if (isStale) reason = 'stale';
+                else if (!keypointsOk) reason = 'missing-keypoints';
+                else reason = 'ok';
+            } else if (lastCameraError) {
+                reason = 'error';
+            }
+
+            return {
+                status: status,
+                error: lastCameraError,
+                hasPoseData: hasFreshPose,
+                keypointsPresent: keypointsOk,
+                isStale: isStale,
+                reason: reason
+            };
+        }
+
+        function updateQuickCameraFab() {
+            const fab = document.getElementById('quick-camera-fab');
+            const lbl = document.getElementById('quick-cam-lbl');
+            const icon = document.getElementById('quick-cam-icon');
+            if (!fab) return;
+            if (webcamActive) {
+                fab.classList.add('active');
+                if (lbl) lbl.innerText = '體感ON';
+                if (icon) icon.innerText = '🟢';
+            } else if (webcamStarting) {
+                fab.classList.remove('active');
+                if (lbl) lbl.innerText = '啟動中';
+                if (icon) icon.innerText = '⏳';
+            } else {
+                fab.classList.remove('active');
+                if (lbl) lbl.innerText = '體感';
+                if (icon) icon.innerText = '📷';
+            }
+        }
+
+        function toggleWebcamAI() {
+            if (webcamStarting) {
+                stopWebcamAI();
+                return;
+            }
+            if (!webcamActive) startWebcamAI();
+            else stopWebcamAI();
+        }
         let lastWristAngle = 0, lastShoulderAngle = 0;
+        let calibProgress = 0, lastCalibTime = 0;
+        let activeVideoElement = null;
 
         function startWebcamAI() {
             const btn = document.getElementById('ai-toggle-btn');
+            if (webcamStarting || webcamActive) return;
             if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-                btn.innerText = '📷 體感: 不支援';
+                if (btn) btn.innerText = '📷 體感: 不支援';
+                lastCameraError = 'NotSupportedError';
                 toast('此環境無法使用相機', '請用 https:// 或 http://localhost 開啟,不要用 file://');
                 return;
             }
-            btn.innerText = '⏳ 啟動中…'; S.init();
+            const currentLaunchToken = ++webcamLaunchToken;
+            webcamStarting = true;
+            lastCameraError = null;
+            if (btn) btn.innerText = '⏳ 啟動中…';
+            updateQuickCameraFab();
+            if (typeof S !== 'undefined' && S.init) S.init();
             const skelCanvas = document.getElementById('skeleton-canvas');
-            skelCanvas.style.display = 'block';
-            document.getElementById('calibration-box').style.display = 'flex';
-            D.waistRow.style.display = 'flex';
-            setStanceRowVisible(true);
+            if (skelCanvas) skelCanvas.style.display = 'block';
+            const cb = document.getElementById('calibration-box');
+            if (cb) cb.style.display = 'flex';
+            if (typeof D !== 'undefined' && D.waistRow) D.waistRow.style.display = 'flex';
+            if (typeof setStanceRowVisible === 'function') setStanceRowVisible(true);
 
             if (!poseInstance) {
                 poseInstance = new Pose({ locateFile: f => 'https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/' + f });
@@ -14814,6 +16392,7 @@ function cycleTeachLevelQuick() {
                 const video = document.getElementById('webcam-video');
 
                 poseInstance.onResults(res => {
+                    if (!webcamActive) return;
                     if (skelCanvas.width !== skelCanvas.clientWidth) {
                         skelCanvas.width = skelCanvas.clientWidth;
                         skelCanvas.height = skelCanvas.clientHeight;
@@ -14821,40 +16400,85 @@ function cycleTeachLevelQuick() {
                     cx.save();
                     cx.clearRect(0, 0, skelCanvas.width, skelCanvas.height);
                     cx.scale(-1, 1); cx.translate(-skelCanvas.width, 0);
-                    if (video.readyState >= 2) cx.drawImage(video, 0, 0, skelCanvas.width, skelCanvas.height);
+                    const drawVid = activeVideoElement || video || document.getElementById('webcam-video');
+                    if (drawVid && drawVid.readyState >= 2) cx.drawImage(drawVid, 0, 0, skelCanvas.width, skelCanvas.height);
                     cx.restore();
-                    if (!res.poseLandmarks) return;
+                    if (!res.poseLandmarks) {
+                        lastPoseSnapshot = { hasPoseData: false, keypointsPresent: false, lastSeenTime: performance.now() };
+                        revokeSwingEvent();
+                        lastWristPos = { relX: undefined, relY: undefined, relZ: undefined, t: 0 };
+                        lastWristAngle = undefined;
+                        lastShoulderAngle = undefined;
+                        swingArmed = true;
+                        if (typeof updatePracticeInstructionBar === 'function') updatePracticeInstructionBar();
+                        return;
+                    }
 
                     const rawLm = res.poseLandmarks;
                     const lm = (typeof filterLandmarks === 'function') ? filterLandmarks(rawLm, performance.now()) : rawLm;
                     const rS = lm[12], rE = lm[14], rW = lm[16], rH = lm[24];
-                    const lS = lm[11], lW = lm[15];
+                    const lS = lm[11], lW = lm[15], lH = lm[23];
+                    const hasKeypoints = !!(rS && rE && rW && rH && lS);
+                    const visRS = (rS && typeof rS.visibility === 'number') ? rS.visibility : 1.0;
+                    const visLS = (lS && typeof lS.visibility === 'number') ? lS.visibility : 1.0;
+                    const hasVisiblePerson = hasKeypoints && (visRS >= 0.45 && visLS >= 0.45);
+
+                    if (!hasVisiblePerson) {
+                        lastPoseSnapshot = { hasPoseData: false, keypointsPresent: false, lastSeenTime: performance.now() };
+                        revokeSwingEvent();
+                        lastWristPos = { relX: undefined, relY: undefined, relZ: undefined, t: 0 };
+                        lastWristAngle = undefined;
+                        lastShoulderAngle = undefined;
+                        swingArmed = true;
+                        cx.clearRect(0, 0, skelCanvas.width, skelCanvas.height);
+                        if (typeof updatePracticeInstructionBar === 'function') updatePracticeInstructionBar();
+                        return;
+                    }
+
+                    lastPoseTimestamp = performance.now();
+                    lastPoseSnapshot = {
+                        hasPoseData: true,
+                        keypointsPresent: true,
+                        lastSeenTime: lastPoseTimestamp
+                    };
+                    if (typeof updatePracticeInstructionBar === 'function') updatePracticeInstructionBar();
                     drawSkeleton(cx, lm, skelCanvas.width, skelCanvas.height);
                     updateShoulderWidth(lS, rS);
                     updateBodyScale(rS, rH);
-                    updateTorsoYaw(lS, rS);
+                    updateTorsoYaw(lS, rS, lH, rH);
                     updatePalmOpen(lm);
                     updateStance(lm);
                     waistLevel = wristLevel(rW, rH);
                     RIGHT.padYTarget = levelToWorldY(waistLevel);
 
                     if (!servePrepared) {
+                        const now = performance.now();
+                        let dt = lastCalibTime ? (now - lastCalibTime) / 1000 : 0.033;
+                        if (dt > 0.1) dt = 0.1;
+                        lastCalibTime = now;
+
                         if (lW && lS && lW.y < lS.y) {
-                            if (!calibT0) calibT0 = performance.now();
-                            const elapsed = (performance.now() - calibT0) / 1000;
-                            document.getElementById('calib-text').innerHTML =
-                                '✋ 保持左手舉高… (' + Math.max(0, 1.5 - elapsed).toFixed(1) + 's)';
-                            if (elapsed >= 1.5) {
-                                servePrepared = true;
-                                calibT0 = 0;
-                                document.getElementById('calibration-box').style.display = 'none';
-                                toast('✅ 左手解鎖完成!', '拍面低於腰 → 向上推拍 → 收拍抬過肩');
-                            }
+                            calibProgress += dt;
                         } else {
-                            calibT0 = 0;
-                            document.getElementById('calib-text').innerHTML =
-                                '✋ 請將【左手】舉高過頭<br>維持 1.5 秒解鎖球場!';
+                            calibProgress -= dt * 1.5;
                         }
+                        calibProgress = Math.max(0, Math.min(calibProgress, 0.6));
+
+                        if (calibProgress >= 0.58) { // small tolerance for floating point
+                            servePrepared = true;
+                            calibProgress = 0;
+                            lastCalibTime = 0;
+                            document.getElementById('calibration-box').style.display = 'none';
+                            toast('✅ 左手解鎖完成!', '拍面低於腰 → 向上推拍 → 收拍抬過肩');
+                        } else if (calibProgress > 0.05) {
+                            document.getElementById('calib-text').innerHTML =
+                                '✋ 保持左手舉高… (' + Math.max(0, 0.6 - calibProgress).toFixed(1) + 's)';
+                        } else {
+                            document.getElementById('calib-text').innerHTML =
+                                '✋ 請將【左手】舉高過頭<br>維持 0.6 秒解鎖球場!';
+                        }
+                    } else {
+                        lastCalibTime = 0;
                     }
 
                     if (!(rS && rE && rW && rH)) return;
@@ -14862,17 +16486,31 @@ function cycleTeachLevelQuick() {
                     RIGHT.padXFree = THREE.MathUtils.clamp((0.5 - rW.x) * 2.8, -0.95, 0.95);
 
                     const now = performance.now();
-                    const dt = Math.max(0.01, (now - lastWristPos.t) / 1000);
+                    const isResumeFrame = (lastWristPos.relX === undefined || lastWristPos.t === 0 || (now - lastWristPos.t) > 350);
+                    const dt = isResumeFrame ? 0.033 : Math.max(0.01, (now - lastWristPos.t) / 1000);
                     const tc = { x: (lS.x + rS.x) / 2, y: (lS.y + rS.y) / 2, z: ((lS.z || 0) + (rS.z || 0)) / 2 };
                     const SW = NORM.ready ? NORM.W : 1;
                     const relX = (rW.x - tc.x) / SW, relY = (rW.y - tc.y) / SW, relZ = ((rW.z || 0) - tc.z) / SW;
-                    const lx = lastWristPos.relX !== undefined ? lastWristPos.relX : relX;
-                    const ly = lastWristPos.relY !== undefined ? lastWristPos.relY : relY;
-                    const lz = lastWristPos.relZ !== undefined ? lastWristPos.relZ : relZ;
 
-                    const step = nd(relX - lx, relY - ly, relZ - lz);
+                    // ★ TASK-V8-606: 重新入鏡跳躍防護 (Resume Frame Guard)
+                    // 姿態中斷後第一幀僅初始化參考基準，跳過差分位移與動力學計算，杜絕假性爆發揮拍！
+                    if (isResumeFrame) {
+                        lastWristPos = { relX: relX, relY: relY, relZ: relZ, t: now };
+                        lastWristAngle = elA;
+                        lastShoulderAngle = shA;
+                        return;
+                    }
+
+                    const lx = lastWristPos.relX, ly = lastWristPos.relY, lz = lastWristPos.relZ;
+                    const dRelX = relX - lx, dRelY = relY - ly, dRelZ = relZ - lz;
+                    const step = nd(dRelX, dRelY, dRelZ);
                     updateKinematics(step, dt);
                     accumulateSwing(step, dt);
+
+                    // ★ TASK-V8-606: 揮拍意圖評估 (無量綱方向位移與速度門檻)
+                    const hasStrokeIntent = (typeof evalStrokeIntent === 'function')
+                        ? evalStrokeIntent(dRelX, dRelY, dRelZ, KIN.vPeak)
+                        : (KIN.vPeak >= 0.85 && (dRelZ < -0.025 || dRelY < -0.025 || Math.abs(dRelX) > 0.045));
 
                     power = hitPower(KIN.vPeak, SWING.path);
                     const pct = THREE.MathUtils.clamp((power - POWER_W.min) / (POWER_W.max - POWER_W.min) * 100, 0, 100);
@@ -14882,11 +16520,26 @@ function cycleTeachLevelQuick() {
                     if (servePrepared) { updateAimFromLeftHand(lW, tc.x, dt); updateAimFromTorso(dt); }
                     updateServeFSM(lm, dt);
 
-                    const shD = Math.abs(shA - lastShoulderAngle), elD = Math.abs(elA - lastWristAngle);
-                    const realSwing = (KIN.vPeak >= SFSM.TH_V * tScale() * 0.75 || shD > 30 || elD > 40)
-                        && SWING.path > SFSM.TH_D * tScale() * 0.5;
-                    if (state === 'RALLY' && realSwing && swingT <= 0 && !locked) {
-                        swingT = 0.22; swingP = power; tryHit(); resetSwing();
+                    const shD = Math.abs(shA - (lastShoulderAngle !== undefined ? lastShoulderAngle : shA));
+                    const elD = Math.abs(elA - (lastWristAngle !== undefined ? lastWristAngle : elA));
+                    // ★ 防抖手作弊檢測已移除：舊版單幀角度差分會誤判所有正常揮拍
+
+                    // ★ TASK-V8-606: 體感主動揮拍意圖事件生成 (杜絕手臂微動/轉體誤判為自動接球)
+                    // 嚴格要求符合 evalStrokeIntent 定義之速度 (vPeak >= 0.85) 與方向位移 (推拍 dy/dz < -0.025 或刷拍 |dx| > 0.045)
+                    // 徹底移除舊版單純關節角度位移 (shD > 30, elD > 40) 導致之「球來自動接球」誤觸發！
+                    const isSwingMotion = hasStrokeIntent && !locked;
+                    if (isSwingMotion) {
+                        if (swingArmed) {
+                            registerSwingEvent(KIN.vPeak, now);
+                            swingArmed = false;
+                            tryHit();
+                        } else {
+                            // 同一揮拍動作持續中：不重複註冊新事件，但允許 tryHit 判定擊球
+                            tryHit();
+                        }
+                    } else {
+                        // 只要未處於前向出拍狀態 (如引拍、收拍、停頓)，立即就緒重新武裝，確保向前揮擊必定觸發！
+                        swingArmed = true;
                     }
                     kcPush(now, torsoYawDeg(), shA, elA);
                     lastWristPos = { relX: relX, relY: relY, relZ: relZ, t: now };
@@ -14894,23 +16547,90 @@ function cycleTeachLevelQuick() {
                 });
             }
 
-            const video = document.getElementById('webcam-video');
+            // 隔離每次相機啟動的影片來源，杜絕共用 video 元素遭晚到回呼覆蓋串流
+            const launchVideo = (typeof document !== 'undefined' && document.createElement)
+                ? document.createElement('video')
+                : (document.getElementById('webcam-video') || {});
+            launchVideo.playsInline = true;
+            launchVideo.muted = true;
+            launchVideo.width = 320;
+            launchVideo.height = 240;
+
             let fc = 0;
-            cameraUtils = new Camera(video, {
+            const instanceCamera = new Camera(launchVideo, {
                 onFrame: async () => {
                     fc++;
-                    if (fc % frameSkip === 0 && webcamActive && poseInstance)
-                        await poseInstance.send({ image: video });
+                    if (fc % frameSkip === 0 && webcamActive && poseInstance && cameraUtils === instanceCamera)
+                        await poseInstance.send({ image: launchVideo });
                 },
                 width: 320, height: 240
             });
-            cameraUtils.start().then(() => {
-                webcamActive = true; servePrepared = false; btn.innerText = '📷 體感: 開'; syncAimPips();
+            cameraUtils = instanceCamera;
+            instanceCamera.start().then(() => {
+                if (currentLaunchToken !== webcamLaunchToken || !webcamStarting) {
+                    try { instanceCamera.stop(); } catch (e) {}
+                    if (launchVideo && launchVideo.srcObject && launchVideo.srcObject.getTracks) {
+                        launchVideo.srcObject.getTracks().forEach(t => t.stop());
+                        launchVideo.srcObject = null;
+                    }
+                    if (cameraUtils === instanceCamera) {
+                        cameraUtils = null;
+                        if (activeVideoElement === launchVideo) activeVideoElement = null;
+                        const v = document.getElementById('webcam-video');
+                        if (v && v.srcObject && v.srcObject.getTracks) {
+                            v.srcObject.getTracks().forEach(t => t.stop());
+                            v.srcObject = null;
+                        }
+                    }
+                    return;
+                }
+                cameraUtils = instanceCamera;
+                activeVideoElement = launchVideo;
+                const domVideo = document.getElementById('webcam-video');
+                if (domVideo) {
+                    domVideo.srcObject = launchVideo.srcObject;
+                    if (typeof domVideo.play === 'function') domVideo.play().catch(() => {});
+                }
+                webcamStarting = false;
+                webcamActive = true;
+                servePrepared = false;
+                if (btn) btn.innerText = '📷 體感: 開';
+                updateQuickCameraFab();
+                syncAimPips();
+                document.body.classList.add('distant-hud-active');
+                if (typeof speakReferee === 'function') speakReferee('體感模式已啟動，請退後三公尺開打！');
                 toast('體感 AI 已啟動', '預設 🔒 自動對角,先專心練揮拍時機');
                 syncSubbarStates();
+                if (typeof updatePracticeInstructionBar === 'function') updatePracticeInstructionBar();
             }).catch(err => {
+                if (launchVideo && launchVideo.srcObject && launchVideo.srcObject.getTracks) {
+                    launchVideo.srcObject.getTracks().forEach(t => t.stop());
+                    launchVideo.srcObject = null;
+                }
+                if (currentLaunchToken !== webcamLaunchToken) {
+                    try { instanceCamera.stop(); } catch (e) {}
+                    if (cameraUtils === instanceCamera) {
+                        cameraUtils = null;
+                    }
+                    return;
+                }
+                webcamStarting = false;
+                webcamActive = false;
+                updateQuickCameraFab();
+                if (cameraUtils === instanceCamera) {
+                    cameraUtils = null;
+                }
+                if (activeVideoElement === launchVideo) {
+                    activeVideoElement = null;
+                }
+                const domVideo = document.getElementById('webcam-video');
+                if (domVideo && domVideo.srcObject && domVideo.srcObject.getTracks) {
+                    domVideo.srcObject.getTracks().forEach(t => t.stop());
+                    domVideo.srcObject = null;
+                }
                 console.error(err);
                 const name = (err && err.name) || String(err);
+                lastCameraError = name;
                 const msg = {
                     NotAllowedError: '剛才按了「封鎖」→ 點網址列相機圖示改成允許,再重載',
                     NotFoundError: '找不到鏡頭 → 確認外接攝影機已插上',
@@ -14918,19 +16638,41 @@ function cycleTeachLevelQuick() {
                     OverconstrainedError: '鏡頭不支援 320x240 解析度',
                     SecurityError: '需要 https:// 或 localhost 環境'
                 }[name] || name;
-                btn.innerText = '📷 體感: 失敗';
+                if (btn) btn.innerText = '📷 體感: 失敗';
                 skelCanvas.style.display = 'none';
-                D.waistRow.style.display = 'none';
-                setStanceRowVisible(false);
-                document.getElementById('calibration-box').style.display = 'none';
+                if (typeof D !== 'undefined' && D.waistRow) D.waistRow.style.display = 'none';
+                if (typeof setStanceRowVisible === 'function') setStanceRowVisible(false);
+                const cb = document.getElementById('calibration-box');
+                if (cb) cb.style.display = 'none';
                 toast('體感啟動失敗', msg);
                 syncSubbarStates();
+                if (typeof updatePracticeInstructionBar === 'function') updatePracticeInstructionBar();
             });
         }
         function stopWebcamAI() {
+            webcamLaunchToken++;
+            webcamStarting = false;
             webcamActive = false;
+            lastCameraError = null;
+            lastPoseTimestamp = 0;
+            lastPoseSnapshot = { hasPoseData: false, keypointsPresent: false, lastSeenTime: 0 };
+            revokeSwingEvent();
+            lastWristPos = { relX: undefined, relY: undefined, relZ: undefined, t: 0 };
+            lastWristAngle = undefined;
+            lastShoulderAngle = undefined;
             servePrepared = true;
-            if (cameraUtils) cameraUtils.stop();
+            document.body.classList.remove('distant-hud-active');
+            if (cameraUtils) {
+                try { cameraUtils.stop(); } catch (e) {}
+                cameraUtils = null;
+            }
+            if (activeVideoElement) {
+                if (activeVideoElement.srcObject && activeVideoElement.srcObject.getTracks) {
+                    activeVideoElement.srcObject.getTracks().forEach(t => t.stop());
+                }
+                activeVideoElement.srcObject = null;
+                activeVideoElement = null;
+            }
             const video = document.getElementById('webcam-video');
             if (video && video.srcObject) {
                 const st = video.srcObject;
@@ -14939,16 +16681,44 @@ function cycleTeachLevelQuick() {
             }
             const sc = document.getElementById('skeleton-canvas');
             if (sc) { sc.getContext('2d').clearRect(0, 0, sc.width, sc.height); sc.style.display = 'none'; }
-            document.getElementById('ai-toggle-btn').innerText = '📷 體感: 關';
-            document.getElementById('calibration-box').style.display = 'none';
-            D.waistRow.style.display = 'none';
-            setStanceRowVisible(false);
-            D.aimHud.classList.remove('on');
-            aimZoneMeshes.forEach(m => m.visible = false);
+            const btn = document.getElementById('ai-toggle-btn');
+            if (btn) btn.innerText = '📷 體感: 關';
+            updateQuickCameraFab();
+            const cb = document.getElementById('calibration-box');
+            if (cb) cb.style.display = 'none';
+            if (typeof D !== 'undefined' && D.waistRow) D.waistRow.style.display = 'none';
+            if (typeof setStanceRowVisible === 'function') setStanceRowVisible(false);
+            if (typeof D !== 'undefined' && D.aimHud) D.aimHud.classList.remove('on');
+            if (typeof aimZoneMeshes !== 'undefined') aimZoneMeshes.forEach(m => m.visible = false);
             resetServeFSM(); kcReset();
             stanceOK = false;
             toast('體感 AI 已關閉', '已切換回滑鼠/鍵盤控制');
             syncSubbarStates();
+            if (typeof updatePracticeInstructionBar === 'function') updatePracticeInstructionBar();
+        }
+
+        window.getWebcamStatus = getWebcamStatus;
+        window.getMotionTrackingStatus = getMotionTrackingStatus;
+        window.isWebcamStarting = () => webcamStarting;
+        window.isWebcamActive = () => webcamActive;
+        window.toggleWebcamAI = toggleWebcamAI;
+        window.startWebcamAI = startWebcamAI;
+        window.stopWebcamAI = stopWebcamAI;
+        window.updateQuickCameraFab = updateQuickCameraFab;
+        window.getActiveVideoElement = () => activeVideoElement;
+
+        if (typeof module !== 'undefined' && module.exports) {
+            module.exports = {
+                getWebcamStatus,
+                getMotionTrackingStatus,
+                getActiveVideoElement: () => activeVideoElement,
+                isWebcamStarting: () => webcamStarting,
+                isWebcamActive: () => webcamActive,
+                toggleWebcamAI,
+                startWebcamAI,
+                stopWebcamAI,
+                updateQuickCameraFab
+            };
         }
 
         /* ═══════════════════════════════════════════════
@@ -17519,6 +19289,7 @@ function cycleTeachLevelQuick() {
             }
         }
         let zoneServe, arc, ringLand, ringSpot, warnKitchen, rings = [];
+        let floatTexts = [], floatTextures = {};
         let practiceWallMesh = null, isWallPractice = false, wallCombo = 0;
         window.isWallPractice = false;
 
@@ -17763,11 +19534,15 @@ function cycleTeachLevelQuick() {
             TEX_GLOW = glowTex(); TEX_BLOB = softBlobTex();
             buildLights(); buildEnvironment(); buildCourt(); buildNet(); buildPracticeWall();
             buildBall(); buildSteve(); buildCreeper(); buildGuides();
-            buildAimZones(); buildRingPool();
+            buildAimZones(); buildRingPool(); buildFloatTextPool();
             if (typeof FunMode !== 'undefined' && FunMode.init) FunMode.init();
         }
+        let fillLight = null, rimLight = null, hemiLight = null;
+        let stadiumLights = [];
+
         function buildLights() {
-            scene.add(new THREE.HemisphereLight(0xf8f3e6, 0x476b38, GRADE.hemiI * 0.85));
+            hemiLight = new THREE.HemisphereLight(0xf8f3e6, 0x476b38, GRADE.hemiI * 0.85);
+            scene.add(hemiLight);
             sunKey = new THREE.DirectionalLight(0xfff7e6, GRADE.sunI);
             const key = sunKey;
             key.position.set(8, 15, 9); key.castShadow = true;
@@ -17778,11 +19553,79 @@ function cycleTeachLevelQuick() {
             key.shadow.camera.near = 1; key.shadow.camera.far = 42;
             key.shadow.bias = -0.0012; key.shadow.radius = 3;
             scene.add(key);
-            const fill = new THREE.DirectionalLight(0xdcebf7, GRADE.fillI * 0.80);
-            fill.position.set(-9, 6, 7); scene.add(fill);
-            const rim = new THREE.DirectionalLight(0xfef3c7, GRADE.rimI * 0.70);
-            rim.position.set(-2, 5, -13); scene.add(rim);
+            fillLight = new THREE.DirectionalLight(0xdcebf7, GRADE.fillI * 0.80);
+            fillLight.position.set(-9, 6, 7); scene.add(fillLight);
+            rimLight = new THREE.DirectionalLight(0xfef3c7, GRADE.rimI * 0.70);
+            rimLight.position.set(-2, 5, -13); scene.add(rimLight);
+            applyEnvironmentLighting();
         }
+
+        function applyEnvironmentLighting(forcedHour) {
+            if (!sunKey || !fillLight || !rimLight || !hemiLight) return "☀️ 正午晴空";
+            const now = new Date();
+            const h = (typeof forcedHour === "number") ? forcedHour : (now.getHours() + now.getMinutes() / 60);
+
+            if (h >= 6 && h < 10.5) {
+                hemiLight.color.setHex(0xfef3c7);
+                hemiLight.groundColor.setHex(0x386641);
+                sunKey.color.setHex(0xffedd5);
+                sunKey.position.set(12, 11, 8);
+                sunKey.intensity = GRADE.sunI * 0.92;
+                fillLight.color.setHex(0xdbeafe);
+                rimLight.color.setHex(0xfef08a);
+                if (ren) ren.toneMappingExposure = GRADE.exposure * 0.98;
+                return "🌅 湖畔晨曦";
+            } else if (h >= 10.5 && h < 16.5) {
+                hemiLight.color.setHex(0xf8f3e6);
+                hemiLight.groundColor.setHex(0x476b38);
+                sunKey.color.setHex(0xfff7e6);
+                sunKey.position.set(8, 16, 9);
+                sunKey.intensity = GRADE.sunI;
+                fillLight.color.setHex(0xdcebf7);
+                rimLight.color.setHex(0xfef3c7);
+                if (ren) ren.toneMappingExposure = GRADE.exposure;
+                return "☀️ 正午晴空";
+            } else if (h >= 16.5 && h < 18.75) {
+                hemiLight.color.setHex(0xfde047);
+                hemiLight.groundColor.setHex(0x713f12);
+                sunKey.color.setHex(0xf97316);
+                sunKey.position.set(-14, 7, 10);
+                sunKey.intensity = GRADE.sunI * 1.15;
+                fillLight.color.setHex(0xa855f7);
+                rimLight.color.setHex(0xfbbf24);
+                if (ren) ren.toneMappingExposure = GRADE.exposure * 1.05;
+                return "🌇 中興湖晚霞";
+            } else {
+                hemiLight.color.setHex(0x1e293b);
+                hemiLight.groundColor.setHex(0x0f172a);
+                sunKey.color.setHex(0x94a3b8);
+                sunKey.position.set(0, 18, 0);
+                sunKey.intensity = 0.35;
+                fillLight.color.setHex(0x38bdf8);
+                rimLight.color.setHex(0x6366f1);
+                if (ren) ren.toneMappingExposure = GRADE.exposure * 1.12;
+                if (stadiumLights.length === 0 && window.THREE) {
+                    const hw = (typeof HALF_W !== 'undefined') ? HALF_W : (typeof COURT_W !== 'undefined' ? COURT_W / 2 : 3.05);
+                    const hl = (typeof HALF_L !== 'undefined') ? HALF_L : (typeof COURT_L !== 'undefined' ? COURT_L / 2 : 6.70);
+                    const corners = [
+                        [-hw - 1.2, 5.5, -hl - 1.0],
+                        [hw + 1.2, 5.5, -hl - 1.0],
+                        [-hw - 1.2, 5.5, hl + 1.0],
+                        [hw + 1.2, 5.5, hl + 1.0]
+                    ];
+                    corners.forEach(([x, y, z]) => {
+                        const sl = new THREE.SpotLight(0xfef9c3, 1.4, 22, Math.PI / 4, 0.4, 1.2);
+                        sl.position.set(x, y, z);
+                        sl.target.position.set(x * 0.3, 0, z * 0.3);
+                        scene.add(sl);
+                        scene.add(sl.target);
+                        stadiumLights.push(sl);
+                    });
+                }
+                return "🌙 夜間球場星空";
+            }
+        }
+        window.applyEnvironmentLighting = applyEnvironmentLighting;
         let scoreboard3DMesh = null, scoreboard3DTex = null;
         function updateScore3D() {
             if (!scoreboard3DTex) return;
@@ -18225,19 +20068,61 @@ function cycleTeachLevelQuick() {
             toast('🧱 對牆特訓開始！', '瞄準練習牆紅線以上反覆推球抽球！');
             announceReferee('🧱 對牆特訓模式！', '向練習牆發球開始！', true);
             resetServe();
+            if (typeof updatePracticeInstructionBar === 'function') updatePracticeInstructionBar();
+        }
+
+        function retryWallPractice() {
+            isWallPractice = true;
+            window.isWallPractice = true;
+            wallCombo = 0;
+            pScore = 0; aScore = 0;
+            server = 'PLAYER';
+            if (gooseServeTimer) { clearTimeout(gooseServeTimer); gooseServeTimer = null; }
+            if (typeof FunMode !== 'undefined') {
+                FunMode.clearAll();
+                FunMode.enabled = false;
+                FunMode.syncUI();
+            }
+            if (practiceWallMesh) practiceWallMesh.visible = true;
+            if (gGrp) gGrp.visible = false;
+            if (flyMesh) flyMesh.visible = false;
+            if (gooseMesh) gooseMesh.visible = false;
+            if (gArm) gArm.visible = false;
+            if (flyDizzy) flyDizzy.visible = false;
+            if (typeof updateDynamicStagePill === 'function') {
+                updateDynamicStagePill(1, 0, 0);
+                const sTxt = document.getElementById('dsp-stage');
+                if (sTxt) sTxt.innerText = '🧱 對牆特訓 · 連擊挑戰';
+            }
+            resetServe();
+            if (typeof updatePracticeInstructionBar === 'function') updatePracticeInstructionBar();
+        }
+
+        function exitWallPracticeToHub() {
+            isWallPractice = false;
+            window.isWallPractice = false;
+            if (practiceWallMesh) practiceWallMesh.visible = false;
+            if (gGrp) gGrp.visible = true;
+            updateOpponentMeshVisibility();
+            locked = false;
+            if (typeof updatePracticeInstructionBar === 'function') updatePracticeInstructionBar();
+            if (typeof openModeHub === 'function') openModeHub();
+            else switchStage(1);
         }
 
         function onWallHit(x, y) {
-            if (y < 0.91) {
+            if (state === 'SERVE_AIR') state = 'RALLY';
+            const isLow = (y < 0.91);
+            const isBullseye = !isLow && (Math.abs(x) < 0.8 && Math.abs(y - 1.45) < 0.45);
+
+            if (isLow) {
+                // 低於網高白線 (0.91m)：發出擦網反彈提示，但不中斷特訓、不清零連擊，亦不增加有效連擊！
                 S.net(); addShake(0.08);
                 popRing(x, 0.05, 1.8, 0xff5555);
-                if (wallCombo > 0) {
-                    announceReferee('⚠️ 低於網高！', `連擊中斷 (最高連擊: ${wallCombo})`, false);
-                }
-                wallCombo = 0;
+                pScore += 1;
+                announceReferee(`🧱 壓低擊牆！連擊保持 x${wallCombo}`, '球路過低擦網，請抬高擊球點！', false);
             } else {
                 wallCombo++;
-                const isBullseye = Math.abs(x) < 0.8 && Math.abs(y - 1.45) < 0.45;
                 if (isBullseye) {
                     S.point(); addShake(0.12);
                     popRing(x, y, 2.4, 0xf6c445);
@@ -18249,12 +20134,34 @@ function cycleTeachLevelQuick() {
                     pScore += 1;
                     announceReferee(`🧱 命中！連擊 x${wallCombo}`, '連續控球中！', false);
                 }
-                if (typeof updateDynamicStagePill === 'function') {
-                    updateDynamicStagePill(1, pScore, wallCombo);
+            }
+
+            if (typeof updateDynamicStagePill === 'function') {
+                updateDynamicStagePill(1, pScore, wallCombo);
+            }
+            if (typeof addPlayerExp === 'function') {
+                addPlayerExp(isBullseye ? 10 : 5, '對牆特訓');
+            }
+            if (typeof updatePracticeInstructionBar === 'function') {
+                updatePracticeInstructionBar();
+            }
+            if (isWallPractice && wallCombo >= 3) {
+                // ★ 達成對牆 3 連擊特訓目標，進入結算保護態 (阻止再次發球與球體持續運動)
+                state = 'CLEARED';
+                freeze();
+                clearTimers();
+                locked = true;
+                popRing(x, y, 3.0, 0xf6c445);
+                if (typeof S !== 'undefined' && S.point) S.point();
+                if (typeof showPracticeSettlementModal === 'function') {
+                    showPracticeSettlementModal(wallCombo, pScore);
                 }
+                return;
             }
         }
         window.initWallPractice = initWallPractice;
+        window.retryWallPractice = retryWallPractice;
+        window.exitWallPracticeToHub = exitWallPracticeToHub;
         window.onWallHit = onWallHit;
 
         function buildNet() {
@@ -18608,6 +20515,65 @@ function cycleTeachLevelQuick() {
             warnKitchen.rotation.x = -Math.PI / 2; warnKitchen.position.set(0, 0.006, KITCHEN_D / 2);
             scene.add(warnKitchen);
         }
+        function buildFloatTextPool() {
+            const templates = {
+                'SMASH!': { col: '#facc15', size: 90, stroke: '#9a3412', scale: 0.65, yOff: 1.2, drift: 1.5 },
+                'PERFECT!': { col: '#38bdf8', size: 70, stroke: '#0284c7', scale: 0.55, yOff: 1.0, drift: 1.2 },
+                'GOOD': { col: '#4ade80', size: 60, stroke: '#166534', scale: 0.45, yOff: 0.9, drift: 1.0 },
+                'OUT': { col: '#f87171', size: 80, stroke: '#7f1d1d', scale: 0.55, yOff: 0.6, drift: 0.8 },
+                'NET': { col: '#f87171', size: 80, stroke: '#7f1d1d', scale: 0.55, yOff: 0.6, drift: 0.8 },
+                'FAULT': { col: '#ef4444', size: 80, stroke: '#7f1d1d', scale: 0.55, yOff: 0.6, drift: 0.8 },
+                'MISS': { col: '#94a3b8', size: 60, stroke: '#334155', scale: 0.45, yOff: 0.6, drift: 0.5 }
+            };
+            for (const [key, tpl] of Object.entries(templates)) {
+                const cvs = document.createElement('canvas');
+                cvs.width = 512; cvs.height = 256;
+                const ctx = cvs.getContext('2d');
+                ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                ctx.font = `bold ${tpl.size}px 'Arial Black', sans-serif`;
+                ctx.lineWidth = 10; ctx.strokeStyle = tpl.stroke;
+                ctx.strokeText(key, 256, 128);
+                ctx.fillStyle = tpl.col;
+                ctx.fillText(key, 256, 128);
+                const tex = new THREE.CanvasTexture(cvs);
+                tex.minFilter = THREE.LinearFilter;
+                floatTextures[key] = { tex, cfg: tpl };
+            }
+            for (let i = 0; i < 8; i++) {
+                const mat = new THREE.SpriteMaterial({ map: null, transparent: true, opacity: 0, depthWrite: false });
+                const sp = new THREE.Sprite(mat);
+                sp.visible = false;
+                scene.add(sp);
+                floatTexts.push({ m: sp, t: 0, life: 0, oy: 0, drift: 0 });
+            }
+        }
+        function popFloatText(x, y, z, key) {
+            const tmpl = floatTextures[key];
+            if (!tmpl) return;
+            for (const f of floatTexts) {
+                if (f.life <= 0) {
+                    f.m.material.map = tmpl.tex;
+                    f.m.material.opacity = 1.0;
+                    f.m.scale.set(tmpl.cfg.scale * 2, tmpl.cfg.scale, 1);
+                    f.m.position.set(x, y + tmpl.cfg.yOff, z);
+                    f.oy = f.m.position.y;
+                    f.drift = tmpl.cfg.drift;
+                    f.life = 1.0; f.t = 0;
+                    f.m.visible = true;
+                    return;
+                }
+            }
+        }
+        function updateFloatTexts(dt) {
+            for (const f of floatTexts) {
+                if (f.life <= 0) continue;
+                f.t += dt;
+                const k = f.t / f.life;
+                if (k >= 1) { f.life = 0; f.m.visible = false; continue; }
+                f.m.position.y = f.oy + Math.pow(k, 0.5) * f.drift;
+                f.m.material.opacity = k > 0.5 ? 1 - (k - 0.5) / 0.5 : 1.0;
+            }
+        }
         function buildRingPool() {
             for (let i = 0; i < 8; i++) {
                 const m = new THREE.Mesh(new THREE.RingGeometry(0.2, 0.26, 30),
@@ -18630,6 +20596,7 @@ function cycleTeachLevelQuick() {
             }
         }
         function updateRings(dt) {
+            updateFloatTexts(dt);
             for (const r of rings) {
                 if (r.life <= 0) continue;
                 r.t += dt;
@@ -18870,6 +20837,7 @@ function solveArc(fx, fy, fz, tx, tz, out, speedScale) {
             isWallPractice = false;
             window.isWallPractice = false;
             if (practiceWallMesh) practiceWallMesh.visible = false;
+            if (typeof updatePracticeInstructionBar === 'function') updatePracticeInstructionBar();
             document.querySelectorAll('[data-stage]').forEach(b => b.classList.toggle('on', +b.dataset.stage === n));
             closePanel();
             D.chip.innerText = 'STAGE ' + n;
@@ -19076,7 +21044,11 @@ function solveArc(fx, fy, fz, tx, tz, out, speedScale) {
          */
         function getSwipeCurve() {
             if (webcamActive) {
-                return THREE.MathUtils.clamp((RIGHT.padXFree || 0) * 0.7, -1.2, 1.2);
+                const wristFree = (typeof RIGHT !== 'undefined' && typeof RIGHT.padXFree === 'number') ? RIGHT.padXFree : 0;
+                const torsoDeg = (typeof torsoYawDeg === 'function') ? torsoYawDeg() : 0;
+                if (Math.abs(wristFree) < 0.15 && Math.abs(torsoDeg) < 6) return 0;
+                const spinVal = (wristFree * 0.35) + (torsoDeg / 35.0 * 0.30);
+                return THREE.MathUtils.clamp(spinVal, -0.60, 0.60);
             }
             const s = getActiveSwipe();
             const distX = s.distX || 0;
@@ -19138,7 +21110,7 @@ function solveArc(fx, fy, fz, tx, tz, out, speedScale) {
             // t=0 落於廚房線後方約 0.2m (-2.33m)，t=1 落於底線前約 0.4m (-6.30m)，極速發球最誇張落地亦不超過底線往外0.6m
             serveTgt.z = -(KITCHEN_D + 0.20 + t * (HALF_L - KITCHEN_D - 0.60));
             if (webcamActive) {
-                serveTgt.x = aimTargetX();
+                serveTgt.x = (typeof aimTargetX === 'function') ? aimTargetX() : 0;
             } else {
                 // ★ 基準鎖定合法對角發球區 (diagSign * COURT_W/4)
                 const baseBoxX = diagSign() * (COURT_W / 4);
@@ -19168,6 +21140,7 @@ function solveArc(fx, fy, fz, tx, tz, out, speedScale) {
          *        體感模式由 updateServeFSM 在揮拍啟動時擷取;省略則以當前 padW.y 判定。
          */
         function doServe(p, contactY) {
+            if (locked || state === 'CLEARED') return;
             if (server !== 'PLAYER') { toast('現在是匹克鵝發球', '等牠發球過網後再回擊'); return; }
             if (stage === 1 && sideOf(pPos.x) !== serveSide) {
                 serveFail('發球位置錯誤', '本次輪到' + (serveSide > 0 ? '右' : '左') + '側,請站進藍圈'); return;
@@ -19212,14 +21185,29 @@ function solveArc(fx, fy, fz, tx, tz, out, speedScale) {
             if (demoOn) return;
             if (state !== 'RALLY' || pLock > 0 || locked) return;
             if (PH.vel.z <= 0 || PH.pos.z < 0.05) return;
+
+            // ★ TASK-V8-606: 幽靈球拍防護 (Ghost Paddle Guard)
+            // 鏡頭遮蔽、無姿態或追蹤逾時超過 0.4s 時，體感球拍完全虛化穿透，絕不產生碰撞、擊球或誤判
+            if (webcamActive) {
+                const now = performance.now();
+                const isFreshPose = (typeof lastPoseSnapshot === 'object' && lastPoseSnapshot && lastPoseSnapshot.hasPoseData)
+                    && (typeof lastPoseTimestamp === 'number' && (now - lastPoseTimestamp <= 400));
+                if (!isFreshPose) {
+                    return;
+                }
+            }
+
+            const now = performance.now();
+            const hasValidSwing = (typeof currentSwingEvent === 'object' && currentSwingEvent && !currentSwingEvent.consumed && (now - currentSwingEvent.t <= 600));
+
             const b = PH.pos, prevB = (PH.prevPos || b), p = padW;
             const isMegaPad = (typeof FunMode !== 'undefined' && FunMode.activeBuff === 'MEGA_PADDLE');
             const isMiniPad = (typeof FunMode !== 'undefined' && FunMode.activeBuff === 'MINI_PADDLE');
             const padScale = isMegaPad ? 3.8 : (isMiniPad ? 0.45 : 1.5); // ★ 巨無霸球拍 3.8 倍超寬判定，迷你拍 0.45 倍極限縮水，一般 1.5 倍
             const assist = (webcamActive ? 1.45 : 1.0) * padScale;
-            const r = swingT > 0
-                ? { z: (0.62 + BALL_R) * assist, x: (0.82 + BALL_R) * assist, y: (0.78 + BALL_R) * assist }
-                : { z: (0.45 + BALL_R) * assist, x: (0.60 + BALL_R) * assist, y: (0.55 + BALL_R) * assist };
+            const r = (swingT > 0 || hasValidSwing)
+                ? { z: (0.25 + BALL_R) * assist, x: (0.82 + BALL_R) * assist, y: (0.78 + BALL_R) * assist }
+                : { z: (0.15 + BALL_R) * assist, x: (0.60 + BALL_R) * assist, y: (0.55 + BALL_R) * assist };
 
             // ★ 連續碰撞檢測 (Swept Continuous Collision Detection)：
             // 避免在 30 FPS 或卡頓掉幀時，高速殺球（14~18 m/s，單幀位移可達 0.6m）穿透球拍
@@ -19240,12 +21228,54 @@ function solveArc(fx, fy, fz, tx, tz, out, speedScale) {
 
             dismissFingerTutorial();
             const volley = (bounces === 0);
-            // ★ KITCHEN FAULT 條件更具體,須先判定(否則 Stage 3 永遠先被判雙彈跳違規)
-            if (volley && stage >= 3 && pPos.z < KITCHEN_D + 0.05) {
-                endRally('GOOSE', 'KITCHEN FAULT', '站在中興湖廚房內不可空中截擊'); return;
+
+            const sw = (typeof getActiveSwipe === 'function') ? getActiveSwipe() : SWIPE;
+            const swipeDist = Math.hypot(sw.distX, sw.distY);
+            const swipeSpeed = Math.hypot(sw.peakVx * 0.65, sw.peakVy);
+
+            // 判斷玩家當前是否具有主動出拍意圖 (體感嚴格仰賴揮拍事件；鍵盤/觸控仰賴蓄力或手指滑動)
+            const isSwingActive = webcamActive ? hasValidSwing : (swingT > 0 || swipeDist >= 12 || swipeSpeed >= 75);
+
+            // ── 未主動揮拍之防護 ──
+            if (!isSwingActive) {
+                if (volley) {
+                    // 凌空球（接發球等候落地）：放行穿透，不攔截、不觸球、不判雙彈跳違規、不判廚房凌空犯規！
+                    return;
+                }
+                // 落地反彈後觸拍但未主動揮拍：被動掉球防禦 (Passive Drop Ball)
+                // 吸收 85% 前向動量，輕巧下墜於玩家腳前；不增加擊球數、不給經驗、不改寫 lastHitter、不過網回擊！
+                PH.vel.x = 0;
+                PH.vel.y = 0.55;
+                PH.vel.z = Math.min(0.4, Math.abs(PH.vel.z) * 0.15);
+                pLock = 0.35;
+                bounces = 1;
+                toast('🛡️ 碰拍未揮擊', '需向前或向上揮拍，才能將球打過網！');
+                if (typeof S !== 'undefined' && S.pop) S.pop(0.5);
+                return;
             }
-            if (volley && needBounce()) { endRally('GOOSE', '雙彈跳違規', '接發球必須等球落地一次'); return; }
+
+            // ── 玩家已主動出拍：凌空犯規判定 ──
+            if (volley) {
+                // 接發球雙彈跳違規 (主動凌空抽擊接發球)
+                if (needBounce()) {
+                    popFloatText(b.x, b.y, b.z, 'FAULT');
+                    endRally('GOOSE', '雙彈跳違規', '接發球必須等球落地一次');
+                    return;
+                }
+                // 廚房凌空抽擊違規 (站在廚房內主動凌空抽擊)
+                if (stage >= 3 && pPos.z < KITCHEN_D + 0.05) {
+                    popFloatText(b.x, b.y, b.z, 'FAULT');
+                    endRally('GOOSE', 'KITCHEN FAULT', '站在中興湖廚房內不可空中截擊');
+                    return;
+                }
+            }
+
+            // ── 主動擊球正式成立 ──
+            if (webcamActive && typeof consumeSwingEvent === 'function') {
+                consumeSwingEvent();
+            }
             pLock = 0.28; lastHitter = 'PLAYER'; rallyHits++; bounces = 0;
+            if (typeof addPlayerExp === 'function') addPlayerExp(2, '擊球');
 
             // 🍄 瘋狂道具戰：擊球特殊觸發 (電蚊拍電擊、巨球震撼、巨拍轟擊)
             if (typeof FunMode !== 'undefined' && FunMode.activeBuff) {
@@ -19288,37 +21318,33 @@ function solveArc(fx, fy, fz, tx, tz, out, speedScale) {
                 try { navigator.vibrate(25); } catch (_) {}
             }
 
-            // ★ v5.0.14: 擊球力道四級階梯 (依手指揮動幅度/位移/速度精準判斷: 0動=被動擋球/掛網, 微動=廚房Dink, 中推=過渡深球, 大揮=抽殺)
-            const sw = (typeof getActiveSwipe === 'function') ? getActiveSwipe() : SWIPE;
-            const swipeDist = Math.hypot(sw.distX, sw.distY);
-            const swipeSpeed = Math.hypot(sw.peakVx * 0.65, sw.peakVy);
-
-            let ch = 0.20; // 預設柔和丁克
+            // ★ 擊球力道計算
+            let ch = 0.20;
             let isPassiveBlock = false;
-
+            
             if (webcamActive) {
-                ch = THREE.MathUtils.clamp(hitPower(KIN.vPeak, SWING.path) / 100, 0.15, 1.0);
+                const isWeakSwing = (typeof KIN !== 'undefined' && KIN.vPeak < 1.05 && typeof SWING !== 'undefined' && SWING.path < 0.15)
+                    || (hasValidSwing && currentSwingEvent && currentSwingEvent.proxySpeed < 1.05 && typeof SWING !== 'undefined' && SWING.path < 0.15);
+                if (isWeakSwing) {
+                    isPassiveBlock = true;
+                    ch = 0.12;
+                } else {
+                    ch = THREE.MathUtils.clamp(hitPower(KIN.vPeak, SWING.path) / 100, 0.25, 1.0);
+                }
             } else if (swingT > 0) {
-                // 蓄力鍵擊球 (空白鍵 / 右鍵)
                 ch = THREE.MathUtils.clamp(swingP / 100, 0.15, 1.0);
             } else if (swipeDist < 12 && swipeSpeed < 75) {
-                // 【第 0 級: 都沒有動 / 被動減力碰球 (Passive Block)】
                 isPassiveBlock = true;
                 ch = 0.12;
             } else if (swipeDist < 45 && swipeSpeed < 320) {
-                // 【第 1 級: 稍微動一點點 (Gentle Kitchen Dink)】
-                // 手指滑動 12px ~ 45px，輕推小球
                 const t = Math.max(0, (swipeDist - 12) / 33);
-                ch = 0.18 + t * 0.06; // 0.18 ~ 0.24 (精準丁克力道)
+                ch = 0.18 + t * 0.06;
             } else if (swipeDist < 100 && swipeSpeed < 700) {
-                // 【第 2 級: 稍微動多一點 (Medium Push / 廚房後緣中深球)】
-                // 手指滑動 45px ~ 100px，中推
                 const t = Math.max(0, (swipeDist - 45) / 55);
-                ch = 0.28 + t * 0.18; // 0.28 ~ 0.46 (過渡區深球)
+                ch = 0.28 + t * 0.18;
             } else {
-                // 【第 3 級: 快速 / 大幅度滑動 (Drive / Speed-up / Smash)】
                 const t = Math.min(1.0, Math.max(0, (swipeSpeed - 700) / 800));
-                ch = 0.55 + t * 0.45; // 0.55 ~ 1.0 (重砲抽殺)
+                ch = 0.55 + t * 0.45;
             }
             swingT = 0;
 
@@ -19338,20 +21364,34 @@ function solveArc(fx, fy, fz, tx, tz, out, speedScale) {
                 const tz = -1.2; // 精準落入對手廚房區
                 const tx = THREE.MathUtils.clamp(padX * 0.6, -1.5, 1.5);
                 solveArc(b.x, b.y, b.z, tx, tz, PH.vel, 0.76);
+                popFloatText(b.x, b.y, b.z, 'PERFECT!');
                 toast('🌟 完美第三桿放短！', 'PERFECT THIRD SHOT DROP · 成功瓦解對手網前壓迫！');
                 announceReferee('🌟 完美第三桿放短！', '精準落入廚房區！', true);
-                popRing(b.x, b.z, 2.2, 0xf6c445);
-                S.point();
+                popRing(b.x, b.z, 1.2, 0x0ea5e9);
+                addShake(0.08);
+                if (typeof S !== 'undefined' && S.pop) S.pop(0.8);
                 return;
             }
 
             // ★ 簡化直覺落點與自旋 (寶可夢 GO 曲球機制)
             let tx = 0, spin = 0;
             if (webcamActive) {
-                const aimZoneX = aimTargetX();
-                const wristFree = (RIGHT.padXFree || 0);
-                tx = THREE.MathUtils.clamp(aimZoneX * 0.75 + wristFree * 0.8, -COURT_W / 2 + 0.5, COURT_W / 2 - 0.5);
-                spin = getSwipeCurve();
+                const isServeState = (state === 'SERVE_READY' || state === 'SERVE_AIR');
+                const wristFree = (typeof RIGHT !== 'undefined' && typeof RIGHT.padXFree === 'number') ? RIGHT.padXFree : 0;
+                const torsoDeg = (typeof torsoYawDeg === 'function') ? torsoYawDeg() : ((typeof YAW !== 'undefined') ? YAW.ema * 50 : 0);
+                
+                // 轉身角度適度縮放：舒適自然，不再超標敏感 (±28 度以內平順過渡)
+                const torsoBias = THREE.MathUtils.clamp(torsoDeg / 28.0, -1.0, 1.0);
+
+                if (isServeState) {
+                    const aimZoneX = (typeof aimTargetX === 'function') ? aimTargetX() : 0;
+                    tx = THREE.MathUtils.clamp(aimZoneX * 0.70 + wristFree * 0.40 + torsoBias * 0.40, -COURT_W / 2 + 0.5, COURT_W / 2 - 0.5);
+                } else {
+                    // 常規對打 (Rally)：瞄準平穩溫和 (腰腹轉身 60% + 手臂導向 40%)，落點嚴格限制在界內安全範圍
+                    const rallyAimX = torsoBias * 1.25 + wristFree * 0.65;
+                    tx = THREE.MathUtils.clamp(rallyAimX, -1.85, 1.85);
+                }
+                spin = (typeof getSwipeCurve === 'function') ? getSwipeCurve() : 0;
             } else {
                 spin = getSwipeCurve();
                 // 初速瞄準微調：曲球先朝反向/內側啟動，再由馬格努斯側向力優雅劃出經典香蕉弧線
@@ -19384,6 +21424,7 @@ function solveArc(fx, fy, fz, tx, tz, out, speedScale) {
                 tx = (gGrp.position.x > 0 ? -1.65 : 1.65); // 殺向遠離對手的無人死角
                 spdScale = 1.45; // 極速重扣
                 solveArc(b.x, b.y, b.z, tx, tz, PH.vel, spdScale);
+                popFloatText(b.x, b.y, b.z, 'SMASH!');
                 toast('💥 凌空扣殺得分 (SMASH WINNER)!', '抓到浮高破綻，極速重扣殺向空檔！');
                 announceReferee('💥 扣殺得分！', '漂亮終結網前拉鋸！', true);
                 isChanceBall = false;
@@ -19394,8 +21435,10 @@ function solveArc(fx, fy, fz, tx, tz, out, speedScale) {
                 } else {
                     gLock = 1.2;
                 }
-                addShake(0.18);
-                S.pop(1.0);
+                popRing(b.x, b.z, 3.8, 0xff4500);
+                addShake(0.35);
+                if (typeof S !== 'undefined' && S.thump) S.thump(1.8);
+                if (typeof S !== 'undefined' && S.pop) S.pop(1.5);
             } else if (isPassiveBlock) {
                 // 第 0 級：手指完全沒動 / 被動減力碰球 (Passive Block)
                 const incomingEnergy = Math.hypot(PH.vel.x, PH.vel.y, PH.vel.z);
@@ -19405,6 +21448,7 @@ function solveArc(fx, fy, fz, tx, tz, out, speedScale) {
                     tz = -0.15; // 沒過網
                     spdScale = 0.52;
                     solveArc(b.x, b.y, b.z, tx, tz, PH.vel, spdScale);
+                    popFloatText(b.x, b.y, b.z, 'MISS');
                     toast('⚠️ 被動擋球掛網', '來球過低或推力不足（微向上滑動可順利起球）');
                 } else {
                     // 借力卸力柔和過網，落入廚房前端 (0.75m ~ 1.25m)
@@ -19489,6 +21533,7 @@ function solveArc(fx, fy, fz, tx, tz, out, speedScale) {
                 clearStage();
             }
         }
+        window.tryHit = tryHit;
         const joyAnalog = { x: 0, z: 0 };
         const playerVel = { x: 0, z: 0 };
         const dragRay = new THREE.Raycaster();
@@ -19654,18 +21699,66 @@ function solveArc(fx, fy, fz, tx, tz, out, speedScale) {
 
             if (webcamActive) {
                 if (state === 'SERVE_READY') {
-                    pPos.x += (1.5 * serveSide - pPos.x) * Math.min(1, dt * 18);
+                    // 發球準備：若玩家發球，站於對應發球區底線；若對手發球，接發球員站於對角底線後方防守
+                    const sx = (server === 'PLAYER') ? (1.5 * serveSide) : (-1.5 * serveSide);
+                    pPos.x += (sx - pPos.x) * Math.min(1, dt * 18);
                     pPos.z += (HALF_L + 0.35 - pPos.z) * Math.min(1, dt * 18);
                 } else if ((state === 'RALLY' || state === 'SERVE_AIR') && PH.vel.z > 0) {
-                    pPos.x += (PH.pos.x - pPos.x) * Math.min(1, dt * 25);
-                    // ★ 已落地 → 允許下探廚房追短球;未落地 → 維持廚房線後,避免截擊違規
-                    const zFloor = (bounces > 0) ? 0.60 : (KITCHEN_D + 0.30);
-                    const tz = Math.max(zFloor, Math.min(HALF_L + 0.5, PH.pos.z + 0.25));
-                    pPos.z += (tz - pPos.z) * Math.min(1, dt * 20);
+                    // ★ 體感模式走位：依據落點預測預留反彈擊球甜區，嚴格遵守雙彈跳規則與廚房區禁區規範
+                    const hasLand = (typeof predictLanding === 'function') && predictLanding(_land);
+                    const mustBounce = (typeof needBounce === 'function' && needBounce());
+
+                    let targetZ = HALF_L;
+                    let targetX = 0;
+
+                    if (mustBounce) {
+                        // 1. 雙彈跳規則階段：等候反彈
+                        if (hasLand && _land.z > 0) {
+                            targetZ = Math.min(HALF_L + 0.55, Math.max(KITCHEN_D + 0.30, _land.z + 0.55));
+                            targetX = _land.x;
+                        } else {
+                            targetZ = HALF_L + 0.30;
+                            targetX = PH.pos.x * 0.75;
+                        }
+                    } else if (hasLand && _land.z > 0) {
+                        // 2. 一般對打階段：
+                        if (_land.z < KITCHEN_D) {
+                            // 網前小球 (Dink)：
+                            if (bounces > 0) {
+                                // 球已在廚房內彈起：允許下探救球
+                                targetZ = Math.max(1.20, _land.z + 0.40);
+                            } else {
+                                // 球尚未落地：嚴禁進入廚房，在廚房線後方等候
+                                targetZ = KITCHEN_D + 0.30;
+                            }
+                        } else {
+                            // 常規深球：站在落點後方
+                            targetZ = Math.max(KITCHEN_D + 0.35, Math.min(HALF_L + 0.50, _land.z + 0.55));
+                        }
+                        targetX = _land.x;
+                    } else {
+                        // 飛行中無確定落點
+                        targetZ = Math.max(KITCHEN_D + 0.35, Math.min(HALF_L + 0.50, PH.pos.z + 0.85));
+                        targetX = PH.pos.x;
+                    }
+                    
+                    // 無論如何，球落地前嚴格禁止進入廚房 (NVZ)
+                    if (bounces === 0 && targetZ < KITCHEN_D + 0.20) {
+                        targetZ = KITCHEN_D + 0.20;
+                    }
+
+                    // 水平限制在球場內
+                    targetX = THREE.MathUtils.clamp(targetX, -COURT_W / 2 + 0.40, COURT_W / 2 - 0.40);
+
+                    // 平滑跟球移動，杜絕生硬瞬間貼球
+                    pPos.x += (targetX - pPos.x) * Math.min(1, dt * 12);
+                    pPos.z += (targetZ - pPos.z) * Math.min(1, dt * 14);
                 } else if (state === 'RALLY' || state === 'SERVE_AIR') {
-                    // ★ 球離開後主動退回廚房線後,否則會永久卡在廚房裡
-                    const tz = KITCHEN_D + 0.30;
-                    pPos.z += (tz - pPos.z) * Math.min(1, dt * 14);
+                    // ★ 球飛離己方半場：平滑回防就位
+                    const isNearKitchen = (pPos.z < KITCHEN_D + 1.2);
+                    const homeZ = isNearKitchen ? (KITCHEN_D + 0.35) : (HALF_L - 0.40);
+                    pPos.z += (homeZ - pPos.z) * Math.min(1, dt * 8);
+                    pPos.x += (0 - pPos.x) * Math.min(1, dt * 4);
                 }
             } else {
                 // ★ v5.0.2 人物走位物理加速度與煞車慣性 (起步加速 a=26, 煞車減速 friction=18)
@@ -20719,6 +22812,7 @@ function updateGuides(dt) {
             }
         });
 
+        let loopLowFpsCount = 0, loopEcoActive = false;
         function loop(timestamp) {
             requestAnimationFrame(loop);
             if (isLoopSuspended) return; // ★ 模式大廳或全屏 Modal 開啟時，3D 迴圈 100% 休眠省電！
@@ -20731,6 +22825,26 @@ function updateGuides(dt) {
             }
             let dt = (now - last) / 1000; last = now;
             if (dt > 0.05) dt = 0.05;
+            
+            // ★ 動態熱管理與降溫保護 (Thermal Eco Mode)
+            if (typeof webcamActive !== "undefined" && webcamActive) {
+                const curFps = 1 / (dt || 0.016);
+                if (curFps < 38) {
+                    loopLowFpsCount++;
+                    if (loopLowFpsCount > 90 && !loopEcoActive) {
+                        loopEcoActive = true;
+                        if (typeof setEcoMode === "function") setEcoMode(true);
+                        if (ren && ren.shadowMap) ren.shadowMap.autoUpdate = false;
+                        if (typeof toast === "function") toast("❄️ 已啟動體感動態降溫模式", "智慧調整運算負擔，保護手機不發燙");
+                    }
+                } else if (curFps > 52 && loopEcoActive) {
+                    loopLowFpsCount = 0;
+                    loopEcoActive = false;
+                    if (typeof setEcoMode === "function") setEcoMode(false);
+                    if (ren && ren.shadowMap) ren.shadowMap.autoUpdate = true;
+                }
+            }
+
 
             if (pLock > 0) pLock = Math.max(0, pLock - dt);
             if (gLock > 0) gLock = Math.max(0, gLock - dt);

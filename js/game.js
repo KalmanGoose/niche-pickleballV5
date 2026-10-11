@@ -37,6 +37,7 @@
             }
         }
         let zoneServe, arc, ringLand, ringSpot, warnKitchen, rings = [];
+        let floatTexts = [], floatTextures = {};
         let practiceWallMesh = null, isWallPractice = false, wallCombo = 0;
         window.isWallPractice = false;
 
@@ -281,11 +282,15 @@
             TEX_GLOW = glowTex(); TEX_BLOB = softBlobTex();
             buildLights(); buildEnvironment(); buildCourt(); buildNet(); buildPracticeWall();
             buildBall(); buildSteve(); buildCreeper(); buildGuides();
-            buildAimZones(); buildRingPool();
+            buildAimZones(); buildRingPool(); buildFloatTextPool();
             if (typeof FunMode !== 'undefined' && FunMode.init) FunMode.init();
         }
+        let fillLight = null, rimLight = null, hemiLight = null;
+        let stadiumLights = [];
+
         function buildLights() {
-            scene.add(new THREE.HemisphereLight(0xf8f3e6, 0x476b38, GRADE.hemiI * 0.85));
+            hemiLight = new THREE.HemisphereLight(0xf8f3e6, 0x476b38, GRADE.hemiI * 0.85);
+            scene.add(hemiLight);
             sunKey = new THREE.DirectionalLight(0xfff7e6, GRADE.sunI);
             const key = sunKey;
             key.position.set(8, 15, 9); key.castShadow = true;
@@ -296,11 +301,79 @@
             key.shadow.camera.near = 1; key.shadow.camera.far = 42;
             key.shadow.bias = -0.0012; key.shadow.radius = 3;
             scene.add(key);
-            const fill = new THREE.DirectionalLight(0xdcebf7, GRADE.fillI * 0.80);
-            fill.position.set(-9, 6, 7); scene.add(fill);
-            const rim = new THREE.DirectionalLight(0xfef3c7, GRADE.rimI * 0.70);
-            rim.position.set(-2, 5, -13); scene.add(rim);
+            fillLight = new THREE.DirectionalLight(0xdcebf7, GRADE.fillI * 0.80);
+            fillLight.position.set(-9, 6, 7); scene.add(fillLight);
+            rimLight = new THREE.DirectionalLight(0xfef3c7, GRADE.rimI * 0.70);
+            rimLight.position.set(-2, 5, -13); scene.add(rimLight);
+            applyEnvironmentLighting();
         }
+
+        function applyEnvironmentLighting(forcedHour) {
+            if (!sunKey || !fillLight || !rimLight || !hemiLight) return "☀️ 正午晴空";
+            const now = new Date();
+            const h = (typeof forcedHour === "number") ? forcedHour : (now.getHours() + now.getMinutes() / 60);
+
+            if (h >= 6 && h < 10.5) {
+                hemiLight.color.setHex(0xfef3c7);
+                hemiLight.groundColor.setHex(0x386641);
+                sunKey.color.setHex(0xffedd5);
+                sunKey.position.set(12, 11, 8);
+                sunKey.intensity = GRADE.sunI * 0.92;
+                fillLight.color.setHex(0xdbeafe);
+                rimLight.color.setHex(0xfef08a);
+                if (ren) ren.toneMappingExposure = GRADE.exposure * 0.98;
+                return "🌅 湖畔晨曦";
+            } else if (h >= 10.5 && h < 16.5) {
+                hemiLight.color.setHex(0xf8f3e6);
+                hemiLight.groundColor.setHex(0x476b38);
+                sunKey.color.setHex(0xfff7e6);
+                sunKey.position.set(8, 16, 9);
+                sunKey.intensity = GRADE.sunI;
+                fillLight.color.setHex(0xdcebf7);
+                rimLight.color.setHex(0xfef3c7);
+                if (ren) ren.toneMappingExposure = GRADE.exposure;
+                return "☀️ 正午晴空";
+            } else if (h >= 16.5 && h < 18.75) {
+                hemiLight.color.setHex(0xfde047);
+                hemiLight.groundColor.setHex(0x713f12);
+                sunKey.color.setHex(0xf97316);
+                sunKey.position.set(-14, 7, 10);
+                sunKey.intensity = GRADE.sunI * 1.15;
+                fillLight.color.setHex(0xa855f7);
+                rimLight.color.setHex(0xfbbf24);
+                if (ren) ren.toneMappingExposure = GRADE.exposure * 1.05;
+                return "🌇 中興湖晚霞";
+            } else {
+                hemiLight.color.setHex(0x1e293b);
+                hemiLight.groundColor.setHex(0x0f172a);
+                sunKey.color.setHex(0x94a3b8);
+                sunKey.position.set(0, 18, 0);
+                sunKey.intensity = 0.35;
+                fillLight.color.setHex(0x38bdf8);
+                rimLight.color.setHex(0x6366f1);
+                if (ren) ren.toneMappingExposure = GRADE.exposure * 1.12;
+                if (stadiumLights.length === 0 && window.THREE) {
+                    const hw = (typeof HALF_W !== 'undefined') ? HALF_W : (typeof COURT_W !== 'undefined' ? COURT_W / 2 : 3.05);
+                    const hl = (typeof HALF_L !== 'undefined') ? HALF_L : (typeof COURT_L !== 'undefined' ? COURT_L / 2 : 6.70);
+                    const corners = [
+                        [-hw - 1.2, 5.5, -hl - 1.0],
+                        [hw + 1.2, 5.5, -hl - 1.0],
+                        [-hw - 1.2, 5.5, hl + 1.0],
+                        [hw + 1.2, 5.5, hl + 1.0]
+                    ];
+                    corners.forEach(([x, y, z]) => {
+                        const sl = new THREE.SpotLight(0xfef9c3, 1.4, 22, Math.PI / 4, 0.4, 1.2);
+                        sl.position.set(x, y, z);
+                        sl.target.position.set(x * 0.3, 0, z * 0.3);
+                        scene.add(sl);
+                        scene.add(sl.target);
+                        stadiumLights.push(sl);
+                    });
+                }
+                return "🌙 夜間球場星空";
+            }
+        }
+        window.applyEnvironmentLighting = applyEnvironmentLighting;
         let scoreboard3DMesh = null, scoreboard3DTex = null;
         function updateScore3D() {
             if (!scoreboard3DTex) return;
@@ -743,19 +816,61 @@
             toast('🧱 對牆特訓開始！', '瞄準練習牆紅線以上反覆推球抽球！');
             announceReferee('🧱 對牆特訓模式！', '向練習牆發球開始！', true);
             resetServe();
+            if (typeof updatePracticeInstructionBar === 'function') updatePracticeInstructionBar();
+        }
+
+        function retryWallPractice() {
+            isWallPractice = true;
+            window.isWallPractice = true;
+            wallCombo = 0;
+            pScore = 0; aScore = 0;
+            server = 'PLAYER';
+            if (gooseServeTimer) { clearTimeout(gooseServeTimer); gooseServeTimer = null; }
+            if (typeof FunMode !== 'undefined') {
+                FunMode.clearAll();
+                FunMode.enabled = false;
+                FunMode.syncUI();
+            }
+            if (practiceWallMesh) practiceWallMesh.visible = true;
+            if (gGrp) gGrp.visible = false;
+            if (flyMesh) flyMesh.visible = false;
+            if (gooseMesh) gooseMesh.visible = false;
+            if (gArm) gArm.visible = false;
+            if (flyDizzy) flyDizzy.visible = false;
+            if (typeof updateDynamicStagePill === 'function') {
+                updateDynamicStagePill(1, 0, 0);
+                const sTxt = document.getElementById('dsp-stage');
+                if (sTxt) sTxt.innerText = '🧱 對牆特訓 · 連擊挑戰';
+            }
+            resetServe();
+            if (typeof updatePracticeInstructionBar === 'function') updatePracticeInstructionBar();
+        }
+
+        function exitWallPracticeToHub() {
+            isWallPractice = false;
+            window.isWallPractice = false;
+            if (practiceWallMesh) practiceWallMesh.visible = false;
+            if (gGrp) gGrp.visible = true;
+            updateOpponentMeshVisibility();
+            locked = false;
+            if (typeof updatePracticeInstructionBar === 'function') updatePracticeInstructionBar();
+            if (typeof openModeHub === 'function') openModeHub();
+            else switchStage(1);
         }
 
         function onWallHit(x, y) {
-            if (y < 0.91) {
+            if (state === 'SERVE_AIR') state = 'RALLY';
+            const isLow = (y < 0.91);
+            const isBullseye = !isLow && (Math.abs(x) < 0.8 && Math.abs(y - 1.45) < 0.45);
+
+            if (isLow) {
+                // 低於網高白線 (0.91m)：發出擦網反彈提示，但不中斷特訓、不清零連擊，亦不增加有效連擊！
                 S.net(); addShake(0.08);
                 popRing(x, 0.05, 1.8, 0xff5555);
-                if (wallCombo > 0) {
-                    announceReferee('⚠️ 低於網高！', `連擊中斷 (最高連擊: ${wallCombo})`, false);
-                }
-                wallCombo = 0;
+                pScore += 1;
+                announceReferee(`🧱 壓低擊牆！連擊保持 x${wallCombo}`, '球路過低擦網，請抬高擊球點！', false);
             } else {
                 wallCombo++;
-                const isBullseye = Math.abs(x) < 0.8 && Math.abs(y - 1.45) < 0.45;
                 if (isBullseye) {
                     S.point(); addShake(0.12);
                     popRing(x, y, 2.4, 0xf6c445);
@@ -767,12 +882,34 @@
                     pScore += 1;
                     announceReferee(`🧱 命中！連擊 x${wallCombo}`, '連續控球中！', false);
                 }
-                if (typeof updateDynamicStagePill === 'function') {
-                    updateDynamicStagePill(1, pScore, wallCombo);
+            }
+
+            if (typeof updateDynamicStagePill === 'function') {
+                updateDynamicStagePill(1, pScore, wallCombo);
+            }
+            if (typeof addPlayerExp === 'function') {
+                addPlayerExp(isBullseye ? 10 : 5, '對牆特訓');
+            }
+            if (typeof updatePracticeInstructionBar === 'function') {
+                updatePracticeInstructionBar();
+            }
+            if (isWallPractice && wallCombo >= 3) {
+                // ★ 達成對牆 3 連擊特訓目標，進入結算保護態 (阻止再次發球與球體持續運動)
+                state = 'CLEARED';
+                freeze();
+                clearTimers();
+                locked = true;
+                popRing(x, y, 3.0, 0xf6c445);
+                if (typeof S !== 'undefined' && S.point) S.point();
+                if (typeof showPracticeSettlementModal === 'function') {
+                    showPracticeSettlementModal(wallCombo, pScore);
                 }
+                return;
             }
         }
         window.initWallPractice = initWallPractice;
+        window.retryWallPractice = retryWallPractice;
+        window.exitWallPracticeToHub = exitWallPracticeToHub;
         window.onWallHit = onWallHit;
 
         function buildNet() {
@@ -1126,6 +1263,65 @@
             warnKitchen.rotation.x = -Math.PI / 2; warnKitchen.position.set(0, 0.006, KITCHEN_D / 2);
             scene.add(warnKitchen);
         }
+        function buildFloatTextPool() {
+            const templates = {
+                'SMASH!': { col: '#facc15', size: 90, stroke: '#9a3412', scale: 0.65, yOff: 1.2, drift: 1.5 },
+                'PERFECT!': { col: '#38bdf8', size: 70, stroke: '#0284c7', scale: 0.55, yOff: 1.0, drift: 1.2 },
+                'GOOD': { col: '#4ade80', size: 60, stroke: '#166534', scale: 0.45, yOff: 0.9, drift: 1.0 },
+                'OUT': { col: '#f87171', size: 80, stroke: '#7f1d1d', scale: 0.55, yOff: 0.6, drift: 0.8 },
+                'NET': { col: '#f87171', size: 80, stroke: '#7f1d1d', scale: 0.55, yOff: 0.6, drift: 0.8 },
+                'FAULT': { col: '#ef4444', size: 80, stroke: '#7f1d1d', scale: 0.55, yOff: 0.6, drift: 0.8 },
+                'MISS': { col: '#94a3b8', size: 60, stroke: '#334155', scale: 0.45, yOff: 0.6, drift: 0.5 }
+            };
+            for (const [key, tpl] of Object.entries(templates)) {
+                const cvs = document.createElement('canvas');
+                cvs.width = 512; cvs.height = 256;
+                const ctx = cvs.getContext('2d');
+                ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                ctx.font = `bold ${tpl.size}px 'Arial Black', sans-serif`;
+                ctx.lineWidth = 10; ctx.strokeStyle = tpl.stroke;
+                ctx.strokeText(key, 256, 128);
+                ctx.fillStyle = tpl.col;
+                ctx.fillText(key, 256, 128);
+                const tex = new THREE.CanvasTexture(cvs);
+                tex.minFilter = THREE.LinearFilter;
+                floatTextures[key] = { tex, cfg: tpl };
+            }
+            for (let i = 0; i < 8; i++) {
+                const mat = new THREE.SpriteMaterial({ map: null, transparent: true, opacity: 0, depthWrite: false });
+                const sp = new THREE.Sprite(mat);
+                sp.visible = false;
+                scene.add(sp);
+                floatTexts.push({ m: sp, t: 0, life: 0, oy: 0, drift: 0 });
+            }
+        }
+        function popFloatText(x, y, z, key) {
+            const tmpl = floatTextures[key];
+            if (!tmpl) return;
+            for (const f of floatTexts) {
+                if (f.life <= 0) {
+                    f.m.material.map = tmpl.tex;
+                    f.m.material.opacity = 1.0;
+                    f.m.scale.set(tmpl.cfg.scale * 2, tmpl.cfg.scale, 1);
+                    f.m.position.set(x, y + tmpl.cfg.yOff, z);
+                    f.oy = f.m.position.y;
+                    f.drift = tmpl.cfg.drift;
+                    f.life = 1.0; f.t = 0;
+                    f.m.visible = true;
+                    return;
+                }
+            }
+        }
+        function updateFloatTexts(dt) {
+            for (const f of floatTexts) {
+                if (f.life <= 0) continue;
+                f.t += dt;
+                const k = f.t / f.life;
+                if (k >= 1) { f.life = 0; f.m.visible = false; continue; }
+                f.m.position.y = f.oy + Math.pow(k, 0.5) * f.drift;
+                f.m.material.opacity = k > 0.5 ? 1 - (k - 0.5) / 0.5 : 1.0;
+            }
+        }
         function buildRingPool() {
             for (let i = 0; i < 8; i++) {
                 const m = new THREE.Mesh(new THREE.RingGeometry(0.2, 0.26, 30),
@@ -1148,6 +1344,7 @@
             }
         }
         function updateRings(dt) {
+            updateFloatTexts(dt);
             for (const r of rings) {
                 if (r.life <= 0) continue;
                 r.t += dt;
@@ -1388,6 +1585,7 @@ function solveArc(fx, fy, fz, tx, tz, out, speedScale) {
             isWallPractice = false;
             window.isWallPractice = false;
             if (practiceWallMesh) practiceWallMesh.visible = false;
+            if (typeof updatePracticeInstructionBar === 'function') updatePracticeInstructionBar();
             document.querySelectorAll('[data-stage]').forEach(b => b.classList.toggle('on', +b.dataset.stage === n));
             closePanel();
             D.chip.innerText = 'STAGE ' + n;
@@ -1594,7 +1792,11 @@ function solveArc(fx, fy, fz, tx, tz, out, speedScale) {
          */
         function getSwipeCurve() {
             if (webcamActive) {
-                return THREE.MathUtils.clamp((RIGHT.padXFree || 0) * 0.7, -1.2, 1.2);
+                const wristFree = (typeof RIGHT !== 'undefined' && typeof RIGHT.padXFree === 'number') ? RIGHT.padXFree : 0;
+                const torsoDeg = (typeof torsoYawDeg === 'function') ? torsoYawDeg() : 0;
+                if (Math.abs(wristFree) < 0.15 && Math.abs(torsoDeg) < 6) return 0;
+                const spinVal = (wristFree * 0.35) + (torsoDeg / 35.0 * 0.30);
+                return THREE.MathUtils.clamp(spinVal, -0.60, 0.60);
             }
             const s = getActiveSwipe();
             const distX = s.distX || 0;
@@ -1656,7 +1858,7 @@ function solveArc(fx, fy, fz, tx, tz, out, speedScale) {
             // t=0 落於廚房線後方約 0.2m (-2.33m)，t=1 落於底線前約 0.4m (-6.30m)，極速發球最誇張落地亦不超過底線往外0.6m
             serveTgt.z = -(KITCHEN_D + 0.20 + t * (HALF_L - KITCHEN_D - 0.60));
             if (webcamActive) {
-                serveTgt.x = aimTargetX();
+                serveTgt.x = (typeof aimTargetX === 'function') ? aimTargetX() : 0;
             } else {
                 // ★ 基準鎖定合法對角發球區 (diagSign * COURT_W/4)
                 const baseBoxX = diagSign() * (COURT_W / 4);
@@ -1686,6 +1888,7 @@ function solveArc(fx, fy, fz, tx, tz, out, speedScale) {
          *        體感模式由 updateServeFSM 在揮拍啟動時擷取;省略則以當前 padW.y 判定。
          */
         function doServe(p, contactY) {
+            if (locked || state === 'CLEARED') return;
             if (server !== 'PLAYER') { toast('現在是匹克鵝發球', '等牠發球過網後再回擊'); return; }
             if (stage === 1 && sideOf(pPos.x) !== serveSide) {
                 serveFail('發球位置錯誤', '本次輪到' + (serveSide > 0 ? '右' : '左') + '側,請站進藍圈'); return;
@@ -1730,14 +1933,29 @@ function solveArc(fx, fy, fz, tx, tz, out, speedScale) {
             if (demoOn) return;
             if (state !== 'RALLY' || pLock > 0 || locked) return;
             if (PH.vel.z <= 0 || PH.pos.z < 0.05) return;
+
+            // ★ TASK-V8-606: 幽靈球拍防護 (Ghost Paddle Guard)
+            // 鏡頭遮蔽、無姿態或追蹤逾時超過 0.4s 時，體感球拍完全虛化穿透，絕不產生碰撞、擊球或誤判
+            if (webcamActive) {
+                const now = performance.now();
+                const isFreshPose = (typeof lastPoseSnapshot === 'object' && lastPoseSnapshot && lastPoseSnapshot.hasPoseData)
+                    && (typeof lastPoseTimestamp === 'number' && (now - lastPoseTimestamp <= 400));
+                if (!isFreshPose) {
+                    return;
+                }
+            }
+
+            const now = performance.now();
+            const hasValidSwing = (typeof currentSwingEvent === 'object' && currentSwingEvent && !currentSwingEvent.consumed && (now - currentSwingEvent.t <= 600));
+
             const b = PH.pos, prevB = (PH.prevPos || b), p = padW;
             const isMegaPad = (typeof FunMode !== 'undefined' && FunMode.activeBuff === 'MEGA_PADDLE');
             const isMiniPad = (typeof FunMode !== 'undefined' && FunMode.activeBuff === 'MINI_PADDLE');
             const padScale = isMegaPad ? 3.8 : (isMiniPad ? 0.45 : 1.5); // ★ 巨無霸球拍 3.8 倍超寬判定，迷你拍 0.45 倍極限縮水，一般 1.5 倍
             const assist = (webcamActive ? 1.45 : 1.0) * padScale;
-            const r = swingT > 0
-                ? { z: (0.62 + BALL_R) * assist, x: (0.82 + BALL_R) * assist, y: (0.78 + BALL_R) * assist }
-                : { z: (0.45 + BALL_R) * assist, x: (0.60 + BALL_R) * assist, y: (0.55 + BALL_R) * assist };
+            const r = (swingT > 0 || hasValidSwing)
+                ? { z: (0.25 + BALL_R) * assist, x: (0.82 + BALL_R) * assist, y: (0.78 + BALL_R) * assist }
+                : { z: (0.15 + BALL_R) * assist, x: (0.60 + BALL_R) * assist, y: (0.55 + BALL_R) * assist };
 
             // ★ 連續碰撞檢測 (Swept Continuous Collision Detection)：
             // 避免在 30 FPS 或卡頓掉幀時，高速殺球（14~18 m/s，單幀位移可達 0.6m）穿透球拍
@@ -1758,12 +1976,54 @@ function solveArc(fx, fy, fz, tx, tz, out, speedScale) {
 
             dismissFingerTutorial();
             const volley = (bounces === 0);
-            // ★ KITCHEN FAULT 條件更具體,須先判定(否則 Stage 3 永遠先被判雙彈跳違規)
-            if (volley && stage >= 3 && pPos.z < KITCHEN_D + 0.05) {
-                endRally('GOOSE', 'KITCHEN FAULT', '站在中興湖廚房內不可空中截擊'); return;
+
+            const sw = (typeof getActiveSwipe === 'function') ? getActiveSwipe() : SWIPE;
+            const swipeDist = Math.hypot(sw.distX, sw.distY);
+            const swipeSpeed = Math.hypot(sw.peakVx * 0.65, sw.peakVy);
+
+            // 判斷玩家當前是否具有主動出拍意圖 (體感嚴格仰賴揮拍事件；鍵盤/觸控仰賴蓄力或手指滑動)
+            const isSwingActive = webcamActive ? hasValidSwing : (swingT > 0 || swipeDist >= 12 || swipeSpeed >= 75);
+
+            // ── 未主動揮拍之防護 ──
+            if (!isSwingActive) {
+                if (volley) {
+                    // 凌空球（接發球等候落地）：放行穿透，不攔截、不觸球、不判雙彈跳違規、不判廚房凌空犯規！
+                    return;
+                }
+                // 落地反彈後觸拍但未主動揮拍：被動掉球防禦 (Passive Drop Ball)
+                // 吸收 85% 前向動量，輕巧下墜於玩家腳前；不增加擊球數、不給經驗、不改寫 lastHitter、不過網回擊！
+                PH.vel.x = 0;
+                PH.vel.y = 0.55;
+                PH.vel.z = Math.min(0.4, Math.abs(PH.vel.z) * 0.15);
+                pLock = 0.35;
+                bounces = 1;
+                toast('🛡️ 碰拍未揮擊', '需向前或向上揮拍，才能將球打過網！');
+                if (typeof S !== 'undefined' && S.pop) S.pop(0.5);
+                return;
             }
-            if (volley && needBounce()) { endRally('GOOSE', '雙彈跳違規', '接發球必須等球落地一次'); return; }
+
+            // ── 玩家已主動出拍：凌空犯規判定 ──
+            if (volley) {
+                // 接發球雙彈跳違規 (主動凌空抽擊接發球)
+                if (needBounce()) {
+                    popFloatText(b.x, b.y, b.z, 'FAULT');
+                    endRally('GOOSE', '雙彈跳違規', '接發球必須等球落地一次');
+                    return;
+                }
+                // 廚房凌空抽擊違規 (站在廚房內主動凌空抽擊)
+                if (stage >= 3 && pPos.z < KITCHEN_D + 0.05) {
+                    popFloatText(b.x, b.y, b.z, 'FAULT');
+                    endRally('GOOSE', 'KITCHEN FAULT', '站在中興湖廚房內不可空中截擊');
+                    return;
+                }
+            }
+
+            // ── 主動擊球正式成立 ──
+            if (webcamActive && typeof consumeSwingEvent === 'function') {
+                consumeSwingEvent();
+            }
             pLock = 0.28; lastHitter = 'PLAYER'; rallyHits++; bounces = 0;
+            if (typeof addPlayerExp === 'function') addPlayerExp(2, '擊球');
 
             // 🍄 瘋狂道具戰：擊球特殊觸發 (電蚊拍電擊、巨球震撼、巨拍轟擊)
             if (typeof FunMode !== 'undefined' && FunMode.activeBuff) {
@@ -1806,37 +2066,33 @@ function solveArc(fx, fy, fz, tx, tz, out, speedScale) {
                 try { navigator.vibrate(25); } catch (_) {}
             }
 
-            // ★ v5.0.14: 擊球力道四級階梯 (依手指揮動幅度/位移/速度精準判斷: 0動=被動擋球/掛網, 微動=廚房Dink, 中推=過渡深球, 大揮=抽殺)
-            const sw = (typeof getActiveSwipe === 'function') ? getActiveSwipe() : SWIPE;
-            const swipeDist = Math.hypot(sw.distX, sw.distY);
-            const swipeSpeed = Math.hypot(sw.peakVx * 0.65, sw.peakVy);
-
-            let ch = 0.20; // 預設柔和丁克
+            // ★ 擊球力道計算
+            let ch = 0.20;
             let isPassiveBlock = false;
-
+            
             if (webcamActive) {
-                ch = THREE.MathUtils.clamp(hitPower(KIN.vPeak, SWING.path) / 100, 0.15, 1.0);
+                const isWeakSwing = (typeof KIN !== 'undefined' && KIN.vPeak < 1.05 && typeof SWING !== 'undefined' && SWING.path < 0.15)
+                    || (hasValidSwing && currentSwingEvent && currentSwingEvent.proxySpeed < 1.05 && typeof SWING !== 'undefined' && SWING.path < 0.15);
+                if (isWeakSwing) {
+                    isPassiveBlock = true;
+                    ch = 0.12;
+                } else {
+                    ch = THREE.MathUtils.clamp(hitPower(KIN.vPeak, SWING.path) / 100, 0.25, 1.0);
+                }
             } else if (swingT > 0) {
-                // 蓄力鍵擊球 (空白鍵 / 右鍵)
                 ch = THREE.MathUtils.clamp(swingP / 100, 0.15, 1.0);
             } else if (swipeDist < 12 && swipeSpeed < 75) {
-                // 【第 0 級: 都沒有動 / 被動減力碰球 (Passive Block)】
                 isPassiveBlock = true;
                 ch = 0.12;
             } else if (swipeDist < 45 && swipeSpeed < 320) {
-                // 【第 1 級: 稍微動一點點 (Gentle Kitchen Dink)】
-                // 手指滑動 12px ~ 45px，輕推小球
                 const t = Math.max(0, (swipeDist - 12) / 33);
-                ch = 0.18 + t * 0.06; // 0.18 ~ 0.24 (精準丁克力道)
+                ch = 0.18 + t * 0.06;
             } else if (swipeDist < 100 && swipeSpeed < 700) {
-                // 【第 2 級: 稍微動多一點 (Medium Push / 廚房後緣中深球)】
-                // 手指滑動 45px ~ 100px，中推
                 const t = Math.max(0, (swipeDist - 45) / 55);
-                ch = 0.28 + t * 0.18; // 0.28 ~ 0.46 (過渡區深球)
+                ch = 0.28 + t * 0.18;
             } else {
-                // 【第 3 級: 快速 / 大幅度滑動 (Drive / Speed-up / Smash)】
                 const t = Math.min(1.0, Math.max(0, (swipeSpeed - 700) / 800));
-                ch = 0.55 + t * 0.45; // 0.55 ~ 1.0 (重砲抽殺)
+                ch = 0.55 + t * 0.45;
             }
             swingT = 0;
 
@@ -1856,20 +2112,34 @@ function solveArc(fx, fy, fz, tx, tz, out, speedScale) {
                 const tz = -1.2; // 精準落入對手廚房區
                 const tx = THREE.MathUtils.clamp(padX * 0.6, -1.5, 1.5);
                 solveArc(b.x, b.y, b.z, tx, tz, PH.vel, 0.76);
+                popFloatText(b.x, b.y, b.z, 'PERFECT!');
                 toast('🌟 完美第三桿放短！', 'PERFECT THIRD SHOT DROP · 成功瓦解對手網前壓迫！');
                 announceReferee('🌟 完美第三桿放短！', '精準落入廚房區！', true);
-                popRing(b.x, b.z, 2.2, 0xf6c445);
-                S.point();
+                popRing(b.x, b.z, 1.2, 0x0ea5e9);
+                addShake(0.08);
+                if (typeof S !== 'undefined' && S.pop) S.pop(0.8);
                 return;
             }
 
             // ★ 簡化直覺落點與自旋 (寶可夢 GO 曲球機制)
             let tx = 0, spin = 0;
             if (webcamActive) {
-                const aimZoneX = aimTargetX();
-                const wristFree = (RIGHT.padXFree || 0);
-                tx = THREE.MathUtils.clamp(aimZoneX * 0.75 + wristFree * 0.8, -COURT_W / 2 + 0.5, COURT_W / 2 - 0.5);
-                spin = getSwipeCurve();
+                const isServeState = (state === 'SERVE_READY' || state === 'SERVE_AIR');
+                const wristFree = (typeof RIGHT !== 'undefined' && typeof RIGHT.padXFree === 'number') ? RIGHT.padXFree : 0;
+                const torsoDeg = (typeof torsoYawDeg === 'function') ? torsoYawDeg() : ((typeof YAW !== 'undefined') ? YAW.ema * 50 : 0);
+                
+                // 轉身角度適度縮放：舒適自然，不再超標敏感 (±28 度以內平順過渡)
+                const torsoBias = THREE.MathUtils.clamp(torsoDeg / 28.0, -1.0, 1.0);
+
+                if (isServeState) {
+                    const aimZoneX = (typeof aimTargetX === 'function') ? aimTargetX() : 0;
+                    tx = THREE.MathUtils.clamp(aimZoneX * 0.70 + wristFree * 0.40 + torsoBias * 0.40, -COURT_W / 2 + 0.5, COURT_W / 2 - 0.5);
+                } else {
+                    // 常規對打 (Rally)：瞄準平穩溫和 (腰腹轉身 60% + 手臂導向 40%)，落點嚴格限制在界內安全範圍
+                    const rallyAimX = torsoBias * 1.25 + wristFree * 0.65;
+                    tx = THREE.MathUtils.clamp(rallyAimX, -1.85, 1.85);
+                }
+                spin = (typeof getSwipeCurve === 'function') ? getSwipeCurve() : 0;
             } else {
                 spin = getSwipeCurve();
                 // 初速瞄準微調：曲球先朝反向/內側啟動，再由馬格努斯側向力優雅劃出經典香蕉弧線
@@ -1902,6 +2172,7 @@ function solveArc(fx, fy, fz, tx, tz, out, speedScale) {
                 tx = (gGrp.position.x > 0 ? -1.65 : 1.65); // 殺向遠離對手的無人死角
                 spdScale = 1.45; // 極速重扣
                 solveArc(b.x, b.y, b.z, tx, tz, PH.vel, spdScale);
+                popFloatText(b.x, b.y, b.z, 'SMASH!');
                 toast('💥 凌空扣殺得分 (SMASH WINNER)!', '抓到浮高破綻，極速重扣殺向空檔！');
                 announceReferee('💥 扣殺得分！', '漂亮終結網前拉鋸！', true);
                 isChanceBall = false;
@@ -1912,8 +2183,10 @@ function solveArc(fx, fy, fz, tx, tz, out, speedScale) {
                 } else {
                     gLock = 1.2;
                 }
-                addShake(0.18);
-                S.pop(1.0);
+                popRing(b.x, b.z, 3.8, 0xff4500);
+                addShake(0.35);
+                if (typeof S !== 'undefined' && S.thump) S.thump(1.8);
+                if (typeof S !== 'undefined' && S.pop) S.pop(1.5);
             } else if (isPassiveBlock) {
                 // 第 0 級：手指完全沒動 / 被動減力碰球 (Passive Block)
                 const incomingEnergy = Math.hypot(PH.vel.x, PH.vel.y, PH.vel.z);
@@ -1923,6 +2196,7 @@ function solveArc(fx, fy, fz, tx, tz, out, speedScale) {
                     tz = -0.15; // 沒過網
                     spdScale = 0.52;
                     solveArc(b.x, b.y, b.z, tx, tz, PH.vel, spdScale);
+                    popFloatText(b.x, b.y, b.z, 'MISS');
                     toast('⚠️ 被動擋球掛網', '來球過低或推力不足（微向上滑動可順利起球）');
                 } else {
                     // 借力卸力柔和過網，落入廚房前端 (0.75m ~ 1.25m)
@@ -2007,6 +2281,7 @@ function solveArc(fx, fy, fz, tx, tz, out, speedScale) {
                 clearStage();
             }
         }
+        window.tryHit = tryHit;
         const joyAnalog = { x: 0, z: 0 };
         const playerVel = { x: 0, z: 0 };
         const dragRay = new THREE.Raycaster();
@@ -2172,18 +2447,66 @@ function solveArc(fx, fy, fz, tx, tz, out, speedScale) {
 
             if (webcamActive) {
                 if (state === 'SERVE_READY') {
-                    pPos.x += (1.5 * serveSide - pPos.x) * Math.min(1, dt * 18);
+                    // 發球準備：若玩家發球，站於對應發球區底線；若對手發球，接發球員站於對角底線後方防守
+                    const sx = (server === 'PLAYER') ? (1.5 * serveSide) : (-1.5 * serveSide);
+                    pPos.x += (sx - pPos.x) * Math.min(1, dt * 18);
                     pPos.z += (HALF_L + 0.35 - pPos.z) * Math.min(1, dt * 18);
                 } else if ((state === 'RALLY' || state === 'SERVE_AIR') && PH.vel.z > 0) {
-                    pPos.x += (PH.pos.x - pPos.x) * Math.min(1, dt * 25);
-                    // ★ 已落地 → 允許下探廚房追短球;未落地 → 維持廚房線後,避免截擊違規
-                    const zFloor = (bounces > 0) ? 0.60 : (KITCHEN_D + 0.30);
-                    const tz = Math.max(zFloor, Math.min(HALF_L + 0.5, PH.pos.z + 0.25));
-                    pPos.z += (tz - pPos.z) * Math.min(1, dt * 20);
+                    // ★ 體感模式走位：依據落點預測預留反彈擊球甜區，嚴格遵守雙彈跳規則與廚房區禁區規範
+                    const hasLand = (typeof predictLanding === 'function') && predictLanding(_land);
+                    const mustBounce = (typeof needBounce === 'function' && needBounce());
+
+                    let targetZ = HALF_L;
+                    let targetX = 0;
+
+                    if (mustBounce) {
+                        // 1. 雙彈跳規則階段：等候反彈
+                        if (hasLand && _land.z > 0) {
+                            targetZ = Math.min(HALF_L + 0.55, Math.max(KITCHEN_D + 0.30, _land.z + 0.55));
+                            targetX = _land.x;
+                        } else {
+                            targetZ = HALF_L + 0.30;
+                            targetX = PH.pos.x * 0.75;
+                        }
+                    } else if (hasLand && _land.z > 0) {
+                        // 2. 一般對打階段：
+                        if (_land.z < KITCHEN_D) {
+                            // 網前小球 (Dink)：
+                            if (bounces > 0) {
+                                // 球已在廚房內彈起：允許下探救球
+                                targetZ = Math.max(1.20, _land.z + 0.40);
+                            } else {
+                                // 球尚未落地：嚴禁進入廚房，在廚房線後方等候
+                                targetZ = KITCHEN_D + 0.30;
+                            }
+                        } else {
+                            // 常規深球：站在落點後方
+                            targetZ = Math.max(KITCHEN_D + 0.35, Math.min(HALF_L + 0.50, _land.z + 0.55));
+                        }
+                        targetX = _land.x;
+                    } else {
+                        // 飛行中無確定落點
+                        targetZ = Math.max(KITCHEN_D + 0.35, Math.min(HALF_L + 0.50, PH.pos.z + 0.85));
+                        targetX = PH.pos.x;
+                    }
+                    
+                    // 無論如何，球落地前嚴格禁止進入廚房 (NVZ)
+                    if (bounces === 0 && targetZ < KITCHEN_D + 0.20) {
+                        targetZ = KITCHEN_D + 0.20;
+                    }
+
+                    // 水平限制在球場內
+                    targetX = THREE.MathUtils.clamp(targetX, -COURT_W / 2 + 0.40, COURT_W / 2 - 0.40);
+
+                    // 平滑跟球移動，杜絕生硬瞬間貼球
+                    pPos.x += (targetX - pPos.x) * Math.min(1, dt * 12);
+                    pPos.z += (targetZ - pPos.z) * Math.min(1, dt * 14);
                 } else if (state === 'RALLY' || state === 'SERVE_AIR') {
-                    // ★ 球離開後主動退回廚房線後,否則會永久卡在廚房裡
-                    const tz = KITCHEN_D + 0.30;
-                    pPos.z += (tz - pPos.z) * Math.min(1, dt * 14);
+                    // ★ 球飛離己方半場：平滑回防就位
+                    const isNearKitchen = (pPos.z < KITCHEN_D + 1.2);
+                    const homeZ = isNearKitchen ? (KITCHEN_D + 0.35) : (HALF_L - 0.40);
+                    pPos.z += (homeZ - pPos.z) * Math.min(1, dt * 8);
+                    pPos.x += (0 - pPos.x) * Math.min(1, dt * 4);
                 }
             } else {
                 // ★ v5.0.2 人物走位物理加速度與煞車慣性 (起步加速 a=26, 煞車減速 friction=18)
@@ -3237,6 +3560,7 @@ function updateGuides(dt) {
             }
         });
 
+        let loopLowFpsCount = 0, loopEcoActive = false;
         function loop(timestamp) {
             requestAnimationFrame(loop);
             if (isLoopSuspended) return; // ★ 模式大廳或全屏 Modal 開啟時，3D 迴圈 100% 休眠省電！
@@ -3249,6 +3573,26 @@ function updateGuides(dt) {
             }
             let dt = (now - last) / 1000; last = now;
             if (dt > 0.05) dt = 0.05;
+            
+            // ★ 動態熱管理與降溫保護 (Thermal Eco Mode)
+            if (typeof webcamActive !== "undefined" && webcamActive) {
+                const curFps = 1 / (dt || 0.016);
+                if (curFps < 38) {
+                    loopLowFpsCount++;
+                    if (loopLowFpsCount > 90 && !loopEcoActive) {
+                        loopEcoActive = true;
+                        if (typeof setEcoMode === "function") setEcoMode(true);
+                        if (ren && ren.shadowMap) ren.shadowMap.autoUpdate = false;
+                        if (typeof toast === "function") toast("❄️ 已啟動體感動態降溫模式", "智慧調整運算負擔，保護手機不發燙");
+                    }
+                } else if (curFps > 52 && loopEcoActive) {
+                    loopLowFpsCount = 0;
+                    loopEcoActive = false;
+                    if (typeof setEcoMode === "function") setEcoMode(false);
+                    if (ren && ren.shadowMap) ren.shadowMap.autoUpdate = true;
+                }
+            }
+
 
             if (pLock > 0) pLock = Math.max(0, pLock - dt);
             if (gLock > 0) gLock = Math.max(0, gLock - dt);
