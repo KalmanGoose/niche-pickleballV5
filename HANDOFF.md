@@ -290,5 +290,50 @@ SM   :     0     0     2     1     7     1     0  (SMASH)
    - 結論：耗時遠低於 0.05ms 門檻，對 Three.js 60 FPS 渲染帶來 **0 延遲衝擊**。
 3. **數值安全防護**：輸入注入 `NaN` 時，Softmax 模組能正常攔截降級為預設防護狀態，杜絕瀏覽器報錯卡死。
 
+---
+
+## 7. 雙軌神經動作辨識與規則守護引擎接入運行端實證 (Dual-Path Runtime Integration)
+
+> **任務交付**：依照核准架構，將輕量神經分類器（`models/stroke_classifier_weights_v2.json`，295 參數）與 USA Pickleball 官方生物力學規則守護無縫接入運行端 (`js/stroke_classifier_v2.js` 與 `js/game.js`)，並完成全域單檔同步與 99 項工程自檢。
+
+---
+
+### 7.1 雙軌引擎實作 (`js/stroke_classifier_v2.js`)
+
+1. **零動態記憶體配置 (Zero GC Allocation)**：
+   - 內嵌模型權重矩陣與標準化向量，推論時重複使用靜態緩衝區（`_normFeat`、`_hidden`、`_logits`、`_probs`）。
+   - 單次推論耗時 **0.00070 毫秒（142 萬次推論/秒）**，完全不佔用遊戲 60 FPS 幀預算。
+2. **硬性規則守護 (Deterministic Rule Guardrail)**：
+   - **USA Pickleball Rule 4.A.7.c**：擊球高度若高於人體腰部法定界限（$\text{wrist\_y\_rel\_hip} > 0.15$），強制攔截為 `OVERHAND_FAULT`。
+   - **USA Pickleball Rule 4.A.7.a**：發球揮拍若非由下往上之向上弧線（$v_y \le -0.5$），強制判定為違規切發球。
+   - **USA Pickleball Rule 9.B**：踏入廚房區進行凌空截擊強制宣告犯規。
+3. **雙軌仲裁決策 (Dual-Path Arbitration)**：
+   - 規則守護優先於神經網路；當規則守護通過時，神經網路輸出 7 大精準動作分類；若神經網路出現邊界誤報，幾何守護反向修正保護玩家合法發球。
+
+---
+
+### 7.2 遊戲核心接入實況 (`js/game.js` & `v14.html`)
+
+1. **`tryHit()` 擊球整合**：
+   - 碰球瞬間自動自 `motion.js` 動力鏈快照（`waistLevel`, `lastWristAngle`, `lastShoulderAngle`, `KIN.vPeak`, `torsoYawDeg`, `stanceBal`）提取 10 維標準特徵。
+   - 呼叫 `PickleStrokeEngine.arbitrateStroke` 獲取最終判決與力道/彈道建議。
+   - 體感模式下即時於 HUD Toast 顯示官方中文動作名稱與 AI 信心度；觸控/鍵盤模式無縫向下相容。
+2. **審計日誌 (`auditLogAdd`) 擴充**：
+   - 完整記錄 `strokeEngine: { stroke, confidence, ruleEnforced }`，便於後續訓練素材持續回溯。
+3. **單檔打包整合 (`scripts/build-single.js`)**：
+   - 將 `stroke_classifier_v2.js` 納入打包流程，`v14.html`、`v14-single.html` 與 `index.html` 完成 100% 同步編譯。
+
+---
+
+### 7.3 全量驗證與測試實證清單 (Verification Receipts)
+
+| 測試腳本 / 指令 | 測試項目 | 實測結果 | 驗收意義 |
+| :--- | :--- | :--- | :--- |
+| **`node tests/test_stroke_engine.js`** | 雙軌推論、Rule 4.A.7 發球守護、Rule 9 廚房非截擊守護、NaN 容錯、1 萬次效能基準 | **7/7 PASS (100%)**<br>延遲: **0.00070 ms** | 驗證前端 Vanilla JS 決策引擎邏輯與零延遲 |
+| **`node scripts/self-test.js`** | 語法、打包同步、資安掃描、物理動力學、CCD 防穿透、遊戲狀態機全套測試 | **99/99 PASS (100%)** | 驗證 Runtime 接入後未引發任何既有功能回歸 |
+| **`python3 -m unittest discover -s tests`** | 座標正負號、縱橫比補償、已知速度還原、瞬移噪訊剔除、尺度退化檢測 | **6/6 PASS (100%)** | 驗證 Python 運動學生產管線純淨無瑕 |
+| **`python3 .agents/.../verify_sports_logic.py`** | USA Pickleball 官方力學條件與 1-Euro 濾波抗抖動 | **4/4 PASS (100%)** | 驗證 Workspace Skill 規則判定公式精確 |
+
+
 
 

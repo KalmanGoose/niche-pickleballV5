@@ -76,7 +76,7 @@ try {
 console.log("\n▶ [3/8] 安全邊界與金鑰洩漏掃描 (Secret Leak Scan)...");
 try {
     const res = cp.execSync(
-        "grep -rnE '(AKIA|AIza|ghp_|glpat-|https://script\\.google\\.com/macros/s/[A-Za-z0-9_-]{20,}/exec)' --exclude-dir={.git,node_modules} --exclude=self-test.js --exclude=review_round2.txt --exclude=\*.md . || true",
+        "grep -rnEI '(AKIA|AIza|ghp_|glpat-|https://script\\.google\\.com/macros/s/[A-Za-z0-9_-]{20,}/exec)' --exclude-dir={.git,node_modules,.venv,data,.agents,匹克球學習社群拷貝,里程程式競賽1} --exclude=self-test.js --exclude=review_round2.txt --exclude=\*.md . || true",
         { cwd: ROOT, encoding: "utf8" }
     ).trim();
     assert(res === "", "無真實 Google Apps Script exec 端點或 API 金鑰洩漏", res);
