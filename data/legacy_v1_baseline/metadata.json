@@ -1,0 +1,62 @@
+{
+  "version": "v1_baseline",
+  "created_at": "2026-10-16T01:49:00",
+  "script": {
+    "path": "scripts/extract_all_strokes.py",
+    "sha256": "0d6461a8ecfd632a73006e09c00eabc60e4d5efe473f6f0ded9161129cc5aca2"
+  },
+  "model": {
+    "path": "models/pose_landmarker_heavy.task",
+    "sha256": "64437af838a65d18e5ba7a0d39b465540069bc8aae8308de3e318aad31fcbc7b"
+  },
+  "videos": {
+    "dink.mp4": {
+      "sha256": "0b062de8b9e87790a848a195e3b8de7865e1fcab33a388fe86a383b2439a309e",
+      "size_bytes": 643245523
+    },
+    "dink2.mp4": {
+      "sha256": "791e8a0ff209bf7e092f9c6cf55ffec762215a9a59e5971290daee251b67c2bf",
+      "size_bytes": 128020613
+    },
+    "drive.mp4": {
+      "sha256": "27c0af2520cb51bf0236af5f1dba616a0ab8155e98c4206076e4292c65892582",
+      "size_bytes": 1519694023
+    },
+    "serve_fault.mp4": {
+      "sha256": "9493bd2d31673e7ffd25432e9c699174349490fe7622bce7c3b8fdb13415f2b1",
+      "size_bytes": 969881768
+    },
+    "serve_legal1.mp4": {
+      "sha256": "5a5994db1eb96bbc769d898db37b60a8e618b09e9547127d9d9aec0e57e828b0",
+      "size_bytes": 69831517
+    },
+    "serve_legal3.mp4": {
+      "sha256": "35c08f05a23932cdd5545987e6d85e7776eb2dd6c827334ffd8d92d67f1e0a39",
+      "size_bytes": 539981410
+    },
+    "serve_legal_2.mp4": {
+      "sha256": "584639433326257a388cfd89195e5ba1497780d6f8f9375c12bfbf1b3733bf3e",
+      "size_bytes": 1416774736
+    },
+    "smash.mp4": {
+      "sha256": "d3c4cdc662a09549aad2d7dc026d11c1e3fa38bc0f477833051201597cc6c5bd",
+      "size_bytes": 521874596
+    },
+    "smash2.mp4": {
+      "sha256": "df8ea501f20d14e5cbce5bd523300aba48b3b236c55ee8ddf930da5b751dbb84",
+      "size_bytes": 265423766
+    },
+    "volley_punch.mp4": {
+      "sha256": "1bdaea3ae49fab50cb75b4c30b8d6280fc32bd3b155fa680c732a3d1d6dcf1a7",
+      "size_bytes": 189181961
+    },
+    "\u5099\u7528.mp4": {
+      "sha256": "18841584107408faa61812747c5811c1dcec7f44725d897db66ea6457378d202",
+      "size_bytes": 2083237299
+    },
+    "\u88ab\u3129\u3125.MOV": {
+      "sha256": "f2a56e41f2f92363c12c909d89d79dfdf63288fd1cf9b2255860408ca47df7a8",
+      "size_bytes": 518872554
+    }
+  }
+}
