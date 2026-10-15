@@ -1,0 +1,265 @@
+{
+  "metadata": {
+    "model_name": "NCHU_Pickleball_Stroke_Classifier_v2",
+    "version": "2.0.0",
+    "architecture": "MLP (10 -> 16 -> 7)",
+    "activation": "ReLU",
+    "feature_names": [
+      "wrist_y_rel_hip",
+      "elbow_angle_deg",
+      "shoulder_angle_deg",
+      "wrist_speed_torso_s",
+      "wrist_accel_y_torso_s2",
+      "torso_yaw_deg",
+      "stance_balance_ratio",
+      "left_hand_up",
+      "estimated_wrist_height_ratio",
+      "swing_path_len_torso"
+    ],
+    "classes": [
+      "UNDERHAND_LEGAL",
+      "OVERHAND_FAULT",
+      "KITCHEN_DINK",
+      "POWER_DRIVE",
+      "SMASH",
+      "VOLLEY_PUNCH",
+      "PASSIVE_BLOCK"
+    ],
+    "num_parameters": 295,
+    "train_samples": 255,
+    "test_samples": 21,
+    "train_accuracy": 56.47,
+    "lovo_test_accuracy": 61.9,
+    "best_epoch": 72
+  },
+  "train_evaluation": {
+    "subset_name": "Train Set (Tier A, N=255)",
+    "total_samples": 255,
+    "accuracy": 0.5647,
+    "macro_f1": 0.5694,
+    "confusion_matrix": [
+      [
+        33,
+        9,
+        4,
+        6,
+        4,
+        4,
+        0
+      ],
+      [
+        12,
+        22,
+        3,
+        4,
+        1,
+        1,
+        0
+      ],
+      [
+        0,
+        0,
+        19,
+        1,
+        1,
+        0,
+        0
+      ],
+      [
+        11,
+        2,
+        3,
+        17,
+        1,
+        2,
+        3
+      ],
+      [
+        2,
+        3,
+        3,
+        2,
+        22,
+        0,
+        0
+      ],
+      [
+        2,
+        1,
+        3,
+        1,
+        2,
+        21,
+        4
+      ],
+      [
+        6,
+        0,
+        3,
+        4,
+        1,
+        2,
+        10
+      ]
+    ],
+    "per_class": {
+      "UNDERHAND_LEGAL": {
+        "support": 60,
+        "precision": 0.5,
+        "recall": 0.55,
+        "f1_score": 0.524
+      },
+      "OVERHAND_FAULT": {
+        "support": 43,
+        "precision": 0.595,
+        "recall": 0.512,
+        "f1_score": 0.55
+      },
+      "KITCHEN_DINK": {
+        "support": 21,
+        "precision": 0.5,
+        "recall": 0.905,
+        "f1_score": 0.644
+      },
+      "POWER_DRIVE": {
+        "support": 39,
+        "precision": 0.486,
+        "recall": 0.436,
+        "f1_score": 0.459
+      },
+      "SMASH": {
+        "support": 32,
+        "precision": 0.688,
+        "recall": 0.688,
+        "f1_score": 0.688
+      },
+      "VOLLEY_PUNCH": {
+        "support": 34,
+        "precision": 0.7,
+        "recall": 0.618,
+        "f1_score": 0.656
+      },
+      "PASSIVE_BLOCK": {
+        "support": 26,
+        "precision": 0.588,
+        "recall": 0.385,
+        "f1_score": 0.465
+      }
+    }
+  },
+  "lovo_test_evaluation": {
+    "subset_name": "LOVO Test Set (Unseen Videos, N=21)",
+    "total_samples": 21,
+    "accuracy": 0.619,
+    "macro_f1": 0.2981,
+    "confusion_matrix": [
+      [
+        3,
+        0,
+        0,
+        1,
+        1,
+        1,
+        1
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        3,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        2,
+        1,
+        7,
+        1,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    ],
+    "per_class": {
+      "UNDERHAND_LEGAL": {
+        "support": 7,
+        "precision": 1.0,
+        "recall": 0.429,
+        "f1_score": 0.6
+      },
+      "OVERHAND_FAULT": {
+        "support": 0,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1_score": 0.0
+      },
+      "KITCHEN_DINK": {
+        "support": 3,
+        "precision": 0.6,
+        "recall": 1.0,
+        "f1_score": 0.75
+      },
+      "POWER_DRIVE": {
+        "support": 0,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1_score": 0.0
+      },
+      "SMASH": {
+        "support": 11,
+        "precision": 0.875,
+        "recall": 0.636,
+        "f1_score": 0.737
+      },
+      "VOLLEY_PUNCH": {
+        "support": 0,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1_score": 0.0
+      },
+      "PASSIVE_BLOCK": {
+        "support": 0,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1_score": 0.0
+      }
+    }
+  }
+}
