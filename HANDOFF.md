@@ -110,7 +110,7 @@
 > **任務識別碼**：`Task ID: 8df84d6c-7f46-4df2-ba38-06e471391a6d/task-377`  
 > **工作目錄**：`/Users/ethanchen/Desktop/匹克球/test systeam/匹克球N-GO.v1`  
 > **當前分支**：`test-mobile-motion`  
-> **Commit SHA**：`d108f5931cd032328b7052127b2c50c7128a0e0f`  
+> **Commit SHA**：`be16536df20bafd50a96edb96f064686cb77b117`  
 
 ---
 
@@ -174,7 +174,13 @@ OK
 - **面板構成**：`[Start] ➔ [Approach] ➔ [Candidate Peak (含速度標註)] ➔ [Follow] ➔ [End]`
 - **覆蓋資訊**：骨架連線（綠色=身體關節，紅色=擊球手腕）、事件編號、動作類別、總歷時 (s)、手腕總路徑長 (torso)、波峰速率 (torso/s)。
 - **儲存目錄**：`data/v2/verification_collages/`
-- **事件清單 Manifest**：`data/v2/candidate_events_manifest.csv`（包含每支影片所有事件之起始幀、波峰幀、結束幀、時間戳、持續時間與波峰速度）。
+- **事件清單 Manifest**：`data/v2/candidate_events_manifest.csv`。
+
+#### 國際運動生物力學標準 (Sports CV) 之三級可信度標註（由 `scripts/audit_biomechanics_tiering.py` 自動分級）：
+針對 393 筆候選事件，依據神經肌肉不應期（Refractory Period $0.55\text{s}$）、生理揮拍歷時窗（$0.12\text{s} \le \Delta t \le 1.15\text{s}$）與擊球動能下限（$\ge 1.8\text{ t/s}$）進行三級可信度標註：
+1. **🟢 Tier A (高可信度真揮拍, 276 筆 / 70.2%)**：力學特徵完全符合匹克球揮拍生物力學，推薦作為訓練核心真值集。
+2. **🟡 Tier B (邊界/次級震盪, 69 筆 / 17.6%)**：包含密集交鋒次級波峰、前置引拍波峰、邊界小球力道或尺度退化，供人工複檢。
+3. **🔴 Tier C (高機率假陽性, 48 筆 / 12.2%)**：包含歷時過長走動、瞬態噪訊或彎腰撿球（如 `serve_fault_ev_002` 撿球動作已被精準標為 Tier C），建議預設排除。
 
 ---
 
