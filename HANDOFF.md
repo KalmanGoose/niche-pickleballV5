@@ -208,7 +208,37 @@
 
 | 測試指令 / 檢驗工具 | 測試範圍與檢驗項目 | 實測結果 | 驗收意義 |
 | :--- | :--- | :--- | :--- |
-| **`./.venv/bin/python -m unittest discover -s tests -v`** | 運動學座標符號、等比像素補償、速度還原、瞬移跳點過濾、尺度退化標記、**遮擋追蹤恢復 (8/8 OK)**、**1D Peak NMS (4峰不合併)**、**代碼與參數雜湊快取失效**、**人工標註非破壞性留存**、**偵測器 PR 評估與待審狀態隔離** | **11/11 PASS (100%)** | 驗證運動學管線修復完成，所有審查指出之提取缺陷均受單元測試保護 |
-| **`./.venv/bin/python scripts/evaluate_detector_v2.py`** | 檢查 `candidate_events_manifest.csv` 是否存在未經授權之自動真值，並輸出啟發式分級與人工審核進度 | **724 筆全數為 `PENDING_HUMAN_AUDIT`** | 確保自動分級絕不冒充人工真值 |
-| **`node scripts/self-test.js`** | 打包同步、資安防禦 (OWASP)、物理動力學矩陣 (82項)、CCD 防穿透、遊戲狀態機全套測試 | **99/99 PASS (100%)** | 驗證 Runtime 100% 維持在 `952b573` 基線狀態，無任何越界修改或打包脫節 |
+| **`./.venv/bin/python -m unittest discover -s tests -v`** | 運動學管線 11 項測試＋`TASK-V8-608` 5 大回歸測試（嚴格人工簽認表、序列 DP 最大配對數、Manifest 讀取失敗/毀損保護、孤兒簽認事件保護、時間容差歧義與 `os.replace` 失敗原檔保留） | **16/16 PASS (100%)** | 驗證提取管線、Manifest 安全防線與偵測器評估全數受單元測試保護 |
+| **`./.venv/bin/python scripts/evaluate_detector_v2.py`** | 於隔離副本唯讀檢查 `candidate_events_manifest.csv` 之待審狀態、矛盾狀態計數與啟發式分級分佈 | **724 筆 `PENDING_HUMAN_AUDIT` / 0 筆矛盾** | 確保自動分級或矛盾狀態絕不計入人工真值 TP/FP 分母 |
+| **`git diff --check`** | 檢查變更檔案之空白與格式規範 | **PASS (Exit 0)** | 確保提交差異乾淨無格式瑕疵 |
 
+---
+
+## 8. TASK-V8-608 實作紀錄：Manifest 安全防線與偵測器評估修正
+
+* **Task ID**：`TASK-V8-608`（Extraction manifest safety and detector evaluation）
+* **分支與基底**：於乾淨隔離 worktree 自 `3308840` 建立 `task/agv/extract-guard-3308840`（完整保留原 `test-mobile-motion` 工作樹與未提交修改，未動 `data/**`、`models/**` 或前端/後端產品檔）。
+* **變更檔案（嚴格限於 Allowed Files）**：
+  - `scripts/manifest_annotations_v2.py`（新增共用標註讀取驗證、兩層一對一配對、單檔原子寫入 helper）
+  - `scripts/extract_strokes_v2.py`（移除匯入期 `os.makedirs`，改為預檢通過後才暫存與單檔原子發布）
+  - `scripts/audit_biomechanics_tiering.py`（接入共用預檢、孤兒／歧義阻斷與單檔原子替換）
+  - `scripts/evaluate_detector_v2.py`（嚴格人工簽認狀態表、序列 DP 最大配對數與最小總時間誤差）
+  - `tests/test_manifest_v2.py`（新增 5 組先紅後綠之可重現失敗注入回歸測試）
+  - `HANDOFF.md`（記錄本任務變更、紅綠燈測試證據與未驗證項目）
+
+### 8.1 核心修正摘要
+1. **Manifest 嚴格預檢與單檔原子寫入 (`scripts/manifest_annotations_v2.py`, `scripts/extract_strokes_v2.py`, `scripts/audit_biomechanics_tiering.py`)**：
+   - 僅在檔案確實不存在時視為新清單；若檔案存在但發生 `PermissionError`、無效 UTF-8、CSV 欄位缺失、非有限時間戳、重複 `(video, event_id)` 或狀態矛盾，立即拋出含路徑與列號之 `ManifestValidationError` 並以非零狀態中止，絕不吞掉例外後覆寫原檔。
+   - 採用兩層一對一配對：第一層以 `(video, event_id)` 精確配對；第二層針對演算法版本導致 ID 改變之待保留列，在同影片 `±0.05s` 容差內僅於唯一無歧義時一對一承接並沿用舊穩定 `event_id`（徹底移除 `round(ts, 2)` dict 覆蓋）。若任何已人工簽認（或含備註）事件無新事件可承接（孤兒事件）或存在多對一／一對多時間容差歧義，立即中止發布並完整保留原 `manifest`、`dataset`、`checkpoint` 與 `collages` 位元組不變。
+   - 寫入時使用同目錄 `tempfile.NamedTemporaryFile(delete=False)` 完整寫入、`flush()`、`os.fsync()` 後執行 `os.replace`（保證**單檔**原子性，不宣稱跨多檔為單一交易；失敗時清理暫存檔並保留原檔）。
+2. **嚴格人工簽認狀態表 (`scripts/evaluate_detector_v2.py`)**：
+   - 僅 `HUMAN_CONFIRMED/TRUE`、`VERIFIED_TRUE/TRUE` 計入 `human_verified_tp`；僅 `HUMAN_REJECTED/FALSE`、`VERIFIED_FALSE/FALSE` 計入 `human_verified_fp`。
+   - `AUTO_TIERED/TRUE`、`PENDING_HUMAN_AUDIT/TRUE`、`HUMAN_CONFIRMED/FALSE`、`HUMAN_REJECTED/TRUE`、未知狀態與空值均排除於 TP/FP 與 `verified_candidate_precision` 分母之外，並分開統計 `pending_human_audit` 與 `invalid_or_contradictory_count`（附可追查之列號與 ID）；無有效人工簽認時 `verified_candidate_precision` 維持 `None`。
+3. **事件級序列 DP 最大配對數 (`scripts/evaluate_detector_v2.py`)**：
+   - 依影片分組並穩定排序候選與真值時間戳，以 `O(D×G)` 序列動態規劃按字典序最大化 `(配對數 TP, -總絕對時間差, 確定性索引順序)`。於 `GT=[0.0, 0.4]`、候選 `[0.25, 0.5]`、`tolerance_s=0.30` 反例中穩定取得 `TP=2, FP=0, FN=0`。
+
+### 8.2 未驗證項目與證據缺口 (Evidence Gaps — NOT VERIFIED)
+- **真實人工標註真值與獨立影片事件 GT**：`NOT VERIFIED`（目前 `data/v2/candidate_events_manifest.csv` 724 筆全數為 `PENDING_HUMAN_AUDIT`，尚未載入真人簽核真值或 `ground_truth_events.json`）。
+- **正式 `data/v2` 重寫與實際影片重提取**：`NOT VERIFIED`（依任務板規範，本任務未對正式 `data/v2` 執行寫入或重跑 11 支實際影片提取，所有失敗注入與成功寫入均於 `tempfile.TemporaryDirectory` 臨時資料驗證）。
+- **跨提取版本時間容差之實戰覆蓋率與超大事件數 DP 記憶體壓測**：`NOT VERIFIED`。
+- **BROWSER / HUMAN GAME FEEL**：`NOT REQUIRED / NOT VERIFIED`（本任務未修改任何前端／遊戲 Runtime 程式碼）。

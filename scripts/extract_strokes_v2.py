@@ -39,6 +39,13 @@ from scripts.kinematics_v2 import (
     DEG_SCALE_LOW,
     DEG_SCALE_HIGH
 )
+from scripts.manifest_annotations_v2 import (
+    ManifestValidationError,
+    atomic_write_csv_rows,
+    atomic_write_json,
+    load_and_validate_manifest,
+    match_and_merge_manifest_annotations,
+)
 
 os.environ['MPLCONFIGDIR'] = '/tmp/matplotlib'
 
@@ -51,9 +58,6 @@ DATASET_JSON_PATH = os.path.join(OUTPUT_DIR, "real_strokes_dataset_v2.json")
 DATASET_CSV_PATH = os.path.join(OUTPUT_DIR, "real_strokes_dataset_v2.csv")
 COLLAGE_DIR = os.path.join(OUTPUT_DIR, "verification_collages")
 MANIFEST_PATH = os.path.join(OUTPUT_DIR, "candidate_events_manifest.csv")
-
-os.makedirs(OUTPUT_DIR, exist_ok=True)
-os.makedirs(COLLAGE_DIR, exist_ok=True)
 
 # 動作標籤映射：保留 volley_punch 的獨立性，不與 passive_block 混淆
 RAW_CLASS_MAPPING = {
@@ -119,61 +123,33 @@ def get_raw_class_for_filename(filename):
             return cls_name
     return None
 
-def load_checkpoint_v2():
-    if os.path.exists(CHECKPOINT_PATH):
+def load_checkpoint_v2(checkpoint_path=None):
+    target_path = checkpoint_path or CHECKPOINT_PATH
+    if os.path.exists(target_path):
         try:
-            with open(CHECKPOINT_PATH, "r", encoding="utf-8") as f:
+            with open(target_path, "r", encoding="utf-8") as f:
                 return json.load(f)
-        except Exception:
-            return {}
+        except Exception as exc:
+            raise ManifestValidationError(
+                f"[{target_path}] Failed to read or parse existing checkpoint JSON: {exc}"
+            ) from exc
     return {}
 
-def save_checkpoint_v2(chk):
-    with open(CHECKPOINT_PATH, "w", encoding="utf-8") as f:
-        json.dump(chk, f, indent=2, ensure_ascii=False)
+def save_checkpoint_v2(chk, checkpoint_path=None):
+    target_path = checkpoint_path or CHECKPOINT_PATH
+    atomic_write_json(target_path, chk)
 
 def load_existing_manifest_annotations(manifest_path):
     """
-    Non-destructive manifest loader:
-    Preserves human ground-truth labels and notes across extraction reruns.
+    Fail-closed manifest loader:
+    Validates existing manifest CSV and returns exact `(video, event_id)` dictionary.
+    Raises ManifestValidationError on any I/O, encoding, CSV, missing-column,
+    duplicate-key, or contradictory-status error.
     """
-    annotations = {}
-    if not os.path.exists(manifest_path):
-        return annotations
-    try:
-        with open(manifest_path, "r", encoding="utf-8") as f:
-            reader = csv.DictReader(f)
-            for row in reader:
-                vid = row.get("video", "").strip()
-                eid = row.get("event_id", "").strip()
-                ts_str = row.get("timestamp_peak_s", "").strip()
-                m_ver = row.get("manual_verified", "").strip()
-                is_true = row.get("is_true_stroke", "").strip()
-                notes = row.get("notes", "").strip()
-
-                is_human = (
-                    m_ver not in ("", "UNVERIFIED", "AUTO_TIERED", "PENDING_HUMAN_AUDIT") or
-                    is_true not in ("", "PENDING") or
-                    notes != ""
-                )
-
-                ann_data = {
-                    "manual_verified": m_ver,
-                    "is_true_stroke": is_true,
-                    "notes": notes,
-                    "is_human": is_human
-                }
-                if eid:
-                    annotations[(vid, eid)] = ann_data
-                if ts_str:
-                    try:
-                        ts_val = round(float(ts_str), 2)
-                        annotations[(vid, ts_val)] = ann_data
-                    except ValueError:
-                        pass
-    except Exception as e:
-        print(f"⚠️ 讀取現有標註清單失敗: {e}", flush=True)
-    return annotations
+    state = load_and_validate_manifest(manifest_path)
+    if not state["exists"]:
+        return {}
+    return state["by_key"]
 
 def draw_skeleton_on_frame(frame, lms, width, height, highlight_wrist=True):
     annotated = frame.copy()
@@ -245,7 +221,7 @@ def create_multi_frame_collage(cap, event, lms_by_frame, width, height, output_p
     full_img = np.vstack([banner, collage])
     cv2.imwrite(output_path, full_img)
 
-def process_video_v2(video_path, base_options, model_sha):
+def process_video_v2(video_path, base_options, model_sha, collage_out_dir=None):
     fname = os.path.basename(video_path)
     raw_class = get_raw_class_for_filename(fname)
     if raw_class is None:
@@ -461,10 +437,12 @@ def process_video_v2(video_path, base_options, model_sha):
 
     # 5. 生成連續多格預覽 Collage（供人工驗證確認真偽）
     # 每類生成前 8 個事件的 Collage
+    target_collage_dir = collage_out_dir or COLLAGE_DIR
+    os.makedirs(target_collage_dir, exist_ok=True)
     num_collages_to_make = min(8, len(final_events))
     for k in range(num_collages_to_make):
         ev = final_events[k]
-        collage_out = os.path.join(COLLAGE_DIR, f"{raw_class}_{ev['event_id']}.jpg")
+        collage_out = os.path.join(target_collage_dir, f"{raw_class}_{ev['event_id']}.jpg")
         try:
             create_multi_frame_collage(
                 cap,
@@ -487,15 +465,117 @@ def process_video_v2(video_path, base_options, model_sha):
             print(f"⚠️ 生成 Collage 失敗 ({ev['event_id']}): {e}", flush=True)
 
     cap.release()
-    print(f"   🖼️ 已輸出 {num_collages_to_make} 組 5 幀連續接觸動作驗證圖至 {COLLAGE_DIR}/", flush=True)
+    print(f"   🖼️ 已輸出 {num_collages_to_make} 組 5 幀連續接觸動作驗證圖至 {target_collage_dir}/", flush=True)
 
     return final_events
+
+
+def publish_extraction_outputs(
+    all_events,
+    staged_checkpoint,
+    metadata,
+    manifest_path=None,
+    dataset_json_path=None,
+    dataset_csv_path=None,
+    checkpoint_path=None,
+    existing_state=None,
+):
+    """
+    Validate and match existing manifest annotations against `all_events` BEFORE
+    replacing any output file. If validation or 1-to-1 matching fails (e.g., orphan
+    signed rows or ambiguous timestamp matches), raises ManifestValidationError and
+    leaves existing manifest, dataset, and checkpoint files untouched.
+    Note: os.replace guarantees single-file atomicity per output file.
+    """
+    target_manifest = manifest_path or MANIFEST_PATH
+    target_ds_json = dataset_json_path or DATASET_JSON_PATH
+    target_ds_csv = dataset_csv_path or DATASET_CSV_PATH
+    target_chk = checkpoint_path or CHECKPOINT_PATH
+
+    if existing_state is None:
+        existing_state = load_and_validate_manifest(target_manifest)
+
+    merge_res = match_and_merge_manifest_annotations(existing_state, all_events)
+    annotations_by_new_idx = merge_res["annotations_by_new_idx"]
+    preserved_count = merge_res["preserved_signed_count"]
+
+    manifest_rows = []
+    csv_rows = []
+    csv_header = [
+        "event_id", "video", "raw_class", "candidate_peak_frame",
+        "start_frame", "end_frame", "timestamp_peak_s", "duration_s",
+        "peak_speed_torso_s", "path_length_torso", "quality_flag"
+    ] + FEATURE_NAMES_V2
+
+    for idx, ev in enumerate(all_events):
+        ann = annotations_by_new_idx[idx]
+        manifest_rows.append({
+            "event_id": ann["resolved_event_id"],
+            "video": ev["video"],
+            "timestamp_peak_s": ev["timestamp_peak_s"],
+            "duration_s": ev["duration_s"],
+            "peak_speed_torso_s": ev["peak_speed_torso_s"],
+            "raw_class": ev["raw_class"],
+            "heuristic_tier": "UNCLASSIFIED",
+            "audit_notes": "",
+            "manual_verified": ann["manual_verified"],
+            "is_true_stroke": ann["is_true_stroke"],
+            "notes": ann["notes"],
+        })
+
+        feats = ev["features"]
+        csv_row = {
+            "event_id": ev["event_id"],
+            "video": ev["video"],
+            "raw_class": ev["raw_class"],
+            "candidate_peak_frame": str(ev["candidate_peak_frame"]),
+            "start_frame": str(ev["start_frame"]),
+            "end_frame": str(ev["end_frame"]),
+            "timestamp_peak_s": str(ev["timestamp_peak_s"]),
+            "duration_s": str(ev["duration_s"]),
+            "peak_speed_torso_s": str(ev["peak_speed_torso_s"]),
+            "path_length_torso": str(ev["path_length_torso"]),
+            "quality_flag": ev["quality_flag"],
+        }
+        for k in FEATURE_NAMES_V2:
+            csv_row[k] = str(feats[k])
+        csv_rows.append(csv_row)
+
+    manifest_fieldnames = [
+        "event_id", "video", "timestamp_peak_s", "duration_s",
+        "peak_speed_torso_s", "raw_class", "heuristic_tier",
+        "audit_notes", "manual_verified", "is_true_stroke", "notes"
+    ]
+
+    full_output = {
+        "metadata": metadata,
+        "events": all_events,
+    }
+
+    # Publish order: manifest -> dataset JSON -> dataset CSV -> checkpoint JSON
+    # (Each file is replaced atomically via sibling tempfile + fsync + os.replace)
+    atomic_write_csv_rows(target_manifest, manifest_fieldnames, manifest_rows)
+    atomic_write_json(target_ds_json, full_output)
+    atomic_write_csv_rows(target_ds_csv, csv_header, csv_rows)
+    if staged_checkpoint is not None:
+        save_checkpoint_v2(staged_checkpoint, target_chk)
+
+    return merge_res
+
 
 def main():
     print("=" * 70, flush=True)
     print("🎾 NCHU 匹克球 - 真人揮拍特徵提取器 v2 (Rigorous & Traceable)", flush=True)
     print("   版本:", CODE_VERSION)
     print("=" * 70, flush=True)
+
+    # 0. Pre-validate existing manifest and checkpoint BEFORE creating directories or processing videos
+    existing_state = load_and_validate_manifest(MANIFEST_PATH)
+    checkpoint = load_checkpoint_v2(CHECKPOINT_PATH)
+    staged_checkpoint = dict(checkpoint)
+
+    os.makedirs(OUTPUT_DIR, exist_ok=True)
+    os.makedirs(COLLAGE_DIR, exist_ok=True)
 
     force_rerun = "--force" in sys.argv or "--no-cache" in sys.argv
     kinematics_sha = compute_file_sha256(KINEMATICS_SCRIPT_PATH)
@@ -504,7 +584,6 @@ def main():
 
     base_options = python.BaseOptions(model_asset_path=MODEL_PATH)
     model_sha = compute_file_sha256(MODEL_PATH)
-    checkpoint = load_checkpoint_v2()
 
     video_files = sorted(glob.glob(os.path.join(VIDEOS_DIR, "*.*")))
     valid_videos = [v for v in video_files if v.endswith((".mp4", ".mov", ".MOV")) and "備用" not in v]
@@ -512,29 +591,29 @@ def main():
     print(f"📂 掃描到 {len(valid_videos)} 部正式動作影片素材", flush=True)
 
     all_events = []
-    
-    for vpath in valid_videos:
-        vname = os.path.basename(vpath)
-        v_sha = compute_file_sha256(vpath)
-        
-        # 嚴格 Checkpoint 機制：必須同時匹配 video_sha, model_sha, kinematics_sha, extractor_sha, params_hash
-        cache_entry = checkpoint.get(vname)
-        if (not force_rerun and cache_entry and 
-            cache_entry.get("code_version") == CODE_VERSION and
-            cache_entry.get("video_sha256") == v_sha and
-            cache_entry.get("model_sha256") == model_sha and
-            cache_entry.get("kinematics_sha256") == kinematics_sha and
-            cache_entry.get("extractor_sha256") == extractor_sha and
-            cache_entry.get("params_hash") == params_hash):
-            cached_events = cache_entry.get("events", [])
-            print(f"⚡ [v2 斷點快取生效] {vname}: 秒讀 {len(cached_events)} 筆驗證事件", flush=True)
-            all_events.extend(cached_events)
-            continue
+    import tempfile as _tempfile
+    with _tempfile.TemporaryDirectory(dir=OUTPUT_DIR, prefix=".collages_staging_") as staged_collage_dir:
+        for vpath in valid_videos:
+            vname = os.path.basename(vpath)
+            v_sha = compute_file_sha256(vpath)
 
-        try:
-            events = process_video_v2(vpath, base_options, model_sha)
+            # 嚴格 Checkpoint 機制：必須同時匹配 video_sha, model_sha, kinematics_sha, extractor_sha, params_hash
+            cache_entry = staged_checkpoint.get(vname)
+            if (not force_rerun and cache_entry and
+                cache_entry.get("code_version") == CODE_VERSION and
+                cache_entry.get("video_sha256") == v_sha and
+                cache_entry.get("model_sha256") == model_sha and
+                cache_entry.get("kinematics_sha256") == kinematics_sha and
+                cache_entry.get("extractor_sha256") == extractor_sha and
+                cache_entry.get("params_hash") == params_hash):
+                cached_events = cache_entry.get("events", [])
+                print(f"⚡ [v2 斷點快取生效] {vname}: 秒讀 {len(cached_events)} 筆驗證事件", flush=True)
+                all_events.extend(cached_events)
+                continue
+
+            events = process_video_v2(vpath, base_options, model_sha, collage_out_dir=staged_collage_dir)
             all_events.extend(events)
-            checkpoint[vname] = {
+            staged_checkpoint[vname] = {
                 "code_version": CODE_VERSION,
                 "video_sha256": v_sha,
                 "model_sha256": model_sha,
@@ -544,15 +623,8 @@ def main():
                 "events_count": len(events),
                 "events": events
             }
-            save_checkpoint_v2(checkpoint)
-        except Exception as e:
-            import traceback
-            print(f"❌ 處理 {vpath} 時發生錯誤: {e}", flush=True)
-            traceback.print_exc()
 
-    # 輸出完整 Dataset JSON
-    full_output = {
-        "metadata": {
+        metadata = {
             "version": CODE_VERSION,
             "created_at": "2026-10-16",
             "model_path": MODEL_PATH,
@@ -562,75 +634,29 @@ def main():
             "params_hash": params_hash,
             "feature_names": FEATURE_NAMES_V2,
             "total_candidate_events": len(all_events)
-        },
-        "events": all_events
-    }
-    with open(DATASET_JSON_PATH, "w", encoding="utf-8") as f:
-        json.dump(full_output, f, indent=2, ensure_ascii=False)
+        }
+
+        merge_res = publish_extraction_outputs(
+            all_events=all_events,
+            staged_checkpoint=staged_checkpoint,
+            metadata=metadata,
+            manifest_path=MANIFEST_PATH,
+            dataset_json_path=DATASET_JSON_PATH,
+            dataset_csv_path=DATASET_CSV_PATH,
+            checkpoint_path=CHECKPOINT_PATH,
+            existing_state=existing_state,
+        )
+
+        # Only move staged collages into COLLAGE_DIR after manifest/dataset/checkpoint publish succeeds
+        for cname in os.listdir(staged_collage_dir):
+            os.replace(
+                os.path.join(staged_collage_dir, cname),
+                os.path.join(COLLAGE_DIR, cname),
+            )
+
+    preserved_count = merge_res["preserved_signed_count"]
     print(f"\n💾 已儲存 v2 真人事件資料庫 (JSON): {DATASET_JSON_PATH}", flush=True)
-
-    # 輸出完整 Dataset CSV
-    with open(DATASET_CSV_PATH, "w", encoding="utf-8") as f:
-        header = [
-            "event_id", "video", "raw_class", "candidate_peak_frame",
-            "start_frame", "end_frame", "timestamp_peak_s", "duration_s",
-            "peak_speed_torso_s", "path_length_torso", "quality_flag"
-        ] + FEATURE_NAMES_V2
-        f.write(",".join(header) + "\n")
-        
-        for ev in all_events:
-            feats = ev["features"]
-            row = [
-                ev["event_id"], ev["video"], ev["raw_class"],
-                str(ev["candidate_peak_frame"]), str(ev["start_frame"]), str(ev["end_frame"]),
-                str(ev["timestamp_peak_s"]), str(ev["duration_s"]),
-                str(ev["peak_speed_torso_s"]), str(ev["path_length_torso"]), ev["quality_flag"]
-            ] + [str(feats[k]) for k in FEATURE_NAMES_V2]
-            f.write(",".join(row) + "\n")
     print(f"💾 已儲存 v2 真人事件資料庫 (CSV):  {DATASET_CSV_PATH}", flush=True)
-
-    # 輸出人工標註與審核清單 (Manifest CSV) - 嚴格保存既有人工標註
-    existing_anns = load_existing_manifest_annotations(MANIFEST_PATH)
-    preserved_count = 0
-
-    with open(MANIFEST_PATH, "w", newline="", encoding="utf-8") as f:
-        fieldnames = [
-            "event_id", "video", "timestamp_peak_s", "duration_s",
-            "peak_speed_torso_s", "raw_class", "heuristic_tier",
-            "audit_notes", "manual_verified", "is_true_stroke", "notes"
-        ]
-        writer = csv.DictWriter(f, fieldnames=fieldnames)
-        writer.writeheader()
-
-        for ev in all_events:
-            vid = ev["video"]
-            eid = ev["event_id"]
-            ts_key = round(float(ev["timestamp_peak_s"]), 2)
-
-            ann = existing_anns.get((vid, eid)) or existing_anns.get((vid, ts_key))
-            if ann and ann["is_human"]:
-                m_ver = ann["manual_verified"]
-                is_true = ann["is_true_stroke"]
-                notes = ann["notes"]
-                preserved_count += 1
-            else:
-                m_ver = "PENDING_HUMAN_AUDIT"
-                is_true = "PENDING"
-                notes = ""
-
-            writer.writerow({
-                "event_id": eid,
-                "video": vid,
-                "timestamp_peak_s": ev["timestamp_peak_s"],
-                "duration_s": ev["duration_s"],
-                "peak_speed_torso_s": ev["peak_speed_torso_s"],
-                "raw_class": ev["raw_class"],
-                "heuristic_tier": "UNCLASSIFIED",
-                "audit_notes": "",
-                "manual_verified": m_ver,
-                "is_true_stroke": is_true,
-                "notes": notes
-            })
     print(f"📋 已建立/更新人工標註清單 (Manifest): {MANIFEST_PATH} (保留 {preserved_count} 筆人工標註)", flush=True)
 
     # 統計輸出各類別事件數
@@ -646,4 +672,8 @@ def main():
     print("=" * 70, flush=True)
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except ManifestValidationError as err:
+        print(f"❌ Manifest 安全檢驗未通過，已中止發布以保護既有資料: {err}", file=sys.stderr, flush=True)
+        sys.exit(1)
