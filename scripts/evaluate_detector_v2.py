@@ -24,7 +24,11 @@ from collections import defaultdict
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from scripts.manifest_annotations_v2 import classify_annotation_status
+from scripts.manifest_annotations_v2 import (
+    ManifestValidationError,
+    check_no_pending_recovery,
+    classify_annotation_status,
+)
 
 MANIFEST_PATH = "data/v2/candidate_events_manifest.csv"
 GT_EVENTS_PATH = "data/v2/ground_truth_events.json"
@@ -194,6 +198,13 @@ def summarize_manifest_audit(manifest_rows):
 
 
 def main():
+    target_dir = os.path.dirname(os.path.abspath(MANIFEST_PATH)) or "."
+    try:
+        check_no_pending_recovery(target_dir)
+    except ManifestValidationError as err:
+        print(f"❌ {err}", file=sys.stderr)
+        sys.exit(1)
+
     if not os.path.exists(MANIFEST_PATH):
         print(f"❌ 找不到 Manifest 檔案: {MANIFEST_PATH}")
         sys.exit(1)

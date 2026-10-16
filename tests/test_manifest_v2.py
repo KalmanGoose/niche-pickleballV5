@@ -739,6 +739,303 @@ class TestManifestSafetyAndDetectorEvalV2(unittest.TestCase):
             self.assertEqual(join_key_manifest, join_key_ds_csv)
             self.assertEqual(join_key_manifest, join_key_chk)
 
+    def test_9_rollback_failure_preserves_backup_blocks_mixed_reads_and_recovers(self):
+        """
+        [P1 Regression - Review Round 2]
+        Verify that when file replacement fails AND rollback also fails (double-fault):
+        1. The backup directory is NOT deleted in finally (data is not lost).
+        2. Persistent recovery journal (.batch_publish_recovery.json) records status="ROLLBACK_FAILED"
+           with target paths, hashes, and backup paths.
+        3. Attempts to read manifest/checkpoint or run another publish detect the journal
+           and raise ManifestValidationError to explicitly BLOCK reading mixed versions.
+        4. Invoking recover_pending_batch_publish safely restores all files to their pre-transaction
+           state, verifies SHA-256 hashes, and cleans up the journal/backup directory.
+        5. Normal reads and publishes can then proceed cleanly.
+        """
+        import scripts.manifest_annotations_v2 as man_v2_mod
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            manifest_path = os.path.join(tmpdir, "candidate_events_manifest.csv")
+            dataset_path = os.path.join(tmpdir, "real_strokes_dataset_v2.json")
+            dataset_csv_path = os.path.join(tmpdir, "real_strokes_dataset_v2.csv")
+            checkpoint_path = os.path.join(tmpdir, "checkpoint_v2.json")
+
+            fieldnames = [
+                "event_id", "video", "timestamp_peak_s", "duration_s",
+                "peak_speed_torso_s", "raw_class", "heuristic_tier",
+                "audit_notes", "manual_verified", "is_true_stroke", "notes"
+            ]
+            self._write_csv(manifest_path, fieldnames, [
+                {
+                    "event_id": "ev_01",
+                    "video": "v.mp4",
+                    "timestamp_peak_s": "1.000",
+                    "duration_s": "0.200",
+                    "peak_speed_torso_s": "4.000",
+                    "raw_class": "SMASH",
+                    "heuristic_tier": "TIER_A_CANDIDATE",
+                    "audit_notes": "",
+                    "manual_verified": "PENDING_HUMAN_AUDIT",
+                    "is_true_stroke": "PENDING",
+                    "notes": "Initial manifest",
+                }
+            ])
+            with open(dataset_path, "w", encoding="utf-8") as f:
+                f.write('{"initial": "dataset_json_old"}\n')
+            with open(dataset_csv_path, "w", encoding="utf-8") as f:
+                f.write("event_id,video\nev_01,v.mp4\n")
+            with open(checkpoint_path, "w", encoding="utf-8") as f:
+                f.write('{"initial": "checkpoint_json_old"}\n')
+
+            orig_shas = {
+                "manifest": sha256_bytes(manifest_path),
+                "dataset_json": sha256_bytes(dataset_path),
+                "dataset_csv": sha256_bytes(dataset_csv_path),
+                "checkpoint": sha256_bytes(checkpoint_path),
+            }
+
+            new_event = _sample_event(eid="ev_01", vid="v.mp4", ts=1.000)
+            staged_chk = {"v.mp4": {"events": [new_event]}}
+
+            # Patch _replace_single_file to fail on file 2 (dataset_json)
+            # Patch _rollback_restore_file to fail when rolling back file 1 (manifest)
+            orig_replace = man_v2_mod._replace_single_file
+            orig_restore = man_v2_mod._rollback_restore_file
+
+            replace_call_count = 0
+            fail_rollback = True
+
+            def mocked_replace(src, dst):
+                nonlocal replace_call_count
+                replace_call_count += 1
+                if replace_call_count == 2:
+                    raise OSError("Injected failure during replacement of file 2")
+                orig_replace(src, dst)
+
+            def mocked_restore(backup_path, dst_path):
+                if fail_rollback:
+                    raise OSError("Injected secondary failure during rollback of file 1")
+                orig_restore(backup_path, dst_path)
+
+            with patch.object(man_v2_mod, "_replace_single_file", side_effect=mocked_replace), \
+                 patch.object(man_v2_mod, "_rollback_restore_file", side_effect=mocked_restore):
+                with self.assertRaises(RuntimeError) as ctx:
+                    extract_mod.publish_extraction_outputs(
+                        all_events=[new_event],
+                        staged_checkpoint=staged_chk,
+                        metadata={"version": "2.0.0"},
+                        manifest_path=manifest_path,
+                        dataset_json_path=dataset_path,
+                        dataset_csv_path=dataset_csv_path,
+                        checkpoint_path=checkpoint_path,
+                    )
+                self.assertIn("rollback encountered secondary errors", str(ctx.exception))
+
+            # 1. Verify mixed state exists: manifest was replaced (new), dataset_json was NOT replaced (old)
+            self.assertNotEqual(sha256_bytes(manifest_path), orig_shas["manifest"])
+            self.assertEqual(sha256_bytes(dataset_path), orig_shas["dataset_json"])
+
+            # 2. Verify backup directory WAS NOT DELETED!
+            journal_path = os.path.join(tmpdir, man_v2_mod.RECOVERY_JOURNAL_FILENAME)
+            self.assertTrue(os.path.exists(journal_path), "Recovery journal was deleted!")
+            with open(journal_path, "r", encoding="utf-8") as jf:
+                journal_data = json.load(jf)
+            self.assertEqual(journal_data["status"], "ROLLBACK_FAILED")
+            backup_dir = journal_data["backup_dir"]
+            self.assertTrue(os.path.exists(backup_dir), "Backup directory was deleted in finally!")
+            self.assertTrue(any(os.path.exists(os.path.join(backup_dir, f)) for f in os.listdir(backup_dir)))
+
+            # 3. Verify reading is strictly blocked (prevents reading mixed versions)
+            with self.assertRaises(ManifestValidationError) as read_ctx:
+                extract_mod.load_existing_manifest_annotations(manifest_path)
+            self.assertIn("Incomplete/unresolved batch publication detected", str(read_ctx.exception))
+
+            with self.assertRaises(ManifestValidationError):
+                extract_mod.load_checkpoint_v2(checkpoint_path)
+
+            with patch.object(tiering_mod, "MANIFEST_IN", manifest_path), \
+                 patch.object(tiering_mod, "MANIFEST_OUT", manifest_path), \
+                 patch.object(tiering_mod, "DATASET_PATH", dataset_path):
+                with self.assertRaises(ManifestValidationError):
+                    tiering_mod.run_tiering()
+
+            with self.assertRaises(ManifestValidationError):
+                extract_mod.publish_extraction_outputs(
+                    all_events=[new_event],
+                    staged_checkpoint=staged_chk,
+                    metadata={"version": "2.0.0"},
+                    manifest_path=manifest_path,
+                    dataset_json_path=dataset_path,
+                    dataset_csv_path=dataset_csv_path,
+                    checkpoint_path=checkpoint_path,
+                    auto_recover=False,
+                )
+
+            # 4. Now execute safe recovery using the preserved backups
+            fail_rollback = False  # restore function now works
+            rec_result = man_v2_mod.recover_pending_batch_publish(tmpdir)
+            self.assertEqual(rec_result["status"], "RECOVERED")
+
+            # 5. Verify all files are restored byte-for-byte to their original pre-transaction state
+            self.assertEqual(sha256_bytes(manifest_path), orig_shas["manifest"], "Manifest not restored!")
+            self.assertEqual(sha256_bytes(dataset_path), orig_shas["dataset_json"])
+            self.assertEqual(sha256_bytes(dataset_csv_path), orig_shas["dataset_csv"])
+            self.assertEqual(sha256_bytes(checkpoint_path), orig_shas["checkpoint"])
+
+            # 6. Verify journal and backup directory were cleaned up after recovery
+            self.assertFalse(os.path.exists(journal_path))
+            self.assertFalse(os.path.exists(backup_dir))
+
+            # 7. Normal reading and operations now succeed cleanly
+            loaded = extract_mod.load_existing_manifest_annotations(manifest_path)
+            self.assertEqual(len(loaded), 1)
+            self.assertIn(("v.mp4", "ev_01"), loaded)
+            state = man_v2_mod.load_and_validate_manifest(manifest_path)
+            self.assertTrue(state["exists"])
+            self.assertEqual(len(state["rows"]), 1)
+
+    def test_10_interrupted_publication_recovery_and_mixed_version_guard(self):
+        """
+        [P1 Regression - Review Round 2]
+        Simulate an abrupt process crash midway through sequential file replacement:
+        - .batch_publish_recovery.json remains in status="IN_PROGRESS".
+        - Target files are in mixed state (partially replaced).
+        - Readers detect the uncommitted journal and refuse to read mixed versions.
+        - Next run with auto_recover=True safely restores the pre-crash state first,
+          then cleanly completes the publication.
+        """
+        import scripts.manifest_annotations_v2 as man_v2_mod
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            manifest_path = os.path.join(tmpdir, "candidate_events_manifest.csv")
+            dataset_path = os.path.join(tmpdir, "real_strokes_dataset_v2.json")
+            dataset_csv_path = os.path.join(tmpdir, "real_strokes_dataset_v2.csv")
+            checkpoint_path = os.path.join(tmpdir, "checkpoint_v2.json")
+
+            fieldnames = [
+                "event_id", "video", "timestamp_peak_s", "duration_s",
+                "peak_speed_torso_s", "raw_class", "heuristic_tier",
+                "audit_notes", "manual_verified", "is_true_stroke", "notes"
+            ]
+            self._write_csv(manifest_path, fieldnames, [
+                {
+                    "event_id": "ev_crash_01",
+                    "video": "v.mp4",
+                    "timestamp_peak_s": "2.000",
+                    "duration_s": "0.200",
+                    "peak_speed_torso_s": "4.000",
+                    "raw_class": "SMASH",
+                    "heuristic_tier": "TIER_A_CANDIDATE",
+                    "audit_notes": "",
+                    "manual_verified": "PENDING_HUMAN_AUDIT",
+                    "is_true_stroke": "PENDING",
+                    "notes": "Original before crash",
+                }
+            ])
+            with open(dataset_path, "w", encoding="utf-8") as f:
+                f.write('{"dataset": "original_before_crash"}\n')
+            with open(dataset_csv_path, "w", encoding="utf-8") as f:
+                f.write("event_id,video\nev_crash_01,v.mp4\n")
+            with open(checkpoint_path, "w", encoding="utf-8") as f:
+                f.write('{"checkpoint": "original_before_crash"}\n')
+
+            orig_shas = {
+                "manifest": sha256_bytes(manifest_path),
+                "dataset_json": sha256_bytes(dataset_path),
+                "dataset_csv": sha256_bytes(dataset_csv_path),
+                "checkpoint": sha256_bytes(checkpoint_path),
+            }
+
+            # Simulate an interrupted crash by creating a backup directory, modifying manifest,
+            # and leaving an IN_PROGRESS journal
+            backup_dir = tempfile.mkdtemp(dir=tmpdir, prefix=".simulated_bak_")
+            backup_manifest = os.path.join(backup_dir, "backup_manifest.csv")
+            with open(manifest_path, "rb") as sf, open(backup_manifest, "wb") as bf:
+                bf.write(sf.read())
+            backup_dataset = os.path.join(backup_dir, "backup_dataset.json")
+            with open(dataset_path, "rb") as sf, open(backup_dataset, "wb") as bf:
+                bf.write(sf.read())
+
+            # Now overwrite manifest with half-committed content
+            with open(manifest_path, "w", encoding="utf-8") as f:
+                f.write("event_id,video\nhalf_committed_new,v.mp4\n")
+
+            # Write IN_PROGRESS journal
+            journal_path = os.path.join(tmpdir, man_v2_mod.RECOVERY_JOURNAL_FILENAME)
+            journal_content = {
+                "transaction_id": "tx_simulated_crash_123",
+                "status": "IN_PROGRESS",
+                "timestamp": 123456789.0,
+                "backup_dir": backup_dir,
+                "staging_dir": os.path.join(tmpdir, ".simulated_stage_"),
+                "target_dirs": [tmpdir],
+                "items": [
+                    {
+                        "target_path": manifest_path,
+                        "backup_path": backup_manifest,
+                        "original_sha256": orig_shas["manifest"],
+                        "staged_sha256": "fake_staged_sha",
+                        "existed_before": True,
+                        "state": "COMMITTED",
+                    },
+                    {
+                        "target_path": dataset_path,
+                        "backup_path": backup_dataset,
+                        "original_sha256": orig_shas["dataset_json"],
+                        "staged_sha256": "fake_ds_staged_sha",
+                        "existed_before": True,
+                        "state": "PENDING",
+                    }
+                ],
+                "errors": [],
+            }
+            with open(journal_path, "w", encoding="utf-8") as jf:
+                json.dump(journal_content, jf)
+
+            # 1. Readers detect IN_PROGRESS journal and refuse to read mixed versions
+            with self.assertRaises(ManifestValidationError) as ctx:
+                extract_mod.load_existing_manifest_annotations(manifest_path)
+            self.assertIn("Incomplete/unresolved batch publication detected", str(ctx.exception))
+
+            # 2. Next publish without auto_recover fails safely
+            new_event = _sample_event(eid="ev_crash_01", vid="v.mp4", ts=2.000)
+            staged_chk = {"v.mp4": {"events": [new_event]}}
+            with self.assertRaises(ManifestValidationError):
+                extract_mod.publish_extraction_outputs(
+                    all_events=[new_event],
+                    staged_checkpoint=staged_chk,
+                    metadata={"version": "2.0.0"},
+                    manifest_path=manifest_path,
+                    dataset_json_path=dataset_path,
+                    dataset_csv_path=dataset_csv_path,
+                    checkpoint_path=checkpoint_path,
+                    auto_recover=False,
+                )
+
+            # 3. Next publish with auto_recover=True safely recovers first, then publishes cleanly!
+            extract_mod.publish_extraction_outputs(
+                all_events=[new_event],
+                staged_checkpoint=staged_chk,
+                metadata={"version": "2.0.0"},
+                manifest_path=manifest_path,
+                dataset_json_path=dataset_path,
+                dataset_csv_path=dataset_csv_path,
+                checkpoint_path=checkpoint_path,
+                auto_recover=True,
+            )
+
+            # 4. Verify publication succeeded and no journal or backup_dir remains
+            self.assertFalse(os.path.exists(journal_path))
+            self.assertFalse(os.path.exists(backup_dir))
+
+            loaded = extract_mod.load_existing_manifest_annotations(manifest_path)
+            self.assertEqual(len(loaded), 1)
+            self.assertIn(("v.mp4", "ev_crash_01"), loaded)
+            state = man_v2_mod.load_and_validate_manifest(manifest_path)
+            self.assertTrue(state["exists"])
+            self.assertEqual(len(state["rows"]), 1)
+            self.assertEqual(state["rows"][0]["event_id"], "ev_crash_01")
+
 
 if __name__ == "__main__":
     unittest.main()

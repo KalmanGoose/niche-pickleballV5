@@ -208,47 +208,54 @@
 
 | 測試指令 / 檢驗工具 | 測試範圍與檢驗項目 | 實測結果 | 驗收意義 |
 | :--- | :--- | :--- | :--- |
-| **`./.venv/bin/python -m unittest discover -s tests -v`** | 運動學管線 11 項測試＋`TASK-V8-608` 8 大回歸測試（嚴格人工簽認表、序列 DP 最大配對數、Manifest 讀取失敗/毀損保護、孤兒簽認事件保護、時間容差歧義與單檔原子失敗保留、精確 ID 時間戳偏移拒絕、4 檔全量事務性 Rollback 注入、跨產物 event_id 一致性與映射持久化） | **19/19 PASS (100%)** | 驗證提取管線、Manifest 安全防線、事務性批次發布與跨產物 ID 一致性全數受單元測試保護 |
-| **`./.venv/bin/python scripts/evaluate_detector_v2.py`** | 於隔離副本唯讀檢查 `candidate_events_manifest.csv` 之待審狀態、矛盾狀態計數與啟發式分級分佈 | **724 筆 `PENDING_HUMAN_AUDIT` / 0 筆矛盾** | 確保自動分級或矛盾狀態絕不計入人工真值 TP/FP 分母 |
+| **`./.venv/bin/python -m unittest discover -s tests -v`** | 運動學管線 11 項測試＋`TASK-V8-608` 10 大回歸測試（嚴格人工簽認表、序列 DP 最大配對數、Manifest 讀取失敗/毀損保護、孤兒簽認事件保護、時間容差歧義與單檔原子失敗保留、精確 ID 時間戳偏移拒絕、4 檔全量事務性 Rollback 注入、跨產物 event_id 一致性與映射持久化、**回滾失敗備份保留與阻斷混合讀取**、**中斷崩潰偵測與安全自動恢復**） | **21/21 PASS (100%)** | 驗證提取管線、Manifest 安全防線、預寫日誌事務性發布、回滾失敗備份保留與中斷安全恢復全數受單元測試保護 |
+| **`./.venv/bin/python scripts/evaluate_detector_v2.py`** | 於隔離副本唯讀檢查 `candidate_events_manifest.csv` 之待審狀態、矛盾狀態計數與啟發式分級分佈（含恢復日誌守護） | **724 筆 `PENDING_HUMAN_AUDIT` / 0 筆矛盾** | 確保自動分級或矛盾狀態絕不計入人工真值 TP/FP 分母，且中斷未完成時拒絕讀取 |
 | **`git diff --check`** | 檢查變更檔案之空白與格式規範 | **PASS (Exit 0)** | 確保提交差異乾淨無格式瑕疵 |
 
 ---
 
-## 8. TASK-V8-608 實作紀錄：Manifest 安全防線、事務發布與跨產物一致性修正
+## 8. TASK-V8-608 實作紀錄：Manifest 安全防線、可恢復事務發布與跨產物一致性修正
 
-* **Task ID**：`TASK-V8-608`（Extraction manifest safety, transactional batch publish, and detector evaluation）
+* **Task ID**：`TASK-V8-608`（Extraction manifest safety, recoverable transactional batch publish, and detector evaluation）
 * **分支與基底**：於乾淨隔離 worktree 自 `3308840` 建立 `task/agv/extract-guard-3308840`（完整保留原 `test-mobile-motion` 工作樹與未提交修改，未動 `data/**`、`models/**` 或前端/後端產品檔）。
 * **變更檔案（嚴格限於 Allowed Files）**：
-  - `scripts/manifest_annotations_v2.py`（共用標註驗證、兩層配對含時間戳檢核、多檔事務性 Rollback 發布 helper `batch_publish_files`、跨產物 ID 同步 `update_events_with_resolved_annotations`）
-  - `scripts/extract_strokes_v2.py`（預檢通過後暫存、跨產物同步 `resolved_event_id`、多檔事務性 Rollback 發布、持久化 `event_id_mapping`）
+  - `scripts/manifest_annotations_v2.py`（共用標註驗證、兩層配對含時間戳檢核、預寫日誌可恢復批次發布 `batch_publish_files`、恢復函式 `recover_pending_batch_publish`、未完成交易守護 `check_no_pending_recovery`、跨產物 ID 同步 `update_events_with_resolved_annotations`）
+  - `scripts/extract_strokes_v2.py`（預檢通過後暫存、checkpoint 讀取守護、跨產物同步 `resolved_event_id`、可恢復事務批次發布、持久化 `event_id_mapping`）
   - `scripts/audit_biomechanics_tiering.py`（接入共用預檢、孤兒／歧義阻斷與原子替換）
-  - `scripts/evaluate_detector_v2.py`（嚴格人工簽認狀態表、序列 DP 最大配對數與最小總時間誤差）
-  - `tests/test_manifest_v2.py`（8 組先紅後綠之可重現失敗注入回歸測試）
+  - `scripts/evaluate_detector_v2.py`（未完成交易日誌守護、嚴格人工簽認狀態表、序列 DP 最大配對數與最小總時間誤差）
+  - `tests/test_manifest_v2.py`（10 組先紅後綠之可重現失敗注入與崩潰恢復回歸測試）
   - `HANDOFF.md`（記錄本任務變更、紅綠燈測試證據與未驗證項目）
 
 ### 8.1 核心修正摘要 (Reviewer A Rejection Remediation)
-1. **[P1] 精確 ID 配對增加時間戳一致性檢核 (`scripts/manifest_annotations_v2.py`)**：
+1. **[P1] 回滾失敗備份保留、預寫日誌與阻斷混合版本讀取 (`scripts/manifest_annotations_v2.py`, `scripts/extract_strokes_v2.py`, `scripts/evaluate_detector_v2.py`)**：
+   - *問題根源*：舊版 `batch_publish_files` 在第 2 檔替換失敗且回滾第 1 檔也失敗（雙重故障）時，`finally` 區塊無條件執行 `shutil.rmtree(backup_dir)`，導致第 1 檔為新版、第 2 檔為舊版（混合版本），且唯一可用於恢復的備份被刪除；中斷時亦無持久化日誌。
+   - *修復實作*：
+     1. **Write-Ahead Recovery Journal**：在接觸任何目標檔前，於目標目錄原子寫入 `.batch_publish_recovery.json`，記錄交易 ID、目標目錄、各檔案原始/暫存 SHA-256、備份路徑與初始 `PENDING` 狀態。隨替換推進即時更新日誌狀態。
+     2. **回滾失敗嚴格保留備份**：`remove_backup_on_finally` 預設為 `False`。僅在交易完全成功（所有目標替換完成）或回滾完全成功（所有已替換目標均成功還原且 SHA-256 驗證無誤）時才清除備份與日誌。若回滾中拋出任何異常，日誌標記為 `ROLLBACK_FAILED`，**絕不刪除備份目錄**，並拋出含備份路徑與日誌路徑之 `RuntimeError`。
+     3. **嚴格阻斷讀取或覆寫混合版本**：`load_and_validate_manifest`、`load_checkpoint_v2`、`evaluate_detector_v2.py` 與 `batch_publish_files(auto_recover=False)` 在讀寫前均呼叫 `check_no_pending_recovery`。若目錄下存在未完成或回滾失敗之日誌，立即拋出 `ManifestValidationError` 拒絕執行，**徹底阻止讀取混合版本**。
+     4. **安全可驗證恢復機制**：新增 `recover_pending_batch_publish(target_dir)`，自保留備份將所有已修改檔案倒序還原至原始位元組，逐一驗證 SHA-256 吻合後，才刪除日誌與備份目錄；`publish_extraction_outputs` 與 `batch_publish_files` 支援 `auto_recover=True`，在下次執行前自動完成安全恢復。
+   - *測試實證*：
+     - `test_9_rollback_failure_preserves_backup_blocks_mixed_reads_and_recovers` 驗證雙重故障時備份目錄 100% 保留、日誌標記 `ROLLBACK_FAILED`、讀取與再次發布被嚴格阻斷、執行 `recover_pending_batch_publish` 後所有檔案 100% byte-for-byte 還原且後續操作恢復正常。
+     - `test_10_interrupted_publication_recovery_and_mixed_version_guard` 驗證中斷崩潰（殘留 `IN_PROGRESS` 日誌與半替換檔案）時阻斷讀取、`auto_recover=True` 下次執行前自動安全恢復並順利完成新發布。
+
+2. **[P1] 精確 ID 配對增加時間戳一致性檢核 (`scripts/manifest_annotations_v2.py`)**：
    - 第一層 `(video, event_id)` 精確配對強制檢核 `abs(new_ts - old_ts) <= timestamp_tolerance_s`。
    - 若 ID 相同但時間戳偏移超過容差（例如舊版 `smash_ev_001` 在 3.235s 帶有 `HUMAN_CONFIRMED/TRUE`，新版重編號後 `smash_ev_001` 位移至 19.800s），立即視為時間戳衝突／歧義，拋出 `ManifestValidationError` 並中止發布，**絕不靜默繼承人工簽認**。
    - 回歸測試：`test_6_exact_id_with_shifted_timestamp_rejected_as_ambiguity` 驗證時間戳位移被拒絕且原檔 100% 保持原樣。
 
-2. **[P1] 多檔發布實作全量事務性 Rollback (All-or-Nothing) (`scripts/manifest_annotations_v2.py`, `scripts/extract_strokes_v2.py`)**：
+3. **[P1] 多檔發布實作全量事務性 Rollback (All-or-Nothing) (`scripts/manifest_annotations_v2.py`, `scripts/extract_strokes_v2.py`)**：
    - 提取輸出涉及 4 大產物：`candidate_events_manifest.csv`、`real_strokes_dataset_v2.json`、`real_strokes_dataset_v2.csv`、`checkpoint_v2.json`。
-   - 舊版依序單檔替換時，若在中間檔案寫入失敗，會導致前半部已被替換而後半部維持舊檔的不一致狀態。
-   - 新版引入 `batch_publish_files` 協定：
-     1. 於 staging 暫存目錄完整寫入並驗證 4 檔。
-     2. 於 backup 暫存目錄對已存在之目標檔案進行完整備份。
-     3. 循序透過 `_replace_single_file` 執行原子替換。
-     4. 若第 1、2、3 或 4 步替換中拋出任何異常（如磁碟滿、權限錯誤、I/O 例外），立即進入倒序 rollback，透過獨立之 `_rollback_restore_file` 將所有已替換目標還原為備份檔案，並刪除新建檔案。
-   - 回歸測試：`test_7_multi_file_batch_publish_rollback_on_any_failure` 分別在第 1、2、3、4 檔注入替換失敗，驗證 4 個檔案在 4 次失敗注入中 SHA-256 均 **100% byte-for-byte 保持原樣**，且所有暫存檔自動清理。
+   - 於 staging 暫存目錄完整寫入並驗證 4 檔，於 backup 暫存目錄對已存在之目標檔案進行完整備份，循序透過 `_replace_single_file` 執行原子替換。
+   - 若任一步驟失敗且回滾成功，所有已修改檔案 100% 還原為備份狀態。
+   - 回歸測試：`test_7_multi_file_batch_publish_rollback_on_any_failure` 分別在第 1、2、3、4 檔注入替換失敗，驗證 4 個檔案在 4 次失敗注入中 SHA-256 均 **100% byte-for-byte 保持原樣**。
 
-3. **[P2] 跨產物 event_id 100% 一致性與可追查映射持久化 (`scripts/manifest_annotations_v2.py`, `scripts/extract_strokes_v2.py`)**：
+4. **[P2] 跨產物 event_id 100% 一致性與可追查映射持久化 (`scripts/manifest_annotations_v2.py`, `scripts/extract_strokes_v2.py`)**：
    - 當第二層時間戳 fallback 承接舊穩定 ID 時，呼叫 `update_events_with_resolved_annotations`，將記憶體中的 `all_events` 與 `staged_checkpoint` 中的事件 ID 統一更新為 `resolved_event_id`，並記錄 `detector_event_id`。
    - `full_output["metadata"]["event_id_mapping"]` 持久化儲存 `(video, stable_event_id, detector_event_id, timestamp_peak_s)` 映射陣列，保證追溯性。
    - 確保 `manifest.csv`、`dataset.json`、`dataset.csv` 與 `checkpoint.json` **4 個產物之 `(video, event_id)` 鍵 100% 相同**，跨檔 Join 完全成功。
    - 回歸測試：`test_8_cross_artifact_event_id_consistency_and_persistent_mapping` 驗證 4 大產物鍵值一致性與 metadata 映射持久化。
 
-4. **嚴格人工簽認狀態表與序列 DP 最大配對數 (`scripts/evaluate_detector_v2.py`)**：
+5. **嚴格人工簽認狀態表與序列 DP 最大配對數 (`scripts/evaluate_detector_v2.py`)**：
    - 僅 `HUMAN_CONFIRMED/TRUE`、`VERIFIED_TRUE/TRUE` 計入 `human_verified_tp`；僅 `HUMAN_REJECTED/FALSE`、`VERIFIED_FALSE/FALSE` 計入 `human_verified_fp`。
    - `AUTO_TIERED/TRUE` 與各類矛盾狀態均排除於 TP/FP 與 `verified_candidate_precision` 分母之外，分開統計 `pending_human_audit` 與 `invalid_or_contradictory_count`。
    - 序列動態規劃以字典序最大化 `(配對數 TP, -總絕對時間差, 確定性索引順序)`，避免貪婪匹配造成的非最優配對。

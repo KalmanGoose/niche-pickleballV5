@@ -9,12 +9,139 @@ full transactional rollback.
 """
 
 import csv
+import hashlib
 import json
 import math
 import os
 import shutil
 import tempfile
+import time
+import uuid
 from collections import defaultdict
+
+RECOVERY_JOURNAL_FILENAME = ".batch_publish_recovery.json"
+
+
+def compute_file_sha256(path):
+    """Compute hex SHA-256 hash of a file."""
+    h = hashlib.sha256()
+    with open(path, "rb") as f:
+        while chunk := f.read(65536):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def get_pending_recovery_journal_path(target_dir):
+    """
+    Check if a pending recovery journal exists in target_dir.
+    Returns absolute path if exists, otherwise None.
+    """
+    target_dir = os.path.abspath(target_dir)
+    jpath = os.path.join(target_dir, RECOVERY_JOURNAL_FILENAME)
+    if os.path.exists(jpath):
+        return jpath
+    return None
+
+
+def check_no_pending_recovery(target_dir):
+    """
+    Verify that no incomplete or failed batch publish transaction exists in target_dir.
+    If a recovery journal is present, raises ManifestValidationError to explicitly
+    prevent reading or writing mixed/inconsistent versions.
+    """
+    jpath = get_pending_recovery_journal_path(target_dir)
+    if jpath is not None:
+        try:
+            with open(jpath, "r", encoding="utf-8") as f:
+                jdata = json.load(f)
+            status = jdata.get("status", "UNKNOWN")
+            tx_id = jdata.get("transaction_id", "UNKNOWN")
+            bak = jdata.get("backup_dir", "UNKNOWN")
+        except Exception:
+            status = "CORRUPT_JOURNAL"
+            tx_id = "UNKNOWN"
+            bak = "UNKNOWN"
+        raise ManifestValidationError(
+            f"Incomplete/unresolved batch publication detected in '{target_dir}' "
+            f"(tx: {tx_id}, status: {status}). "
+            f"Mixed versions may be present; operations are blocked to prevent reading corrupted/mixed state. "
+            f"Backups are preserved at: '{bak}'. Please run recover_pending_batch_publish('{target_dir}') first."
+        )
+
+
+def recover_pending_batch_publish(target_dir):
+    """
+    Recover an incomplete or rollback-failed batch publication in target_dir using
+    the preserved journal and backup files. Restores all files to their original
+    pre-transaction bytes, validates SHA-256, cleans up the journal and backup directory.
+    Returns dict with recovery summary.
+    """
+    target_dir = os.path.abspath(target_dir)
+    jpath = get_pending_recovery_journal_path(target_dir)
+    if not jpath:
+        return {"status": "NO_PENDING_RECOVERY", "restored_count": 0}
+
+    with open(jpath, "r", encoding="utf-8") as f:
+        jdata = json.load(f)
+
+    items = jdata.get("items", [])
+    backup_dir = jdata.get("backup_dir")
+    target_dirs = jdata.get("target_dirs", [target_dir])
+    journal_paths = [os.path.join(td, RECOVERY_JOURNAL_FILENAME) for td in target_dirs]
+
+    # 1. Pre-validation: verify needed backup files exist for modified items
+    for item in items:
+        state = item.get("state", "COMMITTED")
+        if item.get("existed_before") and state in ("COMMITTED", "RESTORE_FAILED"):
+            bak_path = item.get("backup_path")
+            if not bak_path or not os.path.exists(bak_path):
+                raise RuntimeError(
+                    f"Cannot recover transaction '{jdata.get('transaction_id')}': backup file missing: {bak_path}"
+                )
+
+    # 2. Restore all modified items to their original pre-transaction state
+    restored_items = []
+    for item in items:
+        tpath = item["target_path"]
+        state = item.get("state", "COMMITTED")
+        if state in ("COMMITTED", "RESTORE_FAILED"):
+            if item.get("existed_before"):
+                bak_path = item["backup_path"]
+                _rollback_restore_file(bak_path, tpath)
+                orig_sha = item.get("original_sha256")
+                if orig_sha is not None:
+                    curr_sha = compute_file_sha256(tpath)
+                    if curr_sha != orig_sha:
+                        raise RuntimeError(
+                            f"Recovery hash mismatch on '{tpath}': expected {orig_sha}, got {curr_sha}"
+                        )
+            else:
+                if os.path.exists(tpath):
+                    try:
+                        os.unlink(tpath)
+                    except OSError:
+                        pass
+            restored_items.append(tpath)
+
+    # 3. Clean up journal files across all involved target directories
+    for jp in journal_paths:
+        if os.path.exists(jp):
+            try:
+                os.unlink(jp)
+            except OSError:
+                pass
+
+    # 4. Clean up backup directory now that files are safely restored
+    if backup_dir and os.path.exists(backup_dir):
+        shutil.rmtree(backup_dir, ignore_errors=True)
+
+    return {
+        "status": "RECOVERED",
+        "transaction_id": jdata.get("transaction_id"),
+        "restored_count": len(restored_items),
+        "restored_items": restored_items,
+    }
+
 
 REQUIRED_MANIFEST_COLUMNS = {
     "event_id",
@@ -69,9 +196,14 @@ def load_and_validate_manifest(manifest_path):
     Strictly read and validate an existing manifest CSV.
     - Returns {"exists": False, "rows": [], "by_key": {}} ONLY when the file does not exist.
     - Any I/O error, invalid UTF-8, CSV formatting error, missing column, invalid/non-finite
+    - If a pending recovery journal is present in the target directory, raises ManifestValidationError
+      to prevent reading inconsistent/mixed version states.
       timestamp, duplicate (video, event_id), or contradictory/invalid human status raises
       ManifestValidationError with path and row number.
     """
+    manifest_dir = os.path.dirname(os.path.abspath(manifest_path)) or "."
+    check_no_pending_recovery(manifest_dir)
+
     if not os.path.exists(manifest_path) and not os.path.islink(manifest_path):
         return {
             "exists": False,
@@ -562,9 +694,9 @@ def _rollback_restore_file(backup_path, dst_path):
                 pass
 
 
-def batch_publish_files(file_specs):
+def batch_publish_files(file_specs, auto_recover=False):
     """
-    Publish multiple files with all-or-nothing transactional rollback capability.
+    Publish multiple files with transactional write-ahead journaling and all-or-nothing rollback.
     file_specs: list of dicts:
       {
         "target_path": str,
@@ -573,16 +705,34 @@ def batch_publish_files(file_specs):
         "fieldnames": list, "rows": list (if csv)
       }
     Protocol:
-    1. Stages all files in a temp directory and validates content writeability.
-    2. Backs up existing target files in a temp backup directory.
-    3. Sequentially replaces target files atomically via _replace_single_file.
-    4. If ANY replacement fails (e.g. injected OSError on file 2, 3, or 4):
-       All previously replaced target files are immediately restored from the backup directory
-       via _rollback_restore_file, and any newly created target files are removed.
-       Every target file is guaranteed to remain 100% byte-for-byte identical to its state before the call.
+    1. Pre-flight: checks for pending recovery journals in target directories.
+       If auto_recover is True, safely restores any previous aborted transaction before proceeding;
+       otherwise raises ManifestValidationError if an unresolved transaction exists.
+    2. Stages all files in a temp directory and computes staged SHA-256 hashes.
+    3. Backs up existing target files in a temp backup directory and computes original SHA-256.
+    4. Writes a persistent Write-Ahead Journal (.batch_publish_recovery.json) recording targets,
+       hashes, backup paths, and transaction status BEFORE touching any target files.
+    5. Sequentially replaces target files atomically via _replace_single_file.
+    6. If ANY replacement fails (e.g. injected OSError on file 2, 3, or 4):
+       Rollback attempts to restore all committed files from backup.
+       - If rollback succeeds: cleans up journal and backup directory, and re-raises original error.
+       - If rollback fails (double-fault): PRESERVES the backup directory, records failure status
+         and errors in the recovery journal, and raises RuntimeError.
+         Subsequent read and publish operations detect the journal and block mixed-version access
+         until recover_pending_batch_publish is invoked.
     """
+    target_dirs = sorted({os.path.dirname(os.path.abspath(spec["target_path"])) or "." for spec in file_specs})
+    journal_paths = [os.path.join(td, RECOVERY_JOURNAL_FILENAME) for td in target_dirs]
+
+    for td in target_dirs:
+        if auto_recover:
+            recover_pending_batch_publish(td)
+        else:
+            check_no_pending_recovery(td)
+
     staging_dir = tempfile.mkdtemp(prefix=".batch_pub_stage_")
     backup_dir = tempfile.mkdtemp(prefix=".batch_pub_bak_")
+    remove_backup_on_finally = False
 
     staged_items = []
     try:
@@ -599,43 +749,127 @@ def batch_publish_files(file_specs):
             else:
                 raise ValueError(f"Unknown file spec type: {spec['type']}")
 
-            # Step 2: Backup existing target file if present
+            staged_sha = compute_file_sha256(staged_path)
             existed_before = os.path.exists(target_path)
             backup_path = None
+            orig_sha = None
             if existed_before:
+                orig_sha = compute_file_sha256(target_path)
                 backup_path = os.path.join(backup_dir, f"backup_{idx}_{base_name}")
                 shutil.copy2(target_path, backup_path)
+                if compute_file_sha256(backup_path) != orig_sha:
+                    raise RuntimeError(f"Backup verification failed for {target_path}")
 
             staged_items.append({
                 "target_path": target_path,
                 "staged_path": staged_path,
                 "backup_path": backup_path,
+                "original_sha256": orig_sha,
+                "staged_sha256": staged_sha,
                 "existed_before": existed_before,
+                "state": "PENDING",
             })
 
-        # Step 3: Atomic sequential replacement with rollback on any failure
+        # Step 2: Write Write-Ahead Journal BEFORE modifying target files
+        tx_id = f"tx_{int(time.time())}_{uuid.uuid4().hex[:8]}"
+        journal_data = {
+            "transaction_id": tx_id,
+            "status": "IN_PROGRESS",
+            "timestamp": time.time(),
+            "backup_dir": os.path.abspath(backup_dir),
+            "staging_dir": os.path.abspath(staging_dir),
+            "target_dirs": target_dirs,
+            "items": [
+                {
+                    "target_path": item["target_path"],
+                    "backup_path": item["backup_path"],
+                    "original_sha256": item["original_sha256"],
+                    "staged_sha256": item["staged_sha256"],
+                    "existed_before": item["existed_before"],
+                    "state": item["state"],
+                }
+                for item in staged_items
+            ],
+            "errors": [],
+        }
+        for jp in journal_paths:
+            atomic_write_json(jp, journal_data)
+
+        # Step 3: Atomic sequential replacement with live journal updates
         committed_items = []
         try:
-            for item in staged_items:
+            for idx, item in enumerate(staged_items):
                 _replace_single_file(item["staged_path"], item["target_path"])
+                item["state"] = "COMMITTED"
                 committed_items.append(item)
+                journal_data["items"][idx]["state"] = "COMMITTED"
+                for jp in journal_paths:
+                    atomic_write_json(jp, journal_data)
+
+            # SUCCESS: Clean up journals and mark backup safe to delete
+            for jp in journal_paths:
+                if os.path.exists(jp):
+                    try:
+                        os.unlink(jp)
+                    except OSError:
+                        pass
+            remove_backup_on_finally = True
+
         except BaseException as exc:
-            # ROLLBACK: restore committed items in reverse order
+            # ROLLBACK: attempt to restore committed items in reverse order
+            journal_data["status"] = "ROLLING_BACK"
+            for jp in journal_paths:
+                atomic_write_json(jp, journal_data)
+
             rollback_errors = []
             for item in reversed(committed_items):
                 try:
                     if item["existed_before"]:
                         _rollback_restore_file(item["backup_path"], item["target_path"])
+                        curr_sha = compute_file_sha256(item["target_path"])
+                        if curr_sha != item["original_sha256"]:
+                            raise RuntimeError(
+                                f"Restored file sha mismatch on {item['target_path']}: "
+                                f"expected {item['original_sha256']}, got {curr_sha}"
+                            )
                     else:
                         if os.path.exists(item["target_path"]):
                             os.unlink(item["target_path"])
-                except Exception as r_err:
-                    rollback_errors.append(str(r_err))
-            if rollback_errors:
+                    item["state"] = "RESTORED"
+                except BaseException as r_err:
+                    item["state"] = "RESTORE_FAILED"
+                    rollback_errors.append(f"{item['target_path']}: {r_err}")
+
+            for j_item in journal_data["items"]:
+                for c_item in committed_items:
+                    if j_item["target_path"] == c_item["target_path"]:
+                        j_item["state"] = c_item["state"]
+
+            if not rollback_errors:
+                # Clean rollback succeeded: all files restored to original bytes
+                for jp in journal_paths:
+                    if os.path.exists(jp):
+                        try:
+                            os.unlink(jp)
+                        except OSError:
+                            pass
+                remove_backup_on_finally = True
+                raise
+            else:
+                # Double fault: rollback failed!
+                journal_data["status"] = "ROLLBACK_FAILED"
+                journal_data["errors"] = rollback_errors
+                for jp in journal_paths:
+                    atomic_write_json(jp, journal_data)
+                # CRITICAL: DO NOT DELETE BACKUP DIRECTORY!
+                remove_backup_on_finally = False
                 raise RuntimeError(
-                    f"Batch publish failed with '{exc}' and rollback encountered secondary errors: {rollback_errors}"
+                    f"Batch publish failed with '{exc}' and rollback encountered secondary errors: {rollback_errors}. "
+                    f"Recovery backup preserved at '{backup_dir}'. "
+                    f"Recovery journal persisted at {journal_paths}. "
+                    f"Mixed version read/publish is blocked until recover_pending_batch_publish is invoked."
                 ) from exc
-            raise
     finally:
         shutil.rmtree(staging_dir, ignore_errors=True)
-        shutil.rmtree(backup_dir, ignore_errors=True)
+        if remove_backup_on_finally:
+            shutil.rmtree(backup_dir, ignore_errors=True)

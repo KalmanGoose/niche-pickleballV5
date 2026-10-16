@@ -44,8 +44,10 @@ from scripts.manifest_annotations_v2 import (
     atomic_write_csv_rows,
     atomic_write_json,
     batch_publish_files,
+    check_no_pending_recovery,
     load_and_validate_manifest,
     match_and_merge_manifest_annotations,
+    recover_pending_batch_publish,
     update_events_with_resolved_annotations,
 )
 
@@ -127,6 +129,8 @@ def get_raw_class_for_filename(filename):
 
 def load_checkpoint_v2(checkpoint_path=None):
     target_path = checkpoint_path or CHECKPOINT_PATH
+    target_dir = os.path.dirname(os.path.abspath(target_path)) or "."
+    check_no_pending_recovery(target_dir)
     if os.path.exists(target_path):
         try:
             with open(target_path, "r", encoding="utf-8") as f:
@@ -482,6 +486,7 @@ def publish_extraction_outputs(
     checkpoint_path=None,
     existing_state=None,
     timestamp_tolerance_s=0.25,
+    auto_recover=False,
 ):
     """
     Validate and match existing manifest annotations against `all_events` BEFORE
@@ -496,6 +501,15 @@ def publish_extraction_outputs(
     target_ds_json = dataset_json_path or DATASET_JSON_PATH
     target_ds_csv = dataset_csv_path or DATASET_CSV_PATH
     target_chk = checkpoint_path or CHECKPOINT_PATH
+
+    if auto_recover:
+        target_dirs = {
+            os.path.dirname(os.path.abspath(p)) or "."
+            for p in [target_manifest, target_ds_json, target_ds_csv, target_chk]
+            if p is not None
+        }
+        for td in target_dirs:
+            recover_pending_batch_publish(td)
 
     if existing_state is None:
         existing_state = load_and_validate_manifest(target_manifest)
@@ -595,7 +609,7 @@ def publish_extraction_outputs(
             "data": staged_checkpoint,
         })
 
-    batch_publish_files(file_specs)
+    batch_publish_files(file_specs, auto_recover=auto_recover)
 
     return merge_res
 
