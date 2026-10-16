@@ -974,7 +974,7 @@ VALID_GROUND_TRUTH_CLASSES = {
 VALID_GROUND_TRUTH_CONFIDENCES = {"CONFIRMED", "UNSURE"}
 
 
-def validate_ground_truth_events(gt_data, allowed_videos=None, video_durations=None):
+def validate_ground_truth_events(gt_data, allowed_videos=None, video_durations=None, video_shas=None):
     """
     Validate independent ground truth data structure.
     Must be a dict containing:
@@ -989,6 +989,11 @@ def validate_ground_truth_events(gt_data, allowed_videos=None, video_durations=N
       - Rejects duplicate gt_id across events within each video.
       - Rejects unlisted videos if allowed_videos is provided.
       - Validates stroke_class in VALID_GROUND_TRUTH_CLASSES and confidence in VALID_GROUND_TRUTH_CONFIDENCES.
+      - When video_shas is provided:
+          - Rejects if recorded video_sha256 is missing, null, or not a 64-char hex string.
+          - Rejects if video is missing from video_shas dictionary (missing file / uninspected).
+          - Rejects if current disk file SHA is missing, null, or invalid.
+          - Rejects if recorded SHA does not match current disk file SHA (content replacement).
     """
     if not isinstance(gt_data, dict):
         raise ManifestValidationError("Ground truth data must be a JSON object (dict)")
@@ -1022,6 +1027,41 @@ def validate_ground_truth_events(gt_data, allowed_videos=None, video_durations=N
             raise ManifestValidationError(
                 f"Video '{vname}' cannot be marked 'FROZEN' without full_video_reviewed=True"
             )
+
+        rec_sha = vinfo.get("video_sha256")
+        if rec_sha is not None:
+            if not isinstance(rec_sha, str) or len(rec_sha.strip()) != 64 or not all(c in "0123456789abcdefABCDEF" for c in rec_sha.strip()):
+                raise ManifestValidationError(
+                    f"Video '{vname}' has invalid recorded video_sha256: '{rec_sha}'"
+                )
+
+        if video_shas is not None:
+            # Condition 1: 傳入 video_shas 時，已記錄真值的影片若缺檔、取不到雜湊、記錄雜湊無效或兩者不一致，都必須拒絕；不能因字典缺少該影片就略過檢查。
+            has_recorded_gt = bool(
+                rec_sha
+                or v_status == "FROZEN"
+                or vinfo.get("full_video_reviewed") is True
+                or (isinstance(vinfo.get("events"), list) and len(vinfo.get("events")) > 0)
+            )
+            if has_recorded_gt:
+                if not rec_sha or not isinstance(rec_sha, str) or len(rec_sha.strip()) != 64 or not all(c in "0123456789abcdefABCDEF" for c in rec_sha.strip()):
+                    raise ManifestValidationError(
+                        f"Video '{vname}' recorded video_sha256 is missing or invalid: '{rec_sha}'"
+                    )
+                if vname not in video_shas:
+                    raise ManifestValidationError(
+                        f"Video '{vname}' has recorded ground truth but is missing from video_shas dictionary (video file missing or uninspected)"
+                    )
+                disk_sha = video_shas.get(vname)
+                if not disk_sha or not isinstance(disk_sha, str) or len(disk_sha.strip()) != 64 or not all(c in "0123456789abcdefABCDEF" for c in disk_sha.strip()):
+                    raise ManifestValidationError(
+                        f"Video '{vname}' current disk SHA-256 is missing, null, or invalid: '{disk_sha}'"
+                    )
+                if rec_sha.strip().lower() != disk_sha.strip().lower():
+                    raise ManifestValidationError(
+                        f"Video '{vname}' content hash mismatch: recorded SHA-256 '{rec_sha}' does not match current disk file SHA-256 '{disk_sha}'. "
+                        f"Ground truth cannot be silently rebound to modified video content."
+                    )
 
         events = vinfo.get("events")
         if not isinstance(events, list):
@@ -1066,7 +1106,7 @@ def validate_ground_truth_events(gt_data, allowed_videos=None, video_durations=N
                 )
 
 
-def export_evaluator_ground_truth(gt_data, only_frozen=True, include_unsure=False):
+def export_evaluator_ground_truth(gt_data, only_frozen=True, include_unsure=False, video_shas=None):
     """
     Export independent ground truth data into a flat list compatible with evaluate_detector_v2.py:
         [{"video": vname, "timestamp_peak_s": ev["timestamp_s"], "event_id": ev["gt_id"], "raw_class": ev["stroke_class"], "confidence": ev["confidence"]}]
@@ -1076,8 +1116,10 @@ def export_evaluator_ground_truth(gt_data, only_frozen=True, include_unsure=Fals
         so that unconfirmed human guesses do not pollute the ground truth evaluation denominator.
       - By default (only_frozen=True), only videos that have completed full review (status == 'FROZEN'
         and full_video_reviewed is True) are exported.
+      - When video_shas is provided, verifies that all videos match their recorded video_sha256;
+        if any video fails, raises ManifestValidationError to prevent partial or invalid export.
     """
-    validate_ground_truth_events(gt_data)
+    validate_ground_truth_events(gt_data, video_shas=video_shas)
     eval_list = []
     videos = gt_data.get("videos", {})
     for vname in sorted(videos.keys()):
@@ -1100,20 +1142,20 @@ def export_evaluator_ground_truth(gt_data, only_frozen=True, include_unsure=Fals
     return eval_list
 
 
-def save_ground_truth_events(output_path, gt_data, allowed_videos=None, video_durations=None, auto_recover=False):
+def save_ground_truth_events(output_path, gt_data, allowed_videos=None, video_durations=None, video_shas=None, auto_recover=False):
     """
     Safely save independent ground truth dataset via transactional batch publish.
     Also exports evaluator-compatible list to {output_dir}/ground_truth_evaluator.json.
     Fail-closed: if output_path already exists and cannot be read or validated,
     raises ManifestValidationError and halts to preserve original bytes.
     """
-    validate_ground_truth_events(gt_data, allowed_videos=allowed_videos, video_durations=video_durations)
+    validate_ground_truth_events(gt_data, allowed_videos=allowed_videos, video_durations=video_durations, video_shas=video_shas)
     output_path = os.path.abspath(output_path)
     if os.path.exists(output_path):
         try:
             with open(output_path, "r", encoding="utf-8") as f:
                 old_gt = json.load(f)
-            validate_ground_truth_events(old_gt, allowed_videos=allowed_videos, video_durations=video_durations)
+            validate_ground_truth_events(old_gt, allowed_videos=allowed_videos, video_durations=video_durations, video_shas=video_shas)
         except Exception as e:
             raise ManifestValidationError(
                 f"Existing ground truth file at '{output_path}' is corrupted or invalid: {e}. "
@@ -1121,7 +1163,7 @@ def save_ground_truth_events(output_path, gt_data, allowed_videos=None, video_du
             )
 
     eval_path = os.path.join(os.path.dirname(output_path), "ground_truth_evaluator.json")
-    eval_list = export_evaluator_ground_truth(gt_data, only_frozen=True, include_unsure=False)
+    eval_list = export_evaluator_ground_truth(gt_data, only_frozen=True, include_unsure=False, video_shas=video_shas)
 
     file_specs = [
         {

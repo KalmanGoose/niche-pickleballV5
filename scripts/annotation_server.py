@@ -302,6 +302,40 @@ class AnnotationRequestHandler(BaseHTTPRequestHandler):
                             durations[pv] = d
         return durations
 
+    def _get_video_sha(self, video_name):
+        configured_shas = self.server_config.get("video_shas")
+        if configured_shas and video_name in configured_shas:
+            return configured_shas[video_name]
+
+        vdir = self.server_config.get("videos_dir")
+        if not vdir:
+            return None
+        vpath = os.path.join(vdir, video_name)
+        if not (os.path.isfile(vpath) and os.access(vpath, os.R_OK) and os.path.getsize(vpath) > 0):
+            return None
+        try:
+            return man_v2_mod.compute_file_sha256(vpath)
+        except Exception:
+            return None
+
+    def _get_all_pilot_video_shas(self):
+        shas = {}
+        configured = self.server_config.get("video_shas") or {}
+        shas.update(configured)
+        vdir = self.server_config.get("videos_dir")
+        if vdir and os.path.exists(vdir):
+            for pv in PILOT_VIDEOS:
+                if pv not in shas:
+                    vp = os.path.join(vdir, pv)
+                    if os.path.isfile(vp) and os.access(vp, os.R_OK) and os.path.getsize(vp) > 0:
+                        try:
+                            s = man_v2_mod.compute_file_sha256(vp)
+                            if s and len(s) == 64:
+                                shas[pv] = s
+                        except Exception:
+                            pass
+        return shas
+
     def _get_ground_truth_dict(self):
         output_dir = self.server_config["output_dir"]
         gt_path = os.path.join(output_dir, "ground_truth_events.json")
@@ -310,10 +344,12 @@ class AnnotationRequestHandler(BaseHTTPRequestHandler):
         with open(gt_path, "r", encoding="utf-8") as f:
             data = json.load(f)
         video_durations = self._get_all_pilot_video_durations()
+        video_shas = self._get_all_pilot_video_shas()
         man_v2_mod.validate_ground_truth_events(
             data,
             allowed_videos=PILOT_VIDEOS,
             video_durations=video_durations,
+            video_shas=video_shas,
         )
         return data
 
@@ -323,7 +359,18 @@ class AnnotationRequestHandler(BaseHTTPRequestHandler):
             if not gt_data:
                 return False
             vinfo = gt_data.get("videos", {}).get(vname, {})
-            return bool(vinfo.get("status") == "FROZEN" and vinfo.get("full_video_reviewed") is True)
+            if vinfo.get("status") != "FROZEN" or vinfo.get("full_video_reviewed") is not True:
+                return False
+
+            # Verify recorded SHA matches current disk SHA
+            rec_sha = vinfo.get("video_sha256")
+            if not rec_sha or not isinstance(rec_sha, str) or len(rec_sha.strip()) != 64:
+                return False
+            curr_sha = self._get_video_sha(vname)
+            if not curr_sha or curr_sha.strip().lower() != rec_sha.strip().lower():
+                return False
+
+            return True
         except Exception:
             return False
 
@@ -575,10 +622,12 @@ class AnnotationRequestHandler(BaseHTTPRequestHandler):
             with open(gt_path, "r", encoding="utf-8") as f:
                 gt_data = json.load(f)
             video_durations = self._get_all_pilot_video_durations()
+            video_shas = self._get_all_pilot_video_shas()
             man_v2_mod.validate_ground_truth_events(
                 gt_data,
                 allowed_videos=PILOT_VIDEOS,
                 video_durations=video_durations,
+                video_shas=video_shas,
             )
         except Exception as e:
             self._send_error_json(
@@ -719,19 +768,60 @@ class AnnotationRequestHandler(BaseHTTPRequestHandler):
             try:
                 with open(gt_path, "r", encoding="utf-8") as f:
                     existing = json.load(f)
-                video_durations = self._get_all_pilot_video_durations()
-                video_durations[video] = v_dur
-                man_v2_mod.validate_ground_truth_events(
-                    existing,
-                    allowed_videos=PILOT_VIDEOS,
-                    video_durations=video_durations,
-                )
                 gt_data = existing
                 if "videos" not in gt_data or not isinstance(gt_data["videos"], dict):
                     gt_data["videos"] = {}
                 existing_vinfo = gt_data["videos"].get(video, {})
             except Exception as e:
                 # Halt write and fail-closed: preserve corrupt file
+                self._send_error_json(
+                    HTTPStatus.INTERNAL_SERVER_ERROR,
+                    f"Existing ground truth file at '{gt_path}' is corrupted or invalid: {e}. "
+                    f"Halting write to preserve original file bytes (fail-closed).",
+                    extra={"error_code": "CORRUPT_EXISTING_GROUND_TRUTH"}
+                )
+                return
+
+            # Check video SHA immutability against existing ground truth entry
+            existing_sha = existing_vinfo.get("video_sha256")
+            if existing_sha:
+                if not isinstance(existing_sha, str) or len(existing_sha.strip()) != 64:
+                    self._send_error_json(
+                        HTTPStatus.INTERNAL_SERVER_ERROR,
+                        f"Existing ground truth for '{video}' has invalid recorded SHA-256: '{existing_sha}'",
+                        extra={"error_code": "CORRUPT_EXISTING_GROUND_TRUTH", "video": video}
+                    )
+                    return
+                if existing_sha.strip().lower() != v_sha.strip().lower():
+                    # Condition 2: 更正請求則依方案回 409 VIDEO_SHA_MISMATCH，並驗證真值檔及既有匯出檔位元組不變。
+                    self._send_error_json(
+                        HTTPStatus.CONFLICT,
+                        f"Video '{video}' content on disk has changed! "
+                        f"Recorded SHA-256 is '{existing_sha}', but current disk file SHA-256 is '{v_sha}'. "
+                        f"Ground truth cannot be silently rebound to modified video content. "
+                        f"Replacing video requires an explicit migration / full blind review reset.",
+                        extra={
+                            "error_code": "VIDEO_SHA_MISMATCH",
+                            "video": video,
+                            "recorded_sha256": existing_sha,
+                            "current_sha256": v_sha,
+                        }
+                    )
+                    return
+
+            # Validate existing schema with video_shas
+            try:
+                video_durations = self._get_all_pilot_video_durations()
+                video_durations[video] = v_dur
+                video_shas = self._get_all_pilot_video_shas()
+                video_shas[video] = v_sha
+                man_v2_mod.validate_ground_truth_events(
+                    existing,
+                    allowed_videos=PILOT_VIDEOS,
+                    video_durations=video_durations,
+                    video_shas=video_shas,
+                )
+            except Exception as e:
                 self._send_error_json(
                     HTTPStatus.INTERNAL_SERVER_ERROR,
                     f"Existing ground truth file at '{gt_path}' is corrupted or invalid: {e}. "
@@ -809,11 +899,14 @@ class AnnotationRequestHandler(BaseHTTPRequestHandler):
         try:
             durations = self._get_all_pilot_video_durations()
             durations[video] = v_dur
+            shas = self._get_all_pilot_video_shas()
+            shas[video] = v_sha
             man_v2_mod.save_ground_truth_events(
                 gt_path,
                 gt_data,
                 allowed_videos=PILOT_VIDEOS,
                 video_durations=durations,
+                video_shas=shas,
                 auto_recover=True,
             )
         except Exception as e:
@@ -839,11 +932,25 @@ class AnnotationRequestHandler(BaseHTTPRequestHandler):
             self._send_json(HTTPStatus.OK, [])
             return
 
-        with open(gt_path, "r", encoding="utf-8") as f:
-            gt_data = json.load(f)
+        try:
+            with open(gt_path, "r", encoding="utf-8") as f:
+                gt_data = json.load(f)
 
-        eval_list = man_v2_mod.export_evaluator_ground_truth(gt_data, only_frozen=True, include_unsure=False)
-        self._send_json(HTTPStatus.OK, eval_list)
+            video_shas = self._get_all_pilot_video_shas()
+            eval_list = man_v2_mod.export_evaluator_ground_truth(
+                gt_data,
+                only_frozen=True,
+                include_unsure=False,
+                video_shas=video_shas,
+            )
+            self._send_json(HTTPStatus.OK, eval_list)
+        except Exception as e:
+            # Condition 2: 雜湊不符時，/api/ground_truth/export 應拒絕整份匯出，避免產出看似完整但少了某支影片的評估資料。
+            self._send_error_json(
+                HTTPStatus.INTERNAL_SERVER_ERROR,
+                f"Export rejected: ground truth validation failed ({e})",
+                extra={"error_code": "VIDEO_SHA_MISMATCH"}
+            )
 
 
     def _handle_stream_video(self, requested_video):
@@ -943,6 +1050,7 @@ def create_annotation_server(
     output_dir=None,
     tools_html="tools/annotate_visual.html",
     video_durations=None,
+    video_shas=None,
     debug=False,
     verify_pilot_videos=False,
 ):
@@ -971,6 +1079,7 @@ def create_annotation_server(
         "output_dir": validated_out,
         "tools_html": os.path.abspath(tools_html),
         "video_durations": dict(video_durations) if video_durations else None,
+        "video_shas": dict(video_shas) if video_shas else None,
         "debug": debug,
     }
     server = HTTPServer((host, port), AnnotationRequestHandler)

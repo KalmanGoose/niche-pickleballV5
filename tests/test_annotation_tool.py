@@ -1048,6 +1048,232 @@ class TestAnnotationTool(unittest.TestCase):
         self.assertEqual(len(vinfo["video_sha256"]), 64)
         self.assertEqual(vinfo["video_duration_s"], 10.0)
 
+    def test_16_video_content_replacement_blocks_audit_correction_and_export(self):
+        """
+        [P1 Regression - Review Round 3] Video SHA-256 Immutability & Fail-Closed Guards:
+          Condition 1: When video_shas is provided, any video with recorded ground truth
+          that is missing from disk/dictionary, has unreadable/invalid SHA, or has a hash
+          mismatch MUST be rejected by validate_ground_truth_events (cannot skip checks).
+          Condition 2: When video content on disk is replaced:
+            - POST /api/ground_truth correction requests return 409 Conflict (VIDEO_SHA_MISMATCH).
+            - ground_truth_events.json and ground_truth_evaluator.json bytes remain untouched.
+            - Candidate viewing and auditing for the tampered video are re-locked (403 BLIND_REVIEW_REQUIRED).
+            - GET /api/ground_truth/export rejects the entire export (500 VIDEO_SHA_MISMATCH),
+              strictly preventing partial or corrupt export.
+            - Restoring original video content restores full export and candidate access.
+        """
+        # =====================================================================
+        # Part A: Direct validation checks (Condition 1)
+        # =====================================================================
+        valid_sha_dink = "a" * 64
+        valid_sha_smash = "b" * 64
+        sample_gt = {
+            "version": "2.0.0",
+            "time_base": "PRESENTATION_TIME_TS",
+            "videos": {
+                "dink2.mp4": {
+                    "video_sha256": valid_sha_dink,
+                    "video_duration_s": 10.0,
+                    "status": "FROZEN",
+                    "full_video_reviewed": True,
+                    "events": [
+                        {
+                            "gt_id": "gt_d1",
+                            "timestamp_s": 2.0,
+                            "stroke_class": "KITCHEN_DINK",
+                            "confidence": "CONFIRMED",
+                        }
+                    ],
+                }
+            },
+        }
+
+        # 1.1 Reject when video with recorded GT is missing from video_shas dictionary
+        with self.assertRaises(man_v2_mod.ManifestValidationError) as ctx:
+            man_v2_mod.validate_ground_truth_events(
+                sample_gt,
+                video_shas={"smash2.mp4": valid_sha_smash},
+            )
+        self.assertIn("missing from video_shas dictionary", str(ctx.exception))
+
+        # 1.2 Reject when video has missing, null, empty, or invalid disk SHA in video_shas
+        for bad_disk_sha in [None, "", "not_64_hex", "z" * 64]:
+            with self.assertRaises(man_v2_mod.ManifestValidationError) as ctx:
+                man_v2_mod.validate_ground_truth_events(
+                    sample_gt,
+                    video_shas={"dink2.mp4": bad_disk_sha},
+                )
+            self.assertIn("current disk SHA-256 is missing, null, or invalid", str(ctx.exception))
+
+        # 1.3 Reject when recorded video_sha256 in GT data is invalid
+        bad_gt = json.loads(json.dumps(sample_gt))
+        bad_gt["videos"]["dink2.mp4"]["video_sha256"] = "invalid_short_hash"
+        with self.assertRaises(man_v2_mod.ManifestValidationError) as ctx:
+            man_v2_mod.validate_ground_truth_events(
+                bad_gt,
+                video_shas={"dink2.mp4": valid_sha_dink},
+            )
+        self.assertIn("invalid recorded video_sha256", str(ctx.exception))
+
+        # 1.4 Reject on content hash mismatch between recorded SHA and disk SHA
+        with self.assertRaises(man_v2_mod.ManifestValidationError) as ctx:
+            man_v2_mod.validate_ground_truth_events(
+                sample_gt,
+                video_shas={"dink2.mp4": "c" * 64},
+            )
+        self.assertIn("content hash mismatch", str(ctx.exception))
+
+        # 1.5 Validation succeeds when SHAs match
+        man_v2_mod.validate_ground_truth_events(
+            sample_gt,
+            video_shas={"dink2.mp4": valid_sha_dink},
+        )
+
+        # =====================================================================
+        # Part B: End-to-End API integration testing (Condition 2)
+        # =====================================================================
+        # 1. Freeze ground truth for 2 pilot videos: dink2.mp4 (2 events) and smash2.mp4 (1 event)
+        p_dink = {
+            "reviewer": "Reviewer_Alice",
+            "video": "dink2.mp4",
+            "events": [
+                {
+                    "gt_id": "gt_dink_01",
+                    "timestamp_s": 2.1,
+                    "stroke_class": "KITCHEN_DINK",
+                    "confidence": "CONFIRMED",
+                },
+                {
+                    "gt_id": "gt_dink_02",
+                    "timestamp_s": 4.5,
+                    "stroke_class": "KITCHEN_DINK",
+                    "confidence": "CONFIRMED",
+                },
+            ],
+            "full_video_reviewed": True,
+            "freeze": True,
+            "notes": "Blind review initial pass dink2",
+        }
+        st_d, _, raw_d = self.client.post("/api/ground_truth", p_dink)
+        self.assertEqual(st_d, 200)
+
+        p_smash = {
+            "reviewer": "Reviewer_Alice",
+            "video": "smash2.mp4",
+            "events": [
+                {
+                    "gt_id": "gt_smash_01",
+                    "timestamp_s": 1.8,
+                    "stroke_class": "SMASH",
+                    "confidence": "CONFIRMED",
+                }
+            ],
+            "full_video_reviewed": True,
+            "freeze": True,
+            "notes": "Blind review initial pass smash2",
+        }
+        st_s, _, raw_s = self.client.post("/api/ground_truth", p_smash)
+        self.assertEqual(st_s, 200)
+
+        # 2. Verify initial export succeeds and contains all 3 events
+        st_exp, _, raw_exp = self.client.get("/api/ground_truth/export")
+        self.assertEqual(st_exp, 200)
+        exp_data = json.loads(raw_exp.decode("utf-8"))
+        self.assertEqual(len(exp_data), 3)
+
+        # 3. Verify candidate viewing is unlocked for dink2.mp4
+        st_cand, _, raw_cand = self.client.get("/api/candidates?video=dink2.mp4")
+        self.assertEqual(st_cand, 200)
+        cand_data = json.loads(raw_cand.decode("utf-8"))
+        self.assertGreater(cand_data["total_count"], 0)
+
+        # 4. Snapshot original ground_truth_events.json and ground_truth_evaluator.json bytes
+        gt_path = os.path.join(self.output_dir, "ground_truth_events.json")
+        eval_path = os.path.join(self.output_dir, "ground_truth_evaluator.json")
+        with open(gt_path, "rb") as f:
+            orig_gt_bytes = f.read()
+        with open(eval_path, "rb") as f:
+            orig_eval_bytes = f.read()
+
+        # Save original dink2.mp4 content bytes
+        with open(self.test_video_path, "rb") as f:
+            orig_video_bytes = f.read()
+
+        # 5. Tamper / replace dink2.mp4 content on disk
+        tampered_content = b"REPLACED_TAMPERED_VIDEO_PAYLOAD_FOR_HASH_MISMATCH_TEST"
+        with open(self.test_video_path, "wb") as f:
+            f.write(tampered_content)
+
+        # 6. Verify correction is rejected with 409 Conflict (VIDEO_SHA_MISMATCH)
+        p_correction = {
+            "reviewer": "Reviewer_Bob",
+            "video": "dink2.mp4",
+            "events": [
+                {
+                    "gt_id": "gt_dink_01",
+                    "timestamp_s": 2.2,
+                    "stroke_class": "KITCHEN_DINK",
+                    "confidence": "CONFIRMED",
+                }
+            ],
+            "full_video_reviewed": True,
+            "freeze": True,
+            "is_correction": True,
+            "correction_reason": "Attempting correction after video file was changed",
+        }
+        st_cor, _, raw_cor = self.client.post("/api/ground_truth", p_correction)
+        self.assertEqual(st_cor, 409)
+        res_cor = json.loads(raw_cor.decode("utf-8"))
+        self.assertEqual(res_cor["error_code"], "VIDEO_SHA_MISMATCH")
+
+        # 7. Verify byte-for-byte immutability of both files on disk
+        with open(gt_path, "rb") as f:
+            self.assertEqual(f.read(), orig_gt_bytes)
+        with open(eval_path, "rb") as f:
+            self.assertEqual(f.read(), orig_eval_bytes)
+
+        # 8. Verify candidate viewing and auditing are re-locked (403 BLIND_REVIEW_REQUIRED)
+        st_cand_locked, _, raw_cand_locked = self.client.get("/api/candidates?video=dink2.mp4")
+        self.assertEqual(st_cand_locked, 403)
+        res_cand_locked = json.loads(raw_cand_locked.decode("utf-8"))
+        self.assertEqual(res_cand_locked["error_code"], "BLIND_REVIEW_REQUIRED")
+
+        audit_payload = {
+            "video": "dink2.mp4",
+            "event_id": "dink2_ev_001",
+            "manual_verified": "HUMAN_CONFIRMED",
+            "is_true_stroke": "TRUE",
+            "notes": "Trying to audit locked candidate",
+            "reviewer": "Reviewer_Bob",
+            "expected_manual_verified": "PENDING_HUMAN_AUDIT",
+            "expected_is_true_stroke": "PENDING",
+        }
+        st_audit_locked, _, raw_audit_locked = self.client.post("/api/candidates/audit", audit_payload)
+        self.assertEqual(st_audit_locked, 403)
+        res_audit_locked = json.loads(raw_audit_locked.decode("utf-8"))
+        self.assertEqual(res_audit_locked["error_code"], "BLIND_REVIEW_REQUIRED")
+
+        # 9. Verify /api/ground_truth/export rejects the entire export (500 VIDEO_SHA_MISMATCH)
+        # Strictly prevents returning a partial list (e.g. smash2.mp4 only)
+        st_exp_fail, _, raw_exp_fail = self.client.get("/api/ground_truth/export")
+        self.assertEqual(st_exp_fail, 500)
+        res_exp_fail = json.loads(raw_exp_fail.decode("utf-8"))
+        self.assertEqual(res_exp_fail["error_code"], "VIDEO_SHA_MISMATCH")
+
+        # 10. Restore original video file on disk and verify system recovers
+        with open(self.test_video_path, "wb") as f:
+            f.write(orig_video_bytes)
+
+        # Export succeeds again with complete dataset (3 events)
+        st_exp_rec, _, raw_exp_rec = self.client.get("/api/ground_truth/export")
+        self.assertEqual(st_exp_rec, 200)
+        exp_rec_data = json.loads(raw_exp_rec.decode("utf-8"))
+        self.assertEqual(len(exp_rec_data), 3)
+
+        # Candidate viewing unlocked again
+        st_cand_rec, _, _ = self.client.get("/api/candidates?video=dink2.mp4")
+        self.assertEqual(st_cand_rec, 200)
+
 
 if __name__ == "__main__":
     unittest.main()

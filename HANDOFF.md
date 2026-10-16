@@ -364,9 +364,10 @@
 | `tests/test_annotation_tool.py` | `test_13_candidate_correction_notes_persistence_across_multiple_edits` | [Round 2 P1] 候選更正軌跡持久保留：同判定多次更新 notes 不得抹除更正記錄 | **PASS** |
 | `tests/test_annotation_tool.py` | `test_14_ground_truth_revision_history_contains_full_previous_events_and_hash` | [Round 2 P1] 凍結真值修訂紀錄完整保留舊事件清單、版本 SHA-256 雜湊與審查理由 | **PASS** |
 | `tests/test_annotation_tool.py` | `test_15_api_ground_truth_boundary_and_invalid_video_validations` | [Round 2 P1] 真值 API 嚴格拒絕非試行影片、零長空檔、超長/負數時間戳並記錄 SHA | **PASS** |
+| `tests/test_annotation_tool.py` | `test_16_video_content_replacement_blocks_audit_correction_and_export` | [Round 3 P1] 影片替換防護：原片內容置換時拒絕更正(409)、重鎖候選(403)、拒絕整份匯出(500)且舊檔位元組不變 | **PASS** |
 | `tests/test_manifest_v2.py` | 12 組事務性發布與崩潰恢復測試 | 驗證批次發布事務性 Rollback、實體雜湊感知恢復、中斷防護 | **PASS** (12/12) |
 | `tests/test_kinematics_v2.py` | 11 組運動學與提取測試 | 驗證追蹤恢復、1D NMS、尺度退化與快取失效 | **PASS** (11/11) |
-| **總計** | **38 項單元測試** | **涵蓋提取、安全發布、跨樹隔離、盲測閘門、衝突改判與真值邊界全流程** | **38/38 PASS (100%)** |
+| **總計** | **39 項單元測試** | **涵蓋提取、安全發布、跨樹隔離、盲測閘門、衝突改判、真值邊界與視訊雜湊不可變性全流程** | **39/39 PASS (100%)** |
 
 ### 9.4 Headless Chrome 瀏覽器端對端驗收證據 (Browser Verified Evidence)
 
@@ -454,7 +455,7 @@
 ### 9.6 未驗證項目與邊界聲明 (Evidence Gaps & Scope)
 - **正式 `data/v2` 寫入**：`NOT EXECUTED`（依任務板規範，試行產物寫入 `--output-dir` 臨時目錄，正式 `data/v2` 維持完全唯讀）。
 - **正式 Precision／Recall 指標**：`NOT VERIFIED`（依複審與任務板規定，試行評估必須嚴格限定於 3 支已人工通看且凍結之影片的 67 筆候選池，空真值影片如 `serve_legal1.mp4` 亦須納入；在真人審查員完成真值簽認前，不宣稱任何正式指標）。
-- **真人正式簽核真值產物**：`PENDING_HUMAN_PILOT`（工具功能與防護機制已完成、通過 38 項單元測試與 Headless Chrome 端對端瀏覽器驗收，67 筆候選與全片通看打標留待真人審查員試行操作）。
+- **真人正式簽核真值產物**：`PENDING_HUMAN_PILOT`（工具功能與防護機制已完成、通過 39 項單元測試與 Headless Chrome 端對端瀏覽器驗收，67 筆候選與全片通看打標留待真人審查員試行操作）。
 - **方向 B（模型重訓）與方向 C（遊戲 Runtime P0）**：`EXCLUDED`（維持隔離，零相關程式碼變動）。
 - **未核准 Push 或部署**：所有操作僅限本機任務分支 `task/agv/annotate-tool-ada9761`，未執行 merge、push 或 deploy。
 
@@ -478,4 +479,26 @@
    - 凍結與保存時保證記錄真實 64 字元 hex SHA-256 雜湊，不再保存 `null`。
    - 影片串流與 GET 請求優雅捕獲 `(BrokenPipeError, ConnectionResetError)`，避免使用者暫停或拖拉時間軸時終端噴出 traceback。
    - 回歸測試：`test_15_api_ground_truth_boundary_and_invalid_video_validations`。
+
+### 9.8 複審 Round 3 P1 修正：影片 SHA-256 不可變性、Fail-Closed 整份匯出拒絕與候選重新上鎖 (Round 3 P1 Remediation)
+
+針對 `cli-review-609-round3.md` 唯讀審查指出之 P1 缺陷（原影片更換時 API 舊真值可能被轉綁至新影片），已在 5 個 Allowed Files 內完成精準修復並補齊回歸測試（39/39 PASS）：
+
+1. **條件 1：真值綱要檢驗強制驗證影片雜湊與存在性 (`validate_ground_truth_events`)**：
+   - 當傳入 `video_shas` 時，凡具備已記錄真值之影片（包含 `video_sha256` 已記錄、`status == "FROZEN"`、`full_video_reviewed == True` 或事件數 > 0）：
+     - 驗證記錄之 `video_sha256` 必須為有效 64 字元 hex 字串，不可為空或無效。
+     - 嚴格檢驗影片必須存在於 `video_shas` 字典中；**若字典缺少該影片，直接拋出 `ManifestValidationError` 拒絕，絕不可因字典未提供而略過檢查**。
+     - 驗證當前磁碟之 SHA-256 必須為非空且有效 64 字元 hex。
+     - 驗證記錄雜湊與磁碟雜湊必須一致（`rec_sha.strip().lower() == disk_sha.strip().lower()`）；不一致時拋出 `ManifestValidationError`（`content hash mismatch`），杜絕真值被無聲轉綁至新內容。
+
+2. **條件 2：伺服器 API 防護、更正 409 衝突與整份匯出 500 拒絕 (`scripts/annotation_server.py`)**：
+   - **更正防護與位元組完全不變**：`POST /api/ground_truth` 處理更正請求時，比對既有記錄之 `video_sha256` 與目前磁碟原片雜湊 `v_sha`。若雜湊不符，立即回傳 `HTTP 409 Conflict`（`error_code: "VIDEO_SHA_MISMATCH"`），寫入程序於第一時間中斷。磁碟上之 `ground_truth_events.json` 與 `ground_truth_evaluator.json` 保持 100% byte-for-byte 完全不變。
+   - **候選審查即時重新上鎖**：`_is_video_ground_truth_frozen(vname)` 內部檢驗原片當前磁碟 SHA-256 是否與真值檔中之 `video_sha256` 相符。一旦原片內容遭到更換，真值凍結狀態立即失效，候選檢視（`GET /api/candidates?video=...`）與候選簽核（`POST /api/candidates/audit`）同步回傳 `HTTP 403 Forbidden`（`error_code: "BLIND_REVIEW_REQUIRED"`）。
+   - **整份匯出拒絕**：`GET /api/ground_truth/export` 呼叫 `export_evaluator_ground_truth` 並傳入 `video_shas=self._get_all_pilot_video_shas()`。若任何一支影片之原片雜湊不符或缺失，立即回傳 `HTTP 500 Internal Server Error`（`error_code: "VIDEO_SHA_MISMATCH"`），**拒絕整份匯出，杜絕產出看似完整但少了某支影片的殘缺評估資料**。
+   - **原片還原即時恢復**：當磁碟原片恢復為原始位元組時，`GET /api/ground_truth/export` 與候選檢視立即自動恢復正常存取。
+
+3. **回歸測試實證**：
+   - `test_16_video_content_replacement_blocks_audit_correction_and_export` 完整涵蓋：
+     - 直接單元驗證：字典缺少影片、磁碟雜湊無效/為空、記錄雜湊無效、雜湊不符、雜湊完全相符 5 種情境。
+     - API 端對端整合驗證：雙片凍結 -> 正常匯出 (3 筆) -> 候選解鎖 -> 實體影片內容篡改替換 -> 更正請求拒絕 (409 `VIDEO_SHA_MISMATCH`) -> 兩大 JSON 檔原始位元組 100% 相同 -> 候選檢視與審核重鎖 (403 `BLIND_REVIEW_REQUIRED`) -> 評估匯出全量拒絕 (500 `VIDEO_SHA_MISMATCH`) -> 原片還原後全量恢復 (200 匯出 3 筆，候選正常檢視)。
 
