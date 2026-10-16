@@ -1274,6 +1274,116 @@ class TestAnnotationTool(unittest.TestCase):
         st_cand_rec, _, _ = self.client.get("/api/candidates?video=dink2.mp4")
         self.assertEqual(st_cand_rec, 200)
 
+    def test_17_export_ground_truth_enforces_video_durations_fail_closed(self):
+        """
+        [P1 Regression - Review Round 4] Export Video Durations & Fail-Closed Bounds Validation:
+          Verify that /api/ground_truth/export strictly enforces video durations and fails closed:
+          1. Freezes valid ground truth for dink2.mp4 (duration 10.0s, 2 events) and smash2.mp4 (duration 25.0s, 1 event).
+          2. Verifies initial export succeeds with HTTP 200 and all 3 events.
+          3. Simulates manual tampering: directly edits ground_truth_events.json to change dink2.mp4
+             event timestamp to 999999.0s (exceeding 10.0s duration) while keeping valid video_sha256.
+          4. Verifies GET /api/ground_truth/export rejects the entire export with HTTP 500,
+             returning TIMESTAMP_OUT_OF_BOUNDS and zero partial data.
+          5. Verifies negative timestamp tampering (-5.0s) also causes HTTP 500 rejection.
+          6. Verifies direct export_evaluator_ground_truth function rejects out-of-duration timestamps.
+          7. Restores valid timestamps on disk and verifies export immediately recovers with HTTP 200
+             and complete 3-event payload.
+        """
+        # 1. Freeze valid ground truth for dink2.mp4 (2 events) and smash2.mp4 (1 event)
+        p_dink = {
+            "reviewer": "Reviewer_Alice",
+            "video": "dink2.mp4",
+            "events": [
+                {
+                    "gt_id": "gt_dink_01",
+                    "timestamp_s": 2.1,
+                    "stroke_class": "KITCHEN_DINK",
+                    "confidence": "CONFIRMED",
+                },
+                {
+                    "gt_id": "gt_dink_02",
+                    "timestamp_s": 4.5,
+                    "stroke_class": "KITCHEN_DINK",
+                    "confidence": "CONFIRMED",
+                },
+            ],
+            "full_video_reviewed": True,
+            "freeze": True,
+            "notes": "Valid dink2 review",
+        }
+        st_d, _, _ = self.client.post("/api/ground_truth", p_dink)
+        self.assertEqual(st_d, 200)
+
+        p_smash = {
+            "reviewer": "Reviewer_Alice",
+            "video": "smash2.mp4",
+            "events": [
+                {
+                    "gt_id": "gt_smash_01",
+                    "timestamp_s": 1.8,
+                    "stroke_class": "SMASH",
+                    "confidence": "CONFIRMED",
+                }
+            ],
+            "full_video_reviewed": True,
+            "freeze": True,
+            "notes": "Valid smash2 review",
+        }
+        st_s, _, _ = self.client.post("/api/ground_truth", p_smash)
+        self.assertEqual(st_s, 200)
+
+        # 2. Verify initial export succeeds and contains all 3 events
+        st_exp1, _, raw_exp1 = self.client.get("/api/ground_truth/export")
+        self.assertEqual(st_exp1, 200)
+        exp1 = json.loads(raw_exp1.decode("utf-8"))
+        self.assertEqual(len(exp1), 3)
+
+        # 3. Simulate tampering: edit ground_truth_events.json to change dink2.mp4 timestamp to 999999.0
+        gt_path = os.path.join(self.output_dir, "ground_truth_events.json")
+        with open(gt_path, "r", encoding="utf-8") as f:
+            valid_gt = json.load(f)
+
+        tampered_gt = json.loads(json.dumps(valid_gt))
+        tampered_gt["videos"]["dink2.mp4"]["events"][0]["timestamp_s"] = 999999.0
+        with open(gt_path, "w", encoding="utf-8") as f:
+            json.dump(tampered_gt, f)
+
+        # 4. GET /api/ground_truth/export must reject entire export with HTTP 500
+        st_exp_fail, _, raw_exp_fail = self.client.get("/api/ground_truth/export")
+        self.assertEqual(st_exp_fail, 500)
+        res_exp_fail = json.loads(raw_exp_fail.decode("utf-8"))
+        self.assertEqual(res_exp_fail["error_code"], "TIMESTAMP_OUT_OF_BOUNDS")
+        self.assertIn("exceeds video duration", res_exp_fail["error"])
+
+        # 5. Negative timestamp tampering (-5.0s) must also reject with HTTP 500
+        tampered_gt_neg = json.loads(json.dumps(valid_gt))
+        tampered_gt_neg["videos"]["dink2.mp4"]["events"][0]["timestamp_s"] = -5.0
+        with open(gt_path, "w", encoding="utf-8") as f:
+            json.dump(tampered_gt_neg, f)
+
+        st_exp_fail_neg, _, raw_exp_fail_neg = self.client.get("/api/ground_truth/export")
+        self.assertEqual(st_exp_fail_neg, 500)
+        res_exp_fail_neg = json.loads(raw_exp_fail_neg.decode("utf-8"))
+        self.assertEqual(res_exp_fail_neg["error_code"], "TIMESTAMP_OUT_OF_BOUNDS")
+        self.assertIn("negative timestamp_s", res_exp_fail_neg["error"])
+
+        # 6. Direct export_evaluator_ground_truth call must also raise ManifestValidationError
+        with self.assertRaises(man_v2_mod.ManifestValidationError) as ctx:
+            man_v2_mod.export_evaluator_ground_truth(
+                tampered_gt,
+                video_durations={"dink2.mp4": 10.0, "smash2.mp4": 25.0},
+            )
+        self.assertIn("exceeds video duration", str(ctx.exception))
+
+        # 7. Restore valid ground truth on disk and verify export recovers
+        with open(gt_path, "w", encoding="utf-8") as f:
+            json.dump(valid_gt, f)
+
+        st_exp_rec, _, raw_exp_rec = self.client.get("/api/ground_truth/export")
+        self.assertEqual(st_exp_rec, 200)
+        exp_rec = json.loads(raw_exp_rec.decode("utf-8"))
+        self.assertEqual(len(exp_rec), 3)
+
 
 if __name__ == "__main__":
     unittest.main()

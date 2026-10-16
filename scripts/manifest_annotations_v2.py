@@ -1035,14 +1035,26 @@ def validate_ground_truth_events(gt_data, allowed_videos=None, video_durations=N
                     f"Video '{vname}' has invalid recorded video_sha256: '{rec_sha}'"
                 )
 
+        has_recorded_gt = bool(
+            rec_sha
+            or v_status == "FROZEN"
+            or vinfo.get("full_video_reviewed") is True
+            or (isinstance(vinfo.get("events"), list) and len(vinfo.get("events")) > 0)
+        )
+
+        if video_durations is not None and has_recorded_gt:
+            if vname not in video_durations:
+                raise ManifestValidationError(
+                    f"Video '{vname}' has recorded ground truth but is missing from video_durations dictionary"
+                )
+            v_dur = video_durations.get(vname)
+            if v_dur is None or not isinstance(v_dur, (int, float)) or v_dur <= 0:
+                raise ManifestValidationError(
+                    f"Video '{vname}' has recorded ground truth but duration is missing, invalid, or non-positive: {v_dur}"
+                )
+
         if video_shas is not None:
             # Condition 1: 傳入 video_shas 時，已記錄真值的影片若缺檔、取不到雜湊、記錄雜湊無效或兩者不一致，都必須拒絕；不能因字典缺少該影片就略過檢查。
-            has_recorded_gt = bool(
-                rec_sha
-                or v_status == "FROZEN"
-                or vinfo.get("full_video_reviewed") is True
-                or (isinstance(vinfo.get("events"), list) and len(vinfo.get("events")) > 0)
-            )
             if has_recorded_gt:
                 if not rec_sha or not isinstance(rec_sha, str) or len(rec_sha.strip()) != 64 or not all(c in "0123456789abcdefABCDEF" for c in rec_sha.strip()):
                     raise ManifestValidationError(
@@ -1106,7 +1118,14 @@ def validate_ground_truth_events(gt_data, allowed_videos=None, video_durations=N
                 )
 
 
-def export_evaluator_ground_truth(gt_data, only_frozen=True, include_unsure=False, video_shas=None):
+def export_evaluator_ground_truth(
+    gt_data,
+    only_frozen=True,
+    include_unsure=False,
+    allowed_videos=None,
+    video_durations=None,
+    video_shas=None,
+):
     """
     Export independent ground truth data into a flat list compatible with evaluate_detector_v2.py:
         [{"video": vname, "timestamp_peak_s": ev["timestamp_s"], "event_id": ev["gt_id"], "raw_class": ev["stroke_class"], "confidence": ev["confidence"]}]
@@ -1116,10 +1135,16 @@ def export_evaluator_ground_truth(gt_data, only_frozen=True, include_unsure=Fals
         so that unconfirmed human guesses do not pollute the ground truth evaluation denominator.
       - By default (only_frozen=True), only videos that have completed full review (status == 'FROZEN'
         and full_video_reviewed is True) are exported.
-      - When video_shas is provided, verifies that all videos match their recorded video_sha256;
+      - When allowed_videos, video_durations, or video_shas are provided, verifies that all videos
+        satisfy full schema validation (including duration limits, non-negative timestamps, and SHA matches);
         if any video fails, raises ManifestValidationError to prevent partial or invalid export.
     """
-    validate_ground_truth_events(gt_data, video_shas=video_shas)
+    validate_ground_truth_events(
+        gt_data,
+        allowed_videos=allowed_videos,
+        video_durations=video_durations,
+        video_shas=video_shas,
+    )
     eval_list = []
     videos = gt_data.get("videos", {})
     for vname in sorted(videos.keys()):
@@ -1163,7 +1188,14 @@ def save_ground_truth_events(output_path, gt_data, allowed_videos=None, video_du
             )
 
     eval_path = os.path.join(os.path.dirname(output_path), "ground_truth_evaluator.json")
-    eval_list = export_evaluator_ground_truth(gt_data, only_frozen=True, include_unsure=False, video_shas=video_shas)
+    eval_list = export_evaluator_ground_truth(
+        gt_data,
+        only_frozen=True,
+        include_unsure=False,
+        allowed_videos=allowed_videos,
+        video_durations=video_durations,
+        video_shas=video_shas,
+    )
 
     file_specs = [
         {

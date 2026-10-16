@@ -936,20 +936,29 @@ class AnnotationRequestHandler(BaseHTTPRequestHandler):
             with open(gt_path, "r", encoding="utf-8") as f:
                 gt_data = json.load(f)
 
+            video_durations = self._get_all_pilot_video_durations()
             video_shas = self._get_all_pilot_video_shas()
             eval_list = man_v2_mod.export_evaluator_ground_truth(
                 gt_data,
                 only_frozen=True,
                 include_unsure=False,
+                allowed_videos=PILOT_VIDEOS,
+                video_durations=video_durations,
                 video_shas=video_shas,
             )
             self._send_json(HTTPStatus.OK, eval_list)
         except Exception as e:
-            # Condition 2: 雜湊不符時，/api/ground_truth/export 應拒絕整份匯出，避免產出看似完整但少了某支影片的評估資料。
+            err_str = str(e).lower()
+            if "timestamp" in err_str or "duration" in err_str or "exceeds" in err_str:
+                err_code = "TIMESTAMP_OUT_OF_BOUNDS"
+            elif "sha" in err_str or "hash" in err_str:
+                err_code = "VIDEO_SHA_MISMATCH"
+            else:
+                err_code = "GROUND_TRUTH_VALIDATION_ERROR"
             self._send_error_json(
                 HTTPStatus.INTERNAL_SERVER_ERROR,
                 f"Export rejected: ground truth validation failed ({e})",
-                extra={"error_code": "VIDEO_SHA_MISMATCH"}
+                extra={"error_code": err_code}
             )
 
 

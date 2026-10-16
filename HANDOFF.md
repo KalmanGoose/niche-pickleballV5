@@ -365,9 +365,10 @@
 | `tests/test_annotation_tool.py` | `test_14_ground_truth_revision_history_contains_full_previous_events_and_hash` | [Round 2 P1] 凍結真值修訂紀錄完整保留舊事件清單、版本 SHA-256 雜湊與審查理由 | **PASS** |
 | `tests/test_annotation_tool.py` | `test_15_api_ground_truth_boundary_and_invalid_video_validations` | [Round 2 P1] 真值 API 嚴格拒絕非試行影片、零長空檔、超長/負數時間戳並記錄 SHA | **PASS** |
 | `tests/test_annotation_tool.py` | `test_16_video_content_replacement_blocks_audit_correction_and_export` | [Round 3 P1] 影片替換防護：原片內容置換時拒絕更正(409)、重鎖候選(403)、拒絕整份匯出(500)且舊檔位元組不變 | **PASS** |
+| `tests/test_annotation_tool.py` | `test_17_export_ground_truth_enforces_video_durations_fail_closed` | [Round 4 P1] 匯出路徑時長邊界防護：竄改事件超出影片時長(999999.0)或負數時拒絕整份匯出(500)，還原後恢復 | **PASS** |
 | `tests/test_manifest_v2.py` | 12 組事務性發布與崩潰恢復測試 | 驗證批次發布事務性 Rollback、實體雜湊感知恢復、中斷防護 | **PASS** (12/12) |
 | `tests/test_kinematics_v2.py` | 11 組運動學與提取測試 | 驗證追蹤恢復、1D NMS、尺度退化與快取失效 | **PASS** (11/11) |
-| **總計** | **39 項單元測試** | **涵蓋提取、安全發布、跨樹隔離、盲測閘門、衝突改判、真值邊界與視訊雜湊不可變性全流程** | **39/39 PASS (100%)** |
+| **總計** | **40 項單元測試** | **涵蓋提取、安全發布、跨樹隔離、盲測閘門、衝突改判、真值邊界、雜湊不可變性與匯出時長檢驗全流程** | **40/40 PASS (100%)** |
 
 ### 9.4 Headless Chrome 瀏覽器端對端驗收證據 (Browser Verified Evidence)
 
@@ -455,7 +456,7 @@
 ### 9.6 未驗證項目與邊界聲明 (Evidence Gaps & Scope)
 - **正式 `data/v2` 寫入**：`NOT EXECUTED`（依任務板規範，試行產物寫入 `--output-dir` 臨時目錄，正式 `data/v2` 維持完全唯讀）。
 - **正式 Precision／Recall 指標**：`NOT VERIFIED`（依複審與任務板規定，試行評估必須嚴格限定於 3 支已人工通看且凍結之影片的 67 筆候選池，空真值影片如 `serve_legal1.mp4` 亦須納入；在真人審查員完成真值簽認前，不宣稱任何正式指標）。
-- **真人正式簽核真值產物**：`PENDING_HUMAN_PILOT`（工具功能與防護機制已完成、通過 39 項單元測試與 Headless Chrome 端對端瀏覽器驗收，67 筆候選與全片通看打標留待真人審查員試行操作）。
+- **真人正式簽核真值產物**：`PENDING_HUMAN_PILOT`（工具功能與防護機制已完成、通過 40 項單元測試與 Headless Chrome 端對端瀏覽器驗收，67 筆候選與全片通看打標留待真人審查員試行操作）。
 - **方向 B（模型重訓）與方向 C（遊戲 Runtime P0）**：`EXCLUDED`（維持隔離，零相關程式碼變動）。
 - **未核准 Push 或部署**：所有操作僅限本機任務分支 `task/agv/annotate-tool-ada9761`，未執行 merge、push 或 deploy。
 
@@ -501,4 +502,26 @@
    - `test_16_video_content_replacement_blocks_audit_correction_and_export` 完整涵蓋：
      - 直接單元驗證：字典缺少影片、磁碟雜湊無效/為空、記錄雜湊無效、雜湊不符、雜湊完全相符 5 種情境。
      - API 端對端整合驗證：雙片凍結 -> 正常匯出 (3 筆) -> 候選解鎖 -> 實體影片內容篡改替換 -> 更正請求拒絕 (409 `VIDEO_SHA_MISMATCH`) -> 兩大 JSON 檔原始位元組 100% 相同 -> 候選檢視與審核重鎖 (403 `BLIND_REVIEW_REQUIRED`) -> 評估匯出全量拒絕 (500 `VIDEO_SHA_MISMATCH`) -> 原片還原後全量恢復 (200 匯出 3 筆，候選正常檢視)。
+
+### 9.9 複審 Round 4 P1 修正：評估匯出路徑全量時長邊界檢驗與 Fail-Closed 拒絕 (Round 4 P1 Remediation)
+
+針對 `cli-review-609-round4.md` 唯讀審查指出之 P1 缺陷（真值檔案若遭手動篡改時間戳至 999999.0，`GET /api/ground_truth/export` 先前僅校驗 SHA 而未檢驗影片時長邊界），已在 5 個 Allowed Files 內完成精準修復並補齊回歸測試（40/40 PASS）：
+
+1. **`export_evaluator_ground_truth` 完整支援影片時長與試行清單校驗 (`scripts/manifest_annotations_v2.py`)**：
+   - 擴充函式簽名為 `export_evaluator_ground_truth(gt_data, only_frozen=True, include_unsure=False, allowed_videos=None, video_durations=None, video_shas=None)`。
+   - 於匯出前調用 `validate_ground_truth_events` 時完整傳入 `allowed_videos`、`video_durations` 與 `video_shas`。
+   - 當傳入 `video_durations` 時，凡具備已記錄真值之影片，強制驗證其存在於時長字典中且大於 0；所有事件時間戳嚴格不得超出原片時長且不得為負數。
+
+2. **伺服器匯出端點 Fail-Closed 防護 (`scripts/annotation_server.py`)**：
+   - `_handle_get_ground_truth_export()` 於呼叫匯出前取得 `video_durations = self._get_all_pilot_video_durations()`，並傳入 `allowed_videos=PILOT_VIDEOS`、`video_durations=video_durations` 與 `video_shas=video_shas`。
+   - 任何事件時間戳超出影片時長、為負數或影片缺時長時，立即回傳 `HTTP 500 Internal Server Error`（`error_code: "TIMESTAMP_OUT_OF_BOUNDS"`），**拒絕整份匯出，杜絕洩漏超出影片範圍的非法事件，且不回傳任何殘缺部分資料**。
+   - 當檔案恢復合規時間戳時，端點立即自動恢復 HTTP 200 全量匯出。
+
+3. **回歸測試實證**：
+   - `test_17_export_ground_truth_enforces_video_durations_fail_closed` 完整驗證：
+     - 雙影片凍結真值正常匯出 (3 筆，HTTP 200)。
+     - 保留合法 `video_sha256` 下，直接修改磁碟真值時間戳至 `999999.0`，`GET /api/ground_truth/export` 回傳 HTTP 500 (`TIMESTAMP_OUT_OF_BOUNDS`)，拒絕整份匯出。
+     - 負數時間戳 (`-5.0`) 篡改同樣被拒絕 (HTTP 500 `TIMESTAMP_OUT_OF_BOUNDS`)。
+     - 直接調用 `export_evaluator_ground_truth` 拋出 `ManifestValidationError`。
+     - 恢復合法時間戳後，立即恢復 HTTP 200 並完整匯出 3 筆事件。
 
