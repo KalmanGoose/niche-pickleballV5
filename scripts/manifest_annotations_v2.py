@@ -263,6 +263,7 @@ def load_and_validate_manifest(manifest_path):
             "path": manifest_path,
             "rows": [],
             "by_key": {},
+            "fieldnames": [],
         }
 
     try:
@@ -365,6 +366,7 @@ def load_and_validate_manifest(manifest_path):
                 "path": manifest_path,
                 "rows": rows,
                 "by_key": by_key,
+                "fieldnames": list(reader.fieldnames),
             }
     except ManifestValidationError:
         raise
@@ -951,3 +953,150 @@ def batch_publish_files(file_specs, auto_recover=False):
         shutil.rmtree(staging_dir, ignore_errors=True)
         if remove_backup_on_finally:
             shutil.rmtree(backup_dir, ignore_errors=True)
+
+
+VALID_GROUND_TRUTH_CLASSES = {
+    "KITCHEN_DINK",
+    "POWER_DRIVE",
+    "UNDERHAND_LEGAL",
+    "OVERHAND_FAULT",
+    "SMASH",
+    "VOLLEY_PUNCH",
+    "PASSIVE_BLOCK",
+    "OTHER",
+}
+
+VALID_GROUND_TRUTH_CONFIDENCES = {"CONFIRMED", "UNSURE"}
+
+
+def validate_ground_truth_events(gt_data):
+    """
+    Validate independent ground truth data structure.
+    Must be a dict containing:
+      - 'version': str
+      - 'reviewer': non-empty str
+      - 'time_base': str (e.g. 'media_presentation_time_seconds')
+      - 'videos': dict mapping video_filename to dict containing:
+          - 'events': list of dicts with 'gt_id', 'timestamp_s', 'stroke_class', 'confidence', 'notes'
+    """
+    if not isinstance(gt_data, dict):
+        raise ManifestValidationError("Ground truth data must be a JSON object (dict)")
+    if not gt_data.get("version"):
+        raise ManifestValidationError("Ground truth data missing 'version'")
+    reviewer = str(gt_data.get("reviewer", "")).strip()
+    if not reviewer:
+        raise ManifestValidationError("Ground truth data missing non-empty 'reviewer'")
+    if not gt_data.get("time_base"):
+        raise ManifestValidationError("Ground truth data missing 'time_base'")
+
+    videos = gt_data.get("videos")
+    if not isinstance(videos, dict):
+        raise ManifestValidationError("Ground truth data 'videos' must be a dict")
+
+    for vname, vinfo in videos.items():
+        if not isinstance(vinfo, dict):
+            raise ManifestValidationError(f"Video entry '{vname}' must be a dict")
+        events = vinfo.get("events")
+        if not isinstance(events, list):
+            raise ManifestValidationError(f"Video '{vname}' 'events' must be a list")
+        for idx, ev in enumerate(events):
+            if not isinstance(ev, dict):
+                raise ManifestValidationError(f"Event #{idx} in '{vname}' must be a dict")
+            if not ev.get("gt_id"):
+                raise ManifestValidationError(f"Event #{idx} in '{vname}' missing 'gt_id'")
+            ts = ev.get("timestamp_s")
+            if ts is None or not isinstance(ts, (int, float)) or ts < 0:
+                raise ManifestValidationError(f"Event '{ev.get('gt_id')}' has invalid timestamp_s: {ts}")
+            s_cls = str(ev.get("stroke_class", "")).strip().upper()
+            if s_cls not in VALID_GROUND_TRUTH_CLASSES:
+                raise ManifestValidationError(
+                    f"Event '{ev.get('gt_id')}' has invalid stroke_class '{s_cls}'. "
+                    f"Allowed: {sorted(VALID_GROUND_TRUTH_CLASSES)}"
+                )
+            conf = str(ev.get("confidence", "")).strip().upper()
+            if conf not in VALID_GROUND_TRUTH_CONFIDENCES:
+                raise ManifestValidationError(
+                    f"Event '{ev.get('gt_id')}' has invalid confidence '{conf}'. "
+                    f"Allowed: {sorted(VALID_GROUND_TRUTH_CONFIDENCES)}"
+                )
+
+
+def save_ground_truth_events(output_path, gt_data, auto_recover=False):
+    """
+    Safely save independent ground truth dataset via transactional batch publish.
+    """
+    validate_ground_truth_events(gt_data)
+    file_specs = [
+        {
+            "target_path": os.path.abspath(output_path),
+            "type": "json",
+            "data": gt_data,
+        }
+    ]
+    batch_publish_files(file_specs, auto_recover=auto_recover)
+
+
+def update_candidate_manifest_row(
+    manifest_path,
+    video,
+    event_id,
+    manual_verified,
+    is_true_stroke,
+    notes=None,
+    auto_recover=False
+):
+    """
+    Safely update a candidate row's audit status in manifest_path using transactional batch publish.
+    Enforces valid human signed status pairs or pending status.
+    """
+    manifest_path = os.path.abspath(manifest_path)
+    state = load_and_validate_manifest(manifest_path)
+    if not state["exists"]:
+        raise ManifestValidationError(f"Manifest file not found: {manifest_path}")
+
+    fieldnames = state["fieldnames"]
+    rows = state["rows"]
+
+    norm_verified = str(manual_verified).strip().upper()
+    norm_true = str(is_true_stroke).strip().upper()
+
+    pair = (norm_verified, norm_true)
+    is_valid_signed = pair in VALID_HUMAN_SIGNED_PAIRS
+    is_pending = (norm_verified in PENDING_VERIFIED_VALUES) and (norm_true in PENDING_TRUE_VALUES)
+
+    if not is_valid_signed and not is_pending:
+        raise ManifestValidationError(
+            f"Invalid manual audit status pair: manual_verified='{manual_verified}', "
+            f"is_true_stroke='{is_true_stroke}'. Allowed signed pairs: {list(VALID_HUMAN_SIGNED_PAIRS.keys())} "
+            f"or pending audit status."
+        )
+
+    target_idx = None
+    for idx, r in enumerate(rows):
+        if r.get("video") == video and r.get("event_id") == event_id:
+            target_idx = idx
+            break
+
+    if target_idx is None:
+        raise ManifestValidationError(f"Event not found in manifest: video='{video}', event_id='{event_id}'")
+
+    rows[target_idx]["manual_verified"] = norm_verified
+    rows[target_idx]["is_true_stroke"] = norm_true
+    if notes is not None:
+        rows[target_idx]["notes"] = str(notes)
+
+    # Filter row dicts to only columns defined in fieldnames
+    clean_rows = []
+    for r in rows:
+        clean_rows.append({col: r.get(col, "") for col in fieldnames})
+
+    file_specs = [
+        {
+            "target_path": manifest_path,
+            "type": "csv",
+            "fieldnames": fieldnames,
+            "rows": clean_rows,
+        }
+    ]
+    batch_publish_files(file_specs, auto_recover=auto_recover)
+    return rows[target_idx]

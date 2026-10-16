@@ -284,3 +284,70 @@
 - **跨提取版本時間容差之實戰覆蓋率與超大事件數 DP 記憶體壓測**：`NOT VERIFIED`。
 - **BROWSER / HUMAN GAME FEEL**：`NOT REQUIRED / NOT VERIFIED`（本任務未修改任何前端／遊戲 Runtime 程式碼）。
 
+---
+
+## 9. TASK-V8-609 實作紀錄：視覺化揮拍標註試行工具與獨立真值標註流程
+
+* **Task ID**：`TASK-V8-609`（Visual stroke annotation pilot and independent ground truth）
+* **分支與基底**：自 `ada9761` 建立隔離分支 `task/agv/annotate-tool-ada9761`（位於 worktree `.worktrees/annotate-tool-ada9761`），不污染主分支與主工作樹。
+* **變更檔案（嚴格限於 Allowed Files）**：
+  - `tools/annotate_visual.html`（雙模式離線標註前端介面，零外部 CDN 依賴，包含盲測通看標註與 67 筆候選審查模式）
+  - `scripts/annotation_server.py`（本機 HTTP 伺服器，嚴格綁定 `127.0.0.1`，支援 HTTP 206 Partial Content Range 串流與路徑遍歷防護，提供事務性審查寫入與獨立真值保存 API）
+  - `scripts/manifest_annotations_v2.py`（擴充真值驗證 `validate_ground_truth_events`、原子儲存 `save_ground_truth_events`、候選列事務更新 `update_candidate_manifest_row`，以及輸出欄位淨化機制）
+  - `tests/test_annotation_tool.py`（7 組全新單元測試，包含 In-Process 無 Socket 測試客戶端、Range 串流檢驗、隔離目錄寫入驗證與正式 67 筆資料完整性）
+  - `HANDOFF.md`（更新交接規格、測試矩陣與試行使用指引）
+
+### 9.1 架構與核心實作規格 (Architecture & Design)
+
+1. **雙模式架構與嚴格真值隔離 (Dual-Mode & Strict Separation)**：
+   - **Mode 1: 盲測完整通看模式 (Blind Full-Video Ground Truth Session)**：
+     - Reviewer 觀看完整影片（`dink2.mp4`, `smash2.mp4`, `serve_legal1.mp4`），**畫面上不顯示任何偵測器候選波峰、無啟發式分級提示、無標記框**。
+     - 審查者記錄所有親眼確認的真實揮拍時間戳 (`timestamp_s`)、動作類別（`KITCHEN_DINK`, `POWER_DRIVE`, `SMASH`, `UNDERHAND_LEGAL`, `OVERHAND_FAULT`, `VOLLEY_PUNCH`, `PASSIVE_BLOCK`）、信心度（`CONFIRMED` / `UNSURE`）與備註。
+     - 儲存至獨立之 `ground_truth_events.json`，透過 `validate_ground_truth_events` 與原子替換儲存，作為後續計算 Recall 與清查漏檢事件（FN）的唯一客觀基準。
+   - **Mode 2: 候選事件審查模式 (Candidate Audit Session)**：
+     - 針對首批 3 支影片共 67 筆候選事件（`dink2`: 9 筆, `smash2`: 19 筆, `serve_legal1`: 39 筆）進行視覺核對。
+     - 顯示候選事件時間窗、峰值手腕速率、軀幹角度與啟發式分級參考。
+     - 審查者簽署 `manual_verified`（`HUMAN_CONFIRMED` / `HUMAN_REJECTED` / `PENDING_HUMAN_AUDIT`）、`is_true_stroke`（`TRUE` / `FALSE` / `PENDING`）與審查備註。
+     - 透過 `update_candidate_manifest_row` 與 `batch_publish_files` 事務性寫入 `--output-dir` 下的副本清單，**正式 `data/v2` 保持唯讀**。
+
+2. **媒體呈現時間與 Range 206 視訊串流 (Presentation Time & HTTP 206 Streaming)**：
+   - 前端播放器嚴格按實際呈現時間（`video.currentTime`）標示與記錄，介面清楚註明為媒體呈現時間，不預先宣稱逐格精確。
+   - 後端伺服器原生實作 HTTP `Range: bytes=start-end` 處理與 `206 Partial Content` 響應，支援 Chrome/Safari/Edge 之平滑拖曳、微步進（±0.05s / ±1.0s）與波峰前後 ±1.0s 區間循環播放。
+   - 內建 `safe_resolve_path` 安全路徑解析，嚴格阻斷任何 `..` 路徑遍歷（Directory Traversal）攻擊。
+
+3. **零外部 CDN 與嚴格離線自洽 (Zero External CDN Dependencies)**：
+   - 前端 HTML 完全不依賴任何外部 CDN、Google Fonts、Tailwind CDN、FontAwesome 或外部 JS 套件，純原生 HTML5 + CSS + ES6 實現，可在無外網環境本機離線運行。
+   - 伺服器嚴格綁定 `127.0.0.1`，不對區域網路或外網暴露。
+
+### 9.2 全量單元測試矩陣 (Verification Matrix: 30/30 PASS)
+
+| 測試檔案 | 測試方法 | 檢驗核心與驗收重點 | 結果 |
+| :--- | :--- | :--- | :--- |
+| `tests/test_annotation_tool.py` | `test_1_server_startup_and_ui_serve_zero_cdn` | 驗證 UI 正常輸出、包含 TASK-V8-609 標題、零外部 CDN 連結 | **PASS** |
+| `tests/test_annotation_tool.py` | `test_2_video_streaming_range_and_traversal_guards` | 驗證 HTTP 206 Partial Content Range 串流與路徑遍歷拒絕（403/404） | **PASS** |
+| `tests/test_annotation_tool.py` | `test_3_candidate_events_api_and_video_filtering` | 驗證候選事件 API 讀取、影片過濾與 67 筆事件載入 | **PASS** |
+| `tests/test_annotation_tool.py` | `test_4_candidate_audit_transactional_save_and_isolation` | 驗證候選簽署寫入隔離目錄副本，正式 `data/v2` 100% 保持未修改 | **PASS** |
+| `tests/test_annotation_tool.py` | `test_5_blind_ground_truth_recording_and_strict_separation` | 驗證盲測獨立真值儲存至 `ground_truth_events.json` 與綱要檢驗 | **PASS** |
+| `tests/test_annotation_tool.py` | `test_6_ground_truth_validation_rejects_malformed_data` | 驗證真值綱要檢驗拒絕負數時間戳、無效審查者與非法類別 | **PASS** |
+| `tests/test_annotation_tool.py` | `test_7_pilot_67_events_exact_dataset_integrity` | 驗證正式清單中 3 支試行影片候選數嚴格為 67 筆 (9 + 19 + 39) | **PASS** |
+| `tests/test_manifest_v2.py` | 12 組事務性與崩潰恢復測試 | 驗證批次發布事務性 Rollback、實體雜湊感知恢復、中斷防護 | **PASS** (12/12) |
+| `tests/test_kinematics_v2.py` | 11 組運動學與提取測試 | 驗證追蹤恢復、1D NMS、尺度退化與快取失效 | **PASS** (11/11) |
+| **總計** | **30 項單元測試** | **涵蓋提取、安全發布、視覺化伺服器與真值標註全流程** | **30/30 PASS (100%)** |
+
+### 9.3 標註工具啟動與試行指引 (Pilot Usage Guide)
+
+1. **啟動本機伺服器**：
+   ```bash
+   ./.venv/bin/python scripts/annotation_server.py --port 8080 --output-dir /tmp/pilot_annotations
+   ```
+2. **瀏覽器開啟**：
+   在瀏覽器中開啟 `http://127.0.0.1:8080`。
+3. **標註流程建議**：
+   - **Step 1（獨立真值通看）**：選取影片後切換至「模式 1：獨立真值通看」，通看整部影片，遇到每次真實揮拍時按快速鍵 `A` 或點擊「標記當前為真值揮拍」，選擇動作類別與信心度，完成後點擊「儲存真值事件表」。
+   - **Step 2（候選事件核對）**：切換至「模式 2：候選事件審查」，系統自動載入 67 筆候選事件。點擊候選列表逐筆跳轉至波峰，檢視動作展開與波峰前後 ±1.0s 循環播放，點擊 `確認為真揮拍 (1)` 或 `駁回假陽性 (2)` 或 `無法判定/跳過 (3)`。
+   - **Step 3（真值比對評估）**：試行完成後，可使用評估腳本比對兩份產物計算真實 Precision 與 Recall。
+
+### 9.4 未驗證項目與邊界聲明 (Evidence Gaps & Scope)
+- **正式 `data/v2` 寫入**：`NOT EXECUTED`（依任務板規範，試行產物寫入 `--output-dir` 臨時目錄，正式資料夾未被修改）。
+- **真人審查簽認產物**：`PENDING_HUMAN_PILOT`（工具已完成並通過 30 項測試驗收，實際 67 筆之人工打標需由真人審查員進行試行操作）。
+- **方向 B（模型重訓）與方向 C（遊戲 Runtime P0）**：`EXCLUDED`（維持隔離，零相關程式碼變動）。

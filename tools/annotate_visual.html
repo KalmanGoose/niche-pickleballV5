@@ -1,0 +1,1175 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pickleball N-GO — 視覺化揮拍標註輔助工具 (TASK-V8-609)</title>
+  <style>
+    :root {
+      --bg-dark: #0f172a;
+      --bg-card: #1e293b;
+      --bg-card-hover: #334155;
+      --border-color: #475569;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --accent-green: #10b981;
+      --accent-red: #ef4444;
+      --accent-yellow: #f59e0b;
+      --accent-blue: #3b82f6;
+      --accent-purple: #8b5cf6;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      background: var(--bg-card);
+      border-bottom: 1px solid var(--border-color);
+      padding: 12px 24px;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand h1 {
+      font-size: 1.15rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .badge {
+      font-size: 0.75rem;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    .badge-pilot { background: rgba(59, 130, 246, 0.2); color: #60a5fa; border: 1px solid #3b82f6; }
+    .badge-isolated { background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid #10b981; }
+
+    .header-controls {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      font-size: 0.85rem;
+    }
+
+    .mode-switch-group {
+      display: flex;
+      background: #0f172a;
+      padding: 3px;
+      border-radius: 6px;
+      border: 1px solid var(--border-color);
+    }
+
+    .mode-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      padding: 6px 14px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .mode-btn.active {
+      background: var(--accent-blue);
+      color: #fff;
+    }
+
+    .mode-btn:hover:not(.active) {
+      color: var(--text-main);
+    }
+
+    .select-video {
+      background: #0f172a;
+      color: var(--text-main);
+      border: 1px solid var(--border-color);
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      outline: none;
+    }
+
+    .reviewer-input {
+      background: #0f172a;
+      color: var(--text-main);
+      border: 1px solid var(--border-color);
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      width: 140px;
+    }
+
+    main {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 1fr 420px;
+      gap: 16px;
+      padding: 16px 24px;
+      max-width: 1700px;
+      width: 100%;
+      margin: 0 auto;
+    }
+
+    @media (max-width: 1100px) {
+      main { grid-template-columns: 1fr; }
+    }
+
+    /* Video Player Column */
+    .player-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .video-viewport {
+      background: #000;
+      border-radius: 6px;
+      overflow: hidden;
+      aspect-ratio: 16/9;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+
+    video {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    .time-readout {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-family: monospace;
+      font-size: 0.95rem;
+      padding: 4px 8px;
+      background: #0f172a;
+      border-radius: 4px;
+      border: 1px solid #334155;
+    }
+
+    .time-caveat {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      font-family: sans-serif;
+    }
+
+    /* Timeline & Marker Track */
+    .timeline-container {
+      position: relative;
+      margin: 6px 0;
+    }
+
+    .timeline-slider {
+      width: 100%;
+      cursor: pointer;
+      accent-color: var(--accent-blue);
+    }
+
+    .timeline-markers-track {
+      position: relative;
+      height: 14px;
+      background: #0f172a;
+      border-radius: 3px;
+      overflow: hidden;
+      margin-top: 4px;
+      border: 1px solid #334155;
+    }
+
+    .timeline-marker {
+      position: absolute;
+      width: 4px;
+      height: 100%;
+      top: 0;
+      transform: translateX(-50%);
+      cursor: pointer;
+      border-radius: 1px;
+    }
+
+    .marker-tp { background-color: var(--accent-green); }
+    .marker-fp { background-color: var(--accent-red); }
+    .marker-pending { background-color: var(--accent-yellow); }
+    .marker-gt { background-color: var(--accent-purple); width: 6px; }
+
+    /* Playback Controls */
+    .control-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .btn-group {
+      display: flex;
+      gap: 6px;
+    }
+
+    .ctrl-btn {
+      background: #0f172a;
+      color: var(--text-main);
+      border: 1px solid var(--border-color);
+      border-radius: 5px;
+      padding: 6px 12px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .ctrl-btn:hover {
+      background: var(--bg-card-hover);
+      border-color: #64748b;
+    }
+
+    .ctrl-btn.active {
+      background: var(--accent-blue);
+      border-color: var(--accent-blue);
+      color: #fff;
+    }
+
+    /* Sidebar / Right Column */
+    .sidebar-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      overflow-y: auto;
+      max-height: calc(100vh - 110px);
+    }
+
+    .session-banner {
+      padding: 10px 12px;
+      border-radius: 6px;
+      font-size: 0.82rem;
+      line-height: 1.4;
+    }
+
+    .banner-mode1 {
+      background: rgba(139, 92, 246, 0.15);
+      border-left: 4px solid var(--accent-purple);
+      color: #ddd6fe;
+    }
+
+    .banner-mode2 {
+      background: rgba(59, 130, 246, 0.15);
+      border-left: 4px solid var(--accent-blue);
+      color: #bfdbfe;
+    }
+
+    .card-section {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .section-title {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    /* Candidate Audit Card (Mode 2) */
+    .event-audit-box {
+      background: #0f172a;
+      border: 1px solid #334155;
+      border-radius: 6px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .event-meta-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+      font-size: 0.82rem;
+    }
+
+    .meta-item {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .meta-label { color: var(--text-muted); font-size: 0.72rem; }
+    .meta-value { font-weight: 600; font-family: monospace; margin-top: 2px; }
+
+    .heuristic-ref {
+      font-size: 0.72rem;
+      color: #94a3b8;
+      background: rgba(255, 255, 255, 0.04);
+      padding: 6px 8px;
+      border-radius: 4px;
+      border-left: 3px solid var(--accent-yellow);
+    }
+
+    .action-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+
+    .action-btn {
+      padding: 8px 6px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      border-radius: 5px;
+      border: 1px solid transparent;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.15s ease;
+    }
+
+    .btn-tp { background: rgba(16, 185, 129, 0.2); color: #34d399; border-color: #10b981; }
+    .btn-tp:hover, .btn-tp.active { background: #10b981; color: #fff; }
+
+    .btn-fp { background: rgba(239, 68, 68, 0.2); color: #f87171; border-color: #ef4444; }
+    .btn-fp:hover, .btn-fp.active { background: #ef4444; color: #fff; }
+
+    .btn-pending { background: rgba(245, 158, 11, 0.2); color: #fbbf24; border-color: #f59e0b; }
+    .btn-pending:hover, .btn-pending.active { background: #f59e0b; color: #fff; }
+
+    .notes-textarea {
+      width: 100%;
+      height: 60px;
+      background: #0f172a;
+      color: var(--text-main);
+      border: 1px solid #334155;
+      border-radius: 5px;
+      padding: 6px 8px;
+      font-size: 0.8rem;
+      resize: vertical;
+    }
+
+    .notes-textarea:focus {
+      outline: none;
+      border-color: var(--accent-blue);
+    }
+
+    /* Progress Stats */
+    .progress-bar-container {
+      height: 6px;
+      background: #334155;
+      border-radius: 3px;
+      overflow: hidden;
+      display: flex;
+    }
+
+    .prog-tp { background: var(--accent-green); height: 100%; }
+    .prog-fp { background: var(--accent-red); height: 100%; }
+    .prog-pending { background: var(--accent-yellow); height: 100%; }
+
+    .progress-stats-text {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.76rem;
+      color: var(--text-muted);
+    }
+
+    /* Ground Truth Mode (Mode 1) */
+    .gt-add-box {
+      background: #0f172a;
+      border: 1px solid #334155;
+      border-radius: 6px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .input-row {
+      display: flex;
+      gap: 8px;
+    }
+
+    .form-select, .form-input {
+      flex: 1;
+      background: #1e293b;
+      color: var(--text-main);
+      border: 1px solid #334155;
+      border-radius: 5px;
+      padding: 6px 8px;
+      font-size: 0.82rem;
+    }
+
+    .gt-event-list {
+      max-height: 280px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .gt-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #0f172a;
+      padding: 8px 10px;
+      border-radius: 4px;
+      border: 1px solid #334155;
+      font-size: 0.8rem;
+    }
+
+    .gt-item-meta {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .gt-tag {
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-size: 0.7rem;
+      font-weight: 600;
+    }
+
+    .tag-confirmed { background: rgba(16, 185, 129, 0.2); color: #34d399; }
+    .tag-unsure { background: rgba(245, 158, 11, 0.2); color: #fbbf24; }
+
+    .btn-delete-gt {
+      background: transparent;
+      color: #94a3b8;
+      border: none;
+      cursor: pointer;
+      font-size: 0.85rem;
+    }
+
+    .btn-delete-gt:hover { color: #f87171; }
+
+    .btn-save-gt {
+      background: var(--accent-purple);
+      color: #fff;
+      border: none;
+      padding: 10px;
+      border-radius: 6px;
+      font-weight: 700;
+      font-size: 0.88rem;
+      cursor: pointer;
+      transition: opacity 0.15s ease;
+    }
+
+    .btn-save-gt:hover { opacity: 0.9; }
+
+    /* Keyboard help tooltip */
+    .keyboard-help {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      background: rgba(255, 255, 255, 0.03);
+      padding: 8px 10px;
+      border-radius: 4px;
+      line-height: 1.5;
+    }
+
+    .kbd {
+      background: #334155;
+      padding: 1px 4px;
+      border-radius: 3px;
+      font-family: monospace;
+      color: #fff;
+    }
+
+    /* Toast Notification */
+    #toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: #1e293b;
+      border: 1px solid #3b82f6;
+      color: #fff;
+      padding: 12px 18px;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+      opacity: 0;
+      transform: translateY(10px);
+      transition: all 0.2s ease;
+      pointer-events: none;
+      z-index: 1000;
+    }
+
+    #toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="brand">
+      <h1>🎾 匹克球視覺化揮拍標註輔助工具</h1>
+      <span class="badge badge-pilot">TASK-V8-609 PILOT</span>
+      <span id="isolatedBadge" class="badge badge-isolated">臨時目錄隔離保護</span>
+    </div>
+
+    <div class="header-controls">
+      <div class="mode-switch-group">
+        <button id="btnMode1" class="mode-btn" onclick="setMode('blind_gt')">模式 1: 盲測通看真值</button>
+        <button id="btnMode2" class="mode-btn active" onclick="setMode('candidate_audit')">模式 2: 候選事件審核</button>
+      </div>
+
+      <div>
+        <label for="videoSelect" style="color: var(--text-muted); margin-right: 4px;">影片:</label>
+        <select id="videoSelect" class="select-video" onchange="onVideoChanged()">
+          <option value="dink2.mp4">dink2.mp4 (10.9s / 9 筆)</option>
+          <option value="smash2.mp4">smash2.mp4 (25.4s / 19 筆)</option>
+          <option value="serve_legal1.mp4">serve_legal1.mp4 (35.1s / 39 筆)</option>
+        </select>
+      </div>
+
+      <div>
+        <label for="reviewerInput" style="color: var(--text-muted); margin-right: 4px;">審查員:</label>
+        <input type="text" id="reviewerInput" class="reviewer-input" placeholder="審查員姓名/代號" onchange="onReviewerChanged()">
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <!-- Left Column: Video Viewport & Playback Controls -->
+    <div class="player-card">
+      <div class="video-viewport">
+        <video id="videoPlayer" preload="metadata" playsinline></video>
+      </div>
+
+      <div class="time-readout">
+        <div>
+          <span>時間: </span>
+          <span id="currentTimeDisplay" style="color: var(--accent-blue); font-weight: 700;">0.000s</span>
+          <span id="timeDivider"> / </span>
+          <span id="durationDisplay" style="color: var(--text-muted);">0.000s</span>
+        </div>
+        <div class="time-caveat">⚠️ 依瀏覽器呈現時間為準，不宣稱逐格精確</div>
+      </div>
+
+      <!-- Timeline & Event Tick Marks -->
+      <div class="timeline-container">
+        <input type="range" id="timelineSlider" class="timeline-slider" min="0" max="100" step="0.001" value="0">
+        <div id="markersTrack" class="timeline-markers-track"></div>
+      </div>
+
+      <!-- Playback Controls -->
+      <div class="control-row">
+        <div class="btn-group">
+          <button class="ctrl-btn" onclick="stepSeconds(-1.0)">⏪ -1.0s</button>
+          <button class="ctrl-btn" onclick="stepSeconds(-0.05)">◀ -0.05s</button>
+          <button id="btnPlayPause" class="ctrl-btn active" onclick="togglePlayPause()">播放 / 暫停 [Space]</button>
+          <button class="ctrl-btn" onclick="stepSeconds(0.05)">+0.05s ▶</button>
+          <button class="ctrl-btn" onclick="stepSeconds(1.0)">+1.0s ⏩</button>
+          <button id="btnLoopRegion" class="ctrl-btn" onclick="toggleLoopCurrentRegion()">🔁 循環前後 1s</button>
+        </div>
+
+        <div class="btn-group">
+          <span style="font-size: 0.8rem; color: var(--text-muted); align-self: center; margin-right: 4px;">速率:</span>
+          <button class="ctrl-btn" onclick="setSpeed(0.25)">0.25x</button>
+          <button class="ctrl-btn" onclick="setSpeed(0.5)">0.5x</button>
+          <button class="ctrl-btn active" id="spd1" onclick="setSpeed(1.0)">1.0x</button>
+          <button class="ctrl-btn" onclick="setSpeed(2.0)">2.0x</button>
+        </div>
+      </div>
+
+      <div class="keyboard-help">
+        <strong>快速鍵說明</strong>：
+        <span class="kbd">Space</span> 播放/暫停 |
+        <span class="kbd">←</span> <span class="kbd">→</span> 步進 ±0.05s |
+        <span class="kbd">J</span> <span class="kbd">L</span> 跳躍 ±1.0s |
+        <strong>候選審核模式</strong>：<span class="kbd">1</span> 簽認真揮拍(TP) | <span class="kbd">2</span> 判定假陽性(FP) | <span class="kbd">3</span> 保留(PENDING) |
+        <strong>盲測模式</strong>：<span class="kbd">A</span> 標記當前時間為真值揮拍
+      </div>
+    </div>
+
+    <!-- Right Column: Audit Panel (Mode 2) or Ground Truth Panel (Mode 1) -->
+    <div class="sidebar-card">
+
+      <!-- ================= MODE 1: Blind Ground Truth Panel ================= -->
+      <div id="panelMode1" style="display: none;" class="card-section">
+        <div class="session-banner banner-mode1">
+          <strong>盲測完整通看模式 (Blind Ground Truth)</strong><br>
+          此模式不顯示偵測器候選點。請通看影片，標記所有可確認之真實揮拍事件。漏檢係事後與候選比對產出，不得強迫填寫。
+        </div>
+
+        <div class="gt-add-box">
+          <div style="font-size: 0.82rem; font-weight: 700;">➕ 於當前秒數新增真實揮拍事件</div>
+          <div class="input-row">
+            <select id="gtClassSelect" class="form-select">
+              <option value="KITCHEN_DINK">放短 (KITCHEN_DINK)</option>
+              <option value="POWER_DRIVE">平抽 (POWER_DRIVE)</option>
+              <option value="UNDERHAND_LEGAL">合法發球 (UNDERHAND_LEGAL)</option>
+              <option value="OVERHAND_FAULT">犯規發球 (OVERHAND_FAULT)</option>
+              <option value="SMASH">殺球 (SMASH)</option>
+              <option value="VOLLEY_PUNCH">截擊 (VOLLEY_PUNCH)</option>
+              <option value="PASSIVE_BLOCK">被動擋球 (PASSIVE_BLOCK)</option>
+              <option value="OTHER">其他/未分類 (OTHER)</option>
+            </select>
+            <select id="gtConfidenceSelect" class="form-select" style="max-width: 130px;">
+              <option value="CONFIRMED">確定 (CONFIRMED)</option>
+              <option value="UNSURE">待審/存疑 (UNSURE)</option>
+            </select>
+          </div>
+          <input type="text" id="gtNotesInput" class="form-input" placeholder="可選備註 (如動作細節、未過網、嚴重遮擋)">
+          <button class="ctrl-btn" style="background: var(--accent-purple); color: #fff; font-weight: 700;" onclick="addGroundTruthAtCurrentTime()">標記當前時間 [快速鍵 A]</button>
+        </div>
+
+        <div class="card-section">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span class="section-title">本片已標記真值事件 (<span id="gtCountDisplay">0</span> 筆)</span>
+            <button class="ctrl-btn" style="font-size: 0.75rem; padding: 3px 8px;" onclick="loadGroundTruth()">重新整理</button>
+          </div>
+          <div id="gtEventsList" class="gt-event-list"></div>
+          <button class="btn-save-gt" onclick="saveGroundTruth()">💾 儲存獨立真值 (ground_truth_events.json)</button>
+        </div>
+      </div>
+
+      <!-- ================= MODE 2: Candidate Audit Panel ================= -->
+      <div id="panelMode2" class="card-section">
+        <div class="session-banner banner-mode2">
+          <strong>候選事件人工審核模式 (Candidate Audit)</strong><br>
+          請就原影片視覺動作判斷是否為具備完整擊球意圖之真揮拍。啟發式指標僅供參考，<strong>嚴禁用速度門檻取代人眼判斷</strong>。
+        </div>
+
+        <!-- Progress Overview -->
+        <div class="card-section">
+          <div class="progress-stats-text">
+            <span>進度: <strong id="progressCount">0 / 67</strong></span>
+            <span>TP: <strong id="tpCount" style="color: var(--accent-green);">0</strong> | FP: <strong id="fpCount" style="color: var(--accent-red);">0</strong> | 待審: <strong id="pendingCount" style="color: var(--accent-yellow);">0</strong></span>
+          </div>
+          <div class="progress-bar-container">
+            <div id="progBarTp" class="prog-tp" style="width: 0%;"></div>
+            <div id="progBarFp" class="prog-fp" style="width: 0%;"></div>
+            <div id="progBarPending" class="prog-pending" style="width: 100%;"></div>
+          </div>
+        </div>
+
+        <!-- Current Candidate Card -->
+        <div class="event-audit-box">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <strong id="cardEventId" style="color: var(--accent-blue); font-size: 1rem;">-</strong>
+            <span id="cardStatusBadge" class="badge" style="background: #334155;">PENDING</span>
+          </div>
+
+          <div class="event-meta-grid">
+            <div class="meta-item">
+              <span class="meta-label">波峰時間戳 (Peak Time)</span>
+              <span id="cardTimestamp" class="meta-value">-</span>
+            </div>
+            <div class="meta-item">
+              <span class="meta-label">動作歷時 (Duration)</span>
+              <span id="cardDuration" class="meta-value">-</span>
+            </div>
+            <div class="meta-item">
+              <span class="meta-label">波峰速率 (Peak Speed)</span>
+              <span id="cardSpeed" class="meta-value">-</span>
+            </div>
+            <div class="meta-item">
+              <span class="meta-label">分類推定 (Raw Class)</span>
+              <span id="cardRawClass" class="meta-value">-</span>
+            </div>
+          </div>
+
+          <div class="heuristic-ref">
+            <strong>啟發式參考</strong>：<span id="cardHeuristicTier">-</span><br>
+            <span id="cardAuditNotes" style="font-size: 0.7rem; color: #cbd5e1;">-</span>
+          </div>
+
+          <!-- Audit Decision Buttons -->
+          <div class="action-grid">
+            <button id="btnConfirmTp" class="action-btn btn-tp" onclick="markCandidate('HUMAN_CONFIRMED', 'TRUE')">
+              ✅ 簽認真揮拍<br>[鍵 1]
+            </button>
+            <button id="btnRejectFp" class="action-btn btn-fp" onclick="markCandidate('HUMAN_REJECTED', 'FALSE')">
+              ❌ 判定假陽性<br>[鍵 2]
+            </button>
+            <button id="btnKeepPending" class="action-btn btn-pending" onclick="markCandidate('PENDING_HUMAN_AUDIT', 'PENDING')">
+              ⏳ 無法判定<br>[鍵 3]
+            </button>
+          </div>
+
+          <textarea id="candidateNotesInput" class="notes-textarea" placeholder="填寫判定備註 (如動作不典型、隨揮震盪、遮擋失真等)"></textarea>
+
+          <div style="display: flex; justify-content: space-between; gap: 8px;">
+            <button class="ctrl-btn" style="flex: 1;" onclick="navigateCandidate(-1)">◀ 上一個事件</button>
+            <button class="ctrl-btn" style="flex: 1;" onclick="navigateCandidate(1)">下一個事件 ▶</button>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </main>
+
+  <div id="toast">儲存成功</div>
+
+  <script>
+    // Global Application State
+    const state = {
+      mode: 'candidate_audit', // 'blind_gt' or 'candidate_audit'
+      videoName: 'dink2.mp4',
+      reviewer: localStorage.getItem('pickleball_reviewer') || 'Reviewer_A',
+      candidates: [],
+      currentIndex: 0,
+      loopRegion: false,
+      loopCenter: 0,
+      groundTruthEvents: [],
+      statusData: {}
+    };
+
+    const videoEl = document.getElementById('videoPlayer');
+    const sliderEl = document.getElementById('timelineSlider');
+
+    // Initialize Application
+    window.addEventListener('DOMContentLoaded', async () => {
+      document.getElementById('reviewerInput').value = state.reviewer;
+      await fetchServerStatus();
+      await loadVideo(state.videoName);
+      setupKeyboardShortcuts();
+    });
+
+    async function fetchServerStatus() {
+      try {
+        const res = await fetch('/api/status');
+        state.statusData = await res.json();
+      } catch (err) {
+        showToast('無法連接標註服務器: ' + err.message);
+      }
+    }
+
+    function setMode(mode) {
+      state.mode = mode;
+      document.getElementById('btnMode1').classList.toggle('active', mode === 'blind_gt');
+      document.getElementById('btnMode2').classList.toggle('active', mode === 'candidate_audit');
+      document.getElementById('panelMode1').style.display = (mode === 'blind_gt') ? 'flex' : 'none';
+      document.getElementById('panelMode2').style.display = (mode === 'candidate_audit') ? 'flex' : 'none';
+      renderTimelineMarkers();
+    }
+
+    function onReviewerChanged() {
+      const val = document.getElementById('reviewerInput').value.trim();
+      state.reviewer = val || 'Reviewer_A';
+      localStorage.setItem('pickleball_reviewer', state.reviewer);
+    }
+
+    async function onVideoChanged() {
+      const vname = document.getElementById('videoSelect').value;
+      state.videoName = vname;
+      await loadVideo(vname);
+    }
+
+    async function loadVideo(vname) {
+      videoEl.src = `/video/${encodeURIComponent(vname)}`;
+      videoEl.load();
+
+      // Load candidates & ground truth
+      await loadCandidates();
+      await loadGroundTruth();
+    }
+
+    videoEl.addEventListener('loadedmetadata', () => {
+      sliderEl.max = videoEl.duration;
+      document.getElementById('durationDisplay').textContent = videoEl.duration.toFixed(3) + 's';
+      renderTimelineMarkers();
+      if (state.mode === 'candidate_audit' && state.candidates.length > 0) {
+        jumpToCandidate(state.currentIndex);
+      }
+    });
+
+    videoEl.addEventListener('timeupdate', () => {
+      sliderEl.value = videoEl.currentTime;
+      document.getElementById('currentTimeDisplay').textContent = videoEl.currentTime.toFixed(3) + 's';
+
+      if (state.loopRegion) {
+        const start = Math.max(0, state.loopCenter - 1.0);
+        const end = Math.min(videoEl.duration, state.loopCenter + 1.0);
+        if (videoEl.currentTime > end || videoEl.currentTime < start) {
+          videoEl.currentTime = start;
+        }
+      }
+    });
+
+    sliderEl.addEventListener('input', () => {
+      videoEl.currentTime = parseFloat(sliderEl.value);
+    });
+
+    function togglePlayPause() {
+      if (videoEl.paused) {
+        videoEl.play();
+        document.getElementById('btnPlayPause').textContent = '暫停 [Space]';
+      } else {
+        videoEl.pause();
+        document.getElementById('btnPlayPause').textContent = '播放 [Space]';
+      }
+    }
+
+    function stepSeconds(delta) {
+      videoEl.pause();
+      document.getElementById('btnPlayPause').textContent = '播放 [Space]';
+      videoEl.currentTime = Math.max(0, Math.min(videoEl.duration, videoEl.currentTime + delta));
+    }
+
+    function setSpeed(spd) {
+      videoEl.playbackRate = spd;
+      document.querySelectorAll('.btn-group .ctrl-btn').forEach(btn => {
+        if (btn.textContent.includes(spd + 'x')) btn.classList.add('active');
+        else if (btn.textContent.endsWith('x')) btn.classList.remove('active');
+      });
+    }
+
+    function toggleLoopCurrentRegion() {
+      state.loopRegion = !state.loopRegion;
+      const btn = document.getElementById('btnLoopRegion');
+      if (state.loopRegion) {
+        state.loopCenter = videoEl.currentTime;
+        btn.classList.add('active');
+        btn.textContent = '🔁 循環中 (點擊取消)';
+      } else {
+        btn.classList.remove('active');
+        btn.textContent = '🔁 循環前後 1s';
+      }
+    }
+
+    // =========================================================================
+    // Mode 2: Candidate Events Loading & Auditing
+    // =========================================================================
+
+    async function loadCandidates() {
+      try {
+        const res = await fetch(`/api/candidates?video=${encodeURIComponent(state.videoName)}`);
+        const data = await res.json();
+        state.candidates = data.events || [];
+        state.currentIndex = 0;
+        updateProgress(data);
+        renderTimelineMarkers();
+        if (state.candidates.length > 0) {
+          renderCandidateCard(state.candidates[0]);
+        } else {
+          clearCandidateCard();
+        }
+      } catch (err) {
+        showToast('載入候選事件失敗: ' + err.message);
+      }
+    }
+
+    function renderTimelineMarkers() {
+      const track = document.getElementById('markersTrack');
+      track.innerHTML = '';
+      const dur = videoEl.duration || 1;
+
+      if (state.mode === 'blind_gt') {
+        // Blind Mode: ONLY show Ground Truth marks
+        state.groundTruthEvents.forEach(ev => {
+          const m = document.createElement('div');
+          m.className = 'timeline-marker marker-gt';
+          m.style.left = (ev.timestamp_s / dur * 100) + '%';
+          m.title = `GT: ${ev.stroke_class} @ ${ev.timestamp_s}s`;
+          m.onclick = (e) => { e.stopPropagation(); videoEl.currentTime = ev.timestamp_s; };
+          track.appendChild(m);
+        });
+      } else {
+        // Candidate Audit Mode: Show candidates with status color coding
+        state.candidates.forEach((ev, idx) => {
+          const ts = parseFloat(ev.timestamp_peak_s);
+          const m = document.createElement('div');
+          const mv = (ev.manual_verified || '').toUpperCase();
+          const it = (ev.is_true_stroke || '').toUpperCase();
+
+          let cls = 'marker-pending';
+          if ((mv === 'HUMAN_CONFIRMED' || mv === 'VERIFIED_TRUE') && it === 'TRUE') cls = 'marker-tp';
+          else if ((mv === 'HUMAN_REJECTED' || mv === 'VERIFIED_FALSE') && it === 'FALSE') cls = 'marker-fp';
+
+          m.className = `timeline-marker ${cls}`;
+          m.style.left = (ts / dur * 100) + '%';
+          m.title = `${ev.event_id} @ ${ts.toFixed(3)}s (${mv}/${it})`;
+          m.onclick = (e) => {
+            e.stopPropagation();
+            jumpToCandidate(idx);
+          };
+          track.appendChild(m);
+        });
+      }
+    }
+
+    function renderCandidateCard(ev) {
+      document.getElementById('cardEventId').textContent = `${ev.event_id} (${state.currentIndex + 1}/${state.candidates.length})`;
+      const ts = parseFloat(ev.timestamp_peak_s);
+      document.getElementById('cardTimestamp').textContent = ts.toFixed(3) + 's';
+      document.getElementById('cardDuration').textContent = parseFloat(ev.duration_s || 0).toFixed(3) + 's';
+      document.getElementById('cardSpeed').textContent = parseFloat(ev.peak_speed_torso_s || 0).toFixed(2) + ' t/s';
+      document.getElementById('cardRawClass').textContent = ev.raw_class || '-';
+      document.getElementById('cardHeuristicTier').textContent = ev.heuristic_tier || 'UNKNOWN';
+      document.getElementById('cardAuditNotes').textContent = ev.audit_notes || '無自動檢出筆記';
+      document.getElementById('candidateNotesInput').value = ev.notes || '';
+
+      const mv = (ev.manual_verified || '').toUpperCase();
+      const it = (ev.is_true_stroke || '').toUpperCase();
+      const badge = document.getElementById('cardStatusBadge');
+
+      document.getElementById('btnConfirmTp').classList.toggle('active', mv === 'HUMAN_CONFIRMED' && it === 'TRUE');
+      document.getElementById('btnRejectFp').classList.toggle('active', mv === 'HUMAN_REJECTED' && it === 'FALSE');
+      document.getElementById('btnKeepPending').classList.toggle('active', mv === 'PENDING_HUMAN_AUDIT' || !mv);
+
+      if ((mv === 'HUMAN_CONFIRMED' || mv === 'VERIFIED_TRUE') && it === 'TRUE') {
+        badge.textContent = 'SIGNED TP';
+        badge.style.background = '#10b981';
+      } else if ((mv === 'HUMAN_REJECTED' || mv === 'VERIFIED_FALSE') && it === 'FALSE') {
+        badge.textContent = 'SIGNED FP';
+        badge.style.background = '#ef4444';
+      } else {
+        badge.textContent = 'PENDING';
+        badge.style.background = '#f59e0b';
+      }
+    }
+
+    function clearCandidateCard() {
+      document.getElementById('cardEventId').textContent = '本影片無候選事件';
+      document.getElementById('cardTimestamp').textContent = '-';
+      document.getElementById('cardDuration').textContent = '-';
+      document.getElementById('cardSpeed').textContent = '-';
+      document.getElementById('cardRawClass').textContent = '-';
+      document.getElementById('cardHeuristicTier').textContent = '-';
+      document.getElementById('cardAuditNotes').textContent = '-';
+      document.getElementById('candidateNotesInput').value = '';
+    }
+
+    function jumpToCandidate(idx) {
+      if (idx < 0 || idx >= state.candidates.length) return;
+      state.currentIndex = idx;
+      const ev = state.candidates[idx];
+      renderCandidateCard(ev);
+      const ts = parseFloat(ev.timestamp_peak_s);
+      videoEl.currentTime = Math.max(0, ts - 0.2); // Seek slightly before peak for context
+      state.loopCenter = ts;
+    }
+
+    function navigateCandidate(delta) {
+      const nextIdx = state.currentIndex + delta;
+      if (nextIdx >= 0 && nextIdx < state.candidates.length) {
+        jumpToCandidate(nextIdx);
+      }
+    }
+
+    async function markCandidate(verifiedStatus, trueStatus) {
+      if (state.candidates.length === 0) return;
+      const ev = state.candidates[state.currentIndex];
+      const notes = document.getElementById('candidateNotesInput').value;
+
+      try {
+        const payload = {
+          video: ev.video,
+          event_id: ev.event_id,
+          manual_verified: verifiedStatus,
+          is_true_stroke: trueStatus,
+          notes: notes
+        };
+        const res = await fetch('/api/candidates/audit', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || '儲存失敗');
+
+        // Update local object
+        ev.manual_verified = verifiedStatus;
+        ev.is_true_stroke = trueStatus;
+        ev.notes = notes;
+
+        showToast(`已儲存: ${ev.event_id} ➔ ${verifiedStatus}/${trueStatus}`);
+        renderCandidateCard(ev);
+        await loadCandidates(); // Refresh stats and markers
+
+        // Auto advance to next candidate
+        if (state.currentIndex < state.candidates.length - 1) {
+          navigateCandidate(1);
+        }
+      } catch (err) {
+        showToast('審核失敗: ' + err.message);
+      }
+    }
+
+    function updateProgress(data) {
+      const total = data.total_count || 1;
+      const tp = data.tp_count || 0;
+      const fp = data.fp_count || 0;
+      const pending = data.pending_count || 0;
+
+      document.getElementById('progressCount').textContent = `${tp + fp} / ${total}`;
+      document.getElementById('tpCount').textContent = tp;
+      document.getElementById('fpCount').textContent = fp;
+      document.getElementById('pendingCount').textContent = pending;
+
+      document.getElementById('progBarTp').style.width = (tp / total * 100) + '%';
+      document.getElementById('progBarFp').style.width = (fp / total * 100) + '%';
+      document.getElementById('progBarPending').style.width = (pending / total * 100) + '%';
+    }
+
+    // =========================================================================
+    // Mode 1: Blind Ground Truth Session
+    // =========================================================================
+
+    async function loadGroundTruth() {
+      try {
+        const res = await fetch(`/api/ground_truth?video=${encodeURIComponent(state.videoName)}`);
+        const data = await res.json();
+        state.groundTruthEvents = data.events || [];
+        document.getElementById('gtCountDisplay').textContent = state.groundTruthEvents.length;
+        renderGroundTruthList();
+        renderTimelineMarkers();
+      } catch (err) {
+        console.error('Failed to load GT:', err);
+      }
+    }
+
+    function renderGroundTruthList() {
+      const listEl = document.getElementById('gtEventsList');
+      listEl.innerHTML = '';
+      if (state.groundTruthEvents.length === 0) {
+        listEl.innerHTML = '<div style="font-size: 0.78rem; color: var(--text-muted); padding: 8px;">尚無標記之真實事件</div>';
+        return;
+      }
+
+      state.groundTruthEvents.forEach((ev, idx) => {
+        const item = document.createElement('div');
+        item.className = 'gt-item';
+        item.innerHTML = `
+          <div class="gt-item-meta">
+            <span style="font-family: monospace; font-weight: 700; color: var(--accent-purple);">${ev.timestamp_s.toFixed(3)}s</span>
+            <span class="gt-tag tag-confirmed">${ev.stroke_class}</span>
+            <span style="font-size: 0.72rem; color: #94a3b8;">${ev.notes || ''}</span>
+          </div>
+          <button class="btn-delete-gt" onclick="deleteGroundTruthEvent(${idx})" title="刪除">✕</button>
+        `;
+        item.onclick = (e) => {
+          if (!e.target.classList.contains('btn-delete-gt')) {
+            videoEl.currentTime = ev.timestamp_s;
+          }
+        };
+        listEl.appendChild(item);
+      });
+    }
+
+    function addGroundTruthAtCurrentTime() {
+      const ts = parseFloat(videoEl.currentTime.toFixed(3));
+      const s_cls = document.getElementById('gtClassSelect').value;
+      const conf = document.getElementById('gtConfidenceSelect').value;
+      const notes = document.getElementById('gtNotesInput').value.trim();
+
+      const gt_id = `gt_${state.videoName.replace(/\.[^/.]+$/, "")}_${Date.now()}`;
+      state.groundTruthEvents.push({
+        gt_id: gt_id,
+        timestamp_s: ts,
+        stroke_class: s_cls,
+        confidence: conf,
+        notes: notes
+      });
+
+      // Sort by timestamp
+      state.groundTruthEvents.sort((a, b) => a.timestamp_s - b.timestamp_s);
+      document.getElementById('gtNotesInput').value = '';
+      document.getElementById('gtCountDisplay').textContent = state.groundTruthEvents.length;
+      renderGroundTruthList();
+      renderTimelineMarkers();
+      showToast(`已新增真值: ${s_cls} @ ${ts}s`);
+    }
+
+    function deleteGroundTruthEvent(idx) {
+      state.groundTruthEvents.splice(idx, 1);
+      document.getElementById('gtCountDisplay').textContent = state.groundTruthEvents.length;
+      renderGroundTruthList();
+      renderTimelineMarkers();
+    }
+
+    async function saveGroundTruth() {
+      try {
+        const payload = {
+          reviewer: state.reviewer,
+          video: state.videoName,
+          events: state.groundTruthEvents
+        };
+        const res = await fetch('/api/ground_truth', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || '儲存失敗');
+        showToast(`已成功保存 ${state.groundTruthEvents.length} 筆真值事件至臨時目錄！`);
+      } catch (err) {
+        showToast('儲存真值失敗: ' + err.message);
+      }
+    }
+
+    // =========================================================================
+    // Keyboard Shortcuts
+    // =========================================================================
+
+    function setupKeyboardShortcuts() {
+      window.addEventListener('keydown', (e) => {
+        // Do not trigger shortcuts if user is typing in notes
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+        if (e.code === 'Space') {
+          e.preventDefault();
+          togglePlayPause();
+        } else if (e.code === 'ArrowLeft') {
+          e.preventDefault();
+          stepSeconds(-0.05);
+        } else if (e.code === 'ArrowRight') {
+          e.preventDefault();
+          stepSeconds(0.05);
+        } else if (e.key === 'j' || e.key === 'J') {
+          stepSeconds(-1.0);
+        } else if (e.key === 'l' || e.key === 'L') {
+          stepSeconds(1.0);
+        } else if (e.key === '1') {
+          if (state.mode === 'candidate_audit') markCandidate('HUMAN_CONFIRMED', 'TRUE');
+        } else if (e.key === '2') {
+          if (state.mode === 'candidate_audit') markCandidate('HUMAN_REJECTED', 'FALSE');
+        } else if (e.key === '3') {
+          if (state.mode === 'candidate_audit') markCandidate('PENDING_HUMAN_AUDIT', 'PENDING');
+        } else if (e.key === 'a' || e.key === 'A') {
+          if (state.mode === 'blind_gt') addGroundTruthAtCurrentTime();
+        }
+      });
+    }
+
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      toast.textContent = msg;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 2800);
+    }
+  </script>
+</body>
+</html>
