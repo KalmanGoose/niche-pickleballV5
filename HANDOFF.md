@@ -208,7 +208,7 @@
 
 | 測試指令 / 檢驗工具 | 測試範圍與檢驗項目 | 實測結果 | 驗收意義 |
 | :--- | :--- | :--- | :--- |
-| **`./.venv/bin/python -m unittest discover -s tests -v`** | 運動學管線 11 項測試＋`TASK-V8-608` 10 大回歸測試（嚴格人工簽認表、序列 DP 最大配對數、Manifest 讀取失敗/毀損保護、孤兒簽認事件保護、時間容差歧義與單檔原子失敗保留、精確 ID 時間戳偏移拒絕、4 檔全量事務性 Rollback 注入、跨產物 event_id 一致性與映射持久化、**回滾失敗備份保留與阻斷混合讀取**、**中斷崩潰偵測與安全自動恢復**） | **21/21 PASS (100%)** | 驗證提取管線、Manifest 安全防線、預寫日誌事務性發布、回滾失敗備份保留與中斷安全恢復全數受單元測試保護 |
+| **`./.venv/bin/python -m unittest discover -s tests -v`** | 運動學管線 11 項測試＋`TASK-V8-608` 12 大回歸測試（嚴格人工簽認表、序列 DP 最大配對數、Manifest 讀取失敗/毀損保護、孤兒簽認事件保護、時間容差歧義與單檔原子失敗保留、精確 ID 時間戳偏移拒絕、4 檔全量事務性 Rollback 注入、跨產物 event_id 一致性與映射持久化、回滾失敗備份保留與阻斷混合讀取、中斷崩潰偵測與安全自動恢復、**替換完成但日誌寫入前崩潰之實體磁碟雜湊感知恢復**、**成功發布路徑日誌清理失敗嚴格保留備份防護**） | **23/23 PASS (100%)** | 驗證提取管線、Manifest 安全防線、預寫日誌事務性發布、實體磁碟狀態感知恢復、日誌清理失敗備份保留與中斷安全恢復全數受單元測試保護 |
 | **`./.venv/bin/python scripts/evaluate_detector_v2.py`** | 於隔離副本唯讀檢查 `candidate_events_manifest.csv` 之待審狀態、矛盾狀態計數與啟發式分級分佈（含恢復日誌守護） | **724 筆 `PENDING_HUMAN_AUDIT` / 0 筆矛盾** | 確保自動分級或矛盾狀態絕不計入人工真值 TP/FP 分母，且中斷未完成時拒絕讀取 |
 | **`git diff --check`** | 檢查變更檔案之空白與格式規範 | **PASS (Exit 0)** | 確保提交差異乾淨無格式瑕疵 |
 
@@ -219,11 +219,11 @@
 * **Task ID**：`TASK-V8-608`（Extraction manifest safety, recoverable transactional batch publish, and detector evaluation）
 * **分支與基底**：於乾淨隔離 worktree 自 `3308840` 建立 `task/agv/extract-guard-3308840`（完整保留原 `test-mobile-motion` 工作樹與未提交修改，未動 `data/**`、`models/**` 或前端/後端產品檔）。
 * **變更檔案（嚴格限於 Allowed Files）**：
-  - `scripts/manifest_annotations_v2.py`（共用標註驗證、兩層配對含時間戳檢核、預寫日誌可恢復批次發布 `batch_publish_files`、恢復函式 `recover_pending_batch_publish`、未完成交易守護 `check_no_pending_recovery`、跨產物 ID 同步 `update_events_with_resolved_annotations`）
+  - `scripts/manifest_annotations_v2.py`（共用標註驗證、兩層配對含時間戳檢核、預寫日誌可恢復批次發布 `batch_publish_files`、實體磁碟狀態感知恢復函式 `recover_pending_batch_publish`、未完成交易守護 `check_no_pending_recovery`、跨產物 ID 同步 `update_events_with_resolved_annotations`）
   - `scripts/extract_strokes_v2.py`（預檢通過後暫存、checkpoint 讀取守護、跨產物同步 `resolved_event_id`、可恢復事務批次發布、持久化 `event_id_mapping`）
   - `scripts/audit_biomechanics_tiering.py`（接入共用預檢、孤兒／歧義阻斷與原子替換）
   - `scripts/evaluate_detector_v2.py`（未完成交易日誌守護、嚴格人工簽認狀態表、序列 DP 最大配對數與最小總時間誤差）
-  - `tests/test_manifest_v2.py`（10 組先紅後綠之可重現失敗注入與崩潰恢復回歸測試）
+  - `tests/test_manifest_v2.py`（12 組先紅後綠之可重現失敗注入與崩潰恢復回歸測試）
   - `HANDOFF.md`（記錄本任務變更、紅綠燈測試證據與未驗證項目）
 
 ### 8.1 核心修正摘要 (Reviewer A Rejection Remediation)
@@ -260,8 +260,27 @@
    - `AUTO_TIERED/TRUE` 與各類矛盾狀態均排除於 TP/FP 與 `verified_candidate_precision` 分母之外，分開統計 `pending_human_audit` 與 `invalid_or_contradictory_count`。
    - 序列動態規劃以字典序最大化 `(配對數 TP, -總絕對時間差, 確定性索引順序)`，避免貪婪匹配造成的非最優配對。
 
-### 8.2 未驗證項目與證據缺口 (Evidence Gaps — NOT VERIFIED)
+### 8.2 Round 3 P1 修正：檔案替換與日誌更新時間差防護、日誌刪除失敗備份保留與雙重驗收
+依 Reviewer A 唯讀審查報告（`/private/tmp/cli-review-608.md`），針對「檔案原子替換後、journal 狀態更新前之中斷窗口」與「成功路徑刪除 journal 失敗」進行全面補強：
+1. **實體磁碟狀態感知恢復 (Content-Aware Recovery, `recover_pending_batch_publish`)**：
+   - 恢復時**不得且不再**單純信任日誌中的 `item['state']`。
+   - 對 journal 中每個 item，主動檢視實際磁碟狀態：計算目標檔當前 SHA-256，並與 `original_sha256` 及 `existed_before` 逐一比對。
+   - 凡實際磁碟內容偏離交易前原始狀態者（無論日誌標記為 `PENDING`、`REPLACING` 或 `COMMITTED`），一律判定為需要恢復。
+   - 還原前嚴格驗證備份檔案存在性與原始 SHA-256；還原後立即檢驗該檔 SHA-256。
+   - 新增全域 Post-Recovery Verification：在刪除日誌前，強制再次檢查交易清單內所有目標檔案，100% 確認所有檔案均回到交易前位元組。
+2. **替換前寫入 `REPLACING` 狀態 (`batch_publish_files`)**：
+   - 在執行 `_replace_single_file` 前，先將記憶體與磁碟上的 journal item 狀態更新為 `REPLACING` 並即時寫入，進一步縮小狀態不確定性窗口。
+   - 替換過程中若發生異常，回滾檢查所有被處理過的 items，並逐一還原。
+3. **成功與回滾路徑日誌清理失敗絕不刪除備份**：
+   - 在 `batch_publish_files` 的成功路徑（Step 4）與回滾路徑中，若 unlinking journal 發生任何 `OSError` 或日誌殘留，`remove_backup_on_finally` 維持 `False`。
+   - 嚴格禁止刪除 `backup_dir`，並拋出含備份路徑之 `RuntimeError`，杜絕留下無備份可恢復的 stale journal。
+4. **新增回歸測試 (tests/test_manifest_v2.py)**：
+   - `test_11_replace_done_before_committed_journal_crash_recovers`：模擬檔案替換已完成、但崩潰發生於 `COMMITTED` 寫入日誌之前（日誌仍為 `PENDING`）。驗證恢復函式能主動感知磁碟雜湊偏離、自備份完全還原兩檔原始 SHA-256、清理日誌與備份，並成功放行後續讀取。
+   - `test_12_success_journal_unlink_failure_preserves_backup`：模擬成功路徑中日誌刪除失敗，驗證拋出 `RuntimeError`、備份目錄 100% 完整保留未被 finally 刪除、且後續恢復程序可自該備份安全還原。
+
+### 8.3 未驗證項目與證據缺口 (Evidence Gaps — NOT VERIFIED)
 - **真實人工標註真值與獨立影片事件 GT**：`NOT VERIFIED`（目前 `data/v2/candidate_events_manifest.csv` 724 筆全數為 `PENDING_HUMAN_AUDIT`，尚未載入真人簽核真值或 `ground_truth_events.json`）。
 - **正式 `data/v2` 重寫與實際影片重提取**：`NOT VERIFIED`（依任務板規範，本任務未對正式 `data/v2` 執行寫入或重跑 11 支實際影片提取，所有失敗注入與成功寫入均於 `tempfile.TemporaryDirectory` 臨時資料驗證）。
 - **跨提取版本時間容差之實戰覆蓋率與超大事件數 DP 記憶體壓測**：`NOT VERIFIED`。
 - **BROWSER / HUMAN GAME FEEL**：`NOT REQUIRED / NOT VERIFIED`（本任務未修改任何前端／遊戲 Runtime 程式碼）。
+

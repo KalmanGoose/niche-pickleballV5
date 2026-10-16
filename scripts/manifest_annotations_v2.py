@@ -89,49 +89,102 @@ def recover_pending_batch_publish(target_dir):
     target_dirs = jdata.get("target_dirs", [target_dir])
     journal_paths = [os.path.join(td, RECOVERY_JOURNAL_FILENAME) for td in target_dirs]
 
-    # 1. Pre-validation: verify needed backup files exist for modified items
+    # Step 1: Content-aware audit: find all files that deviated from original pre-transaction state
+    # (Never trust item['state'] alone; inspect actual disk presence and SHA-256)
+    items_to_restore = []
     for item in items:
-        state = item.get("state", "COMMITTED")
-        if item.get("existed_before") and state in ("COMMITTED", "RESTORE_FAILED"):
+        tpath = item["target_path"]
+        existed_before = bool(item.get("existed_before", False))
+        orig_sha = item.get("original_sha256")
+        target_exists = os.path.exists(tpath)
+
+        needs_restore = False
+        if existed_before:
+            if not target_exists:
+                needs_restore = True
+            else:
+                curr_sha = compute_file_sha256(tpath)
+                if curr_sha != orig_sha:
+                    needs_restore = True
+        else:
+            if target_exists:
+                needs_restore = True
+
+        if needs_restore:
+            items_to_restore.append(item)
+
+    # Step 2: Validate backups for all items needing restoration
+    for item in items_to_restore:
+        if item.get("existed_before"):
             bak_path = item.get("backup_path")
             if not bak_path or not os.path.exists(bak_path):
                 raise RuntimeError(
                     f"Cannot recover transaction '{jdata.get('transaction_id')}': backup file missing: {bak_path}"
                 )
+            orig_sha = item.get("original_sha256")
+            if orig_sha is not None:
+                bak_sha = compute_file_sha256(bak_path)
+                if bak_sha != orig_sha:
+                    raise RuntimeError(
+                        f"Cannot recover transaction '{jdata.get('transaction_id')}': backup file corrupted: "
+                        f"{bak_path} (expected SHA {orig_sha}, got {bak_sha})"
+                    )
 
-    # 2. Restore all modified items to their original pre-transaction state
+    # Step 3: Restore all deviated items to their original pre-transaction state
     restored_items = []
+    for item in items_to_restore:
+        tpath = item["target_path"]
+        if item.get("existed_before"):
+            bak_path = item["backup_path"]
+            _rollback_restore_file(bak_path, tpath)
+            orig_sha = item.get("original_sha256")
+            if orig_sha is not None:
+                curr_sha = compute_file_sha256(tpath)
+                if curr_sha != orig_sha:
+                    raise RuntimeError(
+                        f"Recovery hash mismatch on '{tpath}': expected {orig_sha}, got {curr_sha}"
+                    )
+        else:
+            if os.path.exists(tpath):
+                try:
+                    os.unlink(tpath)
+                except OSError:
+                    pass
+        restored_items.append(tpath)
+
+    # Step 4: Comprehensive post-recovery verification of ALL targets
     for item in items:
         tpath = item["target_path"]
-        state = item.get("state", "COMMITTED")
-        if state in ("COMMITTED", "RESTORE_FAILED"):
-            if item.get("existed_before"):
-                bak_path = item["backup_path"]
-                _rollback_restore_file(bak_path, tpath)
-                orig_sha = item.get("original_sha256")
-                if orig_sha is not None:
-                    curr_sha = compute_file_sha256(tpath)
-                    if curr_sha != orig_sha:
-                        raise RuntimeError(
-                            f"Recovery hash mismatch on '{tpath}': expected {orig_sha}, got {curr_sha}"
-                        )
-            else:
-                if os.path.exists(tpath):
-                    try:
-                        os.unlink(tpath)
-                    except OSError:
-                        pass
-            restored_items.append(tpath)
+        existed_before = bool(item.get("existed_before", False))
+        orig_sha = item.get("original_sha256")
+        if existed_before:
+            if not os.path.exists(tpath):
+                raise RuntimeError(f"Post-recovery verification failed: target file missing '{tpath}'")
+            curr_sha = compute_file_sha256(tpath)
+            if orig_sha is not None and curr_sha != orig_sha:
+                raise RuntimeError(
+                    f"Post-recovery verification failed on '{tpath}': hash {curr_sha} != expected {orig_sha}"
+                )
+        else:
+            if os.path.exists(tpath):
+                raise RuntimeError(f"Post-recovery verification failed: unexpected file '{tpath}' exists")
 
-    # 3. Clean up journal files across all involved target directories
+    # Step 5: Clean up journal files across all involved target directories
+    unlink_errs = []
     for jp in journal_paths:
         if os.path.exists(jp):
             try:
                 os.unlink(jp)
-            except OSError:
-                pass
+            except OSError as u_err:
+                unlink_errs.append(f"{jp}: {u_err}")
 
-    # 4. Clean up backup directory now that files are safely restored
+    if unlink_errs or any(os.path.exists(jp) for jp in journal_paths):
+        raise RuntimeError(
+            f"Recovery restored all targets, but failed to unlink recovery journal: {unlink_errs}. "
+            f"Backup preserved at '{backup_dir}'."
+        )
+
+    # Step 6: Clean up backup directory now that files are safely restored and journal deleted
     if backup_dir and os.path.exists(backup_dir):
         shutil.rmtree(backup_dir, ignore_errors=True)
 
@@ -799,21 +852,17 @@ def batch_publish_files(file_specs, auto_recover=False):
         committed_items = []
         try:
             for idx, item in enumerate(staged_items):
+                item["state"] = "REPLACING"
+                journal_data["items"][idx]["state"] = "REPLACING"
+                for jp in journal_paths:
+                    atomic_write_json(jp, journal_data)
+
                 _replace_single_file(item["staged_path"], item["target_path"])
                 item["state"] = "COMMITTED"
                 committed_items.append(item)
                 journal_data["items"][idx]["state"] = "COMMITTED"
                 for jp in journal_paths:
                     atomic_write_json(jp, journal_data)
-
-            # SUCCESS: Clean up journals and mark backup safe to delete
-            for jp in journal_paths:
-                if os.path.exists(jp):
-                    try:
-                        os.unlink(jp)
-                    except OSError:
-                        pass
-            remove_backup_on_finally = True
 
         except BaseException as exc:
             # ROLLBACK: attempt to restore committed items in reverse order
@@ -822,16 +871,20 @@ def batch_publish_files(file_specs, auto_recover=False):
                 atomic_write_json(jp, journal_data)
 
             rollback_errors = []
-            for item in reversed(committed_items):
+            for item in reversed(staged_items):
+                if item not in committed_items and item.get("state") != "REPLACING":
+                    continue
                 try:
                     if item["existed_before"]:
-                        _rollback_restore_file(item["backup_path"], item["target_path"])
-                        curr_sha = compute_file_sha256(item["target_path"])
-                        if curr_sha != item["original_sha256"]:
-                            raise RuntimeError(
-                                f"Restored file sha mismatch on {item['target_path']}: "
-                                f"expected {item['original_sha256']}, got {curr_sha}"
-                            )
+                        tpath = item["target_path"]
+                        if not os.path.exists(tpath) or compute_file_sha256(tpath) != item["original_sha256"]:
+                            _rollback_restore_file(item["backup_path"], tpath)
+                            curr_sha = compute_file_sha256(tpath)
+                            if curr_sha != item["original_sha256"]:
+                                raise RuntimeError(
+                                    f"Restored file sha mismatch on {tpath}: "
+                                    f"expected {item['original_sha256']}, got {curr_sha}"
+                                )
                     else:
                         if os.path.exists(item["target_path"]):
                             os.unlink(item["target_path"])
@@ -841,18 +894,25 @@ def batch_publish_files(file_specs, auto_recover=False):
                     rollback_errors.append(f"{item['target_path']}: {r_err}")
 
             for j_item in journal_data["items"]:
-                for c_item in committed_items:
-                    if j_item["target_path"] == c_item["target_path"]:
-                        j_item["state"] = c_item["state"]
+                for s_item in staged_items:
+                    if j_item["target_path"] == s_item["target_path"]:
+                        j_item["state"] = s_item["state"]
 
             if not rollback_errors:
                 # Clean rollback succeeded: all files restored to original bytes
+                unlink_errs = []
                 for jp in journal_paths:
                     if os.path.exists(jp):
                         try:
                             os.unlink(jp)
-                        except OSError:
-                            pass
+                        except OSError as u_err:
+                            unlink_errs.append(f"{jp}: {u_err}")
+                if unlink_errs or any(os.path.exists(jp) for jp in journal_paths):
+                    remove_backup_on_finally = False
+                    raise RuntimeError(
+                        f"Batch publish rollback restored all files, but failed to unlink recovery journal: {unlink_errs}. "
+                        f"Recovery backup preserved at '{backup_dir}'."
+                    )
                 remove_backup_on_finally = True
                 raise
             else:
@@ -869,6 +929,24 @@ def batch_publish_files(file_specs, auto_recover=False):
                     f"Recovery journal persisted at {journal_paths}. "
                     f"Mixed version read/publish is blocked until recover_pending_batch_publish is invoked."
                 ) from exc
+
+        # Step 4: SUCCESS - Clean up journals and mark backup safe to delete
+        unlink_errs = []
+        for jp in journal_paths:
+            if os.path.exists(jp):
+                try:
+                    os.unlink(jp)
+                except OSError as u_err:
+                    unlink_errs.append(f"{jp}: {u_err}")
+        if unlink_errs or any(os.path.exists(jp) for jp in journal_paths):
+            # CRITICAL: Preserve backup so no stale unrecoverable journal is left
+            remove_backup_on_finally = False
+            raise RuntimeError(
+                f"Batch publish successfully replaced all files, but failed to unlink recovery journal: {unlink_errs}. "
+                f"Recovery backup preserved at '{backup_dir}'."
+            )
+        remove_backup_on_finally = True
+
     finally:
         shutil.rmtree(staging_dir, ignore_errors=True)
         if remove_backup_on_finally:

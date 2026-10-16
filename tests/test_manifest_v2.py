@@ -1036,6 +1036,159 @@ class TestManifestSafetyAndDetectorEvalV2(unittest.TestCase):
             self.assertEqual(len(state["rows"]), 1)
             self.assertEqual(state["rows"][0]["event_id"], "ev_crash_01")
 
+    def test_11_replace_done_before_committed_journal_crash_recovers(self):
+        """
+        [P1 Regression - Review Round 3]
+        Simulate crash right after atomic file replacement completes on disk,
+        but BEFORE the journal item state could be updated from PENDING/REPLACING to COMMITTED.
+        Requirement:
+        - Recovery must NOT rely on state=='COMMITTED' alone.
+        - Must inspect actual disk presence and SHA-256 against original_sha256.
+        - Must restore all deviated files from validated backup.
+        - All targets must match pre-transaction original bytes before journal/backup are deleted.
+        - Subsequent read is unblocked only after full recovery.
+        """
+        import scripts.manifest_annotations_v2 as man_v2_mod
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            file1_path = os.path.join(tmpdir, "file1.json")
+            file2_path = os.path.join(tmpdir, "file2.json")
+
+            with open(file1_path, "w", encoding="utf-8") as f:
+                f.write('{"name": "file1_original"}\n')
+            with open(file2_path, "w", encoding="utf-8") as f:
+                f.write('{"name": "file2_original"}\n')
+
+            orig_sha1 = sha256_bytes(file1_path)
+            orig_sha2 = sha256_bytes(file2_path)
+
+            backup_dir = tempfile.mkdtemp(dir=tmpdir, prefix=".crash_bak_")
+            backup_f1 = os.path.join(backup_dir, "bak_file1.json")
+            backup_f2 = os.path.join(backup_dir, "bak_file2.json")
+            with open(file1_path, "rb") as sf, open(backup_f1, "wb") as bf:
+                bf.write(sf.read())
+            with open(file2_path, "rb") as sf, open(backup_f2, "wb") as bf:
+                bf.write(sf.read())
+
+            # Simulate: file1 was already replaced with new content on disk
+            with open(file1_path, "w", encoding="utf-8") as f:
+                f.write('{"name": "file1_NEW_REPLACED"}\n')
+            new_sha1 = sha256_bytes(file1_path)
+            self.assertNotEqual(new_sha1, orig_sha1)
+
+            # BUT crash occurred before writing COMMITTED state to journal!
+            # Journal item state is still "PENDING" (or "REPLACING")
+            journal_path = os.path.join(tmpdir, man_v2_mod.RECOVERY_JOURNAL_FILENAME)
+            journal_content = {
+                "transaction_id": "tx_crash_before_committed_journal_001",
+                "status": "IN_PROGRESS",
+                "timestamp": 123456789.0,
+                "backup_dir": backup_dir,
+                "staging_dir": os.path.join(tmpdir, ".crash_stage_"),
+                "target_dirs": [tmpdir],
+                "items": [
+                    {
+                        "target_path": file1_path,
+                        "backup_path": backup_f1,
+                        "original_sha256": orig_sha1,
+                        "staged_sha256": new_sha1,
+                        "existed_before": True,
+                        "state": "PENDING",  # Stale state! Disk is already new_sha1
+                    },
+                    {
+                        "target_path": file2_path,
+                        "backup_path": backup_f2,
+                        "original_sha256": orig_sha2,
+                        "staged_sha256": "fake_staged_f2",
+                        "existed_before": True,
+                        "state": "PENDING",  # Untouched
+                    },
+                ],
+                "errors": [],
+            }
+            with open(journal_path, "w", encoding="utf-8") as jf:
+                json.dump(journal_content, jf)
+
+            # 1. Readers detect journal and refuse to read mixed versions
+            with self.assertRaises(man_v2_mod.ManifestValidationError) as ctx:
+                man_v2_mod.check_no_pending_recovery(tmpdir)
+            self.assertIn("Incomplete/unresolved batch publication detected", str(ctx.exception))
+
+            # 2. Run recovery: must detect file1 deviated from orig_sha1 despite state=='PENDING'
+            recovery_result = man_v2_mod.recover_pending_batch_publish(tmpdir)
+            self.assertEqual(recovery_result["status"], "RECOVERED")
+            self.assertEqual(recovery_result["restored_count"], 1)
+            self.assertIn(file1_path, recovery_result["restored_items"])
+
+            # 3. Post-recovery verification: BOTH files MUST match original SHA-256
+            self.assertEqual(sha256_bytes(file1_path), orig_sha1)
+            self.assertEqual(sha256_bytes(file2_path), orig_sha2)
+
+            # 4. Journal and backup_dir must be cleanly removed
+            self.assertFalse(os.path.exists(journal_path))
+            self.assertFalse(os.path.exists(backup_dir))
+
+            # 5. Subsequent read is now unblocked
+            man_v2_mod.check_no_pending_recovery(tmpdir)
+
+    def test_12_success_journal_unlink_failure_preserves_backup(self):
+        """
+        [P1 Regression - Review Round 3]
+        If batch_publish_files successfully replaces all files, but unlinking the journal
+        fails (e.g. filesystem permission / lock error), backup_dir MUST NOT be deleted.
+        A stale journal without backup would leave the repository permanently broken/unrecoverable.
+        """
+        import scripts.manifest_annotations_v2 as man_v2_mod
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            file_path = os.path.join(tmpdir, "target.json")
+            with open(file_path, "w", encoding="utf-8") as f:
+                f.write('{"version": 1}\n')
+            orig_sha = sha256_bytes(file_path)
+
+            file_specs = [
+                {
+                    "target_path": file_path,
+                    "type": "json",
+                    "data": {"version": 2},
+                }
+            ]
+
+            real_unlink = os.unlink
+
+            def faulty_unlink(path, *args, **kwargs):
+                if isinstance(path, (str, bytes, os.PathLike)) and os.path.basename(path) == man_v2_mod.RECOVERY_JOURNAL_FILENAME:
+                    raise OSError("Simulated journal unlink EACCES/EBUSY")
+                return real_unlink(path, *args, **kwargs)
+
+            with patch("os.unlink", side_effect=faulty_unlink):
+                with self.assertRaises(RuntimeError) as ctx:
+                    man_v2_mod.batch_publish_files(file_specs)
+                err_msg = str(ctx.exception)
+                self.assertIn("failed to unlink recovery journal", err_msg)
+                self.assertIn("Recovery backup preserved", err_msg)
+
+            # Journal must still exist on disk
+            journal_path = os.path.join(tmpdir, man_v2_mod.RECOVERY_JOURNAL_FILENAME)
+            self.assertTrue(os.path.exists(journal_path))
+
+            with open(journal_path, "r", encoding="utf-8") as jf:
+                jdata = json.load(jf)
+            backup_dir = jdata["backup_dir"]
+
+            # CRITICAL: backup_dir MUST NOT have been deleted by finally block!
+            self.assertTrue(os.path.exists(backup_dir))
+            backup_file = jdata["items"][0]["backup_path"]
+            self.assertTrue(os.path.exists(backup_file))
+            self.assertEqual(sha256_bytes(backup_file), orig_sha)
+
+            # Now verify that recover_pending_batch_publish can successfully restore from the preserved backup
+            rec = man_v2_mod.recover_pending_batch_publish(tmpdir)
+            self.assertEqual(rec["status"], "RECOVERED")
+            self.assertEqual(sha256_bytes(file_path), orig_sha)
+            self.assertFalse(os.path.exists(journal_path))
+            self.assertFalse(os.path.exists(backup_dir))
+
 
 if __name__ == "__main__":
     unittest.main()
