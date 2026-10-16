@@ -3,14 +3,16 @@
 Shared Manifest Annotations Safety & Atomic I/O Helper (v2)
 ===========================================================
 Provides fail-closed reading, validation, two-layer 1-to-1 annotation matching
-(exact (video, event_id) followed by unambiguous timestamp fallback), and
-single-file atomic replacement via tempfile + fsync + os.replace.
+(exact (video, event_id) with timestamp consistency check, followed by unambiguous
+timestamp fallback for renumbered events), and multi-file batch publishing with
+full transactional rollback.
 """
 
 import csv
 import json
 import math
 import os
+import shutil
 import tempfile
 from collections import defaultdict
 
@@ -195,19 +197,13 @@ def match_and_merge_manifest_annotations(
     """
     Match existing preserved rows (human-signed rows and unsigned rows with notes)
     onto `new_events` in two strict layers:
-      1. Exact `(video, event_id)` match.
+      1. Exact `(video, event_id)` match WITH timestamp consistency check:
+         If event_id matches but timestamp difference > timestamp_tolerance_s,
+         it is treated as a conflict/ambiguity requiring human intervention (not silently inherited).
       2. Unambiguous 1-to-1 timestamp fallback within `timestamp_tolerance_s` in the same video
          when `event_id` changed across detector versions.
     If any preserved row is orphaned (no match) or has an ambiguous timestamp match,
     raises ManifestValidationError listing all orphans/ambiguities and refuses to publish.
-
-    Returns dict with:
-      - `annotations_by_new_idx`: dict mapping index in `new_events` -> resolved annotation dict
-        (including `resolved_event_id` carrying over the stable old ID when matched by timestamp,
-         and `detector_event_id` recording the raw new detector ID).
-      - `id_mapping`: list of dicts for any event whose ID was carried over from an old signed row.
-      - `preserved_signed_count`: number of human-signed rows preserved.
-      - `preserved_notes_only_count`: number of unsigned note rows preserved.
     """
     seen_new_keys = {}
     for idx, ev in enumerate(new_events):
@@ -259,30 +255,33 @@ def match_and_merge_manifest_annotations(
     matched_old_indices = set()
     matched_new_indices = set()
     old_to_new = {}
+    orphans = []
+    ambiguities = []
 
-    # Layer 1: Exact (video, event_id) match for preserved rows
+    # Layer 1: Exact (video, event_id) match for preserved rows WITH timestamp consistency check
     for old_idx, old_r in enumerate(preserve_rows):
         key = (old_r["video"], old_r["event_id"])
         if key in seen_new_keys:
             new_idx = seen_new_keys[key]
-            matched_old_indices.add(old_idx)
-            matched_new_indices.add(new_idx)
-            old_to_new[old_idx] = (new_idx, "EXACT_ID")
+            new_ev = new_events[new_idx]
+            diff = abs(float(new_ev["timestamp_peak_s"]) - old_r["timestamp_peak_s"])
+            if diff <= timestamp_tolerance_s + 1e-12:
+                matched_old_indices.add(old_idx)
+                matched_new_indices.add(new_idx)
+                old_to_new[old_idx] = (new_idx, "EXACT_ID")
+            else:
+                ambiguities.append(
+                    f"video={old_r['video']}, event_id={old_r['event_id']}: exact ID matched but timestamp shifted from "
+                    f"{old_r['timestamp_peak_s']:.3f}s to {float(new_ev['timestamp_peak_s']):.3f}s (> ±{timestamp_tolerance_s:.3f}s)"
+                )
 
-    # Also reserve any new_events that exactly match an unsigned old row's (video, event_id)
-    # ONLY if no timestamp ambiguity exists, wait: what if detector renumbered events?
-    # If detector renumbered events, ev_001 might now be at a completely different timestamp!
-    # Wait: let's check if Layer 1 exact ID match should also verify that if an old row matched by ID,
-    # Wait: in tiering, IDs are identical; in re-extraction with same events, IDs are identical.
-    # For Layer 2 (unmatched preserved rows where ID changed):
-    orphans = []
-    ambiguities = []
-
-    # Group all old rows (both signed and unsigned) and unmatched new events by video
+    # Layer 2: For unmatched preserved rows where event_id was not exact
     unmatched_preserve_by_video = defaultdict(list)
     for old_idx, old_r in enumerate(preserve_rows):
         if old_idx not in matched_old_indices:
-            unmatched_preserve_by_video[old_r["video"]].append((old_idx, old_r))
+            # If it already had a timestamp shift conflict from Layer 1, don't double-process in Layer 2
+            if not any(f"event_id={old_r['event_id']}:" in a for a in ambiguities):
+                unmatched_preserve_by_video[old_r["video"]].append((old_idx, old_r))
 
     unmatched_new_by_video = defaultdict(list)
     for new_idx, ev in enumerate(new_events):
@@ -292,7 +291,6 @@ def match_and_merge_manifest_annotations(
     for vid, unmatched_olds in unmatched_preserve_by_video.items():
         cand_news = unmatched_new_by_video.get(vid, [])
 
-        # For each unmatched old preserved row, find candidate new events within tolerance
         old_candidates = {}
         new_competing_olds = defaultdict(list)
 
@@ -307,8 +305,6 @@ def match_and_merge_manifest_annotations(
             for new_idx, _, _ in cands:
                 new_competing_olds[new_idx].append(old_idx)
 
-        # Also check if any OTHER old row in the same video falls within timestamp_tolerance_s
-        # of an unmatched preserved row's candidate new event (causing old-row ambiguity)
         all_old_in_vid = [r for r in old_rows if r["video"] == vid]
 
         for old_idx, old_r in unmatched_olds:
@@ -330,8 +326,6 @@ def match_and_merge_manifest_annotations(
             else:
                 new_idx, new_ev, _ = cands[0]
                 new_ts = float(new_ev["timestamp_peak_s"])
-                # Check if multiple preserved rows compete for this new_idx, OR multiple old rows
-                # in the manifest lie within tolerance of new_ts
                 nearby_olds = [
                     r for r in all_old_in_vid
                     if abs(r["timestamp_peak_s"] - new_ts) <= timestamp_tolerance_s + 1e-12
@@ -364,7 +358,6 @@ def match_and_merge_manifest_annotations(
     preserved_signed_count = 0
     preserved_notes_only_count = 0
 
-    # Check for ID collision if any TIMESTAMP_FALLBACK carries over old event_id
     used_ids_per_video = defaultdict(set)
     for new_idx, ev in enumerate(new_events):
         vid = ev["video"]
@@ -420,10 +413,38 @@ def match_and_merge_manifest_annotations(
     }
 
 
+def update_events_with_resolved_annotations(all_events, annotations_by_new_idx, staged_checkpoint=None):
+    """
+    Ensure all event dicts across memory, exports, and checkpoint share the exact same
+    resolved event_id so downstream joins on (video, event_id) always succeed.
+    """
+    for idx, ev in enumerate(all_events):
+        ann = annotations_by_new_idx[idx]
+        ev["event_id"] = ann["resolved_event_id"]
+        ev["detector_event_id"] = ann["detector_event_id"]
+
+    if staged_checkpoint:
+        for vname, chk_val in staged_checkpoint.items():
+            if isinstance(chk_val, dict) and "events" in chk_val:
+                for ev in chk_val["events"]:
+                    # Match event by video and detector_event_id or candidate_peak_frame
+                    for parent_ev in all_events:
+                        if parent_ev["video"] == vname and (
+                            parent_ev.get("detector_event_id") == ev.get("detector_event_id")
+                            or parent_ev.get("detector_event_id") == ev.get("event_id")
+                            or (
+                                parent_ev.get("candidate_peak_frame") is not None
+                                and parent_ev.get("candidate_peak_frame") == ev.get("candidate_peak_frame")
+                            )
+                        ):
+                            ev["event_id"] = parent_ev["event_id"]
+                            ev["detector_event_id"] = parent_ev["detector_event_id"]
+                            break
+
+
 def atomic_write_csv_rows(target_path, fieldnames, rows):
     """
-    Atomically write CSV rows to `target_path` using a sibling NamedTemporaryFile,
-    flush + fsync, and os.replace. Cleans up temp file and preserves original target on failure.
+    Atomically write CSV rows to target_path using NamedTemporaryFile + fsync + os.replace.
     """
     target_dir = os.path.dirname(os.path.abspath(target_path)) or "."
     target_base = os.path.basename(target_path)
@@ -455,8 +476,7 @@ def atomic_write_csv_rows(target_path, fieldnames, rows):
 
 def atomic_write_json(target_path, data):
     """
-    Atomically write JSON data to `target_path` using a sibling NamedTemporaryFile,
-    flush + fsync, and os.replace. Cleans up temp file and preserves original target on failure.
+    Atomically write JSON data to target_path using NamedTemporaryFile + fsync + os.replace.
     """
     target_dir = os.path.dirname(os.path.abspath(target_path)) or "."
     target_base = os.path.basename(target_path)
@@ -481,3 +501,141 @@ def atomic_write_json(target_path, data):
                 os.unlink(tmp_path)
             except OSError:
                 pass
+
+
+def _replace_single_file(src_path, dst_path):
+    """
+    Copy src_path to dst_path atomically via a sibling temp file in dst_path's directory.
+    Separated so rollback restoration uses a distinct function resistant to monkeypatches.
+    """
+    dst_dir = os.path.dirname(os.path.abspath(dst_path)) or "."
+    dst_base = os.path.basename(dst_path)
+    tmp_path = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode="wb",
+            dir=dst_dir,
+            prefix=f".{dst_base}.replace.tmp.",
+            delete=False,
+        ) as tf:
+            tmp_path = tf.name
+            with open(src_path, "rb") as sf:
+                shutil.copyfileobj(sf, tf)
+            tf.flush()
+            os.fsync(tf.fileno())
+        os.replace(tmp_path, dst_path)
+        tmp_path = None
+    finally:
+        if tmp_path is not None and os.path.exists(tmp_path):
+            try:
+                os.unlink(tmp_path)
+            except OSError:
+                pass
+
+
+def _rollback_restore_file(backup_path, dst_path):
+    """
+    Restore dst_path from backup_path atomically via a sibling temp file in dst_path's directory.
+    """
+    dst_dir = os.path.dirname(os.path.abspath(dst_path)) or "."
+    dst_base = os.path.basename(dst_path)
+    tmp_path = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode="wb",
+            dir=dst_dir,
+            prefix=f".{dst_base}.rollback.tmp.",
+            delete=False,
+        ) as tf:
+            tmp_path = tf.name
+            with open(backup_path, "rb") as sf:
+                shutil.copyfileobj(sf, tf)
+            tf.flush()
+            os.fsync(tf.fileno())
+        os.replace(tmp_path, dst_path)
+        tmp_path = None
+    finally:
+        if tmp_path is not None and os.path.exists(tmp_path):
+            try:
+                os.unlink(tmp_path)
+            except OSError:
+                pass
+
+
+def batch_publish_files(file_specs):
+    """
+    Publish multiple files with all-or-nothing transactional rollback capability.
+    file_specs: list of dicts:
+      {
+        "target_path": str,
+        "type": "csv" | "json",
+        "data": dict/list (if json),
+        "fieldnames": list, "rows": list (if csv)
+      }
+    Protocol:
+    1. Stages all files in a temp directory and validates content writeability.
+    2. Backs up existing target files in a temp backup directory.
+    3. Sequentially replaces target files atomically via _replace_single_file.
+    4. If ANY replacement fails (e.g. injected OSError on file 2, 3, or 4):
+       All previously replaced target files are immediately restored from the backup directory
+       via _rollback_restore_file, and any newly created target files are removed.
+       Every target file is guaranteed to remain 100% byte-for-byte identical to its state before the call.
+    """
+    staging_dir = tempfile.mkdtemp(prefix=".batch_pub_stage_")
+    backup_dir = tempfile.mkdtemp(prefix=".batch_pub_bak_")
+
+    staged_items = []
+    try:
+        # Step 1: Stage all files into staging_dir
+        for idx, spec in enumerate(file_specs):
+            target_path = os.path.abspath(spec["target_path"])
+            base_name = os.path.basename(target_path)
+            staged_path = os.path.join(staging_dir, f"staged_{idx}_{base_name}")
+
+            if spec["type"] == "json":
+                atomic_write_json(staged_path, spec["data"])
+            elif spec["type"] == "csv":
+                atomic_write_csv_rows(staged_path, spec["fieldnames"], spec["rows"])
+            else:
+                raise ValueError(f"Unknown file spec type: {spec['type']}")
+
+            # Step 2: Backup existing target file if present
+            existed_before = os.path.exists(target_path)
+            backup_path = None
+            if existed_before:
+                backup_path = os.path.join(backup_dir, f"backup_{idx}_{base_name}")
+                shutil.copy2(target_path, backup_path)
+
+            staged_items.append({
+                "target_path": target_path,
+                "staged_path": staged_path,
+                "backup_path": backup_path,
+                "existed_before": existed_before,
+            })
+
+        # Step 3: Atomic sequential replacement with rollback on any failure
+        committed_items = []
+        try:
+            for item in staged_items:
+                _replace_single_file(item["staged_path"], item["target_path"])
+                committed_items.append(item)
+        except BaseException as exc:
+            # ROLLBACK: restore committed items in reverse order
+            rollback_errors = []
+            for item in reversed(committed_items):
+                try:
+                    if item["existed_before"]:
+                        _rollback_restore_file(item["backup_path"], item["target_path"])
+                    else:
+                        if os.path.exists(item["target_path"]):
+                            os.unlink(item["target_path"])
+                except Exception as r_err:
+                    rollback_errors.append(str(r_err))
+            if rollback_errors:
+                raise RuntimeError(
+                    f"Batch publish failed with '{exc}' and rollback encountered secondary errors: {rollback_errors}"
+                ) from exc
+            raise
+    finally:
+        shutil.rmtree(staging_dir, ignore_errors=True)
+        shutil.rmtree(backup_dir, ignore_errors=True)

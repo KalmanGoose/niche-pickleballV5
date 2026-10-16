@@ -465,6 +465,280 @@ class TestManifestSafetyAndDetectorEvalV2(unittest.TestCase):
             self.assertEqual(out_rows[1]["is_true_stroke"], "PENDING")
             self.assertEqual(out_rows[1]["notes"], "Need slow-mo check")
 
+    def test_6_exact_id_with_shifted_timestamp_rejected_as_ambiguity(self):
+        """
+        [P1 Regression]
+        Old manifest has smash_ev_001 at 3.235s with HUMAN_CONFIRMED/TRUE.
+        New detector run assigns smash_ev_001 at 19.800s.
+        Exact ID matching MUST verify timestamp consistency (abs(dt) <= tolerance_s).
+        Because dt = 16.565s > 0.250s, this MUST be rejected as an ambiguity/conflict
+        requiring human audit, and MUST NOT silently inherit HUMAN_CONFIRMED/TRUE.
+        Original manifest/dataset/checkpoint files must remain untouched.
+        """
+        with tempfile.TemporaryDirectory() as tmpdir:
+            manifest_path = os.path.join(tmpdir, "candidate_events_manifest.csv")
+            dataset_path = os.path.join(tmpdir, "real_strokes_dataset_v2.json")
+            dataset_csv_path = os.path.join(tmpdir, "real_strokes_dataset_v2.csv")
+            checkpoint_path = os.path.join(tmpdir, "checkpoint_v2.json")
+
+            fieldnames = [
+                "event_id", "video", "timestamp_peak_s", "duration_s",
+                "peak_speed_torso_s", "raw_class", "heuristic_tier",
+                "audit_notes", "manual_verified", "is_true_stroke", "notes"
+            ]
+            self._write_csv(manifest_path, fieldnames, [
+                {
+                    "event_id": "smash_ev_001",
+                    "video": "smash.mp4",
+                    "timestamp_peak_s": "3.235",
+                    "duration_s": "0.250",
+                    "peak_speed_torso_s": "5.500",
+                    "raw_class": "SMASH",
+                    "heuristic_tier": "TIER_A_CANDIDATE",
+                    "audit_notes": "ok",
+                    "manual_verified": "HUMAN_CONFIRMED",
+                    "is_true_stroke": "TRUE",
+                    "notes": "Original 3.235s verified stroke"
+                }
+            ])
+            orig_m_sha = sha256_bytes(manifest_path)
+
+            # New detector output has smash_ev_001 at 19.800s
+            shifted_event = _sample_event(eid="smash_ev_001", vid="smash.mp4", ts=19.800)
+            with open(dataset_path, "w", encoding="utf-8") as f:
+                json.dump({"events": [shifted_event]}, f)
+            with open(dataset_csv_path, "w", encoding="utf-8") as f:
+                f.write("event_id,video\nsmash_ev_001,smash.mp4\n")
+            with open(checkpoint_path, "w", encoding="utf-8") as f:
+                json.dump({"smash.mp4": {"events_count": 1}}, f)
+
+            orig_ds_sha = sha256_bytes(dataset_path)
+            orig_csv_sha = sha256_bytes(dataset_csv_path)
+            orig_chk_sha = sha256_bytes(checkpoint_path)
+
+            with self.assertRaises(ManifestValidationError) as ctx:
+                extract_mod.publish_extraction_outputs(
+                    all_events=[shifted_event],
+                    staged_checkpoint={"smash.mp4": {"events": [shifted_event]}},
+                    metadata={"version": "2.0.0"},
+                    manifest_path=manifest_path,
+                    dataset_json_path=dataset_path,
+                    dataset_csv_path=dataset_csv_path,
+                    checkpoint_path=checkpoint_path,
+                )
+            self.assertIn("exact ID matched but timestamp shifted", str(ctx.exception))
+            self.assertIn("smash_ev_001", str(ctx.exception))
+
+            # Verify files were not modified
+            self.assertEqual(sha256_bytes(manifest_path), orig_m_sha)
+            self.assertEqual(sha256_bytes(dataset_path), orig_ds_sha)
+            self.assertEqual(sha256_bytes(dataset_csv_path), orig_csv_sha)
+            self.assertEqual(sha256_bytes(checkpoint_path), orig_chk_sha)
+
+            # Also verify tiering refuses to process shifted timestamp
+            with patch.object(tiering_mod, "MANIFEST_IN", manifest_path), \
+                 patch.object(tiering_mod, "MANIFEST_OUT", manifest_path), \
+                 patch.object(tiering_mod, "DATASET_PATH", dataset_path):
+                with self.assertRaises(ManifestValidationError):
+                    tiering_mod.run_tiering()
+            self.assertEqual(sha256_bytes(manifest_path), orig_m_sha)
+
+    def test_7_multi_file_batch_publish_rollback_on_any_failure(self):
+        """
+        [P1 Regression]
+        Multi-file publication of [manifest, dataset JSON, dataset CSV, checkpoint JSON]
+        must be strictly transactional (all-or-nothing rollback).
+        Injected failure at file 1, 2, 3, or 4 must leave ALL 4 files 100% byte-for-byte identical (SHA-256).
+        """
+        import scripts.manifest_annotations_v2 as man_v2_mod
+
+        for fail_step in [1, 2, 3, 4]:
+            with self.subTest(fail_step=fail_step):
+                with tempfile.TemporaryDirectory() as tmpdir:
+                    manifest_path = os.path.join(tmpdir, "candidate_events_manifest.csv")
+                    dataset_path = os.path.join(tmpdir, "real_strokes_dataset_v2.json")
+                    dataset_csv_path = os.path.join(tmpdir, "real_strokes_dataset_v2.csv")
+                    checkpoint_path = os.path.join(tmpdir, "checkpoint_v2.json")
+
+                    fieldnames = [
+                        "event_id", "video", "timestamp_peak_s", "duration_s",
+                        "peak_speed_torso_s", "raw_class", "heuristic_tier",
+                        "audit_notes", "manual_verified", "is_true_stroke", "notes"
+                    ]
+                    self._write_csv(manifest_path, fieldnames, [
+                        {
+                            "event_id": "ev_init",
+                            "video": "v.mp4",
+                            "timestamp_peak_s": "1.000",
+                            "duration_s": "0.200",
+                            "peak_speed_torso_s": "4.000",
+                            "raw_class": "SMASH",
+                            "heuristic_tier": "TIER_A_CANDIDATE",
+                            "audit_notes": "",
+                            "manual_verified": "PENDING_HUMAN_AUDIT",
+                            "is_true_stroke": "PENDING",
+                            "notes": "Initial state",
+                        }
+                    ])
+                    with open(dataset_path, "w", encoding="utf-8") as f:
+                        f.write('{"initial": "dataset_json"}\n')
+                    with open(dataset_csv_path, "w", encoding="utf-8") as f:
+                        f.write("event_id,video\nev_init,v.mp4\n")
+                    with open(checkpoint_path, "w", encoding="utf-8") as f:
+                        f.write('{"initial": "checkpoint_json"}\n')
+
+                    orig_shas = {
+                        "manifest": sha256_bytes(manifest_path),
+                        "dataset_json": sha256_bytes(dataset_path),
+                        "dataset_csv": sha256_bytes(dataset_csv_path),
+                        "checkpoint": sha256_bytes(checkpoint_path),
+                    }
+
+                    new_event = _sample_event(eid="ev_init", vid="v.mp4", ts=1.000)
+                    staged_chk = {"v.mp4": {"events": [new_event]}}
+
+                    step_counter = 0
+                    real_replace = man_v2_mod._replace_single_file
+
+                    def mocked_replace(src, dst):
+                        nonlocal step_counter
+                        step_counter += 1
+                        if step_counter == fail_step:
+                            raise OSError(f"Simulated write failure on step {fail_step}")
+                        real_replace(src, dst)
+
+                    with patch.object(man_v2_mod, "_replace_single_file", side_effect=mocked_replace):
+                        with self.assertRaises(OSError) as ctx:
+                            extract_mod.publish_extraction_outputs(
+                                all_events=[new_event],
+                                staged_checkpoint=staged_chk,
+                                metadata={"version": "2.0.0"},
+                                manifest_path=manifest_path,
+                                dataset_json_path=dataset_path,
+                                dataset_csv_path=dataset_csv_path,
+                                checkpoint_path=checkpoint_path,
+                            )
+                        self.assertIn(f"Simulated write failure on step {fail_step}", str(ctx.exception))
+
+                    # Verify all 4 files are byte-for-byte untouched
+                    self.assertEqual(sha256_bytes(manifest_path), orig_shas["manifest"], f"Manifest corrupted on step {fail_step} failure!")
+                    self.assertEqual(sha256_bytes(dataset_path), orig_shas["dataset_json"], f"Dataset JSON corrupted on step {fail_step} failure!")
+                    self.assertEqual(sha256_bytes(dataset_csv_path), orig_shas["dataset_csv"], f"Dataset CSV corrupted on step {fail_step} failure!")
+                    self.assertEqual(sha256_bytes(checkpoint_path), orig_shas["checkpoint"], f"Checkpoint corrupted on step {fail_step} failure!")
+
+                    # Ensure no lingering staging or rollback temporary files
+                    lingering_temps = [f for f in os.listdir(tmpdir) if ".tmp." in f or f.startswith(".batch_pub_")]
+                    self.assertEqual(lingering_temps, [])
+
+    def test_8_cross_artifact_event_id_consistency_and_persistent_mapping(self):
+        """
+        [P2 Regression]
+        When timestamp fallback carries over a stable old ID, ALL 4 artifacts
+        (manifest.csv, dataset.csv, dataset.json, checkpoint.json) must share the
+        exact same resolved_event_id, and full_output['metadata']['event_id_mapping']
+        must persist the verifiable mapping between detector_event_id and stable_event_id.
+        """
+        with tempfile.TemporaryDirectory() as tmpdir:
+            manifest_path = os.path.join(tmpdir, "candidate_events_manifest.csv")
+            dataset_path = os.path.join(tmpdir, "real_strokes_dataset_v2.json")
+            dataset_csv_path = os.path.join(tmpdir, "real_strokes_dataset_v2.csv")
+            checkpoint_path = os.path.join(tmpdir, "checkpoint_v2.json")
+
+            fieldnames = [
+                "event_id", "video", "timestamp_peak_s", "duration_s",
+                "peak_speed_torso_s", "raw_class", "heuristic_tier",
+                "audit_notes", "manual_verified", "is_true_stroke", "notes"
+            ]
+            self._write_csv(manifest_path, fieldnames, [
+                {
+                    "event_id": "stable_old_id_01",
+                    "video": "dink.mp4",
+                    "timestamp_peak_s": "5.000",
+                    "duration_s": "0.250",
+                    "peak_speed_torso_s": "3.500",
+                    "raw_class": "KITCHEN_DINK",
+                    "heuristic_tier": "TIER_A_CANDIDATE",
+                    "audit_notes": "",
+                    "manual_verified": "HUMAN_CONFIRMED",
+                    "is_true_stroke": "TRUE",
+                    "notes": "Confirmed dink",
+                }
+            ])
+
+            # New detector output generated raw detector ID 'raw_det_999' at 5.015s (within 0.25s)
+            raw_event = _sample_event(
+                eid="raw_det_999",
+                vid="dink.mp4",
+                ts=5.015,
+                spd=3.55,
+                cls="KITCHEN_DINK"
+            )
+            raw_event["candidate_peak_frame"] = 150
+            staged_chk = {
+                "dink.mp4": {
+                    "events": [
+                        {
+                            "event_id": "raw_det_999",
+                            "candidate_peak_frame": 150,
+                            "timestamp_peak_s": 5.015,
+                        }
+                    ]
+                }
+            }
+
+            extract_mod.publish_extraction_outputs(
+                all_events=[raw_event],
+                staged_checkpoint=staged_chk,
+                metadata={"version": "2.0.0"},
+                manifest_path=manifest_path,
+                dataset_json_path=dataset_path,
+                dataset_csv_path=dataset_csv_path,
+                checkpoint_path=checkpoint_path,
+            )
+
+            # 1. Manifest CSV check
+            with open(manifest_path, "r", encoding="utf-8") as f:
+                m_rows = list(csv.DictReader(f))
+            self.assertEqual(len(m_rows), 1)
+            self.assertEqual(m_rows[0]["event_id"], "stable_old_id_01")
+            self.assertEqual(m_rows[0]["manual_verified"], "HUMAN_CONFIRMED")
+            self.assertEqual(m_rows[0]["is_true_stroke"], "TRUE")
+
+            # 2. Dataset JSON check
+            with open(dataset_path, "r", encoding="utf-8") as f:
+                ds_json = json.load(f)
+            self.assertEqual(len(ds_json["events"]), 1)
+            self.assertEqual(ds_json["events"][0]["event_id"], "stable_old_id_01")
+            self.assertEqual(ds_json["events"][0]["detector_event_id"], "raw_det_999")
+            mapping = ds_json["metadata"].get("event_id_mapping", [])
+            self.assertEqual(len(mapping), 1)
+            self.assertEqual(mapping[0]["video"], "dink.mp4")
+            self.assertEqual(mapping[0]["stable_event_id"], "stable_old_id_01")
+            self.assertEqual(mapping[0]["detector_event_id"], "raw_det_999")
+            self.assertAlmostEqual(mapping[0]["timestamp_peak_s"], 5.015)
+
+            # 3. Dataset CSV check
+            with open(dataset_csv_path, "r", encoding="utf-8") as f:
+                csv_rows = list(csv.DictReader(f))
+            self.assertEqual(len(csv_rows), 1)
+            self.assertEqual(csv_rows[0]["event_id"], "stable_old_id_01")
+
+            # 4. Checkpoint JSON check
+            with open(checkpoint_path, "r", encoding="utf-8") as f:
+                chk_json = json.load(f)
+            self.assertEqual(chk_json["dink.mp4"]["events"][0]["event_id"], "stable_old_id_01")
+            self.assertEqual(chk_json["dink.mp4"]["events"][0]["detector_event_id"], "raw_det_999")
+
+            # Cross-artifact join on (video, event_id) must match across all 4 files
+            join_key_manifest = (m_rows[0]["video"], m_rows[0]["event_id"])
+            join_key_ds_json = (ds_json["events"][0]["video"], ds_json["events"][0]["event_id"])
+            join_key_ds_csv = (csv_rows[0]["video"], csv_rows[0]["event_id"])
+            join_key_chk = ("dink.mp4", chk_json["dink.mp4"]["events"][0]["event_id"])
+            self.assertEqual(join_key_manifest, ("dink.mp4", "stable_old_id_01"))
+            self.assertEqual(join_key_manifest, join_key_ds_json)
+            self.assertEqual(join_key_manifest, join_key_ds_csv)
+            self.assertEqual(join_key_manifest, join_key_chk)
+
 
 if __name__ == "__main__":
     unittest.main()

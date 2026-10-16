@@ -43,8 +43,10 @@ from scripts.manifest_annotations_v2 import (
     ManifestValidationError,
     atomic_write_csv_rows,
     atomic_write_json,
+    batch_publish_files,
     load_and_validate_manifest,
     match_and_merge_manifest_annotations,
+    update_events_with_resolved_annotations,
 )
 
 os.environ['MPLCONFIGDIR'] = '/tmp/matplotlib'
@@ -479,13 +481,16 @@ def publish_extraction_outputs(
     dataset_csv_path=None,
     checkpoint_path=None,
     existing_state=None,
+    timestamp_tolerance_s=0.25,
 ):
     """
     Validate and match existing manifest annotations against `all_events` BEFORE
     replacing any output file. If validation or 1-to-1 matching fails (e.g., orphan
     signed rows or ambiguous timestamp matches), raises ManifestValidationError and
     leaves existing manifest, dataset, and checkpoint files untouched.
-    Note: os.replace guarantees single-file atomicity per output file.
+    All 4 artifacts (manifest CSV, dataset JSON, dataset CSV, checkpoint JSON) are published
+    as a transactional batch: if writing or replacing any file fails, all modified files
+    are immediately restored from backup (all-or-nothing rollback).
     """
     target_manifest = manifest_path or MANIFEST_PATH
     target_ds_json = dataset_json_path or DATASET_JSON_PATH
@@ -495,9 +500,17 @@ def publish_extraction_outputs(
     if existing_state is None:
         existing_state = load_and_validate_manifest(target_manifest)
 
-    merge_res = match_and_merge_manifest_annotations(existing_state, all_events)
+    merge_res = match_and_merge_manifest_annotations(
+        existing_state,
+        all_events,
+        timestamp_tolerance_s=timestamp_tolerance_s,
+    )
     annotations_by_new_idx = merge_res["annotations_by_new_idx"]
+    id_mapping = merge_res["id_mapping"]
     preserved_count = merge_res["preserved_signed_count"]
+
+    # Update event_id across all_events and staged_checkpoint so all artifacts share resolved_event_id
+    update_events_with_resolved_annotations(all_events, annotations_by_new_idx, staged_checkpoint)
 
     manifest_rows = []
     csv_rows = []
@@ -510,7 +523,7 @@ def publish_extraction_outputs(
     for idx, ev in enumerate(all_events):
         ann = annotations_by_new_idx[idx]
         manifest_rows.append({
-            "event_id": ann["resolved_event_id"],
+            "event_id": ev["event_id"],
             "video": ev["video"],
             "timestamp_peak_s": ev["timestamp_peak_s"],
             "duration_s": ev["duration_s"],
@@ -547,18 +560,42 @@ def publish_extraction_outputs(
         "audit_notes", "manual_verified", "is_true_stroke", "notes"
     ]
 
+    out_metadata = dict(metadata)
+    out_metadata["event_id_mapping"] = id_mapping
+
     full_output = {
-        "metadata": metadata,
+        "metadata": out_metadata,
         "events": all_events,
     }
 
-    # Publish order: manifest -> dataset JSON -> dataset CSV -> checkpoint JSON
-    # (Each file is replaced atomically via sibling tempfile + fsync + os.replace)
-    atomic_write_csv_rows(target_manifest, manifest_fieldnames, manifest_rows)
-    atomic_write_json(target_ds_json, full_output)
-    atomic_write_csv_rows(target_ds_csv, csv_header, csv_rows)
-    if staged_checkpoint is not None:
-        save_checkpoint_v2(staged_checkpoint, target_chk)
+    # Batch publish all artifacts with all-or-nothing transactional rollback
+    file_specs = [
+        {
+            "target_path": target_manifest,
+            "type": "csv",
+            "fieldnames": manifest_fieldnames,
+            "rows": manifest_rows,
+        },
+        {
+            "target_path": target_ds_json,
+            "type": "json",
+            "data": full_output,
+        },
+        {
+            "target_path": target_ds_csv,
+            "type": "csv",
+            "fieldnames": csv_header,
+            "rows": csv_rows,
+        },
+    ]
+    if staged_checkpoint is not None and target_chk is not None:
+        file_specs.append({
+            "target_path": target_chk,
+            "type": "json",
+            "data": staged_checkpoint,
+        })
+
+    batch_publish_files(file_specs)
 
     return merge_res
 
