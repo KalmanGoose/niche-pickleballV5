@@ -105,7 +105,7 @@
 
 ## 5. 本輪 Review 判定回覆、宣稱撤回與交付範圍收斂
 
-> **審查結論處置**：本輪 GPT Review 判定不通過（Standards 4 項、Spec 5 項），批評完全客觀中肯。我們全面接受審查意見，立即停止擴充與部署，**將神經網路訓練與遊戲 Runtime 接入完整拆出本輪交付**，回到約定之「**提取管線修復＋人工驗收素材**」。工作樹中之 Runtime 接線與多餘檔案已乾淨復原至基線 `a1d934b`，保留既有提交歷史，專注解決提取缺陷與人工標註真值建立。
+> **審查結論處置**：本輪 GPT Review 判定不通過（Standards 4 項、Spec 5 項），批評完全客觀中肯。我們全面接受審查意見，立即停止擴充與部署，**將神經網路訓練與遊戲 Runtime 接入完整拆出本輪交付**，回到約定之「**提取管線修復＋人工驗收素材**」。工作樹中之 Runtime 接線、模型權重與訓練切分產物已自交付 `HEAD` 中退回（完整保留先前提交歷史），確保 `git diff 952b573 HEAD -- js/ css/ v14.html index.html v14-single.html scripts/self-test.js` 完全為空（零 Runtime 修改）。
 
 ---
 
@@ -113,11 +113,11 @@
 
 | 原宣稱項目 | 審查查證問題 | 正式處置與客觀事實 |
 | :--- | :--- | :--- |
-| **1.「276 筆 Tier A 純真值樣本」** | 393 筆的 `manual_verified` 均為自動產出之 `AUTO_TIERED`，依門檻自封為 `TRUE`，無人工真值。 | **🚨 撤回真值宣稱**：412 筆（更新管線後）僅代表通過運動學門檻之「啟發式候選揮拍 (`HEURISTIC_TIER_A_CANDIDATE`)」，所有樣本之 `manual_verified` 重置為 `PENDING_HUMAN_AUDIT`，`is_true_stroke` 重置為 `PENDING`，交由人工比對 5 幀連續圖確認。 |
-| **2.「跨影片留一完整 LOVO（21 部影片）」** | 實際為 4 支留出影片、21 個事件（更新前）；為固定切分而非逐片輪替之完整 LOVO；合法發球 Recall 僅 42.9% (3/7)；丁克 Recall 100% 僅為 3/3。 | **🚨 撤回完整 LOVO 宣稱**：更正為「**4 支固定留出影片之驗證子集 (Held-out Fold)**」。澄清各類別之真實樣本數，且 `VOLLEY_PUNCH`、`OVERHAND_FAULT`、`POWER_DRIVE`、`PASSIVE_BLOCK` 均為單影片類別，標註為 `[Constraint: 無法進行跨影片泛化驗證]`。 |
-| **3.「新引擎已接管發球與廚房判罰」** | `tryHit()` 僅在 `RALLY` 狀態進入，`isServe` 恆為 false；`wristVelY` 未傳入；廚房犯規已被前置程式提前 return。 | **🚨 撤回接入宣稱**：`stroke_classifier_v2.js` 與 `tests/test_stroke_engine.js` 已徹底自交付中移除，遊戲 `js/game.js`、`v14.html`、`index.html` 乾淨還原至 baseline，**本輪零 Runtime 改動**。待後續模型與特徵對齊通過審查後再行獨立接入。 |
-| **4.「推論引擎零動態記憶體配置 (Zero GC)」** | 特徵提取每次建立 `Float32Array`，推論與仲裁亦每次回傳新 Object，Node 基準測試不能代表手機瀏覽器零 GC。 | **🚨 撤回 Zero GC 宣稱**：承認目前實作存在 TypedArray 與物件配置，不使用未經驗證之零 GC 宣傳詞。 |
-| **5.「獨立測試結果 (Test Set)」** | 訓練每輪均評估 Test Set 並以測試準確率挑選儲存最佳權重，造成測試集資訊洩漏。 | **🚨 修正選模機制**：`scripts/train_stroke_classifier_v2.py` 已拔除迴圈內測試集選模，改為純依訓練損失 (`train_loss`) 保存模型，測試集僅在訓練完全結束後獨立評估一次。 |
+| **1.「276 筆 Tier A 純真值樣本」** | 393 筆的 `manual_verified` 均為自動產出之 `AUTO_TIERED`，依門檻自封為 `TRUE`，無人工真值。 | **🚨 撤回真值宣稱**：更新管線後之 436 筆僅代表通過運動學門檻之「啟發式候選揮拍 (`TIER_A_CANDIDATE`)」，所有 724 筆樣本之 `manual_verified` 均設為 `PENDING_HUMAN_AUDIT`、`is_true_stroke` 設為 `PENDING`，交由人工比對 5 幀連續圖確認。 |
+| **2.「跨影片留一完整 LOVO（21 部影片）」** | 實際為 4 支留出影片、21 個事件（更新前）；為固定切分而非逐片輪替之完整 LOVO；合法發球 Recall 僅 42.9% (3/7)；丁克 Recall 100% 僅為 3/3。 | **🚨 撤回完整 LOVO 宣稱與訓練產物**：本輪已將模型訓練、固定切分計畫與權重檔案拆出交付範圍；澄清 `VOLLEY_PUNCH`、`OVERHAND_FAULT`、`POWER_DRIVE`、`PASSIVE_BLOCK` 均為單影片類別，待補齊多影片與人工真值後再另案進行模型訓練。 |
+| **3.「新引擎已接管發球與廚房判罰」** | `tryHit()` 僅在 `RALLY` 狀態進入，`isServe` 恆為 false；`wristVelY` 未傳入；廚房犯規已被前置程式提前 return。 | **🚨 撤回接入宣稱**：`stroke_classifier_v2.js` 與 `tests/test_stroke_engine.js` 已自交付 `HEAD` 移除，`js/game.js`、`v14.html`、`index.html`、`v14-single.html` 100% 還原至 `952b573` 基線，**本輪零 Runtime 改動**。 |
+| **4.「推論引擎零動態記憶體配置 (Zero GC)」** | 特徵提取每次建立 `Float32Array`，推論與仲裁亦每次回傳新 Object，Node 基準測試不能代表手機瀏覽器零 GC。 | **🚨 撤回 Zero GC 宣稱**：承認先前實作存在 TypedArray 與物件配置，撤回未經驗證之零 GC 宣稱。 |
+| **5.「獨立測試結果 (Test Set)」** | 訓練每輪均評估 Test Set 並以測試準確率挑選儲存最佳權重，造成測試集資訊洩漏。 | **🚨 撤回洩漏模型**：承認先前訓練迴圈存在測試集選模洩漏，已將模型與訓練腳本拆出本輪交付，留待人工真值結凍後於下一階段獨立處理。 |
 
 ---
 
@@ -127,13 +127,13 @@
 
 1. **遮擋後手腕跳點追蹤無法恢復 (Tracking Occlusion Recovery)**：
    - *缺陷根源*：`last_good_pt` 在位移超過門檻時永遠不更新，導致遮擋後手腕在畫面新位置重現時，連續有效幀均被當作 `JUMP_OUTLIER` 永遠卡死。
-   - *修復實作* (`scripts/kinematics_v2.py`)：新增時序中斷重置與連續跳點重同步機制。當時間間隔 $\Delta t > 0.20\text{s}$ 或累積連續跳點達 3 幀以上時，自動將當前有效關節點視為新追蹤基準（標記為 `RESUME` / `RECOVERED`），平滑重啟追蹤。
-   - *測試實證*：新增 `test_tracking_recovery_after_occlusion`，驗證遮擋 15 幀後出現在新位置的 8 個連續點有 $\ge 6$ 幀成功恢復追蹤（100% PASS）。
+   - *修復實作* (`scripts/kinematics_v2.py`)：引入 **3 幀前瞻空間一致性檢驗 (`_has_coherent_lookahead`)** 與分段邊界 (`segment_starts`) 差分保護。當關節點相對於上一有效點位移超過 `max_disp` 時，若當前幀與後續連續 2 幀（共 3 幀）皆有效且彼此位移均 $\le \text{max\_disp}$，立即判定為真實位置重現（而非單幀雜訊瞬移），第 1 幀即恢復為 `"OK"` 並重置 `OneEuroFilter2D`，同時在速度與加速度差分時不跨越 `segment_starts` 邊界，徹底消除重定位邊界之速度爆衝。
+   - *測試實證*：`test_tracking_recovery_after_occlusion` 驗證短遮擋（2 幀）與長遮擋（15 幀）後出現在新位置的 8 個連續點 **8/8 全數立即恢復為 `"OK"`** 且無速度異常（100% PASS）。
 
-2. **多波峰鏈式合併失控 (Peak Merging Cluster Span Limit)**：
-   - *缺陷根源*：波峰合併時僅比對相鄰前一波峰之時間差（`times[p] - times[curr[-1]] <= merge_window_s`），導致間隔 0.4s 的多個連續波峰像骨牌一樣鏈式連鎖，跨越 1.2s 以上被合成單一超大事件。
-   - *修復實作* (`scripts/kinematics_v2.py`)：引入最大總聚合時間窗 `max_cluster_span_s = 0.40s`，並將相鄰合併窗收緊至 `min(merge_window_s, 0.35s)`。即使相鄰波峰在窗內，一旦整群跨度超過 0.40s 即強制切分出新事件。
-   - *測試實證*：新增 `test_peak_merging_cluster_span_limit`，驗證跨越 1.2s 的 4 個間隔 0.4s 波峰被精準切分為多個獨立事件，不再被合併成 1 個事件（100% PASS）。
+2. **多波峰鏈式合併失控 (1D Peak Non-Maximum Suppression)**：
+   - *缺陷根源*：舊版由左至右貪婪合併僅比對相鄰前一波峰之時間差（`times[p] - times[curr[-1]] <= merge_window_s`），導致間隔 0.4s 的多個連續波峰像骨牌一樣鏈式連鎖，跨越 1.2s 被合成單一事件。
+   - *修復實作* (`scripts/kinematics_v2.py`)：改為 **依峰值速率由高至低排序之真實 1D Peak Non-Maximum Suppression (NMS)**（抑制半徑 `effective_merge_window_s = min(merge_window_s, max_cluster_span_s) = 0.38s`），被抑制之次級引拍／隨揮波峰不會傳遞抑制半徑，徹底杜絕骨牌鏈式合併；同時事件起訖追蹤 (`start_idx`, `end_idx`) 受相鄰主峰中點與 $\pm 0.55\text{s}$ 雙重邊界約束，確保相鄰獨立揮拍絕不重疊。
+   - *測試實證*：`test_peak_merging_cluster_span_limit` 驗證跨越 1.2s 的 4 個間隔 0.4s 波峰 **4/4 全數保留為 4 個獨立事件**（100% PASS）。
 
 3. **斷點快取缺乏代碼與參數雜湊 (Comprehensive Cache Invalidation)**：
    - *缺陷根源*：舊版快取僅比對靜態字串 `code_version == "2.0.0"`，修改 `kinematics_v2.py` 或調整提取門檻參數時，快取依然秒讀舊事件，無法自動失效。
@@ -142,38 +142,42 @@
      - `extractor_sha256`：`scripts/extract_strokes_v2.py` 之 SHA256 檔案雜湊。
      - `params_hash`：包含門檻、採樣步長、合併窗與尺度參數之完整設定字典 SHA256 雜湊。
      - 支援 `--force` / `--no-cache` 命令列旗標強制重跑。
-   - *測試實證*：新增 `test_cache_invalidation_hash_checking`，驗證代碼雜湊或參數雜湊任一變更即自動判定快取失效（100% PASS）。
+   - *測試實證*：`test_cache_invalidation_hash_checking` 驗證代碼雜湊或參數雜湊任一變更即自動判定快取失效（100% PASS）。
 
-4. **重跑提取覆寫人工標註 (Non-Destructive Manifest Preservation)**：
-   - *缺陷根源*：舊版以 `open(MANIFEST_PATH, "w")` 直接全量覆寫，使用者填寫之人工查驗結果會在一鍵重跑時徹底蒸發。
-   - *修復實作* (`scripts/extract_strokes_v2.py` & `scripts/audit_biomechanics_tiering.py`)：新增 `load_existing_manifest_annotations`。重新生成清單時，優先比對現有檔案中之 `(video, event_id)` 與 `(video, timestamp)`，凡經人工標註之 `manual_verified`（如 `HUMAN_CONFIRMED` / `HUMAN_REJECTED`）、`is_true_stroke` 及 `notes` 一律 100% 原樣繼承保留；未人工標註者預設給予 `PENDING_HUMAN_AUDIT` 與 `PENDING`。
-   - *測試實證*：新增 `test_manifest_preservation_of_human_annotations`，驗證人工確認與備註在重跑提取後完整留存（100% PASS）。
+4. **重跑提取覆寫人工標註與偵測評估補齊 (Non-Destructive Manifest Preservation & Detector PR Evaluator)**：
+   - *缺陷根源*：舊版以 `open(MANIFEST_PATH, "w")` 直接全量覆寫，使用者填寫之人工查驗結果會在一鍵重跑時蒸發。
+   - *修復實作* (`scripts/extract_strokes_v2.py`, `scripts/audit_biomechanics_tiering.py`, `scripts/evaluate_detector_v2.py`)：
+     - 新增 `load_existing_manifest_annotations`：重新生成清單時，優先比對現有檔案中之 `(video, event_id)` 與 `(video, timestamp)`，凡經人工標註之 `manual_verified`、`is_true_stroke` 及 `notes` 一律 100% 原樣繼承保留；未人工標註者預設給予 `PENDING_HUMAN_AUDIT` 與 `PENDING`。
+     - 新增 `scripts/evaluate_detector_v2.py`：提供候選事件人工真值覆蓋率統計、已驗證候選精確率 (`TP / (TP + FP)`)，以及與獨立真值時間戳 (`data/v2/ground_truth_events.json`, 容許誤差 $\le 0.30\text{s}$) 比對之事件級 Detection Precision / Recall / F1 評估工具。
+   - *測試實證*：`test_manifest_preservation_of_human_annotations` 與 `test_detector_precision_recall_evaluation` 雙雙通過（100% PASS）。
 
 ---
 
 ### 5.3 提取管線重跑全量數據與啟發式分級結果
 
-以修復後的運動學管線（追蹤恢復＋最大跨度限制＋雜湊校驗）重跑 11 部影片全量素材：
+以修復後的運動學管線（3 幀空間一致性追蹤恢復＋1D Peak NMS＋雜湊校驗）重跑 11 部影片全量素材：
 
-* **總候選事件數**：**781 筆**（舊版因遮擋卡死與骨牌合併遺漏了許多合法事件，修復後完整收錄真實候選事件）。
-* **手腕速率極值**：**41.44 torso-lengths/s**（無任何 $>100$ 或數萬極端跳點）。
-* **物理品質旗標**：748 筆 OK (95.8%), 19 筆尺度擴展標記, 14 筆尺度坍陷標記。
+* **總候選事件數**：**724 筆**（修復遮擋後追蹤卡死與骨牌鏈式合併後，完整收錄各段連續對打與多球練習之候選事件）。
+* **時序與速度分佈**：
+  - 揮拍歷時 (`Duration`)：`p10 = 0.17s`, `med = 0.33s`, `p90 = 0.60s`, **`max = 1.13s`**（無任何跨越多球的超長合併事件）。
+  - 峰值速率 (`Speed`)：`p10 = 2.09 t/s`, `med = 4.89 t/s`, `p90 = 16.61 t/s`, **`max = 41.56 t/s`**（無任何 $>100$ 或數萬之極端跳點）。
+  - 擊球間隔 (`Inter-gap`)：`p10 = 0.43s`, `med = 0.67s`, `p90 = 1.59s`, **`min = 0.40s`**。
+* **物理品質旗標**：696 筆 `OK` (96.1%), 17 筆 `DEGRADED_SCALE_EXPAND`, 11 筆 `DEGRADED_SCALE_COLLAPSE`。
 * **各類別候選分佈**：
-  - `UNDERHAND_LEGAL` : 231 筆
-  - `POWER_DRIVE`     : 184 筆
-  - `OVERHAND_FAULT`  :  81 筆
-  - `VOLLEY_PUNCH`    :  80 筆
-  - `SMASH`           :  79 筆
-  - `KITCHEN_DINK`    :  75 筆
-  - `PASSIVE_BLOCK`   :  51 筆
+  - `UNDERHAND_LEGAL` : 209 筆（3 支影片：39 + 120 + 50）
+  - `POWER_DRIVE`     : 172 筆（1 支影片）
+  - `OVERHAND_FAULT`  :  78 筆（1 支影片）
+  - `SMASH`           :  74 筆（2 支影片：55 + 19）
+  - `KITCHEN_DINK`    :  71 筆（2 支影片：62 + 9）
+  - `VOLLEY_PUNCH`    :  71 筆（1 支影片）
+  - `PASSIVE_BLOCK`   :  49 筆（1 支影片）
 
 #### 啟發式候選分級 (Heuristic Tiering, 由 `scripts/audit_biomechanics_tiering.py` 產出)：
-> ⚠️ **重要聲明**：以下分級僅為基於速度、時長與次級波峰規則之初篩，**非人工真值**，全數標為 `PENDING_HUMAN_AUDIT`，供人工審查。
+> ⚠️ **重要聲明**：以下分級僅為基於速度、時長與次級波峰規則之初篩排序，**非人工真值**，724 筆全數標為 `manual_verified = PENDING_HUMAN_AUDIT`、`is_true_stroke = PENDING`，供人工審查。
 
-* 🟢 **Tier A 啟發式候選揮拍**：**412 筆 (52.8%)**。特徵符合揮拍生理窗，作為人工驗收之優先集。
-* 🟡 **Tier B 邊界/次級震盪**：**258 筆 (33.0%)**。包含小於 0.55s 之引拍波峰、次級隨揮與小球力道，需抽樣人工確認。
-* 🔴 **Tier C 疑似假陽性**：**111 筆 (14.2%)**。包含時長 >1.15s 走動或速度 <1.8 t/s 之無效動作。
-* 📌 **人工真值繼承狀態**：781 筆目前均處於 `PENDING_HUMAN_AUDIT` 與 `PENDING` 狀態，等待人工逐一簽認。
+* 🟢 **Tier A 啟發式候選揮拍 (`TIER_A_CANDIDATE`)**：**436 筆 (60.2%)**。特徵符合揮拍生理窗，作為人工驗收之優先集。
+* 🟡 **Tier B 邊界/次級震盪 (`TIER_B_MARGINAL`)**：**229 筆 (31.6%)**。包含小於 0.55s 之次級波峰或輕力道動作，需人工抽樣確認。
+* 🔴 **Tier C 疑似假陽性 (`TIER_C_SUSPECT`)**：**59 筆 (8.1%)**。包含速度 $<1.8\text{ t/s}$ 之緩慢復位或撿球動作。
 
 ---
 
@@ -182,33 +186,21 @@
 為供工程與運動專業人員進行事件真值標記，本次交付提供完整之可視化驗收素材：
 
 1. **5 幀連續接觸動作展開圖 (Collages)**：
-   - 位於 `data/v2/verification_collages/`。
+   - 位於 `data/v2/verification_collages/`（共 88 張組圖，每支影片抽樣最多 8 組代表事件）。
    - 涵蓋 7 大類別動作之 `[Start ➔ Approach ➔ Candidate Peak ➔ Follow ➔ End]`。
-   - 每張圖標註原片名、事件 ID、波峰手腕速率、總路徑長與總時長，可清晰目視確認是否真有揮拍與觸球。
-2. **人工審查事件清單 (Manifest CSV)**：
-   - 位於 `data/v2/candidate_events_manifest.csv`。
-   - 包含欄位：`event_id, video, timestamp_peak_s, duration_s, peak_speed_torso_s, raw_class, heuristic_tier, confidence_tier, audit_notes, manual_verified, is_true_stroke, notes`。
-   - 審查人員可直接於 Excel / 編輯器填寫 `manual_verified` (`HUMAN_CONFIRMED` / `HUMAN_REJECTED`) 與 `is_true_stroke` (`TRUE` / `FALSE`)，後續管線已具備保護機制，永不被覆寫。
+2. **人工審查事件清單 (Manifest CSV) 與評估腳本**：
+   - 清單位於 `data/v2/candidate_events_manifest.csv`。
+   - 審查人員於填寫 `manual_verified` (`HUMAN_CONFIRMED` / `HUMAN_REJECTED`) 與 `is_true_stroke` (`TRUE` / `FALSE`) 後，可直接執行 `./.venv/bin/python scripts/evaluate_detector_v2.py` 產出真值覆蓋率與 Precision / Recall / F1 指標。
 
 ---
 
 ## 6. 模型訓練修復與 Runtime 接入之後續規劃 (Decoupled Next-Phase Roadmap)
 
-依審查意見，模型訓練與 Runtime 接入已拆出本輪，獨立規劃如下：
+依審查意見，模型訓練與 Runtime 接入已完全拆出本輪，待人工驗收完成後按以下規範另案推進：
 
-1. **訓練腳本選模洩漏修復實證 (`scripts/train_stroke_classifier_v2.py`)**：
-   - 已完成重構：訓練迴圈內**完全移除測試集評估**，僅依據 `train_loss` 保存最優權重。
-   - 保留測試集僅在訓練完全終止後，對最優權重獨立執行一次性評估。
-2. **待完成前置要件 (Prerequisites for Model Phase)**：
-   - ① **人工真值結凍**：完成 `candidate_events_manifest.csv` 之人工標註，建立具備 Ground Truth 的事件集，計算候選偵測器之精準 Precision / Recall。
-   - ② **線上 / 離線特徵定義 100% 嚴格對齊**：
-     - 線上垂直加速度：由連續 3 幀之手腕速度差分計算，禁止使用 `KIN.vPeak * 0.5` 替代。
-     - 線上相對高度：統一採用標準化軀幹長度，禁止混淆遊戲世界高度與物理像素相對高度。
-     - 發球準備旗標與抬手特徵：統一使用左手腕是否高於左肩之即時姿態判定。
-   - ③ **權重一致性與數值單元測試**：
-     - 新增自動化測試，直接載入遊戲端 JS 內嵌權重矩陣與 Python 模型 JSON 權重，比對所有 295 個浮點數（最大絕對誤差 $< 10^{-6}$），在 CI 中阻擋任何權重漂移。
-   - ④ **正式 Runtime 接線與發球守護修復**：
-     - 修正 `tryHit()` 與發球狀態機之接線邏輯，確保發球與回擊均能正確注入雙軌引擎。
+1. **人工真值結凍**：完成 `candidate_events_manifest.csv` 人工確認並執行 `scripts/evaluate_detector_v2.py` 驗收偵測器 Precision / Recall。
+2. **嚴格分離訓練／驗證／測試集選模**：僅在訓練集內部驗證選模，保留測試集僅在最終執行一次性盲測，並誠實標註單影片類別之跨影片評估限制。
+3. **線上／離線特徵定義 100% 對齊與權重一致性自動化測試**：修正線上垂直加速度、相對高度與左手高舉特徵定義，並於 CI 測試中強制比對 JS 內嵌權重與模型 JSON 權重（295 個參數誤差 $< 10^{-6}$），通過後方可接入發球與對打狀態機。
 
 ---
 
@@ -216,5 +208,7 @@
 
 | 測試指令 / 檢驗工具 | 測試範圍與檢驗項目 | 實測結果 | 驗收意義 |
 | :--- | :--- | :--- | :--- |
-| **`python3 -m unittest discover -s tests -v`** | 運動學座標符號、等比像素補償、速度還原、瞬移跳點過濾、尺度退化標記、**遮擋追蹤恢復**、**波峰合併跨度限制**、**代碼與參數雜湊快取失效**、**人工標註非破壞性留存** | **10/10 PASS (100%)** | 驗證運動學管線修復完成，4 大缺陷已全數受單元測試保護 |
-| **`node scripts/self-test.js`** | 打包同步、資安防禦 (OWASP)、物理動力學矩陣 (82項)、CCD 防穿透、遊戲狀態機全套測試 | **99/99 PASS (100%)** | 驗證 Runtime 乾淨復原至穩定狀態，無語法或回歸問題 |
+| **`./.venv/bin/python -m unittest discover -s tests -v`** | 運動學座標符號、等比像素補償、速度還原、瞬移跳點過濾、尺度退化標記、**遮擋追蹤恢復 (8/8 OK)**、**1D Peak NMS (4峰不合併)**、**代碼與參數雜湊快取失效**、**人工標註非破壞性留存**、**偵測器 PR 評估與待審狀態隔離** | **11/11 PASS (100%)** | 驗證運動學管線修復完成，所有審查指出之提取缺陷均受單元測試保護 |
+| **`./.venv/bin/python scripts/evaluate_detector_v2.py`** | 檢查 `candidate_events_manifest.csv` 是否存在未經授權之自動真值，並輸出啟發式分級與人工審核進度 | **724 筆全數為 `PENDING_HUMAN_AUDIT`** | 確保自動分級絕不冒充人工真值 |
+| **`node scripts/self-test.js`** | 打包同步、資安防禦 (OWASP)、物理動力學矩陣 (82項)、CCD 防穿透、遊戲狀態機全套測試 | **99/99 PASS (100%)** | 驗證 Runtime 100% 維持在 `952b573` 基線狀態，無任何越界修改或打包脫節 |
+

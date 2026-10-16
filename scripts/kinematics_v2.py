@@ -140,7 +140,25 @@ def compute_kinematics_series(positions_px, times, scale_ref, visibilities):
 
     last_good_pt = None
     last_good_t = None
-    consecutive_jumps = 0
+    segment_starts = set()
+
+    def _has_coherent_lookahead(idx):
+        """
+        Check if frames idx, idx+1, idx+2 are all valid and mutually coherent
+        within max_disp, confirming genuine tracking relocation rather than a glitch.
+        """
+        if idx + 2 >= n:
+            return False
+        for k in (idx, idx + 1, idx + 2):
+            pt_k = positions_px[k]
+            vis_k = visibilities[k] if visibilities else 1.0
+            if pt_k is None or vis_k < 0.4:
+                return False
+        d01 = math.hypot(positions_px[idx + 1][0] - positions_px[idx][0],
+                         positions_px[idx + 1][1] - positions_px[idx][1])
+        d12 = math.hypot(positions_px[idx + 2][0] - positions_px[idx + 1][0],
+                         positions_px[idx + 2][1] - positions_px[idx + 1][1])
+        return d01 <= max_disp and d12 <= max_disp
 
     for i in range(n):
         pt = positions_px[i]
@@ -150,49 +168,32 @@ def compute_kinematics_series(positions_px, times, scale_ref, visibilities):
         if pt is None or vis < 0.4:
             flags[i] = "LOW_CONF"
             filtered_pos.append(None)
-            consecutive_jumps = 0
             continue
             
-        dt = (t - last_good_t) if last_good_t is not None else 0.0
-        
-        # Tracking recovery after gap: if time gap > 0.20s, player naturally relocated during untracked interval
-        if last_good_t is not None and dt > 0.20:
-            f2d = OneEuroFilter2D(min_cutoff=1.5, beta=0.03)
-            last_good_pt = pt
-            last_good_t = t
-            consecutive_jumps = 0
-            f_pt = f2d.filter(pt, t)
-            filtered_pos.append(f_pt)
-            flags[i] = "RESUME"
-            continue
-
         if last_good_pt is not None:
             disp = math.hypot(pt[0] - last_good_pt[0], pt[1] - last_good_pt[1])
-            frame_max_disp = max(max_disp, 15.0 * scale_ref * max(dt, 0.016))
-            if disp > frame_max_disp:
-                consecutive_jumps += 1
-                # If tracker moves and stays stably at new position for >= 3 frames, recover tracking
-                if consecutive_jumps >= 3:
+            if disp > max_disp:
+                if _has_coherent_lookahead(i):
+                    # Genuine relocation to a new stable track segment
                     f2d = OneEuroFilter2D(min_cutoff=1.5, beta=0.03)
                     last_good_pt = pt
                     last_good_t = t
-                    consecutive_jumps = 0
+                    segment_starts.add(i)
                     f_pt = f2d.filter(pt, t)
                     filtered_pos.append(f_pt)
-                    flags[i] = "RECOVERED"
+                    flags[i] = "OK"
                     continue
                 else:
                     flags[i] = "JUMP_OUTLIER"
                     filtered_pos.append(None)
                     continue
                 
-        consecutive_jumps = 0
         last_good_pt = pt
         last_good_t = t
         f_pt = f2d.filter(pt, t)
         filtered_pos.append(f_pt)
 
-    # 2. Numerical differentiation with contiguous segment handling
+    # 2. Numerical differentiation with contiguous segment boundary handling
     speeds = [0.0] * n
     vel_x = [0.0] * n
     vel_y = [0.0] * n
@@ -203,8 +204,8 @@ def compute_kinematics_series(positions_px, times, scale_ref, visibilities):
         if filtered_pos[i] is None:
             continue
             
-        has_prev = (i > 0 and filtered_pos[i - 1] is not None)
-        has_next = (i < n - 1 and filtered_pos[i + 1] is not None)
+        has_prev = (i > 0 and filtered_pos[i - 1] is not None and i not in segment_starts)
+        has_next = (i < n - 1 and filtered_pos[i + 1] is not None and (i + 1) not in segment_starts)
         
         if has_prev and has_next:
             dt = times[i + 1] - times[i - 1]
@@ -242,8 +243,8 @@ def compute_kinematics_series(positions_px, times, scale_ref, visibilities):
     for i in range(n):
         if filtered_pos[i] is None:
             continue
-        has_prev = (i > 0 and filtered_pos[i - 1] is not None)
-        has_next = (i < n - 1 and filtered_pos[i + 1] is not None)
+        has_prev = (i > 0 and filtered_pos[i - 1] is not None and i not in segment_starts)
+        has_next = (i < n - 1 and filtered_pos[i + 1] is not None and (i + 1) not in segment_starts)
         if has_prev and has_next:
             dt = times[i + 1] - times[i - 1]
             if dt > 1e-4:
@@ -260,11 +261,12 @@ def detect_candidate_events(
     min_peak_speed=1.5,
     min_path_len=0.3,
     merge_window_s=0.45,
-    max_cluster_span_s=0.40
+    max_cluster_span_s=0.38
 ):
     """
     Class-agnostic candidate event detector.
-    Detects local peaks in wrist speed, merges nearby peaks, and validates path length.
+    Detects local peaks in wrist speed, performs 1D Peak Non-Maximum Suppression (NMS)
+    without transitive chaining, and validates path length.
     Returns list of event dicts.
     """
     n = len(speeds)
@@ -276,7 +278,7 @@ def detect_candidate_events(
     window = 4
     for i in range(window, n - window):
         v = speeds[i]
-        if v >= min_peak_speed and flags[i] in ("OK", "RECOVERED", "RESUME"):
+        if v >= min_peak_speed and flags[i] == "OK":
             is_local_max = all(v >= speeds[i + k] for k in range(-window, window + 1) if k != 0)
             if is_local_max:
                 raw_peaks.append(i)
@@ -284,41 +286,51 @@ def detect_candidate_events(
     if not raw_peaks:
         return []
 
-    # 2. Merge peaks that occur within merge_window_s (Non-Maximum Suppression)
-    # Enforce maximum total cluster span (max_cluster_span_s) so distinct consecutive
-    # strokes spaced across 1.0+ seconds are not coalesced into a single mega-event.
-    effective_merge_window_s = min(merge_window_s, 0.35)
+    # 2. True 1D Peak Non-Maximum Suppression (NMS) sorted by peak speed descending.
+    # Suppresses secondary sub-peaks (backswing/follow-through ripples) within
+    # effective_merge_window_s of a stronger kept peak, while strictly preventing
+    # transitive domino-chaining across multi-peak rallies (e.g., 0.4s spacing over 1.2s).
+    effective_merge_window_s = min(merge_window_s, max_cluster_span_s)
+    peaks_by_speed = sorted(raw_peaks, key=lambda idx: (-speeds[idx], idx))
+    kept_peaks = []
+    for p in peaks_by_speed:
+        if all(abs(times[p] - times[k]) > effective_merge_window_s for k in kept_peaks):
+            kept_peaks.append(p)
+    merged_peaks = sorted(kept_peaks)
 
-    merged_peaks = []
-    curr_cluster = [raw_peaks[0]]
-    for p in raw_peaks[1:]:
-        adjacent_dt = times[p] - times[curr_cluster[-1]]
-        cluster_span = times[p] - times[curr_cluster[0]]
-        if adjacent_dt <= effective_merge_window_s and cluster_span <= max_cluster_span_s:
-            curr_cluster.append(p)
-        else:
-            # Pick highest peak in cluster
-            best_p = max(curr_cluster, key=lambda idx: speeds[idx])
-            merged_peaks.append(best_p)
-            curr_cluster = [p]
-    if curr_cluster:
-        best_p = max(curr_cluster, key=lambda idx: speeds[idx])
-        merged_peaks.append(best_p)
-
-    # 3. For each peak, expand to find start and end boundaries, and verify path length
+    # 3. For each peak, expand to find start and end boundaries, bounded by
+    # adjacent peak midpoints and max half-window (0.55s) so events never merge or overlap.
     events = []
-    for p in merged_peaks:
+    for idx_m, p in enumerate(merged_peaks):
         v_peak = speeds[p]
         v_threshold = max(0.5, 0.25 * v_peak)
         
+        min_start_idx = 0
+        if idx_m > 0:
+            min_start_idx = (merged_peaks[idx_m - 1] + p) // 2 + 1
+            
+        max_end_idx = n - 1
+        if idx_m < len(merged_peaks) - 1:
+            max_end_idx = (p + merged_peaks[idx_m + 1]) // 2
+
         # Trace backwards
         start_idx = p
-        while start_idx > 0 and speeds[start_idx] > v_threshold and (times[p] - times[start_idx]) < 1.0:
+        while (
+            start_idx > min_start_idx
+            and flags[start_idx - 1] == "OK"
+            and speeds[start_idx] > v_threshold
+            and (times[p] - times[start_idx]) < 0.55
+        ):
             start_idx -= 1
             
         # Trace forwards
         end_idx = p
-        while end_idx < n - 1 and speeds[end_idx] > v_threshold and (times[end_idx] - times[p]) < 1.0:
+        while (
+            end_idx < max_end_idx
+            and flags[end_idx + 1] == "OK"
+            and speeds[end_idx] > v_threshold
+            and (times[end_idx] - times[p]) < 0.55
+        ):
             end_idx += 1
 
         # Calculate path length between start and end

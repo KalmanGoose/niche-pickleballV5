@@ -95,7 +95,7 @@ DETECTOR_PARAMS = {
     "min_peak_speed": 1.5,
     "min_path_len": 0.3,
     "merge_window_s": 0.45,
-    "max_cluster_span_s": 0.40,
+    "max_cluster_span_s": 0.38,
     "target_w": 540,
     "min_pose_presence_confidence": 0.5,
     "min_tracking_confidence": 0.5

@@ -111,7 +111,7 @@ def main():
 
     print("=" * 86)
 
-    print("\n📈 全量特徵分佈摘要 (393 Events Overall):")
+    print(f"\n📈 全量特徵分佈摘要 ({len(events)} Events Overall):")
     print(f"  揮拍歷時 (Duration) : p10={percentile(all_durations, 10):.2f}s, med={percentile(all_durations, 50):.2f}s, p90={percentile(all_durations, 90):.2f}s, max={max(all_durations):.2f}s")
     print(f"  峰值速率 (Speed)    : p10={percentile(all_speeds, 10):.2f} t/s, med={percentile(all_speeds, 50):.2f} t/s, p90={percentile(all_speeds, 90):.2f} t/s, max={max(all_speeds):.2f} t/s")
     print(f"  擊球間隔 (Inter-gap): p10={percentile(all_gaps, 10):.2f}s, med={percentile(all_gaps, 50):.2f}s, p90={percentile(all_gaps, 90):.2f}s, min={min(all_gaps) if all_gaps else 0:.2f}s")

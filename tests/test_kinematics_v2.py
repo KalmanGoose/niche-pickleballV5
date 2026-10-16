@@ -163,30 +163,36 @@ class TestKinematicsV2(unittest.TestCase):
         self.assertTrue(math.isclose(events[1]["timestamp_peak_s"], 2.5, abs_tol=0.1), f"Event 2 peak mismatch: {events[1]}")
 
     def test_tracking_recovery_after_occlusion(self):
-        """Verify that after occlusion and a location jump, 8 consecutive valid points successfully recover tracking."""
+        """Verify that after both short (2-frame) and long (15-frame) occlusion and a location jump, all 8 consecutive valid points recover with 'OK'."""
         fps = 60.0
         dt = 1.0 / fps
         scale_ref = 200.0
         
-        # 20 frames at (100, 200), then 15 occluded frames, then 8 frames at (800, 200)
-        positions_px = [(100.0, 200.0)] * 20 + [None] * 15 + [(800.0, 200.0)] * 8
-        times = [i * dt for i in range(len(positions_px))]
-        visibilities = [0.9] * 20 + [0.0] * 15 + [0.95] * 8
-        
-        speeds, vel_x, vel_y, accel_y, flags = compute_kinematics_series(
-            positions_px, times, scale_ref, visibilities
-        )
-        
-        # Check the 8 frames after occlusion (indices 35 to 42)
-        recovered_flags = flags[35:43]
-        valid_recovered = [f for f in recovered_flags if f in ("OK", "RECOVERED", "RESUME")]
-        self.assertGreaterEqual(
-            len(valid_recovered), 6,
-            f"Expected tracking to recover for >= 6 of the 8 valid points, got {recovered_flags}"
-        )
+        for occlusion_frames in (2, 15):
+            positions_px = (
+                [(100.0, 200.0)] * 20
+                + [None] * occlusion_frames
+                + [(800.0 + k * 4.0, 200.0) for k in range(8)]
+            )
+            times = [i * dt for i in range(len(positions_px))]
+            visibilities = [0.9] * 20 + [0.0] * occlusion_frames + [0.95] * 8
+            
+            speeds, vel_x, vel_y, accel_y, flags = compute_kinematics_series(
+                positions_px, times, scale_ref, visibilities
+            )
+            
+            recovered_start = 20 + occlusion_frames
+            recovered_flags = flags[recovered_start:recovered_start + 8]
+            self.assertEqual(
+                recovered_flags,
+                ["OK"] * 8,
+                f"Expected all 8 post-occlusion points to recover as 'OK' (occlusion={occlusion_frames}), got {recovered_flags}"
+            )
+            # Ensure no velocity spike across segment boundary
+            self.assertLess(max(speeds[recovered_start:recovered_start + 8]), 5.0)
 
     def test_peak_merging_cluster_span_limit(self):
-        """Verify that 4 distinct peaks spaced 0.4s apart over 1.2s are NOT merged into a single 1.2s mega-event."""
+        """Verify that 4 distinct peaks spaced 0.4s apart over 1.2s are all kept as 4 separate events."""
         dt = 0.016
         times = [i * dt for i in range(120)]  # ~2 seconds
         speeds = [0.2] * 120
@@ -213,10 +219,9 @@ class TestKinematicsV2(unittest.TestCase):
             merge_window_s=0.45
         )
         
-        # Because peaks are spaced 0.4s apart across 1.2s, they must NOT be 1 single merged event
-        self.assertGreater(
-            len(events), 1,
-            f"Expected separate events due to max cluster span limit, but got only {len(events)} event spanning across 1.2s!"
+        self.assertEqual(
+            len(events), 4,
+            f"Expected all 4 peaks (0.4s apart over 1.2s) to be kept as 4 separate events, got {len(events)}"
         )
 
     def test_cache_invalidation_hash_checking(self):
@@ -323,6 +328,44 @@ class TestKinematicsV2(unittest.TestCase):
         finally:
             if os.path.exists(tf_path):
                 os.remove(tf_path)
+
+    def test_detector_precision_recall_evaluation(self):
+        """Verify event-level detection Precision/Recall/F1 and strict separation of PENDING_HUMAN_AUDIT from ground truth."""
+        from scripts.evaluate_detector_v2 import evaluate_event_detection, summarize_manifest_audit
+
+        # 3 ground-truth events in vid1 at 1.0s, 3.0s, 5.0s
+        gt_events = [
+            {"video": "vid1.mp4", "timestamp_peak_s": 1.0},
+            {"video": "vid1.mp4", "timestamp_peak_s": 3.0},
+            {"video": "vid1.mp4", "timestamp_peak_s": 5.0},
+        ]
+        # 2 true detections (1.05s, 2.95s) and 1 false positive (4.10s); 5.0s is missed (FN=1)
+        det_events = [
+            {"video": "vid1.mp4", "timestamp_peak_s": 1.05},
+            {"video": "vid1.mp4", "timestamp_peak_s": 2.95},
+            {"video": "vid1.mp4", "timestamp_peak_s": 4.10},
+        ]
+        res = evaluate_event_detection(det_events, gt_events, tolerance_s=0.30)
+        self.assertEqual(res["tp"], 2)
+        self.assertEqual(res["fp"], 1)
+        self.assertEqual(res["fn"], 1)
+        self.assertAlmostEqual(res["precision"], 2.0 / 3.0)
+        self.assertAlmostEqual(res["recall"], 2.0 / 3.0)
+        self.assertAlmostEqual(res["f1"], 2.0 / 3.0)
+
+        # Ensure PENDING_HUMAN_AUDIT rows are never counted as verified TP/FP
+        manifest_rows = [
+            {"audit_tier": "TIER_A_CANDIDATE", "manual_verified": "PENDING_HUMAN_AUDIT", "is_true_stroke": "PENDING"},
+            {"audit_tier": "TIER_A_CANDIDATE", "manual_verified": "HUMAN_CONFIRMED", "is_true_stroke": "TRUE"},
+            {"audit_tier": "TIER_C_SUSPECT_FP", "manual_verified": "HUMAN_REJECTED", "is_true_stroke": "FALSE"},
+        ]
+        summary = summarize_manifest_audit(manifest_rows)
+        self.assertEqual(summary["total_candidates"], 3)
+        self.assertEqual(summary["pending_human_audit"], 1)
+        self.assertEqual(summary["human_verified_total"], 2)
+        self.assertEqual(summary["human_verified_tp"], 1)
+        self.assertEqual(summary["human_verified_fp"], 1)
+        self.assertAlmostEqual(summary["verified_candidate_precision"], 0.5)
 
 if __name__ == "__main__":
     unittest.main()

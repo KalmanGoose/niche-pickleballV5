@@ -10338,30 +10338,6 @@ function apiGet(qs) {
             }
         }
 
-        /* ═══════ 帳號與個資註銷 (Right to Erasure) ═══════ */
-        async function deleteAccount() {
-            if (!confirm('⚠️ 確定要註銷並清除您的球員資料嗎？\n\n這將會：\n1. 清除雲端英雄榜分數、暱稱與系級\n2. 清除雲端數位孿生行為特徵\n3. 清空本機暫存並重置為新訪客\n\n此動作無法復原！')) {
-                return;
-            }
-            if (playerProfile.playerId && API_READY()) {
-                toast('⏳ 正在處理帳號刪除請求…', '');
-                try {
-                    await postSigned({
-                        act: 'deleteMe',
-                        playerId: playerProfile.playerId
-                    });
-                } catch (_) {}
-            }
-            // 清空本地存檔
-            try {
-                localStorage.removeItem('nchu_pb_identity');
-                localStorage.removeItem('nchu_pb_twin');
-                localStorage.removeItem('nchu_pb_records');
-            } catch (_) {}
-            alert('✅ 您的帳號與個人紀錄已成功刪除並重置。');
-            window.location.reload();
-        }
-
         /* ═══════ 音效偏好 ═══════ */
 
 /* ═══════ 賽場尺寸、物理常數與 AI 難度常數 ═══════ */
@@ -10920,7 +10896,7 @@ function updateWindHud() {
    ═══════════════════════════════════════════════════════════════════ */
 
 /* ═══════ 空氣動力學常數 ═══════
-   BALL_R (0.14 m) 是目前推估為手機可見度放大的「碰撞 / 視覺半徑」。
+   BALL_R (0.14 m) 是為手機可見度放大的「碰撞 / 視覺半徑」。
    空氣動力學一律使用真實半徑 BALL_R_PHYS。 */
 const BALL_R_PHYS = 0.037;                                          // 直徑 74 mm
 const BALL_MASS   = 0.026;                                          // 26 g
@@ -10958,7 +10934,7 @@ function integrateVel(vel, spin, h, mode) {
         if (v0 > 1e-4) vel.multiplyScalar(1 / (1 + DRAG_K * v0 * h));
 
         // ② 馬格努斯力 a = K_M·C_L·|v|²·(ω×v)/|ω×v|，ω = (0, ωy, 0)
-        //    ωy 正負依前進方向決定，確保 spin > 0 永遠往 +x 偏 套入城市公式計算時，ω我又降職
+        //    ωy 正負依前進方向決定，確保 spin > 0 永遠往 +x 偏
         const v = vel.length();
         if (Math.abs(spin) > 0.04 && v > 0.5) {
             const wy = -spin * OMEGA_MAX * (vel.z < 0 ? 1 : -1);
