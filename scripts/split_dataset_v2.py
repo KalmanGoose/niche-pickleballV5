@@ -43,14 +43,16 @@ def create_lovo_splits():
 
     all_events = ds["events"]
 
-    # Filter to Tier A confirmed true strokes
+    # Filter to Tier A candidate strokes
     tier_a_events = []
     for ev in all_events:
         m = manifest_by_id.get(ev["event_id"])
-        if m and m["confidence_tier"].startswith("TIER_A"):
-            tier_a_events.append(ev)
+        if m:
+            tier = m.get("heuristic_tier") or m.get("confidence_tier", "")
+            if tier.startswith("TIER_A"):
+                tier_a_events.append(ev)
 
-    print(f"📊 從 393 筆候選事件中篩選出 {len(tier_a_events)} 筆 Tier A 高可信度純真值揮拍")
+    print(f"📊 從候選事件中篩選出 {len(tier_a_events)} 筆 Tier A 啟發式候選揮拍 (待人工審查確認)")
 
     # Group by class and video
     by_class_video = defaultdict(lambda: defaultdict(list))

@@ -148,11 +148,8 @@
                 <button type="button" onclick="handleGuestPlay()" style="width:100%;margin-top:8px;padding:10px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.22);border-radius:10px;color:var(--txt);font-size:13px;font-weight:700;cursor:pointer;">👟 訪客快速試玩 (免填學號直接暢玩)</button>
             </div>
 
-            <div class="id-badge" style="margin-top:14px;font-size:11px;line-height:1.6;color:var(--dim);text-align:center;background:rgba(0,0,0,0.22);padding:10px 12px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);">
-                🔒 <strong>隱私與姿態運算保護</strong>：姿態運算全程於本機端執行（零視訊外傳）；僅採集學號前 7 碼識別系級，不收集真實姓名與密碼。<br>
-                <span style="display:inline-block;margin-top:4px;color:rgba(255,255,255,0.7);">
-                    點擊進入球場即代表同意 <a href="privacy-policy.html" target="_blank" style="color:var(--accent);text-decoration:underline;">《隱私權與數據治理政策》</a>，包含動作與訓練數據之去識別化模型優化。
-                </span>
+            <div class="id-badge" style="margin-top:14px;font-size:11px;line-height:1.6;color:var(--dim);text-align:center;background:rgba(0,0,0,0.22);padding:8px 12px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);">
+                🔒 <strong>零個資隱私承諾</strong>：姿態運算全程於本機端執行（零視訊外傳）；<br>僅採集學號前 7 碼識別系級，不收集真實姓名、密碼與個人流水號。
             </div>
         </div>
     </div>
@@ -279,10 +276,6 @@
 
                 <button type="button" class="btn-sub" onclick="closeProfileModal();replayFirstPlayOnboarding();" style="width:100%;margin-top:8px;">📖 重看新手引導</button>
                 <button type="button" class="btn-reopen-login" onclick="reopenLoginOverlay()">🔄 重新進入登入開局畫面</button>
-                <div style="display:flex;justify-content:space-between;align-items:center;margin-top:14px;padding-top:10px;border-top:1px dashed rgba(0,0,0,0.12);">
-                    <a href="privacy-policy.html" target="_blank" style="font-size:11px;color:var(--dim);text-decoration:underline;">📜 檢視《隱私權政策》</a>
-                    <button type="button" onclick="deleteAccount()" style="background:none;border:none;color:#dc2626;font-size:11px;cursor:pointer;text-decoration:underline;">🗑️ 註銷並刪除帳號資料</button>
-                </div>
             </div>
         </div>
     </div>
@@ -2205,7 +2198,6 @@ I_syn(t) = w_syn · x · u · (dθ/dt)</div>
     <script src="./js/social.js"></script>
     <script src="./js/fly_connectome.js"></script>
     <script src="./js/pickle_neural_policy.js"></script>
-    <script src="./js/stroke_classifier_v2.js"></script>
     <script src="./js/fun_mode.js"></script>
     <script src="./js/game.js"></script>
 </body>

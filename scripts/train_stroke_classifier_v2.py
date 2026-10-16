@@ -16,6 +16,7 @@ import math
 import random
 import os
 import sys
+from collections import defaultdict
 
 DATASET_PATH = "data/v2/real_strokes_dataset_v2.json"
 SPLIT_PLAN_PATH = "data/v2/lovo_split_plan.json"
@@ -114,7 +115,7 @@ def train_and_export():
     beta1, beta2, eps = 0.9, 0.999, 1e-8
     t_step = 0
 
-    best_test_acc = 0.0
+    best_train_loss = float("inf")
     best_weights = None
 
     for ep in range(1, epochs + 1):
@@ -199,22 +200,12 @@ def train_and_export():
             v_h = vb2[c] / (1 - beta2 ** t_step)
             b2[c] -= lr * m_h / (math.sqrt(v_h) + eps)
 
-        # Evaluate on Test LOVO
-        test_correct = 0
-        for ti in range(n_test):
-            xi = X_test_norm[ti]
-            yi = y_test[ti]
-            z1 = [b1[j] + sum(xi[k] * W1[k][j] for k in range(n_feat)) for j in range(hidden_dim)]
-            h1 = [max(0.0, val) for val in z1]
-            logits = [b2[c] + sum(h1[j] * W2[j][c] for j in range(hidden_dim)) for c in range(n_class)]
-            if logits.index(max(logits)) == yi:
-                test_correct += 1
-
-        test_acc = (test_correct / n_test) * 100.0
+        # Model selection: based strictly on training set loss (NO test set leakage!)
+        avg_loss = total_loss / n_train
         train_acc = (train_correct / n_train) * 100.0
 
-        if test_acc >= best_test_acc:
-            best_test_acc = test_acc
+        if avg_loss < best_train_loss:
+            best_train_loss = avg_loss
             best_weights = {
                 "W1": [[round(val, 6) for val in row] for row in W1],
                 "b1": [round(val, 6) for val in b1],
@@ -222,13 +213,41 @@ def train_and_export():
                 "b2": [round(val, 6) for val in b2],
                 "epoch": ep,
                 "train_acc": round(train_acc, 2),
-                "test_acc": round(test_acc, 2)
+                "train_loss": round(avg_loss, 4)
             }
 
         if ep % 30 == 0 or ep == epochs:
-            print(f"   Epoch [{ep:3d}/{epochs}] | Loss: {total_loss/n_train:.4f} | Train Acc: {train_acc:5.1f}% | LOVO Test Acc: {test_acc:5.1f}%")
+            print(f"   Epoch [{ep:3d}/{epochs}] | Train Loss: {avg_loss:.4f} | Train Acc: {train_acc:5.1f}%")
 
-    print(f"\n🌟 最佳留一影片驗證準確率: {best_weights['test_acc']:.1f}% (於第 {best_weights['epoch']} 輪產出)")
+    # Evaluate held-out test set ONCE on the final selected weights (Strict zero-leakage)
+    test_correct = 0
+    per_class_stats = defaultdict(lambda: {"total": 0, "correct": 0})
+    for ti in range(n_test):
+        xi = X_test_norm[ti]
+        yi = y_test[ti]
+        cname = CLASSES[yi]
+        per_class_stats[cname]["total"] += 1
+        z1 = [best_weights["b1"][j] + sum(xi[k] * best_weights["W1"][k][j] for k in range(n_feat)) for j in range(hidden_dim)]
+        h1 = [max(0.0, val) for val in z1]
+        logits = [best_weights["b2"][c] + sum(h1[j] * best_weights["W2"][j][c] for j in range(hidden_dim)) for c in range(n_class)]
+        if logits.index(max(logits)) == yi:
+            test_correct += 1
+            per_class_stats[cname]["correct"] += 1
+
+    final_test_acc = (test_correct / n_test) * 100.0 if n_test > 0 else 0.0
+    best_weights["test_acc"] = round(final_test_acc, 2)
+
+    print("\n" + "=" * 70)
+    print(f"🎯 獨立留出測試集評估 (Held-Out Test Set, 4 支影片, {n_test} 筆事件):")
+    print(f"   獨立測試準確率: {final_test_acc:.1f}% ({test_correct}/{n_test})")
+    for cname in CLASSES:
+        if cname in per_class_stats:
+            s = per_class_stats[cname]
+            rec = (s["correct"] / s["total"] * 100.0) if s["total"] > 0 else 0.0
+            print(f"   - {cname:<16}: Recall {rec:5.1f}% ({s['correct']}/{s['total']})")
+        else:
+            print(f"   - {cname:<16}: [單影片未在測試折]")
+    print("=" * 70)
 
     model_payload = {
         "metadata": {

@@ -139,6 +139,9 @@ def compute_kinematics_series(positions_px, times, scale_ref, visibilities):
     max_disp = 1.5 * scale_ref
 
     last_good_pt = None
+    last_good_t = None
+    consecutive_jumps = 0
+
     for i in range(n):
         pt = positions_px[i]
         vis = visibilities[i] if visibilities else 1.0
@@ -147,16 +150,45 @@ def compute_kinematics_series(positions_px, times, scale_ref, visibilities):
         if pt is None or vis < 0.4:
             flags[i] = "LOW_CONF"
             filtered_pos.append(None)
+            consecutive_jumps = 0
             continue
             
+        dt = (t - last_good_t) if last_good_t is not None else 0.0
+        
+        # Tracking recovery after gap: if time gap > 0.20s, player naturally relocated during untracked interval
+        if last_good_t is not None and dt > 0.20:
+            f2d = OneEuroFilter2D(min_cutoff=1.5, beta=0.03)
+            last_good_pt = pt
+            last_good_t = t
+            consecutive_jumps = 0
+            f_pt = f2d.filter(pt, t)
+            filtered_pos.append(f_pt)
+            flags[i] = "RESUME"
+            continue
+
         if last_good_pt is not None:
             disp = math.hypot(pt[0] - last_good_pt[0], pt[1] - last_good_pt[1])
-            if disp > max_disp:
-                flags[i] = "JUMP_OUTLIER"
-                filtered_pos.append(None)
-                continue
+            frame_max_disp = max(max_disp, 15.0 * scale_ref * max(dt, 0.016))
+            if disp > frame_max_disp:
+                consecutive_jumps += 1
+                # If tracker moves and stays stably at new position for >= 3 frames, recover tracking
+                if consecutive_jumps >= 3:
+                    f2d = OneEuroFilter2D(min_cutoff=1.5, beta=0.03)
+                    last_good_pt = pt
+                    last_good_t = t
+                    consecutive_jumps = 0
+                    f_pt = f2d.filter(pt, t)
+                    filtered_pos.append(f_pt)
+                    flags[i] = "RECOVERED"
+                    continue
+                else:
+                    flags[i] = "JUMP_OUTLIER"
+                    filtered_pos.append(None)
+                    continue
                 
+        consecutive_jumps = 0
         last_good_pt = pt
+        last_good_t = t
         f_pt = f2d.filter(pt, t)
         filtered_pos.append(f_pt)
 
@@ -227,7 +259,8 @@ def detect_candidate_events(
     scale_ref,
     min_peak_speed=1.5,
     min_path_len=0.3,
-    merge_window_s=0.45
+    merge_window_s=0.45,
+    max_cluster_span_s=0.40
 ):
     """
     Class-agnostic candidate event detector.
@@ -243,7 +276,7 @@ def detect_candidate_events(
     window = 4
     for i in range(window, n - window):
         v = speeds[i]
-        if v >= min_peak_speed and flags[i] == "OK":
+        if v >= min_peak_speed and flags[i] in ("OK", "RECOVERED", "RESUME"):
             is_local_max = all(v >= speeds[i + k] for k in range(-window, window + 1) if k != 0)
             if is_local_max:
                 raw_peaks.append(i)
@@ -252,10 +285,16 @@ def detect_candidate_events(
         return []
 
     # 2. Merge peaks that occur within merge_window_s (Non-Maximum Suppression)
+    # Enforce maximum total cluster span (max_cluster_span_s) so distinct consecutive
+    # strokes spaced across 1.0+ seconds are not coalesced into a single mega-event.
+    effective_merge_window_s = min(merge_window_s, 0.35)
+
     merged_peaks = []
     curr_cluster = [raw_peaks[0]]
     for p in raw_peaks[1:]:
-        if times[p] - times[curr_cluster[-1]] <= merge_window_s:
+        adjacent_dt = times[p] - times[curr_cluster[-1]]
+        cluster_span = times[p] - times[curr_cluster[0]]
+        if adjacent_dt <= effective_merge_window_s and cluster_span <= max_cluster_span_s:
             curr_cluster.append(p)
         else:
             # Pick highest peak in cluster

@@ -22,6 +22,7 @@ import glob
 import math
 import json
 import hashlib
+import csv
 import cv2
 import numpy as np
 import mediapipe as mp
@@ -86,6 +87,24 @@ POSE_CONNECTIONS = [
     (15, 19), (15, 21), (16, 20), (16, 22)
 ]
 
+KINEMATICS_SCRIPT_PATH = os.path.join(os.path.dirname(__file__), "kinematics_v2.py")
+EXTRACTOR_SCRIPT_PATH = os.path.abspath(__file__)
+
+DETECTOR_PARAMS = {
+    "frame_step": 2,
+    "min_peak_speed": 1.5,
+    "min_path_len": 0.3,
+    "merge_window_s": 0.45,
+    "max_cluster_span_s": 0.40,
+    "target_w": 540,
+    "min_pose_presence_confidence": 0.5,
+    "min_tracking_confidence": 0.5
+}
+
+def compute_detector_params_hash(params):
+    payload = json.dumps(params, sort_keys=True).encode("utf-8")
+    return hashlib.sha256(payload).hexdigest()
+
 def compute_file_sha256(path):
     h = hashlib.sha256()
     with open(path, "rb") as f:
@@ -112,6 +131,49 @@ def load_checkpoint_v2():
 def save_checkpoint_v2(chk):
     with open(CHECKPOINT_PATH, "w", encoding="utf-8") as f:
         json.dump(chk, f, indent=2, ensure_ascii=False)
+
+def load_existing_manifest_annotations(manifest_path):
+    """
+    Non-destructive manifest loader:
+    Preserves human ground-truth labels and notes across extraction reruns.
+    """
+    annotations = {}
+    if not os.path.exists(manifest_path):
+        return annotations
+    try:
+        with open(manifest_path, "r", encoding="utf-8") as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                vid = row.get("video", "").strip()
+                eid = row.get("event_id", "").strip()
+                ts_str = row.get("timestamp_peak_s", "").strip()
+                m_ver = row.get("manual_verified", "").strip()
+                is_true = row.get("is_true_stroke", "").strip()
+                notes = row.get("notes", "").strip()
+
+                is_human = (
+                    m_ver not in ("", "UNVERIFIED", "AUTO_TIERED", "PENDING_HUMAN_AUDIT") or
+                    is_true not in ("", "PENDING") or
+                    notes != ""
+                )
+
+                ann_data = {
+                    "manual_verified": m_ver,
+                    "is_true_stroke": is_true,
+                    "notes": notes,
+                    "is_human": is_human
+                }
+                if eid:
+                    annotations[(vid, eid)] = ann_data
+                if ts_str:
+                    try:
+                        ts_val = round(float(ts_str), 2)
+                        annotations[(vid, ts_val)] = ann_data
+                    except ValueError:
+                        pass
+    except Exception as e:
+        print(f"⚠️ 讀取現有標註清單失敗: {e}", flush=True)
+    return annotations
 
 def draw_skeleton_on_frame(frame, lms, width, height, highlight_wrist=True):
     annotated = frame.copy()
@@ -280,9 +342,10 @@ def process_video_v2(video_path, base_options, model_sha):
         positions_px=wrist_px_positions,
         flags=flags,
         scale_ref=scale_ref,
-        min_peak_speed=1.5,   # 1.5 torso-lengths/s
-        min_path_len=0.3,     # 0.3 torso-lengths
-        merge_window_s=0.45   # 0.45s 峰值合併
+        min_peak_speed=DETECTOR_PARAMS["min_peak_speed"],
+        min_path_len=DETECTOR_PARAMS["min_path_len"],
+        merge_window_s=DETECTOR_PARAMS["merge_window_s"],
+        max_cluster_span_s=DETECTOR_PARAMS["max_cluster_span_s"]
     )
 
     print(f"   🎯 通用偵測器識別出 {len(raw_events)} 次候選揮拍事件", flush=True)
@@ -434,6 +497,11 @@ def main():
     print("   版本:", CODE_VERSION)
     print("=" * 70, flush=True)
 
+    force_rerun = "--force" in sys.argv or "--no-cache" in sys.argv
+    kinematics_sha = compute_file_sha256(KINEMATICS_SCRIPT_PATH)
+    extractor_sha = compute_file_sha256(EXTRACTOR_SCRIPT_PATH)
+    params_hash = compute_detector_params_hash(DETECTOR_PARAMS)
+
     base_options = python.BaseOptions(model_asset_path=MODEL_PATH)
     model_sha = compute_file_sha256(MODEL_PATH)
     checkpoint = load_checkpoint_v2()
@@ -449,12 +517,15 @@ def main():
         vname = os.path.basename(vpath)
         v_sha = compute_file_sha256(vpath)
         
-        # 嚴格 Checkpoint 機制：必須同時匹配 video_sha, model_sha 與 code_version
+        # 嚴格 Checkpoint 機制：必須同時匹配 video_sha, model_sha, kinematics_sha, extractor_sha, params_hash
         cache_entry = checkpoint.get(vname)
-        if (cache_entry and 
+        if (not force_rerun and cache_entry and 
             cache_entry.get("code_version") == CODE_VERSION and
             cache_entry.get("video_sha256") == v_sha and
-            cache_entry.get("model_sha256") == model_sha):
+            cache_entry.get("model_sha256") == model_sha and
+            cache_entry.get("kinematics_sha256") == kinematics_sha and
+            cache_entry.get("extractor_sha256") == extractor_sha and
+            cache_entry.get("params_hash") == params_hash):
             cached_events = cache_entry.get("events", [])
             print(f"⚡ [v2 斷點快取生效] {vname}: 秒讀 {len(cached_events)} 筆驗證事件", flush=True)
             all_events.extend(cached_events)
@@ -467,6 +538,9 @@ def main():
                 "code_version": CODE_VERSION,
                 "video_sha256": v_sha,
                 "model_sha256": model_sha,
+                "kinematics_sha256": kinematics_sha,
+                "extractor_sha256": extractor_sha,
+                "params_hash": params_hash,
                 "events_count": len(events),
                 "events": events
             }
@@ -483,6 +557,9 @@ def main():
             "created_at": "2026-10-16",
             "model_path": MODEL_PATH,
             "model_sha256": model_sha,
+            "kinematics_sha256": kinematics_sha,
+            "extractor_sha256": extractor_sha,
+            "params_hash": params_hash,
             "feature_names": FEATURE_NAMES_V2,
             "total_candidate_events": len(all_events)
         },
@@ -512,12 +589,49 @@ def main():
             f.write(",".join(row) + "\n")
     print(f"💾 已儲存 v2 真人事件資料庫 (CSV):  {DATASET_CSV_PATH}", flush=True)
 
-    # 輸出人工標註與審核清單 (Manifest CSV)
-    with open(MANIFEST_PATH, "w", encoding="utf-8") as f:
-        f.write("event_id,video,timestamp_peak_s,duration_s,peak_speed_torso_s,raw_class,manual_verified,is_true_stroke,notes\n")
+    # 輸出人工標註與審核清單 (Manifest CSV) - 嚴格保存既有人工標註
+    existing_anns = load_existing_manifest_annotations(MANIFEST_PATH)
+    preserved_count = 0
+
+    with open(MANIFEST_PATH, "w", newline="", encoding="utf-8") as f:
+        fieldnames = [
+            "event_id", "video", "timestamp_peak_s", "duration_s",
+            "peak_speed_torso_s", "raw_class", "heuristic_tier",
+            "audit_notes", "manual_verified", "is_true_stroke", "notes"
+        ]
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
+
         for ev in all_events:
-            f.write(f"{ev['event_id']},{ev['video']},{ev['timestamp_peak_s']},{ev['duration_s']},{ev['peak_speed_torso_s']},{ev['raw_class']},UNVERIFIED,,,\n")
-    print(f"📋 已建立人工標註清單 (Manifest): {MANIFEST_PATH}", flush=True)
+            vid = ev["video"]
+            eid = ev["event_id"]
+            ts_key = round(float(ev["timestamp_peak_s"]), 2)
+
+            ann = existing_anns.get((vid, eid)) or existing_anns.get((vid, ts_key))
+            if ann and ann["is_human"]:
+                m_ver = ann["manual_verified"]
+                is_true = ann["is_true_stroke"]
+                notes = ann["notes"]
+                preserved_count += 1
+            else:
+                m_ver = "PENDING_HUMAN_AUDIT"
+                is_true = "PENDING"
+                notes = ""
+
+            writer.writerow({
+                "event_id": eid,
+                "video": vid,
+                "timestamp_peak_s": ev["timestamp_peak_s"],
+                "duration_s": ev["duration_s"],
+                "peak_speed_torso_s": ev["peak_speed_torso_s"],
+                "raw_class": ev["raw_class"],
+                "heuristic_tier": "UNCLASSIFIED",
+                "audit_notes": "",
+                "manual_verified": m_ver,
+                "is_true_stroke": is_true,
+                "notes": notes
+            })
+    print(f"📋 已建立/更新人工標註清單 (Manifest): {MANIFEST_PATH} (保留 {preserved_count} 筆人工標註)", flush=True)
 
     # 統計輸出各類別事件數
     class_tally = {}

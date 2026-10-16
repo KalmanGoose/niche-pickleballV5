@@ -2238,49 +2238,16 @@ function solveArc(fx, fy, fz, tx, tz, out, speedScale) {
             }
 
             const hitMph = Math.round(PH.vel.length() * 2.23694);
-
-            // ★ NCHU Pickleball v2: 雙軌神經動作辨識與生物力學規則守護 (Dual-Path Stroke Engine)
-            let strokeDecision = null;
-            if (typeof PickleStrokeEngine !== 'undefined') {
-                const kinFeats = PickleStrokeEngine.extract10Features({
-                    wristYRelHip: (typeof waistLevel === 'number') ? waistLevel : 0,
-                    elbowAngle: (typeof lastWristAngle === 'number') ? lastWristAngle : 90,
-                    shoulderAngle: (typeof lastShoulderAngle === 'number') ? lastShoulderAngle : 30,
-                    wristSpeed: (typeof KIN !== 'undefined' && typeof KIN.vPeak === 'number') ? KIN.vPeak : 5.0,
-                    wristAccelY: (typeof KIN !== 'undefined' && typeof KIN.vPeak === 'number') ? KIN.vPeak * 0.5 : 0,
-                    torsoYaw: (typeof torsoYawDeg === 'function') ? torsoYawDeg() : 0,
-                    stanceBal: (typeof stanceBal === 'number') ? stanceBal : 0,
-                    leftHandUp: (typeof servePrepared === 'boolean') ? servePrepared : false,
-                    estimatedWristHeight: (typeof RIGHT !== 'undefined' && typeof RIGHT.padYTarget === 'number') ? RIGHT.padYTarget : 1.0,
-                    swingPathLen: (typeof SWING !== 'undefined' && typeof SWING.path === 'number') ? SWING.path : 1.0
-                });
-                strokeDecision = PickleStrokeEngine.arbitrateStroke(kinFeats, {
-                    isServe: (state === 'SERVE_READY' || state === 'SERVE_AIR'),
-                    isVolley: volley,
-                    inKitchen: (stage >= 3 && pPos.z < KITCHEN_D + 0.05)
-                });
-            }
-
-            const hitType = (strokeDecision && strokeDecision.finalStroke)
-                ? strokeDecision.finalStroke
-                : (volley ? 'VOLLEY' : (ch < 0.5 ? 'DINK' : 'POWER SHOT'));
-            const hitDisplayName = (strokeDecision && strokeDecision.displayName)
-                ? strokeDecision.displayName
-                : hitType;
+            const hitType = volley ? 'VOLLEY' : (ch < 0.5 ? 'DINK' : 'POWER SHOT');
 
             if (stage === 3 && !volley) {
                 S.pop(0.4 + ch * 0.6);
                 toast('NICE DINK! · ' + hitMph + ' mph', '成功完成中興湖廚房合法回擊!');
                 twoBounceDone = 1; updateGoal();
                 auditLogAdd({
-                    stage: stage, type: hitType, strokeLabel: hitDisplayName, hitter: 'PLAYER', speed: hitMph,
+                    stage: stage, type: hitType, hitter: 'PLAYER', speed: hitMph,
                     power: Math.round(ch * 100), spin: +spin.toFixed(2), chain: chainRes,
-                    stance: { ok: stanceOK, bal: +stanceBal.toFixed(2) }, outcome: '廚房合法回擊 (過關)',
-                    strokeEngine: strokeDecision ? {
-                        stroke: strokeDecision.finalStroke,
-                        confidence: +(strokeDecision.neuralPrediction.confidence).toFixed(3),
-                        ruleEnforced: strokeDecision.ruleEnforced
-                    } : null
+                    stance: { ok: stanceOK, bal: +stanceBal.toFixed(2) }, outcome: '廚房合法回擊 (過關)'
                 });
                 locked = true;
                 clearStage();
@@ -2292,12 +2259,7 @@ function solveArc(fx, fy, fz, tx, tz, out, speedScale) {
             // ★ 統一單一高品質 Toast 回饋，杜絕 0ms 內連續覆蓋與閃爍
             const spinBadge = Math.abs(spin) >= 0.20 ? (spin > 0 ? '🌪️ 右側旋 · ' : '🌪️ 左側旋 · ') : '';
             if (!isChanceBall) {
-                if (webcamActive && strokeDecision) {
-                    const subText = strokeDecision.ruleEnforced
-                        ? (strokeDecision.ruleReason || 'USA Pickleball 官方規則審查')
-                        : ('AI 體感辨識 · 信心度 ' + Math.round(strokeDecision.neuralPrediction.confidence * 100) + '%');
-                    toast(spinBadge + hitDisplayName + ' · ' + hitMph + ' mph', subText);
-                } else if (isPassiveBlock) {
+                if (isPassiveBlock) {
                     if (tz < -0.2) toast('🎾 減力擋球 · ' + hitMph + ' mph', '借力卸力柔和過網，落入廚房前端');
                 } else if (ch < 0.26) {
                     toast(spinBadge + '🎾 廚房精準丁克 · ' + hitMph + ' mph', '柔和越網，貼網低彈跳');
@@ -2309,14 +2271,9 @@ function solveArc(fx, fy, fz, tx, tz, out, speedScale) {
             }
 
             auditLogAdd({
-                stage: stage, type: hitType, strokeLabel: hitDisplayName, hitter: 'PLAYER', speed: hitMph,
+                stage: stage, type: hitType, hitter: 'PLAYER', speed: hitMph,
                 power: Math.round(ch * 100), spin: +spin.toFixed(2), chain: chainRes,
-                stance: { ok: stanceOK, bal: +stanceBal.toFixed(2) }, outcome: '合法回擊',
-                strokeEngine: strokeDecision ? {
-                    stroke: strokeDecision.finalStroke,
-                    confidence: +(strokeDecision.neuralPrediction.confidence).toFixed(3),
-                    ruleEnforced: strokeDecision.ruleEnforced
-                } : null
+                stance: { ok: stanceOK, bal: +stanceBal.toFixed(2) }, outcome: '合法回擊'
             });
 
             if (stage === 2 && rallyHits >= 3 && !volley) {

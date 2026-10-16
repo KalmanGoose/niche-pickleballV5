@@ -162,5 +162,167 @@ class TestKinematicsV2(unittest.TestCase):
         self.assertTrue(math.isclose(events[0]["timestamp_peak_s"], 1.0, abs_tol=0.1), f"Event 1 peak mismatch: {events[0]}")
         self.assertTrue(math.isclose(events[1]["timestamp_peak_s"], 2.5, abs_tol=0.1), f"Event 2 peak mismatch: {events[1]}")
 
+    def test_tracking_recovery_after_occlusion(self):
+        """Verify that after occlusion and a location jump, 8 consecutive valid points successfully recover tracking."""
+        fps = 60.0
+        dt = 1.0 / fps
+        scale_ref = 200.0
+        
+        # 20 frames at (100, 200), then 15 occluded frames, then 8 frames at (800, 200)
+        positions_px = [(100.0, 200.0)] * 20 + [None] * 15 + [(800.0, 200.0)] * 8
+        times = [i * dt for i in range(len(positions_px))]
+        visibilities = [0.9] * 20 + [0.0] * 15 + [0.95] * 8
+        
+        speeds, vel_x, vel_y, accel_y, flags = compute_kinematics_series(
+            positions_px, times, scale_ref, visibilities
+        )
+        
+        # Check the 8 frames after occlusion (indices 35 to 42)
+        recovered_flags = flags[35:43]
+        valid_recovered = [f for f in recovered_flags if f in ("OK", "RECOVERED", "RESUME")]
+        self.assertGreaterEqual(
+            len(valid_recovered), 6,
+            f"Expected tracking to recover for >= 6 of the 8 valid points, got {recovered_flags}"
+        )
+
+    def test_peak_merging_cluster_span_limit(self):
+        """Verify that 4 distinct peaks spaced 0.4s apart over 1.2s are NOT merged into a single 1.2s mega-event."""
+        dt = 0.016
+        times = [i * dt for i in range(120)]  # ~2 seconds
+        speeds = [0.2] * 120
+        flags = ["OK"] * 120
+        scale_ref = 200.0
+        positions_px = [(500.0 + i * 15.0, 500.0) for i in range(120)]
+        
+        # Peak 0 at t=0.10s (frame 6)
+        # Peak 1 at t=0.50s (frame 31, +0.4s)
+        # Peak 2 at t=0.90s (frame 56, +0.4s)
+        # Peak 3 at t=1.30s (frame 81, +0.4s)
+        for peak_frame in [6, 31, 56, 81]:
+            for offset in range(-5, 6):
+                speeds[peak_frame + offset] = 0.2 + 4.0 * math.exp(-(offset**2) / 4.0)
+                
+        events = detect_candidate_events(
+            speeds=speeds,
+            times=times,
+            positions_px=positions_px,
+            flags=flags,
+            scale_ref=scale_ref,
+            min_peak_speed=1.5,
+            min_path_len=0.2,
+            merge_window_s=0.45
+        )
+        
+        # Because peaks are spaced 0.4s apart across 1.2s, they must NOT be 1 single merged event
+        self.assertGreater(
+            len(events), 1,
+            f"Expected separate events due to max cluster span limit, but got only {len(events)} event spanning across 1.2s!"
+        )
+
+    def test_cache_invalidation_hash_checking(self):
+        """Verify that cache entries with mismatched code SHA256 or parameter hash are invalidated."""
+        from scripts.extract_strokes_v2 import (
+            compute_detector_params_hash,
+            DETECTOR_PARAMS
+        )
+        current_param_hash = compute_detector_params_hash(DETECTOR_PARAMS)
+        tampered_params = dict(DETECTOR_PARAMS)
+        tampered_params["min_peak_speed"] = 2.0
+        tampered_param_hash = compute_detector_params_hash(tampered_params)
+
+        self.assertNotEqual(current_param_hash, tampered_param_hash)
+
+        # Mock cache entry
+        cache_entry = {
+            "code_version": "2.0.0",
+            "video_sha256": "fake_video_sha",
+            "model_sha256": "fake_model_sha",
+            "kinematics_sha256": "fake_kinematics_sha",
+            "extractor_sha256": "fake_extractor_sha",
+            "params_hash": current_param_hash,
+            "events": [{"event_id": "ev1"}]
+        }
+
+        # Check: matching hashes pass
+        is_valid = (
+            cache_entry.get("code_version") == "2.0.0" and
+            cache_entry.get("video_sha256") == "fake_video_sha" and
+            cache_entry.get("model_sha256") == "fake_model_sha" and
+            cache_entry.get("kinematics_sha256") == "fake_kinematics_sha" and
+            cache_entry.get("extractor_sha256") == "fake_extractor_sha" and
+            cache_entry.get("params_hash") == current_param_hash
+        )
+        self.assertTrue(is_valid)
+
+        # Check: changed parameter invalidates cache
+        is_valid_after_param_change = (
+            cache_entry.get("params_hash") == tampered_param_hash
+        )
+        self.assertFalse(is_valid_after_param_change)
+
+        # Check: changed code hash invalidates cache
+        is_valid_after_code_change = (
+            cache_entry.get("kinematics_sha256") == "modified_kinematics_sha"
+        )
+        self.assertFalse(is_valid_after_code_change)
+
+    def test_manifest_preservation_of_human_annotations(self):
+        """Verify that re-running extraction / tiering does NOT overwrite existing human annotations."""
+        import tempfile
+        import csv
+        from scripts.extract_strokes_v2 import load_existing_manifest_annotations
+
+        with tempfile.NamedTemporaryFile("w+", suffix=".csv", delete=False) as tf:
+            tf_path = tf.name
+            writer = csv.writer(tf)
+            writer.writerow([
+                "event_id", "video", "timestamp_peak_s", "duration_s",
+                "peak_speed_torso_s", "raw_class", "heuristic_tier",
+                "audit_notes", "manual_verified", "is_true_stroke", "notes"
+            ])
+            # Row 1: Manually confirmed true stroke by human
+            writer.writerow([
+                "smash_ev_001", "smash.mp4", "3.235", "0.200",
+                "5.500", "SMASH", "TIER_A_CANDIDATE",
+                "Bio-valid", "HUMAN_CONFIRMED", "TRUE", "Reviewed frame 194 contact point"
+            ])
+            # Row 2: Manually rejected false positive by human
+            writer.writerow([
+                "dink_ev_002", "dink.mp4", "4.736", "0.300",
+                "1.570", "KITCHEN_DINK", "TIER_C_SUSPECT",
+                "Low speed", "HUMAN_REJECTED", "FALSE", "Bent down to pick up ball"
+            ])
+            # Row 3: Still unverified
+            writer.writerow([
+                "drive_ev_003", "drive.mp4", "6.120", "0.250",
+                "4.800", "POWER_DRIVE", "TIER_A_CANDIDATE",
+                "Bio-valid", "PENDING_HUMAN_AUDIT", "PENDING", ""
+            ])
+
+        try:
+            anns = load_existing_manifest_annotations(tf_path)
+            # Check row 1 preserved
+            ann1 = anns.get(("smash.mp4", "smash_ev_001"))
+            self.assertIsNotNone(ann1)
+            self.assertTrue(ann1["is_human"])
+            self.assertEqual(ann1["manual_verified"], "HUMAN_CONFIRMED")
+            self.assertEqual(ann1["is_true_stroke"], "TRUE")
+            self.assertEqual(ann1["notes"], "Reviewed frame 194 contact point")
+
+            # Check row 2 preserved
+            ann2 = anns.get(("dink.mp4", "dink_ev_002"))
+            self.assertIsNotNone(ann2)
+            self.assertTrue(ann2["is_human"])
+            self.assertEqual(ann2["manual_verified"], "HUMAN_REJECTED")
+            self.assertEqual(ann2["is_true_stroke"], "FALSE")
+
+            # Check row 3 recognized as unverified
+            ann3 = anns.get(("drive.mp4", "drive_ev_003"))
+            self.assertIsNotNone(ann3)
+            self.assertFalse(ann3["is_human"])
+        finally:
+            if os.path.exists(tf_path):
+                os.remove(tf_path)
+
 if __name__ == "__main__":
     unittest.main()

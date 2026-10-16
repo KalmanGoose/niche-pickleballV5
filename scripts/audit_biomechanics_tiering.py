@@ -42,8 +42,44 @@ def run_tiering():
                 else:
                     subordinate_peaks[evs_s[i-1]["event_id"]] = f"引拍前置波峰 (與後主波峰間隔 {gap:.2f}s < 0.55s)"
 
+    existing_anns = {}
+    if os.path.exists(MANIFEST_IN):
+        try:
+            with open(MANIFEST_IN, "r", encoding="utf-8") as f:
+                reader = csv.DictReader(f)
+                for row in reader:
+                    vid = row.get("video", "").strip()
+                    eid = row.get("event_id", "").strip()
+                    ts_str = row.get("timestamp_peak_s", "").strip()
+                    m_ver = row.get("manual_verified", "").strip()
+                    is_true = row.get("is_true_stroke", "").strip()
+                    notes = row.get("notes", "").strip()
+
+                    is_human = (
+                        m_ver not in ("", "UNVERIFIED", "AUTO_TIERED", "PENDING_HUMAN_AUDIT") or
+                        is_true not in ("", "PENDING") or
+                        notes != ""
+                    )
+                    ann_data = {
+                        "manual_verified": m_ver,
+                        "is_true_stroke": is_true,
+                        "notes": notes,
+                        "is_human": is_human
+                    }
+                    if eid:
+                        existing_anns[(vid, eid)] = ann_data
+                    if ts_str:
+                        try:
+                            ts_val = round(float(ts_str), 2)
+                            existing_anns[(vid, ts_val)] = ann_data
+                        except ValueError:
+                            pass
+        except Exception as e:
+            print(f"⚠️ 讀取現有標註失敗: {e}", flush=True)
+
     tiered_records = []
     tier_counts = {"TIER_A": 0, "TIER_B": 0, "TIER_C": 0}
+    preserved_count = 0
 
     for e in events:
         eid = e["event_id"]
@@ -70,11 +106,22 @@ def run_tiering():
             tier = "TIER_B_MARGINAL"
             reason = f"邊界小球力道 (1.8 <= {spd:.2f} < 2.2 t/s)"
         else:
-            tier = "TIER_A_CONFIRMED"
-            reason = "高可信度有效揮拍 (力學特徵完全符合)"
+            tier = "TIER_A_CANDIDATE"
+            reason = "符合生物力學候選特徵 (速度/時長無異常)"
 
         tier_group = tier.split("_")[0] + "_" + tier.split("_")[1]
         tier_counts[tier_group] += 1
+
+        ann = existing_anns.get((e["video"], eid)) or existing_anns.get((e["video"], round(float(e["timestamp_peak_s"]), 2)))
+        if ann and ann["is_human"]:
+            m_ver = ann["manual_verified"]
+            is_true = ann["is_true_stroke"]
+            notes = ann["notes"]
+            preserved_count += 1
+        else:
+            m_ver = "PENDING_HUMAN_AUDIT"
+            is_true = "PENDING"
+            notes = ""
 
         rec = {
             "event_id": eid,
@@ -83,18 +130,19 @@ def run_tiering():
             "duration_s": dur,
             "peak_speed_torso_s": spd,
             "raw_class": e["raw_class"],
+            "heuristic_tier": tier,
             "confidence_tier": tier,
             "audit_notes": reason,
-            "manual_verified": "AUTO_TIERED",
-            "is_true_stroke": "TRUE" if tier.startswith("TIER_A") else ("MARGINAL" if tier.startswith("TIER_B") else "FALSE"),
-            "notes": ""
+            "manual_verified": m_ver,
+            "is_true_stroke": is_true,
+            "notes": notes
         }
         tiered_records.append(rec)
 
     # Write updated manifest
     fieldnames = [
         "event_id", "video", "timestamp_peak_s", "duration_s", 
-        "peak_speed_torso_s", "raw_class", "confidence_tier", 
+        "peak_speed_torso_s", "raw_class", "heuristic_tier", "confidence_tier", 
         "audit_notes", "manual_verified", "is_true_stroke", "notes"
     ]
     with open(MANIFEST_OUT, "w", newline="", encoding="utf-8") as f:
@@ -103,14 +151,16 @@ def run_tiering():
         writer.writerows(tiered_records)
 
     print("=" * 76)
-    print("🏆 國際運動生物力學標準 (Sports CV) 候選事件三級可信度標註完成")
+    print("🏆 運動生物力學啟發式候選分級完成 (Heuristic Candidate Tiering)")
     print("=" * 76)
     total = len(tiered_records)
     print(f"總候選事件數 : {total} 筆")
-    print(f"🟢 Tier A (高可信度真揮拍) : {tier_counts['TIER_A']:3d} 筆 ({tier_counts['TIER_A']/total*100:5.1f}%) -> 推薦直接納入訓練")
-    print(f"🟡 Tier B (邊界/次級震盪)   : {tier_counts['TIER_B']:3d} 筆 ({tier_counts['TIER_B']/total*100:5.1f}%) -> 需抽樣人工確認")
-    print(f"🔴 Tier C (高機率假陽性)   : {tier_counts['TIER_C']:3d} 筆 ({tier_counts['TIER_C']/total*100:5.1f}%) -> 建議預設排除")
+    print(f"🟢 Tier A (啟發式候選揮拍) : {tier_counts['TIER_A']:3d} 筆 ({tier_counts['TIER_A']/total*100:5.1f}%) -> 待人工審查確認")
+    print(f"🟡 Tier B (邊界/次級震盪)   : {tier_counts['TIER_B']:3d} 筆 ({tier_counts['TIER_B']/total*100:5.1f}%) -> 待人工抽樣確認")
+    print(f"🔴 Tier C (疑似假陽性)     : {tier_counts['TIER_C']:3d} 筆 ({tier_counts['TIER_C']/total*100:5.1f}%) -> 建議預設排除")
+    print(f"📌 人工標註保留狀態: {preserved_count} 筆已保留，{total - preserved_count} 筆維持 PENDING_HUMAN_AUDIT")
     print("=" * 76)
+    print("⚠️  [重要聲明] 此分級為自動化啟發式篩選，嚴禁直接視為人工標註真值 (Ground Truth)。")
     print(f"📁 已寫入分級標籤至: {MANIFEST_OUT}\n")
 
 if __name__ == "__main__":
