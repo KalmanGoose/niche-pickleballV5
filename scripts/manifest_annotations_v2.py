@@ -13,6 +13,7 @@ import hashlib
 import json
 import math
 import os
+import re
 import shutil
 import tempfile
 import time
@@ -1099,20 +1100,20 @@ def export_evaluator_ground_truth(gt_data, only_frozen=True, include_unsure=Fals
     return eval_list
 
 
-def save_ground_truth_events(output_path, gt_data, auto_recover=False):
+def save_ground_truth_events(output_path, gt_data, allowed_videos=None, video_durations=None, auto_recover=False):
     """
     Safely save independent ground truth dataset via transactional batch publish.
     Also exports evaluator-compatible list to {output_dir}/ground_truth_evaluator.json.
     Fail-closed: if output_path already exists and cannot be read or validated,
     raises ManifestValidationError and halts to preserve original bytes.
     """
-    validate_ground_truth_events(gt_data)
+    validate_ground_truth_events(gt_data, allowed_videos=allowed_videos, video_durations=video_durations)
     output_path = os.path.abspath(output_path)
     if os.path.exists(output_path):
         try:
             with open(output_path, "r", encoding="utf-8") as f:
                 old_gt = json.load(f)
-            validate_ground_truth_events(old_gt)
+            validate_ground_truth_events(old_gt, allowed_videos=allowed_videos, video_durations=video_durations)
         except Exception as e:
             raise ManifestValidationError(
                 f"Existing ground truth file at '{output_path}' is corrupted or invalid: {e}. "
@@ -1160,6 +1161,8 @@ def update_candidate_manifest_row(
         to pending is rejected with ManifestConflictError. Modifying an already-signed candidate
         requires explicit is_correction=True and a non-empty correction_reason, which is permanently
         recorded in the audit history.
+      - Permanent audit trail: historical [CORRECTION ...] audit entries are NEVER deleted or overwritten
+        by subsequent notes updates.
     """
     manifest_path = os.path.abspath(manifest_path)
     if auto_recover:
@@ -1219,6 +1222,10 @@ def update_candidate_manifest_row(
     was_signed = curr_status_kind in ("SIGNED_TP", "SIGNED_FP")
     is_same_verdict = (norm_verified == curr_ver and norm_true == curr_true)
 
+    old_notes = (curr_row.get("notes") or "").strip()
+    # Extract any existing [CORRECTION ...] audit entries from old_notes
+    existing_corrections = re.findall(r'\[CORRECTION\s+[^\]]+\]', old_notes)
+
     if was_signed and not is_same_verdict:
         if not is_correction:
             raise ManifestConflictError(
@@ -1233,19 +1240,28 @@ def update_candidate_manifest_row(
             )
         reviewer_str = str(reviewer).strip() or "ANONYMOUS"
         iso_time = time.strftime("%Y-%m-%d %H:%M:%SZ", time.gmtime())
-        audit_note = (
+        new_audit_tag = (
             f"[CORRECTION {iso_time} by {reviewer_str}: "
             f"{curr_ver}/{curr_true} -> {norm_verified}/{norm_true}; Reason: {reason_str}]"
         )
-        old_notes = (curr_row.get("notes") or "").strip()
-        user_notes = str(notes).strip() if notes is not None else ""
-        if old_notes:
-            curr_row["notes"] = f"{old_notes} | {audit_note} {user_notes}".strip()
-        else:
-            curr_row["notes"] = f"{audit_note} {user_notes}".strip()
+        existing_corrections.append(new_audit_tag)
+
+    # Clean user freeform text (strip out any [CORRECTION ...] blocks to avoid duplicating them)
+    if notes is not None:
+        user_notes = re.sub(r'\[CORRECTION\s+[^\]]+\]', '', str(notes)).strip()
+        user_notes = re.sub(r'\|\s*\|', '|', user_notes).strip(' |')
     else:
-        if notes is not None:
-            curr_row["notes"] = str(notes)
+        user_notes = re.sub(r'\[CORRECTION\s+[^\]]+\]', '', old_notes).strip()
+        user_notes = re.sub(r'\|\s*\|', '|', user_notes).strip(' |')
+
+    if existing_corrections:
+        corrections_text = " | ".join(existing_corrections)
+        if user_notes:
+            curr_row["notes"] = f"{user_notes} | {corrections_text}"
+        else:
+            curr_row["notes"] = corrections_text
+    else:
+        curr_row["notes"] = user_notes
 
     curr_row["manual_verified"] = norm_verified
     curr_row["is_true_stroke"] = norm_true

@@ -106,6 +106,21 @@ class InProcessClient:
 
 class TestAnnotationTool(unittest.TestCase):
 
+    def _create_synthetic_video(self, filename, duration_s=10.0, fps=10.0):
+        vpath = os.path.join(self.videos_dir, filename)
+        try:
+            import cv2
+            import numpy as np
+            fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+            out = cv2.VideoWriter(vpath, fourcc, fps, (64, 64))
+            for _ in range(int(duration_s * fps)):
+                out.write(np.zeros((64, 64, 3), dtype=np.uint8))
+            out.release()
+        except Exception:
+            with open(vpath, "wb") as f:
+                f.write(b"0123456789" * 100)
+        return vpath
+
     def setUp(self):
         self.tmpdir = tempfile.mkdtemp(prefix="test_anno_tool_")
         self.videos_dir = os.path.join(self.tmpdir, "videos")
@@ -115,11 +130,11 @@ class TestAnnotationTool(unittest.TestCase):
         os.makedirs(self.output_dir, exist_ok=True)
         os.makedirs(os.path.dirname(self.manifest_path), exist_ok=True)
 
-        # Create dummy video files
+        # Create valid synthetic test video files using OpenCV
         self.test_video_name = "dink2.mp4"
-        self.test_video_path = os.path.join(self.videos_dir, self.test_video_name)
-        with open(self.test_video_path, "wb") as f:
-            f.write(b"0123456789" * 100)  # 1000 bytes
+        self.test_video_path = self._create_synthetic_video("dink2.mp4", duration_s=10.0)
+        self._create_synthetic_video("smash2.mp4", duration_s=25.0)
+        self._create_synthetic_video("serve_legal1.mp4", duration_s=35.0)
 
         # Create sample candidate manifest with 3 pilot videos
         self.fieldnames = [
@@ -184,6 +199,11 @@ class TestAnnotationTool(unittest.TestCase):
             "manifest_path": os.path.abspath(self.manifest_path),
             "output_dir": os.path.abspath(self.output_dir),
             "tools_html": os.path.abspath(self.tools_html),
+            "video_durations": {
+                "dink2.mp4": 10.0,
+                "smash2.mp4": 25.0,
+                "serve_legal1.mp4": 35.0,
+            },
             "debug": False,
         }
         self.client = InProcessClient(self.server_config)
@@ -226,9 +246,10 @@ class TestAnnotationTool(unittest.TestCase):
 
     def test_2_video_streaming_range_and_traversal_guards(self):
         """Verify HTTP 206 Partial Content for video Range requests and path traversal rejection."""
+        file_sz = os.path.getsize(self.test_video_path)
         status, headers, body = self.client.get(f"/video/{self.test_video_name}")
         self.assertEqual(status, 200)
-        self.assertEqual(len(body), 1000)
+        self.assertEqual(len(body), file_sz)
         self.assertEqual(headers.get("Accept-Ranges"), "bytes")
 
         status2, headers2, body2 = self.client.get(
@@ -237,8 +258,10 @@ class TestAnnotationTool(unittest.TestCase):
         )
         self.assertEqual(status2, 206)
         self.assertEqual(len(body2), 50)
-        self.assertEqual(headers2.get("Content-Range"), "bytes 0-49/1000")
-        self.assertEqual(body2, b"0123456789" * 5)
+        self.assertEqual(headers2.get("Content-Range"), f"bytes 0-49/{file_sz}")
+        with open(self.test_video_path, "rb") as f:
+            expected_prefix = f.read(50)
+        self.assertEqual(body2, expected_prefix)
 
         # Path traversal attack: attempt to escape videos_dir
         status3, _, _ = self.client.get("/video/../../../../etc/passwd")
@@ -700,6 +723,330 @@ class TestAnnotationTool(unittest.TestCase):
 
         base_sha_after = man_v2_mod.compute_file_sha256(self.manifest_path)
         self.assertEqual(base_sha_before, base_sha_after)
+
+    def test_12_cross_worktree_data_isolation_and_cli_missing_output_dir(self):
+        """
+        [P1 Regression - Review Round 2] Verify cross-worktree data isolation and CLI explicit output-dir:
+          1. validate_safe_output_dir detects and rejects main repository data/** (including non-existent child paths).
+          2. validate_safe_output_dir rejects symlinks pointing into data/**.
+          3. create_annotation_server requires output_dir and raises ValueError if missing/empty.
+          4. CLI invocation missing --output-dir exits with error code 2 (zero writes).
+        """
+        # 1. Reject main worktree data/v2/new-subdir
+        main_repo_manifest = os.path.abspath(
+            os.path.join(os.path.dirname(__file__), "../data/v2/candidate_events_manifest.csv")
+        )
+        main_data_child = os.path.abspath(
+            os.path.join(os.path.dirname(__file__), "../data/v2/pilot_output_609_test")
+        )
+        with self.assertRaises(ValueError) as cm1:
+            srv.validate_safe_output_dir(
+                output_dir=main_data_child,
+                manifest_path=main_repo_manifest,
+                repo_root=self.tmpdir,
+            )
+        self.assertIn("data/**", str(cm1.exception))
+
+        # 2. Reject symlink pointing into main data directory
+        symlink_to_main_data = os.path.join(self.tmpdir, "symlink_alias_to_main_data")
+        main_data_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../data"))
+        if os.path.exists(main_data_dir):
+            os.symlink(main_data_dir, symlink_to_main_data)
+            with self.assertRaises(ValueError) as cm2:
+                srv.validate_safe_output_dir(
+                    output_dir=symlink_to_main_data,
+                    manifest_path=main_repo_manifest,
+                    repo_root=self.tmpdir,
+                )
+            self.assertIn("data/**", str(cm2.exception))
+
+        # 3. create_annotation_server requires non-empty output_dir
+        with self.assertRaises(ValueError):
+            srv.create_annotation_server(
+                output_dir=None,
+                videos_dir=self.videos_dir,
+                manifest_path=self.manifest_path,
+            )
+
+        with self.assertRaises(ValueError):
+            srv.create_annotation_server(
+                output_dir="   ",
+                videos_dir=self.videos_dir,
+                manifest_path=self.manifest_path,
+            )
+
+        # 4. CLI invocation without --output-dir exits with error code 2
+        import subprocess
+        res = subprocess.run(
+            [sys.executable, os.path.abspath(os.path.join(os.path.dirname(__file__), "../scripts/annotation_server.py"))],
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(res.returncode, 2)
+        self.assertIn("--output-dir", res.stderr)
+
+    def test_13_candidate_correction_notes_persistence_across_multiple_edits(self):
+        """
+        [P1 Regression - Review Round 2] Verify that historical [CORRECTION ...] audit entries
+        are PERMANENTLY preserved and cannot be overwritten by subsequent notes updates,
+        even when the candidate verdict remains unchanged.
+        """
+        self._freeze_video_gt(video="dink2.mp4")
+
+        # 1. Initial sign: HUMAN_CONFIRMED / TRUE
+        p1 = {
+            "video": "dink2.mp4",
+            "event_id": "dink2_ev_001",
+            "manual_verified": "HUMAN_CONFIRMED",
+            "is_true_stroke": "TRUE",
+            "notes": "First audit pass - looks like clean contact",
+            "reviewer": "Reviewer_Alice",
+        }
+        st1, _, raw1 = self.client.post("/api/candidates/audit", p1)
+        self.assertEqual(st1, 200)
+        res1 = json.loads(raw1.decode("utf-8"))
+        self.assertIn("First audit pass", res1["event"]["notes"])
+
+        # 2. Correct to HUMAN_REJECTED / FALSE with correction reason
+        p2 = {
+            "video": "dink2.mp4",
+            "event_id": "dink2_ev_001",
+            "manual_verified": "HUMAN_REJECTED",
+            "is_true_stroke": "FALSE",
+            "notes": "Re-reviewed at 0.25x speed: paddle missed ball",
+            "reviewer": "Reviewer_Bob",
+            "is_correction": True,
+            "correction_reason": "Slow-motion inspection confirms ball bounced on ground before paddle swung",
+        }
+        st2, _, raw2 = self.client.post("/api/candidates/audit", p2)
+        self.assertEqual(st2, 200)
+        res2 = json.loads(raw2.decode("utf-8"))
+        notes2 = res2["event"]["notes"]
+        self.assertIn("[CORRECTION", notes2)
+        self.assertIn("Reviewer_Bob", notes2)
+        self.assertIn("Slow-motion inspection", notes2)
+
+        # 3. Subsequent update with SAME verdict (HUMAN_REJECTED / FALSE) and fresh user notes
+        p3 = {
+            "video": "dink2.mp4",
+            "event_id": "dink2_ev_001",
+            "manual_verified": "HUMAN_REJECTED",
+            "is_true_stroke": "FALSE",
+            "notes": "Fresh comment: also verified audio cue indicates double bounce",
+            "reviewer": "Reviewer_Charlie",
+        }
+        st3, _, raw3 = self.client.post("/api/candidates/audit", p3)
+        self.assertEqual(st3, 200)
+        res3 = json.loads(raw3.decode("utf-8"))
+        notes3 = res3["event"]["notes"]
+        # CRITICAL: Previous correction audit tag MUST still be present!
+        self.assertIn("[CORRECTION", notes3)
+        self.assertIn("Reviewer_Bob", notes3)
+        self.assertIn("Slow-motion inspection", notes3)
+        self.assertIn("Fresh comment", notes3)
+
+    def test_14_ground_truth_revision_history_contains_full_previous_events_and_hash(self):
+        """
+        [P1 Regression - Review Round 2] Verify that ground truth revisions on frozen videos:
+          1. Require is_correction=True and non-empty correction_reason.
+          2. Permanently preserve full previous events list, previous events SHA-256, reviewer, and reason.
+          3. Enable complete historical rollback and audit verification.
+        """
+        # 1. Freeze initial ground truth
+        initial_events = [
+            {
+                "gt_id": "gt_01",
+                "timestamp_s": 2.100,
+                "stroke_class": "KITCHEN_DINK",
+                "confidence": "CONFIRMED",
+                "notes": "Clean dink",
+            }
+        ]
+        p_init = {
+            "reviewer": "Reviewer_Alice",
+            "video": "dink2.mp4",
+            "events": initial_events,
+            "full_video_reviewed": True,
+            "freeze": True,
+            "notes": "Initial freeze",
+        }
+        st_init, _, _ = self.client.post("/api/ground_truth", p_init)
+        self.assertEqual(st_init, 200)
+
+        # 2. Attempt modification without is_correction -> 409 CONFLICT
+        p_unauthorized = {
+            "reviewer": "Reviewer_Bob",
+            "video": "dink2.mp4",
+            "events": initial_events,
+            "notes": "Unauthorized edit",
+        }
+        st_unauth, _, raw_unauth = self.client.post("/api/ground_truth", p_unauthorized)
+        self.assertEqual(st_unauth, 409)
+
+        # 3. Attempt modification with is_correction but empty correction_reason -> 400 BAD REQUEST
+        p_no_reason = {
+            "reviewer": "Reviewer_Bob",
+            "video": "dink2.mp4",
+            "events": initial_events,
+            "is_correction": True,
+            "correction_reason": "   ",
+        }
+        st_no_reason, _, _ = self.client.post("/api/ground_truth", p_no_reason)
+        self.assertEqual(st_no_reason, 400)
+
+        # 4. Valid revision with adjusted timestamp: 2.100s -> 2.350s
+        revised_events = [
+            {
+                "gt_id": "gt_01",
+                "timestamp_s": 2.350,
+                "stroke_class": "KITCHEN_DINK",
+                "confidence": "CONFIRMED",
+                "notes": "Corrected timestamp to true contact peak",
+            }
+        ]
+        p_correct = {
+            "reviewer": "Reviewer_Bob",
+            "video": "dink2.mp4",
+            "events": revised_events,
+            "is_correction": True,
+            "correction_reason": "Frame-stepping revealed contact point is at 2.350s rather than 2.100s",
+        }
+        st_cor, _, raw_cor = self.client.post("/api/ground_truth", p_correct)
+        self.assertEqual(st_cor, 200)
+
+        # 5. Read back ground truth from disk and verify audit_trail details
+        gt_path = os.path.join(self.output_dir, "ground_truth_events.json")
+        with open(gt_path, "r", encoding="utf-8") as f:
+            saved_gt = json.load(f)
+
+        vdata = saved_gt["videos"]["dink2.mp4"]
+        audit_trail = vdata.get("audit_trail", [])
+        self.assertEqual(len(audit_trail), 1)
+        record = audit_trail[0]
+
+        self.assertEqual(record["reviewer"], "Reviewer_Bob")
+        self.assertIn("Frame-stepping revealed", record["reason"])
+        self.assertEqual(record["previous_events"], initial_events)
+        self.assertTrue(isinstance(record["previous_events_sha256"], str))
+        self.assertEqual(len(record["previous_events_sha256"]), 64)
+
+    def test_15_api_ground_truth_boundary_and_invalid_video_validations(self):
+        """
+        [P1 Regression - Review Round 2] Verify API boundary validations on ground truth:
+          1. Rejects video not in pilot video set (missing.mp4 -> 400).
+          2. Rejects 0-byte or unreadable video file (400).
+          3. Rejects timestamp exceeding video duration (e.g. 999999.0s on 10s clip -> 400).
+          4. Rejects negative timestamp (e.g. -1.0s -> 400).
+          5. Accepts valid boundary timestamps ([0.0s, duration_s] -> 200 SAVED).
+          6. Verifies that video_sha256 is non-null 64-char hex string upon saving.
+        """
+        # 1. Reject video not in allowed pilot set
+        p_missing_name = {
+            "reviewer": "Auditor_Ethan",
+            "video": "missing.mp4",
+            "events": [],
+            "full_video_reviewed": True,
+            "freeze": True,
+        }
+        st1, _, raw1 = self.client.post("/api/ground_truth", p_missing_name)
+        self.assertEqual(st1, 400)
+        res1 = json.loads(raw1.decode("utf-8"))
+        self.assertEqual(res1["error_code"], "INVALID_PILOT_VIDEO")
+
+        # 2. Reject 0-byte video file
+        empty_vid_path = os.path.join(self.videos_dir, "smash2.mp4")
+        with open(empty_vid_path, "wb") as f:
+            pass  # truncate to 0 bytes
+        p_empty = {
+            "reviewer": "Auditor_Ethan",
+            "video": "smash2.mp4",
+            "events": [],
+            "full_video_reviewed": True,
+            "freeze": True,
+        }
+        st2, _, raw2 = self.client.post("/api/ground_truth", p_empty)
+        self.assertEqual(st2, 400)
+        res2 = json.loads(raw2.decode("utf-8"))
+        self.assertEqual(res2["error_code"], "INVALID_VIDEO_FILE")
+
+        # Restore smash2.mp4
+        self._create_synthetic_video("smash2.mp4", duration_s=25.0)
+
+        # 3. Reject timestamp exceeding duration (dink2.mp4 has duration 10.0s)
+        p_overflow = {
+            "reviewer": "Auditor_Ethan",
+            "video": "dink2.mp4",
+            "events": [
+                {
+                    "gt_id": "gt_overflow",
+                    "timestamp_s": 999999.0,
+                    "stroke_class": "SMASH",
+                    "confidence": "CONFIRMED",
+                }
+            ],
+            "full_video_reviewed": True,
+            "freeze": True,
+        }
+        st3, _, raw3 = self.client.post("/api/ground_truth", p_overflow)
+        self.assertEqual(st3, 400)
+        res3 = json.loads(raw3.decode("utf-8"))
+        self.assertEqual(res3["error_code"], "TIMESTAMP_OUT_OF_BOUNDS")
+
+        # 4. Reject negative timestamp
+        p_negative = {
+            "reviewer": "Auditor_Ethan",
+            "video": "dink2.mp4",
+            "events": [
+                {
+                    "gt_id": "gt_negative",
+                    "timestamp_s": -0.5,
+                    "stroke_class": "SMASH",
+                    "confidence": "CONFIRMED",
+                }
+            ],
+            "full_video_reviewed": True,
+            "freeze": True,
+        }
+        st4, _, raw4 = self.client.post("/api/ground_truth", p_negative)
+        self.assertEqual(st4, 400)
+        res4 = json.loads(raw4.decode("utf-8"))
+        self.assertEqual(res4["error_code"], "TIMESTAMP_OUT_OF_BOUNDS")
+
+        # 5. Accept valid boundary timestamps: 0.0s and 10.0s
+        p_boundary = {
+            "reviewer": "Auditor_Ethan",
+            "video": "dink2.mp4",
+            "events": [
+                {
+                    "gt_id": "gt_start",
+                    "timestamp_s": 0.0,
+                    "stroke_class": "KITCHEN_DINK",
+                    "confidence": "CONFIRMED",
+                },
+                {
+                    "gt_id": "gt_end",
+                    "timestamp_s": 10.0,
+                    "stroke_class": "KITCHEN_DINK",
+                    "confidence": "CONFIRMED",
+                },
+            ],
+            "full_video_reviewed": True,
+            "freeze": True,
+            "notes": "Valid boundary events",
+        }
+        st5, _, raw5 = self.client.post("/api/ground_truth", p_boundary)
+        self.assertEqual(st5, 200)
+        res5 = json.loads(raw5.decode("utf-8"))
+        self.assertEqual(res5["status"], "SAVED")
+
+        # 6. Verify stored video_sha256 is non-null 64-char hex string
+        gt_path = os.path.join(self.output_dir, "ground_truth_events.json")
+        with open(gt_path, "r", encoding="utf-8") as f:
+            gt_data = json.load(f)
+        vinfo = gt_data["videos"]["dink2.mp4"]
+        self.assertIsNotNone(vinfo["video_sha256"])
+        self.assertEqual(len(vinfo["video_sha256"]), 64)
+        self.assertEqual(vinfo["video_duration_s"], 10.0)
 
 
 if __name__ == "__main__":

@@ -15,6 +15,7 @@ import argparse
 import csv
 import hashlib
 import json
+import math
 import mimetypes
 import os
 import re
@@ -50,18 +51,20 @@ def safe_resolve_path(base_dir, requested_path):
     return joined
 
 
-def validate_safe_output_dir(output_dir, manifest_path=None, repo_root=None):
+def validate_safe_output_dir(output_dir, manifest_path=None, videos_dir=None, repo_root=None):
     """
     Validate that output_dir is an isolated, safe directory.
     Strictly forbids:
-      - Any path resolving into the repo's data/** directory (direct or via symlinks).
-      - Any path resolving to the same directory as manifest_path, or pointing directly to manifest_path.
+      - Any path resolving into any repository data/** directory (direct or via symlinks),
+        including worktree and main repository data directories.
+      - Any path resolving to the same directory as manifest_path, or pointing inside/to manifest_path.
+      - Any path resolving into or identical to videos_dir.
       - Symlink aliases that resolve back into forbidden areas.
     Does NOT create directories if validation fails.
     Returns canonical realpath of output_dir if valid, otherwise raises ValueError.
     """
     if not output_dir or not str(output_dir).strip():
-        raise ValueError("output_dir must be a non-empty path")
+        raise ValueError("output_dir must be an explicitly specified non-empty path")
 
     raw_path = os.path.abspath(output_dir)
 
@@ -80,20 +83,43 @@ def validate_safe_output_dir(output_dir, manifest_path=None, repo_root=None):
     else:
         real_out = os.path.realpath(raw_path)
 
-    # 1. Check against repository data/** directory
+    # Collect all actual repository data/** roots across worktree and source roots
+    data_roots = set()
     root = os.path.realpath(repo_root or REPO_ROOT)
-    data_dir = os.path.realpath(os.path.join(root, "data"))
-    if real_out == data_dir or real_out.startswith(data_dir + os.sep):
-        raise ValueError(
-            f"SECURITY VIOLATION: output_dir '{output_dir}' resolves to '{real_out}' "
-            f"which is inside the repository's data/** directory. Formal dataset is strictly read-only!"
-        )
+    data_roots.add(os.path.realpath(os.path.join(root, "data")))
+
+    for p in [repo_root, REPO_ROOT, manifest_path, videos_dir]:
+        if not p:
+            continue
+        p_real = os.path.realpath(os.path.abspath(p))
+        if os.path.isdir(p_real) and os.path.basename(p_real) != "data":
+            cand_data = os.path.realpath(os.path.join(p_real, "data"))
+            if os.path.isdir(cand_data):
+                data_roots.add(cand_data)
+        # Check all ancestors for any directory named 'data'
+        cur_anc = p_real
+        while cur_anc and cur_anc != os.path.dirname(cur_anc):
+            if os.path.basename(cur_anc) == "data":
+                data_roots.add(cur_anc)
+            cur_anc = os.path.dirname(cur_anc)
+
+    # 1. Check against all discovered repository data/** directories
+    for d_root in sorted(data_roots):
+        if real_out == d_root or real_out.startswith(d_root + os.sep):
+            raise ValueError(
+                f"SECURITY VIOLATION: output_dir '{output_dir}' resolves to '{real_out}' "
+                f"which is inside the repository's data/** directory '{d_root}'. Formal dataset is strictly read-only!"
+            )
 
     # 2. Check against source manifest and its directory
     if manifest_path:
         real_manifest = os.path.realpath(os.path.abspath(manifest_path))
         real_manifest_dir = os.path.dirname(real_manifest)
-        if real_out == real_manifest or real_out == real_manifest_dir:
+        if real_out == real_manifest:
+            raise ValueError(
+                f"SECURITY VIOLATION: output_dir '{output_dir}' resolves directly to source manifest '{real_manifest}'."
+            )
+        if real_out == real_manifest_dir or real_out.startswith(real_manifest_dir + os.sep):
             raise ValueError(
                 f"SECURITY VIOLATION: output_dir '{output_dir}' resolves to '{real_out}' "
                 f"which is identical to source manifest or its directory '{real_manifest_dir}'. "
@@ -104,7 +130,42 @@ def validate_safe_output_dir(output_dir, manifest_path=None, repo_root=None):
                 f"SECURITY VIOLATION: output_dir '{output_dir}' resolves to an ancestor of source manifest '{real_manifest}'."
             )
 
+    # 3. Check against videos_dir
+    if videos_dir:
+        real_videos_dir = os.path.realpath(os.path.abspath(videos_dir))
+        if real_out == real_videos_dir or real_out.startswith(real_videos_dir + os.sep):
+            raise ValueError(
+                f"SECURITY VIOLATION: output_dir '{output_dir}' resolves to '{real_out}' "
+                f"which is identical to or inside videos directory '{real_videos_dir}'."
+            )
+        if real_videos_dir.startswith(real_out + os.sep):
+            raise ValueError(
+                f"SECURITY VIOLATION: output_dir '{output_dir}' resolves to an ancestor of videos directory '{real_videos_dir}'."
+            )
+
     return real_out
+
+
+def get_video_duration(vpath):
+    """
+    Get duration in seconds of video file at vpath using cv2.VideoCapture.
+    Returns float duration in seconds, or None if unreadable / cannot be determined.
+    """
+    if not vpath or not os.path.isfile(vpath) or os.path.getsize(vpath) == 0:
+        return None
+    try:
+        import cv2
+        cap = cv2.VideoCapture(vpath)
+        if not cap.isOpened():
+            return None
+        fps = cap.get(cv2.CAP_PROP_FPS)
+        frame_count = cap.get(cv2.CAP_PROP_FRAME_COUNT)
+        cap.release()
+        if fps > 0 and frame_count > 0:
+            return round(frame_count / fps, 4)
+    except Exception:
+        pass
+    return None
 
 
 class AnnotationRequestHandler(BaseHTTPRequestHandler):
@@ -164,6 +225,9 @@ class AnnotationRequestHandler(BaseHTTPRequestHandler):
                 self._handle_stream_video(video_name)
             else:
                 self._send_error_json(HTTPStatus.NOT_FOUND, f"Endpoint not found: {path}")
+        except (BrokenPipeError, ConnectionResetError):
+            # Client closed the connection early (common when browser seeks or closes video stream)
+            pass
         except PermissionError as pe:
             self._send_error_json(HTTPStatus.FORBIDDEN, str(pe))
         except Exception as exc:
@@ -212,6 +276,32 @@ class AnnotationRequestHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(content)
 
+    def _get_video_duration(self, video_name):
+        configured_durations = self.server_config.get("video_durations")
+        if configured_durations and video_name in configured_durations:
+            return float(configured_durations[video_name])
+
+        vdir = self.server_config.get("videos_dir")
+        if not vdir:
+            return None
+        vpath = os.path.join(vdir, video_name)
+        return get_video_duration(vpath)
+
+    def _get_all_pilot_video_durations(self):
+        durations = {}
+        configured = self.server_config.get("video_durations") or {}
+        durations.update(configured)
+        vdir = self.server_config.get("videos_dir")
+        if vdir and os.path.exists(vdir):
+            for pv in PILOT_VIDEOS:
+                if pv not in durations:
+                    vp = os.path.join(vdir, pv)
+                    if os.path.isfile(vp):
+                        d = get_video_duration(vp)
+                        if d is not None and d > 0:
+                            durations[pv] = d
+        return durations
+
     def _get_ground_truth_dict(self):
         output_dir = self.server_config["output_dir"]
         gt_path = os.path.join(output_dir, "ground_truth_events.json")
@@ -219,7 +309,12 @@ class AnnotationRequestHandler(BaseHTTPRequestHandler):
             return None
         with open(gt_path, "r", encoding="utf-8") as f:
             data = json.load(f)
-        man_v2_mod.validate_ground_truth_events(data)
+        video_durations = self._get_all_pilot_video_durations()
+        man_v2_mod.validate_ground_truth_events(
+            data,
+            allowed_videos=PILOT_VIDEOS,
+            video_durations=video_durations,
+        )
         return data
 
     def _is_video_ground_truth_frozen(self, vname):
@@ -479,7 +574,12 @@ class AnnotationRequestHandler(BaseHTTPRequestHandler):
         try:
             with open(gt_path, "r", encoding="utf-8") as f:
                 gt_data = json.load(f)
-            man_v2_mod.validate_ground_truth_events(gt_data)
+            video_durations = self._get_all_pilot_video_durations()
+            man_v2_mod.validate_ground_truth_events(
+                gt_data,
+                allowed_videos=PILOT_VIDEOS,
+                video_durations=video_durations,
+            )
         except Exception as e:
             self._send_error_json(
                 HTTPStatus.INTERNAL_SERVER_ERROR,
@@ -527,6 +627,80 @@ class AnnotationRequestHandler(BaseHTTPRequestHandler):
             raise ValueError("'events' must be a list of ground truth event objects")
 
         video = os.path.basename(video)
+        if video not in PILOT_VIDEOS:
+            self._send_error_json(
+                HTTPStatus.BAD_REQUEST,
+                f"Video '{video}' is not in allowed pilot videos: {sorted(PILOT_VIDEOS)}",
+                extra={"error_code": "INVALID_PILOT_VIDEO", "video": video}
+            )
+            return
+
+        vdir = self.server_config["videos_dir"]
+        try:
+            vpath = safe_resolve_path(vdir, video)
+        except PermissionError as pe:
+            self._send_error_json(HTTPStatus.FORBIDDEN, str(pe))
+            return
+
+        if not (os.path.isfile(vpath) and os.access(vpath, os.R_OK) and os.path.getsize(vpath) > 0):
+            self._send_error_json(
+                HTTPStatus.BAD_REQUEST,
+                f"Video file '{video}' is missing, empty, or unreadable in '{vdir}'.",
+                extra={"error_code": "INVALID_VIDEO_FILE", "video": video}
+            )
+            return
+
+        try:
+            v_sha = man_v2_mod.compute_file_sha256(vpath)
+        except Exception as e:
+            self._send_error_json(
+                HTTPStatus.BAD_REQUEST,
+                f"Failed to compute SHA-256 for video '{video}': {e}",
+                extra={"error_code": "VIDEO_SHA_FAILED", "video": video}
+            )
+            return
+
+        if not v_sha or len(v_sha) != 64:
+            self._send_error_json(
+                HTTPStatus.BAD_REQUEST,
+                f"Invalid SHA-256 calculated for video '{video}': {v_sha}",
+                extra={"error_code": "INVALID_VIDEO_SHA", "video": video}
+            )
+            return
+
+        v_dur = self._get_video_duration(video)
+        if v_dur is None or v_dur <= 0:
+            self._send_error_json(
+                HTTPStatus.BAD_REQUEST,
+                f"Cannot determine valid duration for video '{video}'. Video may be corrupt or unreadable.",
+                extra={"error_code": "INVALID_VIDEO_DURATION", "video": video}
+            )
+            return
+
+        for idx, ev in enumerate(events):
+            if not isinstance(ev, dict):
+                self._send_error_json(
+                    HTTPStatus.BAD_REQUEST,
+                    f"Event #{idx} must be a dictionary object",
+                    extra={"error_code": "INVALID_EVENT_FORMAT"}
+                )
+                return
+            ts = ev.get("timestamp_s")
+            if ts is None or not isinstance(ts, (int, float)) or math.isnan(ts) or math.isinf(ts):
+                self._send_error_json(
+                    HTTPStatus.BAD_REQUEST,
+                    f"Event #{idx} has invalid timestamp_s: {ts}",
+                    extra={"error_code": "INVALID_TIMESTAMP", "event_index": idx}
+                )
+                return
+            if ts < 0.0 or ts > v_dur:
+                self._send_error_json(
+                    HTTPStatus.BAD_REQUEST,
+                    f"Event #{idx} timestamp {ts}s exceeds video duration bounds [0.0, {v_dur}s] for '{video}'",
+                    extra={"error_code": "TIMESTAMP_OUT_OF_BOUNDS", "event_index": idx, "timestamp_s": ts, "duration_s": v_dur}
+                )
+                return
+
         output_dir = self.server_config["output_dir"]
         os.makedirs(output_dir, exist_ok=True)
         gt_path = os.path.join(output_dir, "ground_truth_events.json")
@@ -545,7 +719,13 @@ class AnnotationRequestHandler(BaseHTTPRequestHandler):
             try:
                 with open(gt_path, "r", encoding="utf-8") as f:
                     existing = json.load(f)
-                man_v2_mod.validate_ground_truth_events(existing)
+                video_durations = self._get_all_pilot_video_durations()
+                video_durations[video] = v_dur
+                man_v2_mod.validate_ground_truth_events(
+                    existing,
+                    allowed_videos=PILOT_VIDEOS,
+                    video_durations=video_durations,
+                )
                 gt_data = existing
                 if "videos" not in gt_data or not isinstance(gt_data["videos"], dict):
                     gt_data["videos"] = {}
@@ -599,26 +779,25 @@ class AnnotationRequestHandler(BaseHTTPRequestHandler):
 
         audit_trail = list(existing_vinfo.get("audit_trail", []))
         if was_frozen and is_correction:
+            prev_events = list(existing_vinfo.get("events", []))
+            prev_events_json = json.dumps(prev_events, sort_keys=True)
+            prev_events_sha = hashlib.sha256(prev_events_json.encode("utf-8")).hexdigest()
             audit_trail.append({
                 "timestamp": iso_now,
                 "reviewer": reviewer,
                 "reason": correction_reason,
-                "previous_events_count": len(existing_vinfo.get("events", [])),
+                "previous_events": prev_events,
+                "previous_events_sha256": prev_events_sha,
+                "previous_events_count": len(prev_events),
                 "new_events_count": len(events),
             })
-
-        # Compute video hash if video exists in videos_dir
-        vdir = self.server_config["videos_dir"]
-        vpath = os.path.join(vdir, video)
-        v_sha = existing_vinfo.get("video_sha256")
-        if os.path.exists(vpath):
-            v_sha = man_v2_mod.compute_file_sha256(vpath)
 
         gt_data["videos"][video] = {
             "status": status,
             "full_video_reviewed": full_video_reviewed if freeze else existing_vinfo.get("full_video_reviewed", False),
             "reviewer": reviewer,
             "video_sha256": v_sha,
+            "video_duration_s": v_dur,
             "frozen_at": frozen_at,
             "events": events,
             "event_count": len(events),
@@ -628,7 +807,15 @@ class AnnotationRequestHandler(BaseHTTPRequestHandler):
 
         # Validate with man_v2_mod and save atomically
         try:
-            man_v2_mod.save_ground_truth_events(gt_path, gt_data, auto_recover=True)
+            durations = self._get_all_pilot_video_durations()
+            durations[video] = v_dur
+            man_v2_mod.save_ground_truth_events(
+                gt_path,
+                gt_data,
+                allowed_videos=PILOT_VIDEOS,
+                video_durations=durations,
+                auto_recover=True,
+            )
         except Exception as e:
             self._send_error_json(
                 HTTPStatus.INTERNAL_SERVER_ERROR,
@@ -685,8 +872,11 @@ class AnnotationRequestHandler(BaseHTTPRequestHandler):
             self.send_header("Accept-Ranges", "bytes")
             self.send_header("Cache-Control", "no-cache")
             self.end_headers()
-            with open(target_path, "rb") as f:
-                shutil.copyfileobj(f, self.wfile)
+            try:
+                with open(target_path, "rb") as f:
+                    shutil.copyfileobj(f, self.wfile)
+            except (BrokenPipeError, ConnectionResetError):
+                pass
             return
 
         # Parse Range header: e.g. "bytes=0-1023" or "bytes=1024-"
@@ -729,17 +919,20 @@ class AnnotationRequestHandler(BaseHTTPRequestHandler):
         self.send_header("Cache-Control", "no-cache")
         self.end_headers()
 
-        with open(target_path, "rb") as f:
-            f.seek(start)
-            remaining = length
-            chunk_size = 64 * 1024
-            while remaining > 0:
-                to_read = min(chunk_size, remaining)
-                chunk = f.read(to_read)
-                if not chunk:
-                    break
-                self.wfile.write(chunk)
-                remaining -= len(chunk)
+        try:
+            with open(target_path, "rb") as f:
+                f.seek(start)
+                remaining = length
+                chunk_size = 64 * 1024
+                while remaining > 0:
+                    to_read = min(chunk_size, remaining)
+                    chunk = f.read(to_read)
+                    if not chunk:
+                        break
+                    self.wfile.write(chunk)
+                    remaining -= len(chunk)
+        except (BrokenPipeError, ConnectionResetError):
+            pass
 
 
 def create_annotation_server(
@@ -747,18 +940,20 @@ def create_annotation_server(
     port=DEFAULT_PORT,
     videos_dir="data/videos",
     manifest_path="data/v2/candidate_events_manifest.csv",
-    output_dir="_pilot_annotations",
+    output_dir=None,
     tools_html="tools/annotate_visual.html",
+    video_durations=None,
     debug=False,
     verify_pilot_videos=False,
 ):
     """
     Factory function to configure and instantiate HTTPServer.
-    Enforces safe output_dir validation (realpath check against repo data/** and manifest_path).
+    Enforces safe output_dir validation (realpath check against repo data/**, manifest_path, and videos_dir).
     """
     validated_out = validate_safe_output_dir(
         output_dir=output_dir,
         manifest_path=manifest_path,
+        videos_dir=videos_dir,
         repo_root=REPO_ROOT,
     )
 
@@ -775,6 +970,7 @@ def create_annotation_server(
         "manifest_path": os.path.abspath(manifest_path),
         "output_dir": validated_out,
         "tools_html": os.path.abspath(tools_html),
+        "video_durations": dict(video_durations) if video_durations else None,
         "debug": debug,
     }
     server = HTTPServer((host, port), AnnotationRequestHandler)
@@ -789,7 +985,7 @@ def main():
     parser.add_argument("--port", type=int, default=DEFAULT_PORT, help="Port (default: 8765)")
     parser.add_argument("--videos-dir", default=os.path.join(REPO_ROOT, "data/videos"), help="Videos directory")
     parser.add_argument("--manifest-path", default=os.path.join(REPO_ROOT, "data/v2/candidate_events_manifest.csv"), help="Base candidate manifest")
-    parser.add_argument("--output-dir", default=os.path.join(REPO_ROOT, "_pilot_annotations"), help="Pilot annotations output directory")
+    parser.add_argument("--output-dir", required=True, help="Pilot annotations output directory (MUST be an explicitly specified isolated directory)")
     parser.add_argument("--tools-html", default=os.path.join(REPO_ROOT, "tools/annotate_visual.html"), help="Annotation HTML UI file")
     parser.add_argument("--debug", action="store_true", help="Enable verbose debug logging")
     args = parser.parse_args()
@@ -804,6 +1000,7 @@ def main():
         validated_out = validate_safe_output_dir(
             output_dir=args.output_dir,
             manifest_path=args.manifest_path,
+            videos_dir=args.videos_dir,
             repo_root=REPO_ROOT,
         )
     except ValueError as ve:

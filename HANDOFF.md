@@ -360,9 +360,13 @@
 | `tests/test_annotation_tool.py` | `test_9_empty_ground_truth_explicitly_frozen_unlocks_candidates` | 驗證空真值（全片 0 揮拍）合法凍結與候選解鎖 | **PASS** |
 | `tests/test_annotation_tool.py` | `test_10_pilot_67_events_exact_dataset_integrity` | 驗證 3 支試行影片候選數嚴格為 67 筆 (9 + 19 + 39) | **PASS** |
 | `tests/test_annotation_tool.py` | `test_11_candidate_audit_isolation_leaves_source_manifest_untouched` | 驗證隔離輸出目錄副本寫入，正式 `data/v2` 來源 100% 未修改 | **PASS** |
+| `tests/test_annotation_tool.py` | `test_12_cross_worktree_data_isolation_and_cli_missing_output_dir` | [Round 2 P1] 跨工作樹 `data/**` 隔離拒絕、symlink 防護與 CLI 強制 `--output-dir` | **PASS** |
+| `tests/test_annotation_tool.py` | `test_13_candidate_correction_notes_persistence_across_multiple_edits` | [Round 2 P1] 候選更正軌跡持久保留：同判定多次更新 notes 不得抹除更正記錄 | **PASS** |
+| `tests/test_annotation_tool.py` | `test_14_ground_truth_revision_history_contains_full_previous_events_and_hash` | [Round 2 P1] 凍結真值修訂紀錄完整保留舊事件清單、版本 SHA-256 雜湊與審查理由 | **PASS** |
+| `tests/test_annotation_tool.py` | `test_15_api_ground_truth_boundary_and_invalid_video_validations` | [Round 2 P1] 真值 API 嚴格拒絕非試行影片、零長空檔、超長/負數時間戳並記錄 SHA | **PASS** |
 | `tests/test_manifest_v2.py` | 12 組事務性發布與崩潰恢復測試 | 驗證批次發布事務性 Rollback、實體雜湊感知恢復、中斷防護 | **PASS** (12/12) |
 | `tests/test_kinematics_v2.py` | 11 組運動學與提取測試 | 驗證追蹤恢復、1D NMS、尺度退化與快取失效 | **PASS** (11/11) |
-| **總計** | **34 項單元測試** | **涵蓋提取、安全發布、伺服器隔離、盲測閘門與衝突改判全流程** | **34/34 PASS (100%)** |
+| **總計** | **38 項單元測試** | **涵蓋提取、安全發布、跨樹隔離、盲測閘門、衝突改判與真值邊界全流程** | **38/38 PASS (100%)** |
 
 ### 9.4 Headless Chrome 瀏覽器端對端驗收證據 (Browser Verified Evidence)
 
@@ -424,13 +428,11 @@
    - video: dink2.mp4, timestamp_peak_s: 1.25
    - video: smash2.mp4, timestamp_peak_s: 0.85
 
-📈 Evaluator Report Run Cleanly:
-   Ground truth strokes: 2
-   Candidate strokes:    724
-   True Positives (TP):  1
-   False Positives (FP): 723
-   Precision:            0.001
-   Recall:               0.500
+📈 Evaluator Interface Plumbing Verification (NOT a formal metric):
+   [NOTE: This was a synthetic pipeline plumbing test of evaluate_event_detection()
+    with 2 synthetic dummy events against the raw candidate manifest. It is strictly
+    an interface wiring test and does NOT represent pilot Precision/Recall metrics.]
+   Status: EVALUATOR_INTERFACE_PLUMBING_VERIFIED (Formal Metrics: NOT VERIFIED / PENDING_HUMAN_PILOT)
 
 ======================================================================
 🏆 ALL BROWSER & END-TO-END AUDIT VERIFICATIONS PASSED SUCCESSFULLY!
@@ -442,7 +444,7 @@
 在未複製視訊檔案的隔離工作樹中，`annotation_server.py` 啟動時會主動驗證 3 支試行影片存在性；若未檢出，將輸出清楚指引導引使用者傳入主倉庫之唯讀視訊目錄：
 
 ```bash
-# 於隔離 worktree 啟動伺服器，將 --videos-dir 指向主倉庫之唯讀影片資料夾：
+# 於隔離 worktree 啟動伺服器，明確指定 --output-dir 臨時目錄（CLI 必填）：
 ./.venv/bin/python scripts/annotation_server.py \
   --port 8080 \
   --videos-dir "/Users/ethanchen/Desktop/匹克球/test systeam/匹克球N-GO.v1/data/videos" \
@@ -451,7 +453,29 @@
 
 ### 9.6 未驗證項目與邊界聲明 (Evidence Gaps & Scope)
 - **正式 `data/v2` 寫入**：`NOT EXECUTED`（依任務板規範，試行產物寫入 `--output-dir` 臨時目錄，正式 `data/v2` 維持完全唯讀）。
-- **真人正式簽核真值產物**：`PENDING_HUMAN_PILOT`（工具已完成、通過 34 項單元測試與 Headless Chrome 端對端瀏覽器驗收，67 筆候選與全片通看打標留待真人審查員試行操作）。
+- **正式 Precision／Recall 指標**：`NOT VERIFIED`（依複審與任務板規定，試行評估必須嚴格限定於 3 支已人工通看且凍結之影片的 67 筆候選池，空真值影片如 `serve_legal1.mp4` 亦須納入；在真人審查員完成真值簽認前，不宣稱任何正式指標）。
+- **真人正式簽核真值產物**：`PENDING_HUMAN_PILOT`（工具功能與防護機制已完成、通過 38 項單元測試與 Headless Chrome 端對端瀏覽器驗收，67 筆候選與全片通看打標留待真人審查員試行操作）。
 - **方向 B（模型重訓）與方向 C（遊戲 Runtime P0）**：`EXCLUDED`（維持隔離，零相關程式碼變動）。
 - **未核准 Push 或部署**：所有操作僅限本機任務分支 `task/agv/annotate-tool-ada9761`，未執行 merge、push 或 deploy。
+
+### 9.7 複審 Round 2 三項 P1 修正與閉環驗證 (Round 2 P1 Remediation)
+
+針對 `cli-review-609-round2.md` 指出之三項 P1 缺口，已在 5 個 Allowed Files 內完成精準修復並補齊回歸測試（38/38 PASS）：
+
+1. **跨 Worktree `data/**` 隔離與 CLI 強制 `--output-dir`**：
+   - `scripts/annotation_server.py:validate_safe_output_dir`：動態解析 `manifest_path`、`videos_dir` 與 `repo_root` 的所有實際 `data` 根目錄，嚴格拒絕其下所有子目錄（包含尚未建立的新子目錄如 `data/v2/new-subdir`）與 symlink。
+   - CLI 參數 `--output-dir` 移除工作樹預設值，改為 `required=True`，未明確傳入時退出碼為 2 且零寫入。
+   - 回歸測試：`test_12_cross_worktree_data_isolation_and_cli_missing_output_dir`。
+
+2. **候選更正軌跡持久保留與真值修訂版本完整存證**：
+   - `scripts/manifest_annotations_v2.py:update_candidate_manifest_row`：提取並永久保留既有 `[CORRECTION ...]` 審計標籤，使用者後續以相同判定更新自由備註時，原更正審計紀錄永不遺失。
+   - `scripts/annotation_server.py:_handle_post_ground_truth`：當凍結影片修訂真值時，`audit_trail` 完整儲存 `previous_events` 清單全文、舊版 SHA-256 雜湊、審查員、時間戳與更正理由，具備完全版本追溯與還原能力。
+   - 回歸測試：`test_13_candidate_correction_notes_persistence_across_multiple_edits`、`test_14_ground_truth_revision_history_contains_full_previous_events_and_hash`。
+
+3. **真值 API 嚴格邊界防護與時長檢驗**：
+   - `scripts/annotation_server.py`：新增 `get_video_duration(vpath)`，取得原片時長並在每次保存與既有檔驗證時傳入 `allowed_videos=PILOT_VIDEOS` 與 `video_durations`。
+   - 伺服器端嚴格拒絕非試行影片（如 `missing.mp4` -> 400 `INVALID_PILOT_VIDEO`）、0-byte 或無法讀取之視訊檔（400 `INVALID_VIDEO_FILE`）、負數時間戳（400）與超出影片時長時間戳（400 `TIMESTAMP_OUT_OF_BOUNDS`）。
+   - 凍結與保存時保證記錄真實 64 字元 hex SHA-256 雜湊，不再保存 `null`。
+   - 影片串流與 GET 請求優雅捕獲 `(BrokenPipeError, ConnectionResetError)`，避免使用者暫停或拖拉時間軸時終端噴出 traceback。
+   - 回歸測試：`test_15_api_ground_truth_boundary_and_invalid_video_validations`。
 
