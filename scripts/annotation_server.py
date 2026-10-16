@@ -20,6 +20,7 @@ import os
 import re
 import shutil
 import sys
+import time
 from http import HTTPStatus
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs
@@ -49,6 +50,63 @@ def safe_resolve_path(base_dir, requested_path):
     return joined
 
 
+def validate_safe_output_dir(output_dir, manifest_path=None, repo_root=None):
+    """
+    Validate that output_dir is an isolated, safe directory.
+    Strictly forbids:
+      - Any path resolving into the repo's data/** directory (direct or via symlinks).
+      - Any path resolving to the same directory as manifest_path, or pointing directly to manifest_path.
+      - Symlink aliases that resolve back into forbidden areas.
+    Does NOT create directories if validation fails.
+    Returns canonical realpath of output_dir if valid, otherwise raises ValueError.
+    """
+    if not output_dir or not str(output_dir).strip():
+        raise ValueError("output_dir must be a non-empty path")
+
+    raw_path = os.path.abspath(output_dir)
+
+    # Resolve symlinks in existing ancestors even if leaf does not exist yet
+    curr = raw_path
+    uncreated_parts = []
+    while curr and not os.path.exists(curr):
+        curr, tail = os.path.split(curr)
+        if not tail:
+            break
+        uncreated_parts.append(tail)
+
+    if os.path.exists(curr):
+        real_ancestor = os.path.realpath(curr)
+        real_out = os.path.abspath(os.path.join(real_ancestor, *reversed(uncreated_parts)))
+    else:
+        real_out = os.path.realpath(raw_path)
+
+    # 1. Check against repository data/** directory
+    root = os.path.realpath(repo_root or REPO_ROOT)
+    data_dir = os.path.realpath(os.path.join(root, "data"))
+    if real_out == data_dir or real_out.startswith(data_dir + os.sep):
+        raise ValueError(
+            f"SECURITY VIOLATION: output_dir '{output_dir}' resolves to '{real_out}' "
+            f"which is inside the repository's data/** directory. Formal dataset is strictly read-only!"
+        )
+
+    # 2. Check against source manifest and its directory
+    if manifest_path:
+        real_manifest = os.path.realpath(os.path.abspath(manifest_path))
+        real_manifest_dir = os.path.dirname(real_manifest)
+        if real_out == real_manifest or real_out == real_manifest_dir:
+            raise ValueError(
+                f"SECURITY VIOLATION: output_dir '{output_dir}' resolves to '{real_out}' "
+                f"which is identical to source manifest or its directory '{real_manifest_dir}'. "
+                f"Pilot output must be in an isolated directory!"
+            )
+        if real_manifest.startswith(real_out + os.sep):
+            raise ValueError(
+                f"SECURITY VIOLATION: output_dir '{output_dir}' resolves to an ancestor of source manifest '{real_manifest}'."
+            )
+
+    return real_out
+
+
 class AnnotationRequestHandler(BaseHTTPRequestHandler):
     server_config = {}
 
@@ -66,8 +124,12 @@ class AnnotationRequestHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(data)
 
-    def _send_error_json(self, status_code, message):
-        self._send_json(status_code, {"error": message, "status": "ERROR"})
+    def _send_error_json(self, status_code, message, extra=None):
+        payload = {"error": message, "status": "ERROR"}
+        if extra:
+            payload.update(extra)
+        self._send_json(status_code, payload)
+
 
     def _read_json_body(self):
         try:
@@ -85,7 +147,7 @@ class AnnotationRequestHandler(BaseHTTPRequestHandler):
         query = parse_qs(parsed.query)
 
         try:
-            if path == "/" or path == "/index.html":
+            if path in ("/", "/index.html", "/tools/annotate_visual.html", "/annotate_visual.html"):
                 self._handle_serve_ui()
             elif path == "/api/status":
                 self._handle_get_status()
@@ -93,6 +155,8 @@ class AnnotationRequestHandler(BaseHTTPRequestHandler):
                 self._handle_get_videos()
             elif path == "/api/candidates":
                 self._handle_get_candidates(query)
+            elif path == "/api/ground_truth/export":
+                self._handle_get_ground_truth_export()
             elif path == "/api/ground_truth":
                 self._handle_get_ground_truth(query)
             elif path.startswith("/video/"):
@@ -122,10 +186,13 @@ class AnnotationRequestHandler(BaseHTTPRequestHandler):
             self._send_error_json(HTTPStatus.FORBIDDEN, str(pe))
         except ValueError as ve:
             self._send_error_json(HTTPStatus.BAD_REQUEST, str(ve))
+        except man_v2_mod.ManifestConflictError as ce:
+            self._send_error_json(HTTPStatus.CONFLICT, str(ce), extra={"error_code": "CONFLICT"})
         except man_v2_mod.ManifestValidationError as mve:
             self._send_error_json(HTTPStatus.BAD_REQUEST, str(mve))
         except Exception as exc:
             self._send_error_json(HTTPStatus.INTERNAL_SERVER_ERROR, f"Server error: {exc}")
+
 
     # =========================================================================
     # Request Handlers
@@ -145,10 +212,38 @@ class AnnotationRequestHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(content)
 
+    def _get_ground_truth_dict(self):
+        output_dir = self.server_config["output_dir"]
+        gt_path = os.path.join(output_dir, "ground_truth_events.json")
+        if not os.path.exists(gt_path):
+            return None
+        with open(gt_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        man_v2_mod.validate_ground_truth_events(data)
+        return data
+
+    def _is_video_ground_truth_frozen(self, vname):
+        try:
+            gt_data = self._get_ground_truth_dict()
+            if not gt_data:
+                return False
+            vinfo = gt_data.get("videos", {}).get(vname, {})
+            return bool(vinfo.get("status") == "FROZEN" and vinfo.get("full_video_reviewed") is True)
+        except Exception:
+            return False
+
     def _handle_get_status(self):
         output_dir = self.server_config["output_dir"]
         active_manifest = self._get_active_manifest_path()
         gt_path = os.path.join(output_dir, "ground_truth_events.json")
+
+        video_statuses = {}
+        for pv in PILOT_VIDEOS:
+            frozen = self._is_video_ground_truth_frozen(pv)
+            video_statuses[pv] = {
+                "ground_truth_frozen": frozen,
+                "candidate_audit_unlocked": frozen,
+            }
 
         self._send_json(HTTPStatus.OK, {
             "status": "OK",
@@ -160,6 +255,7 @@ class AnnotationRequestHandler(BaseHTTPRequestHandler):
             "active_manifest_path": active_manifest,
             "ground_truth_path": gt_path,
             "pilot_videos": PILOT_VIDEOS,
+            "video_statuses": video_statuses,
             "has_active_manifest": os.path.exists(active_manifest),
             "has_ground_truth": os.path.exists(gt_path),
         })
@@ -173,11 +269,14 @@ class AnnotationRequestHandler(BaseHTTPRequestHandler):
                     fpath = os.path.join(vdir, fname)
                     sz = os.path.getsize(fpath)
                     is_pilot = fname in PILOT_VIDEOS
+                    frozen = self._is_video_ground_truth_frozen(fname)
                     videos.append({
                         "filename": fname,
                         "size_bytes": sz,
                         "size_mb": round(sz / (1024 * 1024), 2),
                         "is_pilot": is_pilot,
+                        "ground_truth_frozen": frozen,
+                        "candidate_audit_unlocked": frozen,
                     })
 
         self._send_json(HTTPStatus.OK, {
@@ -201,6 +300,20 @@ class AnnotationRequestHandler(BaseHTTPRequestHandler):
         vname = query.get("video", [None])[0]
         if vname:
             vname = os.path.basename(vname)
+            # Enforce Blind Review First: Video must complete blind review and be frozen
+            if not self._is_video_ground_truth_frozen(vname):
+                self._send_error_json(
+                    HTTPStatus.FORBIDDEN,
+                    f"Candidate audit is locked for '{vname}'. You must first complete the blind full-video "
+                    f"ground truth review, verify full_video_reviewed=True, and freeze the ground truth before "
+                    f"candidate audit is permitted.",
+                    extra={
+                        "error_code": "BLIND_REVIEW_REQUIRED",
+                        "video": vname,
+                        "ground_truth_frozen": False,
+                    }
+                )
+                return
 
         manifest_path = self._get_active_manifest_path()
         if not os.path.exists(manifest_path):
@@ -222,8 +335,13 @@ class AnnotationRequestHandler(BaseHTTPRequestHandler):
         pending_count = 0
 
         for r in all_rows:
-            if vname and r.get("video") != vname:
+            r_vid = r.get("video")
+            # If no vname filter is specified, only return candidates for videos whose ground truth is frozen
+            if not vname and not self._is_video_ground_truth_frozen(r_vid):
                 continue
+            if vname and r_vid != vname:
+                continue
+
             filtered.append(r)
             mv = r.get("manual_verified", "").strip().upper()
             it = r.get("is_true_stroke", "").strip().upper()
@@ -293,15 +411,29 @@ class AnnotationRequestHandler(BaseHTTPRequestHandler):
         manual_verified = body.get("manual_verified")
         is_true_stroke = body.get("is_true_stroke")
         notes = body.get("notes")
+        reviewer = body.get("reviewer", "")
+        expected_manual_verified = body.get("expected_manual_verified")
+        expected_is_true_stroke = body.get("expected_is_true_stroke")
+        is_correction = bool(body.get("is_correction", False))
+        correction_reason = body.get("correction_reason", "")
 
         if not video or not event_id:
             raise ValueError("Both 'video' and 'event_id' are required")
         if manual_verified is None or is_true_stroke is None:
             raise ValueError("'manual_verified' and 'is_true_stroke' are required")
 
+        # Enforce Blind Review First: Video ground truth must be frozen before auditing
+        if not self._is_video_ground_truth_frozen(video):
+            self._send_error_json(
+                HTTPStatus.FORBIDDEN,
+                f"Candidate audit is locked for '{video}'. Blind ground truth must be completed and frozen first.",
+                extra={"error_code": "BLIND_REVIEW_REQUIRED", "video": video}
+            )
+            return
+
         out_manifest, _ = self._ensure_output_manifest_copy()
 
-        # Update row using strict transactional publisher
+        # Update row using strict transactional publisher with conflict detection
         updated_row = man_v2_mod.update_candidate_manifest_row(
             manifest_path=out_manifest,
             video=video,
@@ -309,6 +441,11 @@ class AnnotationRequestHandler(BaseHTTPRequestHandler):
             manual_verified=manual_verified,
             is_true_stroke=is_true_stroke,
             notes=notes,
+            reviewer=reviewer,
+            expected_manual_verified=expected_manual_verified,
+            expected_is_true_stroke=expected_is_true_stroke,
+            is_correction=is_correction,
+            correction_reason=correction_reason,
             auto_recover=True,
         )
 
@@ -330,31 +467,45 @@ class AnnotationRequestHandler(BaseHTTPRequestHandler):
             self._send_json(HTTPStatus.OK, {
                 "ground_truth_exists": False,
                 "gt_path": gt_path,
-                "reviewer": "",
-                "version": "2.0.0-ground-truth-pilot",
+                "version": "2.1.0-ground-truth-pilot",
+                "time_base": "media_presentation_time_seconds",
                 "events": [],
+                "status": "NOT_STARTED",
+                "full_video_reviewed": False,
             })
             return
 
-        with open(gt_path, "r", encoding="utf-8") as f:
-            gt_data = json.load(f)
+        # Fail-closed read: if file exists but is corrupted, do not swallow
+        try:
+            with open(gt_path, "r", encoding="utf-8") as f:
+                gt_data = json.load(f)
+            man_v2_mod.validate_ground_truth_events(gt_data)
+        except Exception as e:
+            self._send_error_json(
+                HTTPStatus.INTERNAL_SERVER_ERROR,
+                f"Existing ground truth file at '{gt_path}' is corrupted or unreadable: {e}",
+                extra={"error_code": "CORRUPT_EXISTING_GROUND_TRUTH"}
+            )
+            return
 
-        v_events = []
-        if vname and "videos" in gt_data and vname in gt_data["videos"]:
-            v_events = gt_data["videos"][vname].get("events", [])
-        elif not vname and "videos" in gt_data:
-            for v_info in gt_data["videos"].values():
-                v_events.extend(v_info.get("events", []))
+        v_info = gt_data.get("videos", {}).get(vname, {}) if vname else {}
+        v_events = v_info.get("events", []) if vname else []
+        if not vname:
+            for vi in gt_data.get("videos", {}).values():
+                v_events.extend(vi.get("events", []))
 
         self._send_json(HTTPStatus.OK, {
             "ground_truth_exists": True,
             "gt_path": gt_path,
-            "reviewer": gt_data.get("reviewer", ""),
+            "reviewer": v_info.get("reviewer", gt_data.get("reviewer", "")),
             "version": gt_data.get("version", ""),
             "time_base": gt_data.get("time_base", ""),
             "video_filter": vname,
+            "status": v_info.get("status", "IN_PROGRESS"),
+            "full_video_reviewed": v_info.get("full_video_reviewed", False),
             "events": v_events,
             "total_count": len(v_events),
+            "audit_trail": v_info.get("audit_trail", []),
         })
 
     def _handle_post_ground_truth(self):
@@ -362,6 +513,11 @@ class AnnotationRequestHandler(BaseHTTPRequestHandler):
         reviewer = str(body.get("reviewer", "")).strip()
         video = body.get("video")
         events = body.get("events")
+        freeze = bool(body.get("freeze", False))
+        full_video_reviewed = bool(body.get("full_video_reviewed", False))
+        is_correction = bool(body.get("is_correction", False))
+        correction_reason = str(body.get("correction_reason", "")).strip()
+        notes = str(body.get("notes", "")).strip()
 
         if not reviewer:
             raise ValueError("Reviewer identity ('reviewer') is required")
@@ -375,49 +531,133 @@ class AnnotationRequestHandler(BaseHTTPRequestHandler):
         os.makedirs(output_dir, exist_ok=True)
         gt_path = os.path.join(output_dir, "ground_truth_events.json")
 
-        # Load or initialize gt_data structure
+        # Fail-closed check: if existing ground_truth_events.json exists,
+        # it MUST be readable and valid JSON; do NOT swallow error!
         gt_data = {
-            "version": "2.0.0-ground-truth-pilot",
+            "version": "2.1.0-ground-truth-pilot",
             "time_base": "media_presentation_time_seconds",
-            "reviewer": reviewer,
-            "created_at": body.get("created_at") or man_v2_mod.time.strftime("%Y-%m-%d %H:%M:%S"),
+            "created_at": time.strftime("%Y-%m-%d %H:%M:%SZ", time.gmtime()),
             "videos": {},
         }
 
+        existing_vinfo = {}
         if os.path.exists(gt_path):
             try:
                 with open(gt_path, "r", encoding="utf-8") as f:
                     existing = json.load(f)
-                    if isinstance(existing, dict):
-                        gt_data = existing
-                        gt_data["reviewer"] = reviewer
-                        if "videos" not in gt_data or not isinstance(gt_data["videos"], dict):
-                            gt_data["videos"] = {}
-            except Exception:
-                pass
+                man_v2_mod.validate_ground_truth_events(existing)
+                gt_data = existing
+                if "videos" not in gt_data or not isinstance(gt_data["videos"], dict):
+                    gt_data["videos"] = {}
+                existing_vinfo = gt_data["videos"].get(video, {})
+            except Exception as e:
+                # Halt write and fail-closed: preserve corrupt file
+                self._send_error_json(
+                    HTTPStatus.INTERNAL_SERVER_ERROR,
+                    f"Existing ground truth file at '{gt_path}' is corrupted or invalid: {e}. "
+                    f"Halting write to preserve original file bytes (fail-closed).",
+                    extra={"error_code": "CORRUPT_EXISTING_GROUND_TRUTH"}
+                )
+                return
+
+        # Check freeze & correction constraints
+        was_frozen = bool(
+            existing_vinfo.get("status") == "FROZEN" and
+            existing_vinfo.get("full_video_reviewed") is True
+        )
+        if was_frozen and not is_correction:
+            self._send_error_json(
+                HTTPStatus.CONFLICT,
+                f"Video '{video}' ground truth is already FROZEN. Modifying it requires "
+                f"an explicit correction request with is_correction=True and a non-empty correction_reason.",
+                extra={"error_code": "ALREADY_FROZEN", "video": video}
+            )
+            return
+
+        if was_frozen and is_correction:
+            if not correction_reason:
+                self._send_error_json(
+                    HTTPStatus.BAD_REQUEST,
+                    "correction_reason is required when modifying a frozen ground truth.",
+                    extra={"error_code": "MISSING_CORRECTION_REASON"}
+                )
+                return
+
+        # If freeze is requested, full_video_reviewed MUST be True
+        if freeze and not full_video_reviewed:
+            self._send_error_json(
+                HTTPStatus.BAD_REQUEST,
+                "full_video_reviewed must be True to freeze ground truth.",
+                extra={"error_code": "FULL_VIDEO_REVIEW_REQUIRED"}
+            )
+            return
+
+        # Determine new status
+        iso_now = time.strftime("%Y-%m-%d %H:%M:%SZ", time.gmtime())
+        status = "FROZEN" if (freeze or was_frozen) else "IN_PROGRESS"
+        frozen_at = existing_vinfo.get("frozen_at") or (iso_now if status == "FROZEN" else None)
+
+        audit_trail = list(existing_vinfo.get("audit_trail", []))
+        if was_frozen and is_correction:
+            audit_trail.append({
+                "timestamp": iso_now,
+                "reviewer": reviewer,
+                "reason": correction_reason,
+                "previous_events_count": len(existing_vinfo.get("events", [])),
+                "new_events_count": len(events),
+            })
 
         # Compute video hash if video exists in videos_dir
         vdir = self.server_config["videos_dir"]
         vpath = os.path.join(vdir, video)
-        v_sha = None
+        v_sha = existing_vinfo.get("video_sha256")
         if os.path.exists(vpath):
             v_sha = man_v2_mod.compute_file_sha256(vpath)
 
         gt_data["videos"][video] = {
+            "status": status,
+            "full_video_reviewed": full_video_reviewed if freeze else existing_vinfo.get("full_video_reviewed", False),
+            "reviewer": reviewer,
             "video_sha256": v_sha,
+            "frozen_at": frozen_at,
             "events": events,
             "event_count": len(events),
+            "notes": notes or existing_vinfo.get("notes", ""),
+            "audit_trail": audit_trail,
         }
 
-        # Safe transactional write with write-ahead journal
-        man_v2_mod.save_ground_truth_events(gt_path, gt_data, auto_recover=True)
+        # Validate with man_v2_mod and save atomically
+        try:
+            man_v2_mod.save_ground_truth_events(gt_path, gt_data, auto_recover=True)
+        except Exception as e:
+            self._send_error_json(
+                HTTPStatus.INTERNAL_SERVER_ERROR,
+                f"Failed to save ground truth: {e}"
+            )
+            return
 
         self._send_json(HTTPStatus.OK, {
             "status": "SAVED",
             "gt_path": gt_path,
             "video": video,
+            "video_status": status,
             "saved_count": len(events),
+            "full_video_reviewed": gt_data["videos"][video]["full_video_reviewed"],
         })
+
+    def _handle_get_ground_truth_export(self):
+        output_dir = self.server_config["output_dir"]
+        gt_path = os.path.join(output_dir, "ground_truth_events.json")
+        if not os.path.exists(gt_path):
+            self._send_json(HTTPStatus.OK, [])
+            return
+
+        with open(gt_path, "r", encoding="utf-8") as f:
+            gt_data = json.load(f)
+
+        eval_list = man_v2_mod.export_evaluator_ground_truth(gt_data, only_frozen=True, include_unsure=False)
+        self._send_json(HTTPStatus.OK, eval_list)
+
 
     def _handle_stream_video(self, requested_video):
         """
@@ -509,17 +749,31 @@ def create_annotation_server(
     manifest_path="data/v2/candidate_events_manifest.csv",
     output_dir="_pilot_annotations",
     tools_html="tools/annotate_visual.html",
-    debug=False
+    debug=False,
+    verify_pilot_videos=False,
 ):
     """
     Factory function to configure and instantiate HTTPServer.
+    Enforces safe output_dir validation (realpath check against repo data/** and manifest_path).
     """
+    validated_out = validate_safe_output_dir(
+        output_dir=output_dir,
+        manifest_path=manifest_path,
+        repo_root=REPO_ROOT,
+    )
+
+    if verify_pilot_videos:
+        for v in PILOT_VIDEOS:
+            vp = os.path.join(videos_dir, v)
+            if not (os.path.isfile(vp) and os.access(vp, os.R_OK)):
+                raise FileNotFoundError(f"Pilot video '{v}' not accessible in '{videos_dir}'")
+
     AnnotationRequestHandler.server_config = {
         "host": host,
         "port": port,
         "videos_dir": os.path.abspath(videos_dir),
         "manifest_path": os.path.abspath(manifest_path),
-        "output_dir": os.path.abspath(output_dir),
+        "output_dir": validated_out,
         "tools_html": os.path.abspath(tools_html),
         "debug": debug,
     }
@@ -545,15 +799,40 @@ def main():
         print(f"SECURITY ERROR: Server must strictly bind to loopback (127.0.0.1), got: {args.host}")
         sys.exit(1)
 
-    os.makedirs(args.output_dir, exist_ok=True)
+    # 1. Output directory safety validation (fail-closed, does NOT create dir if invalid)
+    try:
+        validated_out = validate_safe_output_dir(
+            output_dir=args.output_dir,
+            manifest_path=args.manifest_path,
+            repo_root=REPO_ROOT,
+        )
+    except ValueError as ve:
+        print(f"\n❌ SECURITY CONFIGURATION ERROR:\n{ve}\n")
+        sys.exit(1)
+
+    # 2. Pilot videos existence validation
+    missing_videos = []
+    for v in PILOT_VIDEOS:
+        vp = os.path.join(args.videos_dir, v)
+        if not (os.path.isfile(vp) and os.access(vp, os.R_OK)):
+            missing_videos.append(v)
+    if missing_videos:
+        print("\n❌ PILOT VIDEOS NOT FOUND OR UNREADABLE:")
+        print(f"Missing videos in '{args.videos_dir}': {missing_videos}")
+        print("In isolated worktrees, pass --videos-dir pointing to the read-only video directory in the main repo:")
+        print(f"  --videos-dir \"/Users/ethanchen/Desktop/匹克球/test systeam/匹克球N-GO.v1/data/videos\"\n")
+        sys.exit(1)
+
+    os.makedirs(validated_out, exist_ok=True)
     server = create_annotation_server(
         host=args.host,
         port=args.port,
         videos_dir=args.videos_dir,
         manifest_path=args.manifest_path,
-        output_dir=args.output_dir,
+        output_dir=validated_out,
         tools_html=args.tools_html,
         debug=args.debug,
+        verify_pilot_videos=True,
     )
 
     actual_port = server.server_port
@@ -563,7 +842,7 @@ def main():
     print(f"📡 Server running at: http://{args.host}:{actual_port}/")
     print(f"📁 Videos directory : {args.videos_dir}")
     print(f"📄 Base manifest    : {args.manifest_path}")
-    print(f"💾 Output directory : {args.output_dir} (isolated, formal data/v2 untouched)")
+    print(f"💾 Output directory : {validated_out} (isolated, formal data/v2 untouched)")
     print(f"🎯 Pilot videos     : {', '.join(PILOT_VIDEOS)}")
     print("🔒 Security         : Strictly loopback bound; Range streaming enabled")
     print("=" * 72)

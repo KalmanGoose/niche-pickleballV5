@@ -538,8 +538,8 @@
 
     <div class="header-controls">
       <div class="mode-switch-group">
-        <button id="btnMode1" class="mode-btn" onclick="setMode('blind_gt')">模式 1: 盲測通看真值</button>
-        <button id="btnMode2" class="mode-btn active" onclick="setMode('candidate_audit')">模式 2: 候選事件審核</button>
+        <button id="btnMode1" class="mode-btn active" onclick="setMode('blind_gt')">模式 1: 盲測通看真值</button>
+        <button id="btnMode2" class="mode-btn" onclick="trySwitchMode('candidate_audit')" disabled title="須先完成模式 1 盲測全片通看並凍結真值">🔒 模式 2: 候選事件審核 (待解鎖)</button>
       </div>
 
       <div>
@@ -615,10 +615,14 @@
     <div class="sidebar-card">
 
       <!-- ================= MODE 1: Blind Ground Truth Panel ================= -->
-      <div id="panelMode1" style="display: none;" class="card-section">
+      <div id="panelMode1" style="display: flex;" class="card-section">
         <div class="session-banner banner-mode1">
           <strong>盲測完整通看模式 (Blind Ground Truth)</strong><br>
-          此模式不顯示偵測器候選點。請通看影片，標記所有可確認之真實揮拍事件。漏檢係事後與候選比對產出，不得強迫填寫。
+          此模式不顯示偵測器候選點。請通看影片，標記所有可確認之真實揮拍事件。通看完成後請點擊「凍結真值」，方可解鎖模式 2 候選審核。
+        </div>
+
+        <div id="gtStatusBanner" class="gt-status-badge" style="margin-bottom: 8px; padding: 6px 10px; border-radius: 4px; font-size: 0.8rem; background: #334155;">
+          狀態: <span id="gtStatusText" style="font-weight: 700;">載入中...</span>
         </div>
 
         <div class="gt-add-box">
@@ -640,7 +644,7 @@
             </select>
           </div>
           <input type="text" id="gtNotesInput" class="form-input" placeholder="可選備註 (如動作細節、未過網、嚴重遮擋)">
-          <button class="ctrl-btn" style="background: var(--accent-purple); color: #fff; font-weight: 700;" onclick="addGroundTruthAtCurrentTime()">標記當前時間 [快速鍵 A]</button>
+          <button id="btnAddGt" class="ctrl-btn" style="background: var(--accent-purple); color: #fff; font-weight: 700;" onclick="addGroundTruthAtCurrentTime()">標記當前時間 [快速鍵 A]</button>
         </div>
 
         <div class="card-section">
@@ -649,12 +653,24 @@
             <button class="ctrl-btn" style="font-size: 0.75rem; padding: 3px 8px;" onclick="loadGroundTruth()">重新整理</button>
           </div>
           <div id="gtEventsList" class="gt-event-list"></div>
-          <button class="btn-save-gt" onclick="saveGroundTruth()">💾 儲存獨立真值 (ground_truth_events.json)</button>
+
+          <div style="margin-top: 10px; display: flex; flex-direction: column; gap: 8px;">
+            <label style="display: flex; align-items: center; gap: 6px; font-size: 0.8rem; color: #f8fafc; cursor: pointer;">
+              <input type="checkbox" id="fullVideoReviewedCheckbox">
+              <span>我已通看整部影片 (確認記錄全部真實揮拍，無遺漏)</span>
+            </label>
+            <div style="display: flex; gap: 8px;">
+              <button id="btnSaveDraftGt" class="btn-save-gt" style="flex: 1; background: #475569;" onclick="saveGroundTruth(false)">💾 暫存草稿</button>
+              <button id="btnFreezeGt" class="btn-save-gt" style="flex: 1; background: var(--accent-green);" onclick="saveGroundTruth(true)">🔒 凍結真值並解鎖候選</button>
+            </div>
+            <button id="btnCorrectGt" class="ctrl-btn" style="display: none; width: 100%; border-color: var(--accent-yellow); color: var(--accent-yellow); font-weight: 700;" onclick="requestGtCorrection()">✏️ 申請更正已凍結真值</button>
+          </div>
         </div>
       </div>
 
       <!-- ================= MODE 2: Candidate Audit Panel ================= -->
-      <div id="panelMode2" class="card-section">
+      <div id="panelMode2" style="display: none;" class="card-section">
+
         <div class="session-banner banner-mode2">
           <strong>候選事件人工審核模式 (Candidate Audit)</strong><br>
           請就原影片視覺動作判斷是否為具備完整擊球意圖之真揮拍。啟發式指標僅供參考，<strong>嚴禁用速度門檻取代人眼判斷</strong>。
@@ -735,7 +751,7 @@
   <script>
     // Global Application State
     const state = {
-      mode: 'candidate_audit', // 'blind_gt' or 'candidate_audit'
+      mode: 'blind_gt', // Default to blind review mode
       videoName: 'dink2.mp4',
       reviewer: localStorage.getItem('pickleball_reviewer') || 'Reviewer_A',
       candidates: [],
@@ -743,6 +759,7 @@
       loopRegion: false,
       loopCenter: 0,
       groundTruthEvents: [],
+      isGroundTruthFrozen: false,
       statusData: {}
     };
 
@@ -763,6 +780,19 @@
         state.statusData = await res.json();
       } catch (err) {
         showToast('無法連接標註服務器: ' + err.message);
+      }
+    }
+
+    function trySwitchMode(mode) {
+      if (mode === 'candidate_audit') {
+        if (!state.isGroundTruthFrozen) {
+          showToast('🔒 必須先完成模式 1 盲測全片通看並點擊「凍結真值」，方可解鎖候選審核！');
+          return;
+        }
+      }
+      setMode(mode);
+      if (mode === 'candidate_audit' && state.candidates.length === 0) {
+        loadCandidates();
       }
     }
 
@@ -791,8 +821,10 @@
       videoEl.src = `/video/${encodeURIComponent(vname)}`;
       videoEl.load();
 
-      // Load candidates & ground truth
-      await loadCandidates();
+      // Reset to blind GT mode first
+      state.isGroundTruthFrozen = false;
+      state.candidates = [];
+      setMode('blind_gt');
       await loadGroundTruth();
     }
 
@@ -867,6 +899,12 @@
       try {
         const res = await fetch(`/api/candidates?video=${encodeURIComponent(state.videoName)}`);
         const data = await res.json();
+        if (res.status === 403) {
+          state.candidates = [];
+          showToast('🔒 ' + (data.error || '盲測全片通看完成前禁止審查候選。'));
+          clearCandidateCard();
+          return;
+        }
         state.candidates = data.events || [];
         state.currentIndex = 0;
         updateProgress(data);
@@ -952,7 +990,7 @@
     }
 
     function clearCandidateCard() {
-      document.getElementById('cardEventId').textContent = '本影片無候選事件';
+      document.getElementById('cardEventId').textContent = '本影片無候選事件或尚未解鎖';
       document.getElementById('cardTimestamp').textContent = '-';
       document.getElementById('cardDuration').textContent = '-';
       document.getElementById('cardSpeed').textContent = '-';
@@ -984,13 +1022,36 @@
       const ev = state.candidates[state.currentIndex];
       const notes = document.getElementById('candidateNotesInput').value;
 
+      const oldMv = (ev.manual_verified || '').toUpperCase();
+      const oldIt = (ev.is_true_stroke || '').toUpperCase();
+      const wasSigned = (oldMv === 'HUMAN_CONFIRMED' || oldMv === 'HUMAN_REJECTED' || oldMv === 'VERIFIED_TRUE' || oldMv === 'VERIFIED_FALSE');
+      const isChanging = (oldMv !== verifiedStatus || oldIt !== trueStatus);
+
+      let isCorrection = false;
+      let correctionReason = "";
+
+      if (wasSigned && isChanging) {
+        const reason = prompt(`⚠️ 此候選事件先前已簽核為 [${oldMv} / ${oldIt}]！\n改判或更正必須填寫修訂理由，請輸入更正原因：`);
+        if (!reason || !reason.trim()) {
+          showToast("已取消更正，原簽核保留。");
+          return;
+        }
+        isCorrection = true;
+        correctionReason = reason.trim();
+      }
+
       try {
         const payload = {
           video: ev.video,
           event_id: ev.event_id,
           manual_verified: verifiedStatus,
           is_true_stroke: trueStatus,
-          notes: notes
+          notes: notes,
+          reviewer: state.reviewer,
+          expected_manual_verified: oldMv,
+          expected_is_true_stroke: oldIt,
+          is_correction: isCorrection,
+          correction_reason: correctionReason,
         };
         const res = await fetch('/api/candidates/audit', {
           method: 'POST',
@@ -998,6 +1059,11 @@
           body: JSON.stringify(payload)
         });
         const data = await res.json();
+        if (res.status === 409) {
+          showToast("❌ 簽核衝突拒絕：" + (data.error || "原簽署已保留"));
+          await loadCandidates();
+          return;
+        }
         if (!res.ok) throw new Error(data.error || '儲存失敗');
 
         // Update local object
@@ -1044,6 +1110,42 @@
         const data = await res.json();
         state.groundTruthEvents = data.events || [];
         document.getElementById('gtCountDisplay').textContent = state.groundTruthEvents.length;
+
+        const isFrozen = (data.status === 'FROZEN' && Boolean(data.full_video_reviewed));
+        state.isGroundTruthFrozen = isFrozen;
+
+        const btnMode2 = document.getElementById('btnMode2');
+        const statusText = document.getElementById('gtStatusText');
+        const statusBanner = document.getElementById('gtStatusBanner');
+        const chkFull = document.getElementById('fullVideoReviewedCheckbox');
+        const btnCorrect = document.getElementById('btnCorrectGt');
+        const btnFreeze = document.getElementById('btnFreezeGt');
+        const btnDraft = document.getElementById('btnSaveDraftGt');
+
+        if (isFrozen) {
+          btnMode2.disabled = false;
+          btnMode2.title = '模式 2 候選審核已解鎖';
+          btnMode2.textContent = '模式 2: 候選事件審核 (67 筆)';
+          statusText.textContent = `✅ 已完成全片通看並凍結真值 (${state.groundTruthEvents.length} 筆事件)`;
+          statusBanner.style.background = '#065f46';
+          chkFull.checked = true;
+          chkFull.disabled = true;
+          btnCorrect.style.display = 'block';
+          btnFreeze.style.display = 'none';
+          btnDraft.style.display = 'none';
+        } else {
+          btnMode2.disabled = true;
+          btnMode2.title = '須先完成模式 1 盲測全片通看並凍結真值';
+          btnMode2.textContent = '🔒 模式 2: 候選事件審核 (待解鎖)';
+          statusText.textContent = '🟡 盲測進行中 (尚未凍結)';
+          statusBanner.style.background = '#334155';
+          chkFull.checked = Boolean(data.full_video_reviewed);
+          chkFull.disabled = false;
+          btnCorrect.style.display = 'none';
+          btnFreeze.style.display = 'block';
+          btnDraft.style.display = 'block';
+        }
+
         renderGroundTruthList();
         renderTimelineMarkers();
       } catch (err) {
@@ -1110,13 +1212,47 @@
       renderTimelineMarkers();
     }
 
-    async function saveGroundTruth() {
+    function requestGtCorrection() {
+      const reason = prompt("此影片真值已凍結！\n修訂真值必須記錄審查更正理由，請輸入更正原因：");
+      if (!reason || !reason.trim()) {
+        showToast("已取消更正申請。");
+        return;
+      }
+      saveGroundTruth(true, reason.trim());
+    }
+
+    async function saveGroundTruth(freeze = false, correctionReason = "") {
       try {
+        const chkFull = document.getElementById('fullVideoReviewedCheckbox').checked;
+        if (freeze && !chkFull) {
+          showToast('⚠️ 請先勾選「我已通看整部影片」確認無遺漏，再行凍結。');
+          return;
+        }
+
+        let isCorrection = false;
+        let reason = correctionReason;
+        if (state.isGroundTruthFrozen) {
+          if (!reason) {
+            reason = prompt("此影片真值已凍結！請輸入更正原因：");
+            if (!reason || !reason.trim()) {
+              showToast("已取消更正。");
+              return;
+            }
+          }
+          isCorrection = true;
+        }
+
         const payload = {
           reviewer: state.reviewer,
           video: state.videoName,
-          events: state.groundTruthEvents
+          events: state.groundTruthEvents,
+          freeze: freeze || state.isGroundTruthFrozen,
+          full_video_reviewed: freeze ? true : chkFull,
+          is_correction: isCorrection,
+          correction_reason: reason || "",
+          notes: document.getElementById('gtNotesInput') ? document.getElementById('gtNotesInput').value : ""
         };
+
         const res = await fetch('/api/ground_truth', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -1124,7 +1260,13 @@
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || '儲存失敗');
-        showToast(`已成功保存 ${state.groundTruthEvents.length} 筆真值事件至臨時目錄！`);
+
+        if (freeze || state.isGroundTruthFrozen) {
+          showToast(`✅ 真值已凍結！模式 2 候選審查已解鎖 (${state.groundTruthEvents.length} 筆事件)。`);
+        } else {
+          showToast(`💾 草稿已暫存 (${state.groundTruthEvents.length} 筆事件)。`);
+        }
+        await loadGroundTruth();
       } catch (err) {
         showToast('儲存真值失敗: ' + err.message);
       }
@@ -1171,5 +1313,6 @@
       setTimeout(() => toast.classList.remove('show'), 2800);
     }
   </script>
+
 </body>
 </html>

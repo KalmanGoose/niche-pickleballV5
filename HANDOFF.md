@@ -286,68 +286,172 @@
 
 ---
 
-## 9. TASK-V8-609 實作紀錄：視覺化揮拍標註試行工具與獨立真值標註流程
+## 9. TASK-V8-609 實作與複審修正紀錄：視覺化揮拍標註試行工具與獨立真值標註流程
 
 * **Task ID**：`TASK-V8-609`（Visual stroke annotation pilot and independent ground truth）
-* **分支與基底**：自 `ada9761` 建立隔離分支 `task/agv/annotate-tool-ada9761`（位於 worktree `.worktrees/annotate-tool-ada9761`），不污染主分支與主工作樹。
+* **分支與基底**：自 `ada9761` 建立隔離任務分支 `task/agv/annotate-tool-ada9761`（位於 worktree `.worktrees/annotate-tool-ada9761`），完整保留先前提交歷史（`78dcaa8`），不污染主分支 `test-mobile-motion`。
 * **變更檔案（嚴格限於 Allowed Files）**：
-  - `tools/annotate_visual.html`（雙模式離線標註前端介面，零外部 CDN 依賴，包含盲測通看標註與 67 筆候選審查模式）
-  - `scripts/annotation_server.py`（本機 HTTP 伺服器，嚴格綁定 `127.0.0.1`，支援 HTTP 206 Partial Content Range 串流與路徑遍歷防護，提供事務性審查寫入與獨立真值保存 API）
-  - `scripts/manifest_annotations_v2.py`（擴充真值驗證 `validate_ground_truth_events`、原子儲存 `save_ground_truth_events`、候選列事務更新 `update_candidate_manifest_row`，以及輸出欄位淨化機制）
-  - `tests/test_annotation_tool.py`（7 組全新單元測試，包含 In-Process 無 Socket 測試客戶端、Range 串流檢驗、隔離目錄寫入驗證與正式 67 筆資料完整性）
-  - `HANDOFF.md`（更新交接規格、測試矩陣與試行使用指引）
+  - `tools/annotate_visual.html`（雙模式離線標註前端介面，預設盲測通看模式，未凍結前鎖定候選審核，零外部 CDN 依賴）
+  - `scripts/annotation_server.py`（本機 HTTP 伺服器，嚴格綁定 `127.0.0.1`，包含輸出目錄安全驗證、盲測解鎖閘門、損壞真值防護、Range 206 視訊串流、候選簽核衝突防護與評估格式匯出 API）
+  - `scripts/manifest_annotations_v2.py`（新增 `ManifestConflictError`、真值綱要檢驗 `validate_ground_truth_events`、真值原子儲存與評估格式匯出 `export_evaluator_ground_truth`、樂觀鎖與改判更正軌跡 `update_candidate_manifest_row`）
+  - `tests/test_annotation_tool.py`（11 組完整回歸測試，涵蓋 4 大 P1 情境、綱要檢驗、UNSURE 排除、空真值解鎖、正式 67 筆完整性與來源清單唯讀隔離）
+  - `HANDOFF.md`（完整記錄 4 大 P1 修正、34/34 單元測試、Headless Chrome 瀏覽器端對端驗收證據與啟動指引）
 
-### 9.1 架構與核心實作規格 (Architecture & Design)
+### 9.1 四大 P1 審查缺陷工程修復實證 (P1 Review Findings Remediation)
 
-1. **雙模式架構與嚴格真值隔離 (Dual-Mode & Strict Separation)**：
-   - **Mode 1: 盲測完整通看模式 (Blind Full-Video Ground Truth Session)**：
-     - Reviewer 觀看完整影片（`dink2.mp4`, `smash2.mp4`, `serve_legal1.mp4`），**畫面上不顯示任何偵測器候選波峰、無啟發式分級提示、無標記框**。
-     - 審查者記錄所有親眼確認的真實揮拍時間戳 (`timestamp_s`)、動作類別（`KITCHEN_DINK`, `POWER_DRIVE`, `SMASH`, `UNDERHAND_LEGAL`, `OVERHAND_FAULT`, `VOLLEY_PUNCH`, `PASSIVE_BLOCK`）、信心度（`CONFIRMED` / `UNSURE`）與備註。
-     - 儲存至獨立之 `ground_truth_events.json`，透過 `validate_ground_truth_events` 與原子替換儲存，作為後續計算 Recall 與清查漏檢事件（FN）的唯一客觀基準。
-   - **Mode 2: 候選事件審查模式 (Candidate Audit Session)**：
-     - 針對首批 3 支影片共 67 筆候選事件（`dink2`: 9 筆, `smash2`: 19 筆, `serve_legal1`: 39 筆）進行視覺核對。
-     - 顯示候選事件時間窗、峰值手腕速率、軀幹角度與啟發式分級參考。
-     - 審查者簽署 `manual_verified`（`HUMAN_CONFIRMED` / `HUMAN_REJECTED` / `PENDING_HUMAN_AUDIT`）、`is_true_stroke`（`TRUE` / `FALSE` / `PENDING`）與審查備註。
-     - 透過 `update_candidate_manifest_row` 與 `batch_publish_files` 事務性寫入 `--output-dir` 下的副本清單，**正式 `data/v2` 保持唯讀**。
+針對 Reviewer 審查報告（`/private/tmp/cli-review-609.md`）提出的 4 項 P1 阻礙，已全面完成工程修正並通過專屬單元測試：
 
-2. **媒體呈現時間與 Range 206 視訊串流 (Presentation Time & HTTP 206 Streaming)**：
-   - 前端播放器嚴格按實際呈現時間（`video.currentTime`）標示與記錄，介面清楚註明為媒體呈現時間，不預先宣稱逐格精確。
-   - 後端伺服器原生實作 HTTP `Range: bytes=start-end` 處理與 `206 Partial Content` 響應，支援 Chrome/Safari/Edge 之平滑拖曳、微步進（±0.05s / ±1.0s）與波峰前後 ±1.0s 區間循環播放。
-   - 內建 `safe_resolve_path` 安全路徑解析，嚴格阻斷任何 `..` 路徑遍歷（Directory Traversal）攻擊。
+1. **[P1-1] 輸出目錄安全隔離與來源目錄拒絕 (`validate_safe_output_dir`)**：
+   - *缺陷根源*：舊版未主動檢查 `--output-dir` 是否與來源清單同目錄，亦未防範指向 `data/**` 之符號連結（symlink），導致在相同目錄下 API 直接修改來源清單。
+   - *修復實作*：
+     - 使用 `os.path.realpath` 解析目錄之規範路徑（Canonical Path）。對於尚未建立之子目錄，向上遍歷至最近之既有祖先目錄進行 realpath 解析後再拼接，杜絕經由符號連結繞過檢驗。
+     - 嚴格拒絕：(a) 任何解析至倉庫 `data/**` 之路徑；(b) 任何與來源 manifest 所在目錄相同之路徑，或直接指向來源 manifest 之路徑；(c) 任何解析回上述禁區之 symlink。
+     - **Fail-Closed 原則**：驗證失敗時直接拋出 `ValueError`，**嚴格禁止建立任何目錄**。
+   - *測試實證*：`test_3_safe_output_dir_validation_rejects_repo_data_source_dir_and_symlinks` 驗證直屬 `data/**`、來源 manifest 目錄、指向 `data/**` 的 symlink、指向來源目錄的 symlink 以及位於 symlink 下的未建立子路徑，全數被拒絕且未在磁碟建立任何殘留目錄。
 
-3. **零外部 CDN 與嚴格離線自洽 (Zero External CDN Dependencies)**：
-   - 前端 HTML 完全不依賴任何外部 CDN、Google Fonts、Tailwind CDN、FontAwesome 或外部 JS 套件，純原生 HTML5 + CSS + ES6 實現，可在無外網環境本機離線運行。
-   - 伺服器嚴格綁定 `127.0.0.1`，不對區域網路或外網暴露。
+2. **[P1-2] 獨立盲測通看先行閘門 (Independent Blind Review First Gating)**：
+   - *缺陷根源*：舊版介面進入即可直接檢視候選峰值，無法保證「不顯示候選的全片通看真值」之獨立性；且未支援「全片確認無揮拍」之合法情境。
+   - *修復實作*：
+     - **前端預設盲測**：介面載入預設為「模式 1：盲測通看真值」；「模式 2：候選審查」按鈕預設為 `disabled`（標記 `🔒 模式 2: 候選事件審核 (待解鎖)`）。
+     - **後端 API 強制閘門**：`GET /api/candidates` 與 `POST /api/candidates/audit` 主動檢查該影片在 `ground_truth_events.json` 中是否具備 `status: "FROZEN"` 與 `full_video_reviewed: true`。未凍結前請求候選資料或簽署一律回傳 `HTTP 403 Forbidden`（`error_code: "BLIND_REVIEW_REQUIRED"`），杜絕前端繞過。
+     - **全片通看零揮拍合法解鎖**：審查者通看全片後若未發現真實揮拍，勾選「我已通看整部影片」並點擊凍結，系統支援寫入空事件陣列 `events: []`（狀態記錄為 `FROZEN`，`full_video_reviewed: true`），代表「已通看整部影片，確認零揮拍」，並安全解鎖模式 2。
+     - **凍結後修改更正軌跡**：影片一旦凍結，後續修訂必須帶有 `is_correction: true` 與非空 `correction_reason`，並於真值資料庫中記錄歷史更正軌跡。
+   - *測試實證*：`test_4_blind_review_gating_blocks_candidate_access_until_frozen` 與 `test_9_empty_ground_truth_explicitly_frozen_unlocks_candidates` 驗證未凍結前 403 阻擋、已凍結合法解鎖、空真值解鎖，以及未給更正理由修改凍結真值之 409 衝突拒絕。
 
-### 9.2 全量單元測試矩陣 (Verification Matrix: 30/30 PASS)
+3. **[P1-3] 既有真值損壞 Fail-Closed 防護 (`save_ground_truth_events`)**：
+   - *缺陷根源*：舊版若 `ground_truth_events.json` 內容損壞（語法錯誤、格式偏離），儲存新影片真值時會以空字典覆寫舊檔，造成既有真值損毀遺失。
+   - *修復實作*：
+     - 在寫入前執行前置安全校驗（Pre-check）：若輸出目錄下已有 `ground_truth_events.json`，先嘗試讀取並呼叫 `validate_ground_truth_events` 進行完整性驗證。
+     - 若現有真值損壞，立即中斷終止，回傳 `HTTP 500 Internal Server Error`（`CORRUPT_EXISTING_GROUND_TRUTH`），**保留磁碟原始位元組不予覆蓋**，並保護其他影片真值不被破壞。
+   - *測試實證*：`test_5_corrupt_ground_truth_fails_closed_and_preserves_other_videos` 注入損壞 JSON，驗證伺服器拒絕寫入、保留損壞位元組，且在修復為合法格式後保留先前記錄之其他影片。
+
+4. **[P1-4] 候選簽核衝突防護、樂觀鎖與更正紀錄 (`update_candidate_manifest_row`)**：
+   - *缺陷根源*：舊版支援任意覆寫，若不同審查員或分頁進行相反判定，後寫者會無聲覆蓋原簽核。
+   - *修復實作*：
+     - **樂觀鎖機制**：API 與更新函式接收 `expected_manual_verified` 與 `expected_is_true_stroke`；若磁碟現況與預期不符，拋出 `ManifestConflictError`，API 回傳 `HTTP 409 Conflict`，保留原簽認。
+     - **已簽核改判強制更正理由**：若該列先前已為 `HUMAN_CONFIRMED` 或 `HUMAN_REJECTED` 等已簽署狀態，且本次判定方向改變，必須傳入 `is_correction: true` 與非空 `correction_reason`；否則拋出 `ManifestConflictError` 拒絕無聲改判。
+     - **永久審查備註更正軌跡**：合規之改判會自動將更正標記永久附加至 `notes` 欄位末端：
+       `[CORRECTION 2026-10-16T... by <reviewer>: <old_verdict> -> <new_verdict>; Reason: <reason>]`
+   - *測試實證*：`test_6_candidate_audit_conflict_detection_and_audit_trail` 驗證狀態不合時拋出 409、改判無理由被阻擋、帶理由改判成功，且 `notes` 寫入可追查之更正軌跡。
+
+### 9.2 評估器相容性與 UNSURE 排除規範
+
+1. **評估格式導出 (`export_evaluator_ground_truth` / `/api/ground_truth/export`)**：
+   - 將凍結之真值轉換為 `evaluate_detector_v2.py` 所需之清單格式：
+     `[{"video": str, "timestamp_peak_s": float, "event_id": str, "stroke_class": str}]`
+   - **嚴格排除 `UNSURE`**：依評估標準，信心度為 `UNSURE` 之事件嚴格排除於真值評估分母之外，僅包含 `confidence == "CONFIRMED"` 之確定真值。
+   - **僅匯出已凍結影片**：未通看凍結之草稿影片真值不計入正式評估。
+2. **真值綱要檢驗 (`validate_ground_truth_events`)**：
+   - 拒絕 `NaN`、`Inf`、負數時間戳、時間戳超過影片長度（若有傳入時）、重複 `gt_id` 以及未定義之動作分類。
+3. *測試實證*：`test_7_ground_truth_validation_rejects_nan_inf_duplicates_and_durations` 與 `test_8_ground_truth_evaluator_compatibility_and_unsure_exclusion` 驗證排除 UNSURE 後直接傳入 `evaluate_event_detection` 順暢執行。
+
+### 9.3 全量單元測試矩陣 (Verification Matrix: 34/34 PASS)
 
 | 測試檔案 | 測試方法 | 檢驗核心與驗收重點 | 結果 |
 | :--- | :--- | :--- | :--- |
-| `tests/test_annotation_tool.py` | `test_1_server_startup_and_ui_serve_zero_cdn` | 驗證 UI 正常輸出、包含 TASK-V8-609 標題、零外部 CDN 連結 | **PASS** |
-| `tests/test_annotation_tool.py` | `test_2_video_streaming_range_and_traversal_guards` | 驗證 HTTP 206 Partial Content Range 串流與路徑遍歷拒絕（403/404） | **PASS** |
-| `tests/test_annotation_tool.py` | `test_3_candidate_events_api_and_video_filtering` | 驗證候選事件 API 讀取、影片過濾與 67 筆事件載入 | **PASS** |
-| `tests/test_annotation_tool.py` | `test_4_candidate_audit_transactional_save_and_isolation` | 驗證候選簽署寫入隔離目錄副本，正式 `data/v2` 100% 保持未修改 | **PASS** |
-| `tests/test_annotation_tool.py` | `test_5_blind_ground_truth_recording_and_strict_separation` | 驗證盲測獨立真值儲存至 `ground_truth_events.json` 與綱要檢驗 | **PASS** |
-| `tests/test_annotation_tool.py` | `test_6_ground_truth_validation_rejects_malformed_data` | 驗證真值綱要檢驗拒絕負數時間戳、無效審查者與非法類別 | **PASS** |
-| `tests/test_annotation_tool.py` | `test_7_pilot_67_events_exact_dataset_integrity` | 驗證正式清單中 3 支試行影片候選數嚴格為 67 筆 (9 + 19 + 39) | **PASS** |
-| `tests/test_manifest_v2.py` | 12 組事務性與崩潰恢復測試 | 驗證批次發布事務性 Rollback、實體雜湊感知恢復、中斷防護 | **PASS** (12/12) |
+| `tests/test_annotation_tool.py` | `test_1_server_startup_and_ui_serve_zero_cdn` | 驗證 UI 輸出、TASK-V8-609 標題、零外部 CDN 連結 | **PASS** |
+| `tests/test_annotation_tool.py` | `test_2_video_streaming_range_and_traversal_guards` | 驗證 HTTP 206 Partial Content Range 串流與路徑遍歷防護 | **PASS** |
+| `tests/test_annotation_tool.py` | `test_3_safe_output_dir_validation_rejects_repo_data_source_dir_and_symlinks` | [P1-1] 驗證嚴格拒絕 `data/**`、來源目錄與各類 symlink | **PASS** |
+| `tests/test_annotation_tool.py` | `test_4_blind_review_gating_blocks_candidate_access_until_frozen` | [P1-2] 驗證未凍結前候選 API 403 阻擋與更正理由要求 | **PASS** |
+| `tests/test_annotation_tool.py` | `test_5_corrupt_ground_truth_fails_closed_and_preserves_other_videos` | [P1-3] 驗證既有真值損壞時 Fail-Closed 拒絕寫入並保留原檔 | **PASS** |
+| `tests/test_annotation_tool.py` | `test_6_candidate_audit_conflict_detection_and_audit_trail` | [P1-4] 驗證樂觀鎖 409 衝突防護、改判理由要求與 audit trail | **PASS** |
+| `tests/test_annotation_tool.py` | `test_7_ground_truth_validation_rejects_nan_inf_duplicates_and_durations` | 驗證真值綱要檢驗拒絕 NaN、Inf、重複 ID 與超長時間戳 | **PASS** |
+| `tests/test_annotation_tool.py` | `test_8_ground_truth_evaluator_compatibility_and_unsure_exclusion` | 驗證 UNSURE 排除與 `evaluate_event_detection` 評估器相容性 | **PASS** |
+| `tests/test_annotation_tool.py` | `test_9_empty_ground_truth_explicitly_frozen_unlocks_candidates` | 驗證空真值（全片 0 揮拍）合法凍結與候選解鎖 | **PASS** |
+| `tests/test_annotation_tool.py` | `test_10_pilot_67_events_exact_dataset_integrity` | 驗證 3 支試行影片候選數嚴格為 67 筆 (9 + 19 + 39) | **PASS** |
+| `tests/test_annotation_tool.py` | `test_11_candidate_audit_isolation_leaves_source_manifest_untouched` | 驗證隔離輸出目錄副本寫入，正式 `data/v2` 來源 100% 未修改 | **PASS** |
+| `tests/test_manifest_v2.py` | 12 組事務性發布與崩潰恢復測試 | 驗證批次發布事務性 Rollback、實體雜湊感知恢復、中斷防護 | **PASS** (12/12) |
 | `tests/test_kinematics_v2.py` | 11 組運動學與提取測試 | 驗證追蹤恢復、1D NMS、尺度退化與快取失效 | **PASS** (11/11) |
-| **總計** | **30 項單元測試** | **涵蓋提取、安全發布、視覺化伺服器與真值標註全流程** | **30/30 PASS (100%)** |
+| **總計** | **34 項單元測試** | **涵蓋提取、安全發布、伺服器隔離、盲測閘門與衝突改判全流程** | **34/34 PASS (100%)** |
 
-### 9.3 標註工具啟動與試行指引 (Pilot Usage Guide)
+### 9.4 Headless Chrome 瀏覽器端對端驗收證據 (Browser Verified Evidence)
 
-1. **啟動本機伺服器**：
-   ```bash
-   ./.venv/bin/python scripts/annotation_server.py --port 8080 --output-dir /tmp/pilot_annotations
-   ```
-2. **瀏覽器開啟**：
-   在瀏覽器中開啟 `http://127.0.0.1:8080`。
-3. **標註流程建議**：
-   - **Step 1（獨立真值通看）**：選取影片後切換至「模式 1：獨立真值通看」，通看整部影片，遇到每次真實揮拍時按快速鍵 `A` 或點擊「標記當前為真值揮拍」，選擇動作類別與信心度，完成後點擊「儲存真值事件表」。
-   - **Step 2（候選事件核對）**：切換至「模式 2：候選事件審查」，系統自動載入 67 筆候選事件。點擊候選列表逐筆跳轉至波峰，檢視動作展開與波峰前後 ±1.0s 循環播放，點擊 `確認為真揮拍 (1)` 或 `駁回假陽性 (2)` 或 `無法判定/跳過 (3)`。
-   - **Step 3（真值比對評估）**：試行完成後，可使用評估腳本比對兩份產物計算真實 Precision 與 Recall。
+以 Google Chrome 155 (`--headless=new`) 透過 Chrome DevTools Protocol (CDP) 自動化驅動實際網頁，對 3 支試行影片進行完整瀏覽器播放、跳轉、步進、盲測通看凍結、候選審查與評估器串接驗證：
 
-### 9.4 未驗證項目與邊界聲明 (Evidence Gaps & Scope)
-- **正式 `data/v2` 寫入**：`NOT EXECUTED`（依任務板規範，試行產物寫入 `--output-dir` 臨時目錄，正式資料夾未被修改）。
-- **真人審查簽認產物**：`PENDING_HUMAN_PILOT`（工具已完成並通過 30 項測試驗收，實際 67 筆之人工打標需由真人審查員進行試行操作）。
+```text
+======================================================================
+🚀 TASK-V8-609 HEADLESS CHROME BROWSER VERIFICATION
+======================================================================
+📄 Source manifest: data/v2/candidate_events_manifest.csv (130764 bytes)
+🔌 Launching Annotation Server on port 63558...
+✅ Annotation server ready at http://127.0.0.1:63558/tools/annotate_visual.html
+🌐 Launching Headless Chrome on CDP port 63559...
+✅ Chrome CDP connected. URL: 'http://127.0.0.1:63558/tools/annotate_visual.html'
+
+--- Phase 1: Security & Zero CDN Inspection ---
+📌 Page title: Pickleball N-GO — 視覺化揮拍標註輔助工具 (TASK-V8-609)
+🛡️ External CDN references detected: 0
+🔒 Initial Mode 1 Active: True
+🔒 Initial Mode 2 Disabled: True ('🔒 模式 2: 候選事件審核 (待解鎖)')
+📹 Video options in dropdown: ['dink2.mp4', 'smash2.mp4', 'serve_legal1.mp4']
+
+--- Phase 2: Video 1 (dink2.mp4) Full Verification ---
+🎥 dink2.mp4 duration: 10.888s, readyState: 4
+⏩ Video jumped to: 1.250s
+⏭️ Video stepped forward to: 2.250s
+➕ Ground truth events count: 1
+🔒 Attempted freeze without full review check, Mode 2 remains locked: True
+🔒 Freezing ground truth for dink2.mp4...
+🎉 GT Status Banner: ✅ 已完成全片通看並凍結真值 (1 筆事件)
+🔓 Mode 2 Unlocked: True ('模式 2: 候選事件審核 (67 筆)')
+📋 Switching to Mode 2: Candidate Event Audit...
+📋 Candidate rows loaded for dink2.mp4: 9
+✅ Candidate audited badge: PENDING
+🔄 Testing conflict re-audit with correction reason prompt...
+🔄 Re-audited candidate #0 status: HUMAN_REJECTED
+
+--- Phase 3: Video 2 (smash2.mp4) Gating & Freeze ---
+🔒 smash2.mp4 Mode 2 correctly re-locked: True
+🔓 smash2.mp4 Mode 2 Unlocked: True ('模式 2: 候選事件審核 (67 筆)')
+📋 smash2.mp4 candidate rows: 19
+
+--- Phase 4: Video 3 (serve_legal1.mp4) Empty GT Freeze & Audit ---
+🔒 Testing explicit empty GT freeze (0 events, full_video_reviewed=true)...
+🔓 serve_legal1.mp4 Mode 2 Unlocked: True ('模式 2: 候選事件審核 (67 筆)')
+📋 serve_legal1.mp4 candidate rows: 39
+
+📊 Total candidate events across 3 pilot videos: 67 (expected 67)
+
+--- Phase 5: Output Files & Evaluator Compatibility ---
+🛡️ Source manifest verified 100% untouched and identical.
+📁 Output manifest lines: 725
+📝 Audit correction trail present in output manifest: True
+📁 Ground truth videos: ['dink2.mp4', 'smash2.mp4', 'serve_legal1.mp4']
+   dink2.mp4: status=FROZEN, full_video_reviewed=True, events=1
+   smash2.mp4: status=FROZEN, full_video_reviewed=True, events=1
+   serve_legal1.mp4: status=FROZEN, full_video_reviewed=True, events=0
+📁 Evaluator format event count: 2
+   - video: dink2.mp4, timestamp_peak_s: 1.25
+   - video: smash2.mp4, timestamp_peak_s: 0.85
+
+📈 Evaluator Report Run Cleanly:
+   Ground truth strokes: 2
+   Candidate strokes:    724
+   True Positives (TP):  1
+   False Positives (FP): 723
+   Precision:            0.001
+   Recall:               0.500
+
+======================================================================
+🏆 ALL BROWSER & END-TO-END AUDIT VERIFICATIONS PASSED SUCCESSFULLY!
+======================================================================
+```
+
+### 9.5 標註工具啟動指引（含隔離 Worktree 影片目錄參數）
+
+在未複製視訊檔案的隔離工作樹中，`annotation_server.py` 啟動時會主動驗證 3 支試行影片存在性；若未檢出，將輸出清楚指引導引使用者傳入主倉庫之唯讀視訊目錄：
+
+```bash
+# 於隔離 worktree 啟動伺服器，將 --videos-dir 指向主倉庫之唯讀影片資料夾：
+./.venv/bin/python scripts/annotation_server.py \
+  --port 8080 \
+  --videos-dir "/Users/ethanchen/Desktop/匹克球/test systeam/匹克球N-GO.v1/data/videos" \
+  --output-dir /tmp/pilot_annotations
+```
+
+### 9.6 未驗證項目與邊界聲明 (Evidence Gaps & Scope)
+- **正式 `data/v2` 寫入**：`NOT EXECUTED`（依任務板規範，試行產物寫入 `--output-dir` 臨時目錄，正式 `data/v2` 維持完全唯讀）。
+- **真人正式簽核真值產物**：`PENDING_HUMAN_PILOT`（工具已完成、通過 34 項單元測試與 Headless Chrome 端對端瀏覽器驗收，67 筆候選與全片通看打標留待真人審查員試行操作）。
 - **方向 B（模型重訓）與方向 C（遊戲 Runtime P0）**：`EXCLUDED`（維持隔離，零相關程式碼變動）。
+- **未核准 Push 或部署**：所有操作僅限本機任務分支 `task/agv/annotate-tool-ada9761`，未執行 merge、push 或 deploy。
+

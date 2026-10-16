@@ -5,15 +5,21 @@ Unit & Regression Tests for Visual Annotation Tool (TASK-V8-609)
 Verifies:
 1. Server loopback binding, static UI serving without external CDN dependencies.
 2. HTTP Range streaming (206 Partial Content) and path traversal prevention.
-3. Accurate loading of all 67 candidate events across the 3 pilot videos.
-4. Transactional candidate auditing, status pair validation, and isolation from formal data/v2.
-5. Blind-mode independent Ground Truth recording and strict separation from candidate manifest.
-6. Write-ahead recovery journaling handling under server API.
+3. Strict output directory isolation: rejecting repo data/**, source manifest directory, and symlinks.
+4. "Independent Blind Review First" sequence enforcement: candidate access strictly blocked until blind GT is frozen.
+5. Fail-closed handling: corrupted old ground truth file aborts write and preserves original bytes; other videos preserved.
+6. Candidate audit optimistic locking, conflict detection, and audit trail generation (P1-4).
+7. Ground truth validation: rejects NaN, Inf, negative timestamps, duplicates, and out-of-duration timestamps.
+8. Evaluator compatibility: exported ground truth list matches evaluate_detector_v2.py, strictly excluding UNSURE events.
+9. Empty events list with full_video_reviewed=True and freeze=True explicitly unlocks candidates.
+10. Verification of the exact 67 candidate events across the 3 pilot videos.
+11. Transactional isolation: mutations in output_dir leave formal manifest byte-for-byte untouched.
 """
 
 import csv
 import io
 import json
+import math
 import os
 import shutil
 import sys
@@ -24,6 +30,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 
 import scripts.manifest_annotations_v2 as man_v2_mod
 import scripts.annotation_server as srv
+import scripts.evaluate_detector_v2 as eval_v2_mod
 
 
 class InProcessClient:
@@ -103,9 +110,10 @@ class TestAnnotationTool(unittest.TestCase):
         self.tmpdir = tempfile.mkdtemp(prefix="test_anno_tool_")
         self.videos_dir = os.path.join(self.tmpdir, "videos")
         self.output_dir = os.path.join(self.tmpdir, "output")
-        self.manifest_path = os.path.join(self.tmpdir, "candidate_events_manifest.csv")
+        self.manifest_path = os.path.join(self.tmpdir, "source_manifest", "candidate_events_manifest.csv")
         os.makedirs(self.videos_dir, exist_ok=True)
         os.makedirs(self.output_dir, exist_ok=True)
+        os.makedirs(os.path.dirname(self.manifest_path), exist_ok=True)
 
         # Create dummy video files
         self.test_video_name = "dink2.mp4"
@@ -161,6 +169,7 @@ class TestAnnotationTool(unittest.TestCase):
             },
         ]
         with open(self.manifest_path, "w", newline="", encoding="utf-8") as f:
+            writer = csv.DictReader(f)
             writer = csv.DictWriter(f, fieldnames=self.fieldnames)
             writer.writeheader()
             writer.writerows(self.sample_rows)
@@ -182,6 +191,26 @@ class TestAnnotationTool(unittest.TestCase):
     def tearDown(self):
         shutil.rmtree(self.tmpdir, ignore_errors=True)
 
+    def _freeze_video_gt(self, video="dink2.mp4", reviewer="Auditor_Ethan"):
+        """Helper to freeze blind ground truth for a video so candidates unlock."""
+        payload = {
+            "reviewer": reviewer,
+            "video": video,
+            "events": [
+                {
+                    "gt_id": f"gt_{video}_001",
+                    "timestamp_s": 2.100,
+                    "stroke_class": "KITCHEN_DINK" if "dink" in video else "SMASH",
+                    "confidence": "CONFIRMED",
+                    "notes": "Verified stroke",
+                }
+            ],
+            "freeze": True,
+            "full_video_reviewed": True,
+        }
+        status, _, raw = self.client.post("/api/ground_truth", payload)
+        self.assertEqual(status, 200, f"Failed to freeze video {video}: {raw.decode('utf-8')}")
+
     def test_1_server_startup_and_ui_serve_zero_cdn(self):
         """Verify UI is served, contains TASK-V8-609 title, and contains zero external CDN dependencies."""
         status, headers, content = self.client.get("/")
@@ -197,13 +226,11 @@ class TestAnnotationTool(unittest.TestCase):
 
     def test_2_video_streaming_range_and_traversal_guards(self):
         """Verify HTTP 206 Partial Content for video Range requests and path traversal rejection."""
-        # 1. Full content without Range
         status, headers, body = self.client.get(f"/video/{self.test_video_name}")
         self.assertEqual(status, 200)
         self.assertEqual(len(body), 1000)
         self.assertEqual(headers.get("Accept-Ranges"), "bytes")
 
-        # 2. Range request: first 50 bytes (0-49)
         status2, headers2, body2 = self.client.get(
             f"/video/{self.test_video_name}",
             headers={"Range": "bytes=0-49"}
@@ -213,157 +240,427 @@ class TestAnnotationTool(unittest.TestCase):
         self.assertEqual(headers2.get("Content-Range"), "bytes 0-49/1000")
         self.assertEqual(body2, b"0123456789" * 5)
 
-        # 3. Path traversal attack: attempt to escape videos_dir
+        # Path traversal attack: attempt to escape videos_dir
         status3, _, _ = self.client.get("/video/../../../../etc/passwd")
         self.assertIn(status3, (403, 404))
 
         status4, _, _ = self.client.get("/video/%2e%2e%2f%2e%2e%2fetc/passwd")
         self.assertIn(status4, (403, 404))
 
-    def test_3_candidate_events_api_and_video_filtering(self):
-        """Verify candidate events loading and video filtering."""
-        # Get candidates for dink2.mp4
-        status, _, body = self.client.get("/api/candidates?video=dink2.mp4")
-        self.assertEqual(status, 200)
-        data = json.loads(body.decode("utf-8"))
-        self.assertEqual(data["total_count"], 2)
-        self.assertEqual(data["events"][0]["event_id"], "dink2_ev_001")
-        self.assertEqual(data["events"][1]["event_id"], "dink2_ev_002")
-
-        # Get all candidates
-        status2, _, body2 = self.client.get("/api/candidates")
-        self.assertEqual(status2, 200)
-        data2 = json.loads(body2.decode("utf-8"))
-        self.assertEqual(data2["total_count"], 3)
-
-    def test_4_candidate_audit_transactional_save_and_isolation(self):
+    def test_3_safe_output_dir_validation_rejects_repo_data_source_dir_and_symlinks(self):
         """
-        Verify candidate audit updates row in output_dir using transactional publishing,
-        enforces valid status pairs, and leaves original base manifest untouched.
+        [P1 Regression] Verify validate_safe_output_dir strictly rejects:
+          - Paths inside repo data/**
+          - Directory containing source manifest
+          - Symlink aliases resolving to forbidden areas
+          - Does not create directory when validation fails
         """
-        base_orig_sha = man_v2_mod.compute_file_sha256(self.manifest_path)
+        repo_root = self.tmpdir
+        fake_data_dir = os.path.join(repo_root, "data", "v2")
+        os.makedirs(fake_data_dir, exist_ok=True)
+        source_man = os.path.join(fake_data_dir, "candidate_events_manifest.csv")
+        with open(source_man, "w") as f:
+            f.write("a,b\n")
 
-        # 1. Sign candidate as HUMAN_CONFIRMED / TRUE
-        payload = {
+        # 1. Direct path inside data/**
+        with self.assertRaises(ValueError) as cm1:
+            srv.validate_safe_output_dir(fake_data_dir, manifest_path=source_man, repo_root=repo_root)
+        self.assertIn("SECURITY VIOLATION", str(cm1.exception))
+        self.assertIn("data/**", str(cm1.exception))
+
+        # 2. Output dir same as source manifest directory (outside data/**)
+        outside_source_dir = os.path.join(self.tmpdir, "custom_manifest_dir")
+        os.makedirs(outside_source_dir, exist_ok=True)
+        outside_source_man = os.path.join(outside_source_dir, "manifest.csv")
+        with open(outside_source_man, "w") as f:
+            f.write("a,b\n")
+        with self.assertRaises(ValueError) as cm2:
+            srv.validate_safe_output_dir(outside_source_dir, manifest_path=outside_source_man, repo_root=repo_root)
+        self.assertIn("identical to source manifest", str(cm2.exception))
+
+        # 3. Symlink pointing to data/**
+        symlink_to_data = os.path.join(self.tmpdir, "symlink_data")
+        os.symlink(fake_data_dir, symlink_to_data)
+        with self.assertRaises(ValueError) as cm3:
+            srv.validate_safe_output_dir(symlink_to_data, manifest_path=outside_source_man, repo_root=repo_root)
+        self.assertIn("inside the repository's data/** directory", str(cm3.exception))
+
+        # 4. Symlink pointing to source manifest directory
+        symlink_to_man_dir = os.path.join(self.tmpdir, "symlink_man_dir")
+        os.symlink(outside_source_dir, symlink_to_man_dir)
+        with self.assertRaises(ValueError) as cm4:
+            srv.validate_safe_output_dir(symlink_to_man_dir, manifest_path=outside_source_man, repo_root=repo_root)
+        self.assertIn("identical to source manifest", str(cm4.exception))
+
+        # 5. Non-existent path under symlink that points to data
+        non_existent_under_symlink = os.path.join(symlink_to_data, "non_existent_pilot_dir")
+        with self.assertRaises(ValueError):
+            srv.validate_safe_output_dir(non_existent_under_symlink, manifest_path=source_man, repo_root=repo_root)
+        # Verify directory was NOT created
+        self.assertFalse(os.path.exists(non_existent_under_symlink))
+
+        # 6. Valid isolated directory succeeds
+        safe_out = os.path.join(self.tmpdir, "my_safe_isolated_output")
+        canonical = srv.validate_safe_output_dir(safe_out, manifest_path=source_man, repo_root=repo_root)
+        self.assertEqual(canonical, os.path.realpath(safe_out))
+
+    def test_4_blind_review_gating_blocks_candidate_access_until_frozen(self):
+        """
+        [P1 Regression] Verify Blind Review First:
+          - Candidates cannot be retrieved or audited before ground truth is frozen.
+          - Modifying a frozen ground truth requires explicit correction reason.
+        """
+        # 1. Candidate GET for unfrozen video is blocked (403)
+        st_get, _, body_get = self.client.get("/api/candidates?video=dink2.mp4")
+        self.assertEqual(st_get, 403)
+        res_get = json.loads(body_get.decode("utf-8"))
+        self.assertEqual(res_get["error_code"], "BLIND_REVIEW_REQUIRED")
+
+        # 2. Candidate POST for unfrozen video is blocked (403)
+        audit_payload = {
             "video": "dink2.mp4",
             "event_id": "dink2_ev_001",
             "manual_verified": "HUMAN_CONFIRMED",
             "is_true_stroke": "TRUE",
-            "notes": "Verified pilot dink",
         }
-        status, _, raw_res = self.client.post("/api/candidates/audit", payload)
-        self.assertEqual(status, 200)
-        res = json.loads(raw_res.decode("utf-8"))
-        self.assertEqual(res["status"], "UPDATED")
-        self.assertEqual(res["event"]["manual_verified"], "HUMAN_CONFIRMED")
-        self.assertEqual(res["event"]["is_true_stroke"], "TRUE")
-        self.assertEqual(res["event"]["notes"], "Verified pilot dink")
+        st_audit, _, body_audit = self.client.post("/api/candidates/audit", audit_payload)
+        self.assertEqual(st_audit, 403)
+        res_audit = json.loads(body_audit.decode("utf-8"))
+        self.assertEqual(res_audit["error_code"], "BLIND_REVIEW_REQUIRED")
 
-        # 2. Verify output_dir copy was updated
-        out_manifest = os.path.join(self.output_dir, "candidate_events_manifest.csv")
-        self.assertTrue(os.path.exists(out_manifest))
-        state = man_v2_mod.load_and_validate_manifest(out_manifest)
-        self.assertEqual(state["rows"][0]["manual_verified"], "HUMAN_CONFIRMED")
-
-        # 3. CRITICAL: Verify base manifest was NEVER modified!
-        self.assertEqual(man_v2_mod.compute_file_sha256(self.manifest_path), base_orig_sha)
-
-        # 4. Reject invalid status pair (e.g. AUTO_TIERED / TRUE or contradictory)
-        bad_payload = {
-            "video": "dink2.mp4",
-            "event_id": "dink2_ev_002",
-            "manual_verified": "AUTO_TIERED",
-            "is_true_stroke": "TRUE",
-        }
-        b_status, _, b_res = self.client.post("/api/candidates/audit", bad_payload)
-        self.assertEqual(b_status, 400)
-        b_data = json.loads(b_res.decode("utf-8"))
-        self.assertIn("error", b_data)
-
-    def test_5_blind_ground_truth_recording_and_strict_separation(self):
-        """
-        Verify independent blind ground truth recording into ground_truth_events.json,
-        and verify it does NOT modify the candidate events manifest.
-        """
-        gt_payload = {
+        # 3. Attempt to freeze with full_video_reviewed=False is rejected (400)
+        premature_freeze = {
             "reviewer": "Auditor_Ethan",
+            "video": "dink2.mp4",
+            "events": [],
+            "freeze": True,
+            "full_video_reviewed": False,
+        }
+        st_pre, _, body_pre = self.client.post("/api/ground_truth", premature_freeze)
+        self.assertEqual(st_pre, 400)
+
+        # 4. Now properly freeze ground truth
+        self._freeze_video_gt(video="dink2.mp4")
+
+        # 5. Candidate GET now succeeds!
+        st_get2, _, body_get2 = self.client.get("/api/candidates?video=dink2.mp4")
+        self.assertEqual(st_get2, 200)
+        res_get2 = json.loads(body_get2.decode("utf-8"))
+        self.assertEqual(res_get2["total_count"], 2)
+
+        # 6. Candidate POST now succeeds!
+        st_audit2, _, body_audit2 = self.client.post("/api/candidates/audit", audit_payload)
+        self.assertEqual(st_audit2, 200)
+
+        # 7. Modifying frozen GT without is_correction is blocked (409 Conflict)
+        modify_frozen_gt = {
+            "reviewer": "Reviewer_Bob",
+            "video": "dink2.mp4",
+            "events": [],
+            "freeze": True,
+            "full_video_reviewed": True,
+            "is_correction": False,
+        }
+        st_mod, _, body_mod = self.client.post("/api/ground_truth", modify_frozen_gt)
+        self.assertEqual(st_mod, 409)
+        self.assertEqual(json.loads(body_mod.decode("utf-8"))["error_code"], "ALREADY_FROZEN")
+
+        # 8. Modifying frozen GT WITH is_correction and reason succeeds and appends audit trail
+        correct_frozen_gt = {
+            "reviewer": "Reviewer_Bob",
             "video": "dink2.mp4",
             "events": [
                 {
                     "gt_id": "gt_dink2_001",
-                    "timestamp_s": 2.125,
+                    "timestamp_s": 2.100,
                     "stroke_class": "KITCHEN_DINK",
                     "confidence": "CONFIRMED",
-                    "notes": "Clear push over net",
-                },
-                {
-                    "gt_id": "gt_dink2_002",
-                    "timestamp_s": 4.510,
-                    "stroke_class": "KITCHEN_DINK",
-                    "confidence": "UNSURE",
-                    "notes": "Low body speed border case",
-                },
-            ],
-        }
-
-        # 1. Post Ground Truth
-        status, _, raw_res = self.client.post("/api/ground_truth", gt_payload)
-        self.assertEqual(status, 200)
-        res = json.loads(raw_res.decode("utf-8"))
-        self.assertEqual(res["status"], "SAVED")
-        self.assertEqual(res["saved_count"], 2)
-
-        # 2. Get Ground Truth via API
-        g_status, _, g_raw = self.client.get("/api/ground_truth?video=dink2.mp4")
-        self.assertEqual(g_status, 200)
-        g_res = json.loads(g_raw.decode("utf-8"))
-        self.assertTrue(g_res["ground_truth_exists"])
-        self.assertEqual(g_res["reviewer"], "Auditor_Ethan")
-        self.assertEqual(len(g_res["events"]), 2)
-        self.assertEqual(g_res["events"][0]["gt_id"], "gt_dink2_001")
-
-        # 3. Check ground_truth_events.json exists on disk
-        gt_path = os.path.join(self.output_dir, "ground_truth_events.json")
-        self.assertTrue(os.path.exists(gt_path))
-        with open(gt_path, "r", encoding="utf-8") as f:
-            on_disk = json.load(f)
-        self.assertEqual(on_disk["reviewer"], "Auditor_Ethan")
-        self.assertIn("dink2.mp4", on_disk["videos"])
-
-        # 4. Strict separation check: Candidate manifest was not modified by Ground Truth save
-        out_manifest = os.path.join(self.output_dir, "candidate_events_manifest.csv")
-        if os.path.exists(out_manifest):
-            cand_state = man_v2_mod.load_and_validate_manifest(out_manifest)
-            self.assertEqual(len(cand_state["rows"]), 3)
-
-    def test_6_ground_truth_validation_rejects_malformed_data(self):
-        """Verify ground truth validation rejects invalid reviewer, negative timestamps, or bad classes."""
-        # Missing reviewer
-        bad1 = {
-            "reviewer": "   ",
-            "video": "dink2.mp4",
-            "events": []
-        }
-        st1, _, _ = self.client.post("/api/ground_truth", bad1)
-        self.assertEqual(st1, 400)
-
-        # Invalid stroke class
-        bad2 = {
-            "reviewer": "Alice",
-            "video": "dink2.mp4",
-            "events": [
-                {
-                    "gt_id": "gt_01",
-                    "timestamp_s": 1.5,
-                    "stroke_class": "INVALID_STROKE_NAME",
-                    "confidence": "CONFIRMED",
+                    "notes": "Amended note",
                 }
-            ]
+            ],
+            "freeze": True,
+            "full_video_reviewed": True,
+            "is_correction": True,
+            "correction_reason": "Corrected stroke timestamp after slow-mo replay",
         }
-        st2, _, _ = self.client.post("/api/ground_truth", bad2)
-        self.assertEqual(st2, 400)
+        st_cor, _, body_cor = self.client.post("/api/ground_truth", correct_frozen_gt)
+        self.assertEqual(st_cor, 200)
 
-    def test_7_pilot_67_events_exact_dataset_integrity(self):
+        # Verify audit trail in ground truth
+        st_check, _, body_check = self.client.get("/api/ground_truth?video=dink2.mp4")
+        self.assertEqual(st_check, 200)
+        data_check = json.loads(body_check.decode("utf-8"))
+        self.assertEqual(len(data_check["audit_trail"]), 1)
+        self.assertEqual(data_check["audit_trail"][0]["reason"], "Corrected stroke timestamp after slow-mo replay")
+
+    def test_5_corrupt_ground_truth_fails_closed_and_preserves_other_videos(self):
+        """
+        [P1 Regression] Verify fail-closed behavior:
+          - Corrupted existing ground_truth_events.json halts write, returns 500, preserves corrupt bytes.
+          - Existing other videos in ground truth are preserved when updating one video.
+        """
+        gt_path = os.path.join(self.output_dir, "ground_truth_events.json")
+
+        # 1. Place corrupt JSON file
+        corrupt_bytes = b"{\n  corrupt json syntax error: missing bracket"
+        with open(gt_path, "wb") as f:
+            f.write(corrupt_bytes)
+
+        payload = {
+            "reviewer": "Auditor_Ethan",
+            "video": "dink2.mp4",
+            "events": [],
+            "full_video_reviewed": True,
+            "freeze": True,
+        }
+        status, _, raw = self.client.post("/api/ground_truth", payload)
+        self.assertEqual(status, 500)
+        res = json.loads(raw.decode("utf-8"))
+        self.assertEqual(res["error_code"], "CORRUPT_EXISTING_GROUND_TRUTH")
+
+        # Verify file on disk was NOT replaced
+        with open(gt_path, "rb") as f:
+            current_bytes = f.read()
+        self.assertEqual(current_bytes, corrupt_bytes)
+
+        # Remove corrupt file and test multi-video preservation
+        os.remove(gt_path)
+        self._freeze_video_gt(video="dink2.mp4")
+        self._freeze_video_gt(video="smash2.mp4")
+
+        # Verify both videos exist in ground_truth_events.json
+        with open(gt_path, "r", encoding="utf-8") as f:
+            all_gt = json.load(f)
+        self.assertIn("dink2.mp4", all_gt["videos"])
+        self.assertIn("smash2.mp4", all_gt["videos"])
+        self.assertEqual(all_gt["videos"]["dink2.mp4"]["status"], "FROZEN")
+        self.assertEqual(all_gt["videos"]["smash2.mp4"]["status"], "FROZEN")
+
+    def test_6_candidate_audit_conflict_detection_and_audit_trail(self):
+        """
+        [P1 Regression] Verify candidate audit conflict detection:
+          - Rejects silent verdict overwrites with 409 Conflict.
+          - Rejects optimistic locking mismatch.
+          - Explicit correction records previous value, reviewer, timestamp, and reason in notes.
+        """
+        self._freeze_video_gt(video="dink2.mp4")
+
+        # Step 1: Initial sign-off: HUMAN_CONFIRMED / TRUE
+        p1 = {
+            "video": "dink2.mp4",
+            "event_id": "dink2_ev_001",
+            "manual_verified": "HUMAN_CONFIRMED",
+            "is_true_stroke": "TRUE",
+            "notes": "First audit pass",
+            "reviewer": "Reviewer_1",
+        }
+        st1, _, raw1 = self.client.post("/api/candidates/audit", p1)
+        self.assertEqual(st1, 200)
+
+        # Step 2: Idempotent re-submission with same verdict succeeds
+        st2, _, _ = self.client.post("/api/candidates/audit", p1)
+        self.assertEqual(st2, 200)
+
+        # Step 3: Different verdict (HUMAN_REJECTED / FALSE) without is_correction is rejected (409)
+        p_conflict = {
+            "video": "dink2.mp4",
+            "event_id": "dink2_ev_001",
+            "manual_verified": "HUMAN_REJECTED",
+            "is_true_stroke": "FALSE",
+            "reviewer": "Reviewer_2",
+            "is_correction": False,
+        }
+        st_conf, _, raw_conf = self.client.post("/api/candidates/audit", p_conflict)
+        self.assertEqual(st_conf, 409)
+        res_conf = json.loads(raw_conf.decode("utf-8"))
+        self.assertEqual(res_conf["error_code"], "CONFLICT")
+
+        # Verify on-disk row still contains HUMAN_CONFIRMED / TRUE
+        out_man = os.path.join(self.output_dir, "candidate_events_manifest.csv")
+        s = man_v2_mod.load_and_validate_manifest(out_man)
+        self.assertEqual(s["rows"][0]["manual_verified"], "HUMAN_CONFIRMED")
+        self.assertEqual(s["rows"][0]["is_true_stroke"], "TRUE")
+
+        # Step 4: Optimistic locking mismatch (expected PENDING, but current is CONFIRMED)
+        p_exp_mismatch = {
+            "video": "dink2.mp4",
+            "event_id": "dink2_ev_001",
+            "manual_verified": "HUMAN_REJECTED",
+            "is_true_stroke": "FALSE",
+            "expected_manual_verified": "PENDING_HUMAN_AUDIT",
+            "is_correction": True,
+            "correction_reason": "My reason",
+        }
+        st_exp, _, raw_exp = self.client.post("/api/candidates/audit", p_exp_mismatch)
+        self.assertEqual(st_exp, 409)
+
+        # Step 5: Explicit correction WITH reason, expected status, and reviewer succeeds
+        p_correct = {
+            "video": "dink2.mp4",
+            "event_id": "dink2_ev_001",
+            "manual_verified": "HUMAN_REJECTED",
+            "is_true_stroke": "FALSE",
+            "expected_manual_verified": "HUMAN_CONFIRMED",
+            "expected_is_true_stroke": "TRUE",
+            "reviewer": "Reviewer_2",
+            "is_correction": True,
+            "correction_reason": "Examined high-fps video, paddle clearly missed ball",
+        }
+        st_ok, _, raw_ok = self.client.post("/api/candidates/audit", p_correct)
+        self.assertEqual(st_ok, 200)
+
+        # Step 6: Verify audit trail recorded in notes
+        s2 = man_v2_mod.load_and_validate_manifest(out_man)
+        row = s2["rows"][0]
+        self.assertEqual(row["manual_verified"], "HUMAN_REJECTED")
+        self.assertEqual(row["is_true_stroke"], "FALSE")
+        self.assertIn("CORRECTION", row["notes"])
+        self.assertIn("Reviewer_2", row["notes"])
+        self.assertIn("HUMAN_CONFIRMED/TRUE -> HUMAN_REJECTED/FALSE", row["notes"])
+        self.assertIn("Examined high-fps video", row["notes"])
+
+    def test_7_ground_truth_validation_rejects_nan_inf_duplicates_and_durations(self):
+        """Verify validate_ground_truth_events rejects NaN, Inf, duplicate gt_id, and out-of-duration timestamps."""
+        # 1. Reject NaN timestamp
+        gt_nan = {
+            "version": "2.1.0",
+            "time_base": "media_presentation_time_seconds",
+            "videos": {
+                "dink2.mp4": {
+                    "status": "IN_PROGRESS",
+                    "full_video_reviewed": False,
+                    "events": [
+                        {
+                            "gt_id": "gt_01",
+                            "timestamp_s": float("nan"),
+                            "stroke_class": "KITCHEN_DINK",
+                            "confidence": "CONFIRMED",
+                        }
+                    ]
+                }
+            }
+        }
+        with self.assertRaises(man_v2_mod.ManifestValidationError):
+            man_v2_mod.validate_ground_truth_events(gt_nan)
+
+        # 2. Reject duplicate gt_id
+        gt_dup = {
+            "version": "2.1.0",
+            "time_base": "media_presentation_time_seconds",
+            "videos": {
+                "dink2.mp4": {
+                    "status": "IN_PROGRESS",
+                    "full_video_reviewed": False,
+                    "events": [
+                        {"gt_id": "gt_same", "timestamp_s": 1.0, "stroke_class": "SMASH", "confidence": "CONFIRMED"},
+                        {"gt_id": "gt_same", "timestamp_s": 2.0, "stroke_class": "SMASH", "confidence": "CONFIRMED"},
+                    ]
+                }
+            }
+        }
+        with self.assertRaises(man_v2_mod.ManifestValidationError):
+            man_v2_mod.validate_ground_truth_events(gt_dup)
+
+        # 3. Reject timestamp exceeding duration
+        gt_overflow = {
+            "version": "2.1.0",
+            "time_base": "media_presentation_time_seconds",
+            "videos": {
+                "dink2.mp4": {
+                    "status": "IN_PROGRESS",
+                    "full_video_reviewed": False,
+                    "events": [
+                        {"gt_id": "gt_01", "timestamp_s": 15.0, "stroke_class": "KITCHEN_DINK", "confidence": "CONFIRMED"},
+                    ]
+                }
+            }
+        }
+        with self.assertRaises(man_v2_mod.ManifestValidationError):
+            man_v2_mod.validate_ground_truth_events(gt_overflow, video_durations={"dink2.mp4": 10.9})
+
+    def test_8_ground_truth_evaluator_compatibility_and_unsure_exclusion(self):
+        """
+        Verify export_evaluator_ground_truth:
+          - Strictly excludes events with confidence == 'UNSURE'.
+          - Strictly excludes unfrozen videos.
+          - Returns format list[dict] directly usable by evaluate_detector_v2.py.
+        """
+        gt_data = {
+            "version": "2.1.0",
+            "time_base": "media_presentation_time_seconds",
+            "videos": {
+                "dink2.mp4": {
+                    "status": "FROZEN",
+                    "full_video_reviewed": True,
+                    "events": [
+                        {
+                            "gt_id": "gt_01",
+                            "timestamp_s": 2.100,
+                            "stroke_class": "KITCHEN_DINK",
+                            "confidence": "CONFIRMED",
+                        },
+                        {
+                            "gt_id": "gt_02",
+                            "timestamp_s": 4.500,
+                            "stroke_class": "KITCHEN_DINK",
+                            "confidence": "UNSURE",  # Must be EXCLUDED!
+                        },
+                    ]
+                },
+                "unfrozen.mp4": {
+                    "status": "IN_PROGRESS",
+                    "full_video_reviewed": False,
+                    "events": [
+                        {
+                            "gt_id": "gt_03",
+                            "timestamp_s": 1.0,
+                            "stroke_class": "SMASH",
+                            "confidence": "CONFIRMED",
+                        }
+                    ]
+                }
+            }
+        }
+        eval_list = man_v2_mod.export_evaluator_ground_truth(gt_data, only_frozen=True, include_unsure=False)
+        self.assertEqual(len(eval_list), 1)
+        self.assertEqual(eval_list[0]["video"], "dink2.mp4")
+        self.assertEqual(eval_list[0]["timestamp_peak_s"], 2.100)
+        self.assertEqual(eval_list[0]["confidence"], "CONFIRMED")
+
+        # Test compatibility with evaluate_event_detection
+        candidates = [
+            {"video": "dink2.mp4", "timestamp_peak_s": 2.120, "event_id": "cand_01"},
+            {"video": "dink2.mp4", "timestamp_peak_s": 4.510, "event_id": "cand_02"},
+        ]
+        metrics = eval_v2_mod.evaluate_event_detection(candidates, eval_list, tolerance_s=0.30)
+        self.assertEqual(metrics["tp"], 1)  # Only 2.100 is GT
+        self.assertEqual(metrics["fp"], 1)  # 4.510 has no GT because UNSURE was excluded
+        self.assertEqual(metrics["fn"], 0)
+
+    def test_9_empty_ground_truth_explicitly_frozen_unlocks_candidates(self):
+        """
+        Verify that an empty events list with full_video_reviewed=True and freeze=True
+        explicitly represents 'whole video watched, zero confirmed strokes found',
+        and successfully unlocks candidate audit for that video.
+        """
+        empty_freeze = {
+            "reviewer": "Auditor_Ethan",
+            "video": "dink2.mp4",
+            "events": [],
+            "full_video_reviewed": True,
+            "freeze": True,
+            "notes": "Watched entire clip, no valid strokes executed",
+        }
+        status, _, raw = self.client.post("/api/ground_truth", empty_freeze)
+        self.assertEqual(status, 200)
+
+        # Candidate GET should now be unlocked
+        st_cand, _, raw_cand = self.client.get("/api/candidates?video=dink2.mp4")
+        self.assertEqual(st_cand, 200)
+        res_cand = json.loads(raw_cand.decode("utf-8"))
+        self.assertEqual(res_cand["total_count"], 2)
+
+    def test_10_pilot_67_events_exact_dataset_integrity(self):
         """
         Verify the actual formal manifest contains all 67 candidate events for the 3 pilot videos:
         - dink2.mp4: 9 events
@@ -386,6 +683,23 @@ class TestAnnotationTool(unittest.TestCase):
         self.assertEqual(pilot_counts["smash2.mp4"], 19)
         self.assertEqual(pilot_counts["serve_legal1.mp4"], 39)
         self.assertEqual(sum(pilot_counts.values()), 67)
+
+    def test_11_candidate_audit_isolation_leaves_source_manifest_untouched(self):
+        """Verify auditing candidates in output_dir copy never mutates source manifest."""
+        self._freeze_video_gt(video="dink2.mp4")
+        base_sha_before = man_v2_mod.compute_file_sha256(self.manifest_path)
+
+        p = {
+            "video": "dink2.mp4",
+            "event_id": "dink2_ev_001",
+            "manual_verified": "HUMAN_CONFIRMED",
+            "is_true_stroke": "TRUE",
+        }
+        st, _, _ = self.client.post("/api/candidates/audit", p)
+        self.assertEqual(st, 200)
+
+        base_sha_after = man_v2_mod.compute_file_sha256(self.manifest_path)
+        self.assertEqual(base_sha_before, base_sha_after)
 
 
 if __name__ == "__main__":

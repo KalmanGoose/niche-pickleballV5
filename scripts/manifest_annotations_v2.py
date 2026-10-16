@@ -222,6 +222,10 @@ class ManifestValidationError(RuntimeError):
     """Raised when an existing manifest cannot be safely read, validated, or merged."""
 
 
+class ManifestConflictError(RuntimeError):
+    """Raised when an annotation update conflicts with an existing human-signed verdict or expected status."""
+
+
 def classify_annotation_status(manual_verified, is_true_stroke):
     """
     Classify a (manual_verified, is_true_stroke) pair strictly:
@@ -969,23 +973,26 @@ VALID_GROUND_TRUTH_CLASSES = {
 VALID_GROUND_TRUTH_CONFIDENCES = {"CONFIRMED", "UNSURE"}
 
 
-def validate_ground_truth_events(gt_data):
+def validate_ground_truth_events(gt_data, allowed_videos=None, video_durations=None):
     """
     Validate independent ground truth data structure.
     Must be a dict containing:
       - 'version': str
-      - 'reviewer': non-empty str
       - 'time_base': str (e.g. 'media_presentation_time_seconds')
       - 'videos': dict mapping video_filename to dict containing:
+          - 'status': str in {'IN_PROGRESS', 'FROZEN'}
+          - 'full_video_reviewed': bool (must be True when status == 'FROZEN')
           - 'events': list of dicts with 'gt_id', 'timestamp_s', 'stroke_class', 'confidence', 'notes'
+    Strictly enforces:
+      - Rejects NaN, Inf, negative timestamps, or timestamps exceeding video duration.
+      - Rejects duplicate gt_id across events within each video.
+      - Rejects unlisted videos if allowed_videos is provided.
+      - Validates stroke_class in VALID_GROUND_TRUTH_CLASSES and confidence in VALID_GROUND_TRUTH_CONFIDENCES.
     """
     if not isinstance(gt_data, dict):
         raise ManifestValidationError("Ground truth data must be a JSON object (dict)")
     if not gt_data.get("version"):
         raise ManifestValidationError("Ground truth data missing 'version'")
-    reviewer = str(gt_data.get("reviewer", "")).strip()
-    if not reviewer:
-        raise ManifestValidationError("Ground truth data missing non-empty 'reviewer'")
     if not gt_data.get("time_base"):
         raise ManifestValidationError("Ground truth data missing 'time_base'")
 
@@ -994,43 +1001,137 @@ def validate_ground_truth_events(gt_data):
         raise ManifestValidationError("Ground truth data 'videos' must be a dict")
 
     for vname, vinfo in videos.items():
+        if not isinstance(vname, str) or not vname.strip():
+            raise ManifestValidationError("Video filename key must be a non-empty string")
+        if allowed_videos is not None and vname not in allowed_videos:
+            raise ManifestValidationError(
+                f"Video '{vname}' is not in allowed pilot videos: {sorted(allowed_videos)}"
+            )
         if not isinstance(vinfo, dict):
             raise ManifestValidationError(f"Video entry '{vname}' must be a dict")
+
+        v_status = str(vinfo.get("status", "IN_PROGRESS")).strip().upper()
+        if v_status not in ("IN_PROGRESS", "FROZEN"):
+            raise ManifestValidationError(
+                f"Video '{vname}' has invalid status '{v_status}'. Allowed: 'IN_PROGRESS', 'FROZEN'"
+            )
+
+        full_reviewed = vinfo.get("full_video_reviewed")
+        if v_status == "FROZEN" and not full_reviewed:
+            raise ManifestValidationError(
+                f"Video '{vname}' cannot be marked 'FROZEN' without full_video_reviewed=True"
+            )
+
         events = vinfo.get("events")
         if not isinstance(events, list):
             raise ManifestValidationError(f"Video '{vname}' 'events' must be a list")
+
+        seen_gt_ids = set()
+        v_dur = video_durations.get(vname) if video_durations else None
+
         for idx, ev in enumerate(events):
             if not isinstance(ev, dict):
                 raise ManifestValidationError(f"Event #{idx} in '{vname}' must be a dict")
-            if not ev.get("gt_id"):
+            gt_id = str(ev.get("gt_id", "")).strip()
+            if not gt_id:
                 raise ManifestValidationError(f"Event #{idx} in '{vname}' missing 'gt_id'")
+            if gt_id in seen_gt_ids:
+                raise ManifestValidationError(f"Duplicate gt_id '{gt_id}' found in video '{vname}'")
+            seen_gt_ids.add(gt_id)
+
             ts = ev.get("timestamp_s")
-            if ts is None or not isinstance(ts, (int, float)) or ts < 0:
-                raise ManifestValidationError(f"Event '{ev.get('gt_id')}' has invalid timestamp_s: {ts}")
+            if ts is None or not isinstance(ts, (int, float)):
+                raise ManifestValidationError(f"Event '{gt_id}' has non-numeric timestamp_s: {ts}")
+            if math.isnan(ts) or math.isinf(ts):
+                raise ManifestValidationError(f"Event '{gt_id}' has NaN or Infinite timestamp_s: {ts}")
+            if ts < 0.0:
+                raise ManifestValidationError(f"Event '{gt_id}' has negative timestamp_s: {ts}")
+            if v_dur is not None and ts > v_dur:
+                raise ManifestValidationError(
+                    f"Event '{gt_id}' timestamp {ts}s exceeds video duration {v_dur}s for '{vname}'"
+                )
+
             s_cls = str(ev.get("stroke_class", "")).strip().upper()
             if s_cls not in VALID_GROUND_TRUTH_CLASSES:
                 raise ManifestValidationError(
-                    f"Event '{ev.get('gt_id')}' has invalid stroke_class '{s_cls}'. "
+                    f"Event '{gt_id}' has invalid stroke_class '{s_cls}'. "
                     f"Allowed: {sorted(VALID_GROUND_TRUTH_CLASSES)}"
                 )
             conf = str(ev.get("confidence", "")).strip().upper()
             if conf not in VALID_GROUND_TRUTH_CONFIDENCES:
                 raise ManifestValidationError(
-                    f"Event '{ev.get('gt_id')}' has invalid confidence '{conf}'. "
+                    f"Event '{gt_id}' has invalid confidence '{conf}'. "
                     f"Allowed: {sorted(VALID_GROUND_TRUTH_CONFIDENCES)}"
                 )
+
+
+def export_evaluator_ground_truth(gt_data, only_frozen=True, include_unsure=False):
+    """
+    Export independent ground truth data into a flat list compatible with evaluate_detector_v2.py:
+        [{"video": vname, "timestamp_peak_s": ev["timestamp_s"], "event_id": ev["gt_id"], "raw_class": ev["stroke_class"], "confidence": ev["confidence"]}]
+
+    Rules:
+      - By default (include_unsure=False), events with confidence == 'UNSURE' are strictly EXCLUDED
+        so that unconfirmed human guesses do not pollute the ground truth evaluation denominator.
+      - By default (only_frozen=True), only videos that have completed full review (status == 'FROZEN'
+        and full_video_reviewed is True) are exported.
+    """
+    validate_ground_truth_events(gt_data)
+    eval_list = []
+    videos = gt_data.get("videos", {})
+    for vname in sorted(videos.keys()):
+        vinfo = videos[vname]
+        if only_frozen:
+            if vinfo.get("status") != "FROZEN" or not vinfo.get("full_video_reviewed"):
+                continue
+        events = vinfo.get("events", [])
+        for ev in events:
+            conf = str(ev.get("confidence", "")).strip().upper()
+            if not include_unsure and conf != "CONFIRMED":
+                continue
+            eval_list.append({
+                "video": vname,
+                "timestamp_peak_s": float(ev["timestamp_s"]),
+                "event_id": str(ev["gt_id"]),
+                "raw_class": str(ev.get("stroke_class", "")).strip().upper(),
+                "confidence": conf,
+            })
+    return eval_list
 
 
 def save_ground_truth_events(output_path, gt_data, auto_recover=False):
     """
     Safely save independent ground truth dataset via transactional batch publish.
+    Also exports evaluator-compatible list to {output_dir}/ground_truth_evaluator.json.
+    Fail-closed: if output_path already exists and cannot be read or validated,
+    raises ManifestValidationError and halts to preserve original bytes.
     """
     validate_ground_truth_events(gt_data)
+    output_path = os.path.abspath(output_path)
+    if os.path.exists(output_path):
+        try:
+            with open(output_path, "r", encoding="utf-8") as f:
+                old_gt = json.load(f)
+            validate_ground_truth_events(old_gt)
+        except Exception as e:
+            raise ManifestValidationError(
+                f"Existing ground truth file at '{output_path}' is corrupted or invalid: {e}. "
+                f"Failing closed to preserve original file bytes."
+            )
+
+    eval_path = os.path.join(os.path.dirname(output_path), "ground_truth_evaluator.json")
+    eval_list = export_evaluator_ground_truth(gt_data, only_frozen=True, include_unsure=False)
+
     file_specs = [
         {
-            "target_path": os.path.abspath(output_path),
+            "target_path": output_path,
             "type": "json",
             "data": gt_data,
+        },
+        {
+            "target_path": eval_path,
+            "type": "json",
+            "data": eval_list,
         }
     ]
     batch_publish_files(file_specs, auto_recover=auto_recover)
@@ -1043,13 +1144,26 @@ def update_candidate_manifest_row(
     manual_verified,
     is_true_stroke,
     notes=None,
-    auto_recover=False
+    reviewer="",
+    expected_manual_verified=None,
+    expected_is_true_stroke=None,
+    is_correction=False,
+    correction_reason="",
+    auto_recover=False,
 ):
     """
     Safely update a candidate row's audit status in manifest_path using transactional batch publish.
-    Enforces valid human signed status pairs or pending status.
+    Enforces:
+      - Valid human signed status pairs or pending status.
+      - Optimistic locking / expected status check: rejects if expected status does not match current.
+      - Conflict prevention: if candidate is already signed, silently changing verdict or reverting
+        to pending is rejected with ManifestConflictError. Modifying an already-signed candidate
+        requires explicit is_correction=True and a non-empty correction_reason, which is permanently
+        recorded in the audit history.
     """
     manifest_path = os.path.abspath(manifest_path)
+    if auto_recover:
+        recover_pending_batch_publish(os.path.dirname(manifest_path))
     state = load_and_validate_manifest(manifest_path)
     if not state["exists"]:
         raise ManifestValidationError(f"Manifest file not found: {manifest_path}")
@@ -1080,10 +1194,61 @@ def update_candidate_manifest_row(
     if target_idx is None:
         raise ManifestValidationError(f"Event not found in manifest: video='{video}', event_id='{event_id}'")
 
-    rows[target_idx]["manual_verified"] = norm_verified
-    rows[target_idx]["is_true_stroke"] = norm_true
-    if notes is not None:
-        rows[target_idx]["notes"] = str(notes)
+    curr_row = rows[target_idx]
+    curr_ver = str(curr_row.get("manual_verified", "")).strip().upper()
+    curr_true = str(curr_row.get("is_true_stroke", "")).strip().upper()
+
+    # Optimistic locking: check expected status if provided
+    if expected_manual_verified is not None:
+        exp_ver = str(expected_manual_verified).strip().upper()
+        if exp_ver != curr_ver:
+            raise ManifestConflictError(
+                f"Conflict on event '{event_id}': expected manual_verified='{exp_ver}', "
+                f"but current is '{curr_ver}'. Original signing preserved."
+            )
+    if expected_is_true_stroke is not None:
+        exp_true = str(expected_is_true_stroke).strip().upper()
+        if exp_true != curr_true:
+            raise ManifestConflictError(
+                f"Conflict on event '{event_id}': expected is_true_stroke='{exp_true}', "
+                f"but current is '{curr_true}'. Original signing preserved."
+            )
+
+    # Check if currently signed
+    curr_status_kind, _, _ = classify_annotation_status(curr_ver, curr_true)
+    was_signed = curr_status_kind in ("SIGNED_TP", "SIGNED_FP")
+    is_same_verdict = (norm_verified == curr_ver and norm_true == curr_true)
+
+    if was_signed and not is_same_verdict:
+        if not is_correction:
+            raise ManifestConflictError(
+                f"Conflict: Candidate event '{event_id}' in '{video}' is already signed as "
+                f"({curr_ver}, {curr_true}). Overwriting verdict or reverting to pending "
+                f"requires explicit correction with reason and reviewer. Original signing preserved."
+            )
+        reason_str = str(correction_reason).strip()
+        if not reason_str:
+            raise ManifestValidationError(
+                "A non-empty correction_reason is required when changing an already signed candidate."
+            )
+        reviewer_str = str(reviewer).strip() or "ANONYMOUS"
+        iso_time = time.strftime("%Y-%m-%d %H:%M:%SZ", time.gmtime())
+        audit_note = (
+            f"[CORRECTION {iso_time} by {reviewer_str}: "
+            f"{curr_ver}/{curr_true} -> {norm_verified}/{norm_true}; Reason: {reason_str}]"
+        )
+        old_notes = (curr_row.get("notes") or "").strip()
+        user_notes = str(notes).strip() if notes is not None else ""
+        if old_notes:
+            curr_row["notes"] = f"{old_notes} | {audit_note} {user_notes}".strip()
+        else:
+            curr_row["notes"] = f"{audit_note} {user_notes}".strip()
+    else:
+        if notes is not None:
+            curr_row["notes"] = str(notes)
+
+    curr_row["manual_verified"] = norm_verified
+    curr_row["is_true_stroke"] = norm_true
 
     # Filter row dicts to only columns defined in fieldnames
     clean_rows = []
