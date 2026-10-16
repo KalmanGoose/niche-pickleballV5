@@ -525,3 +525,30 @@
      - 直接調用 `export_evaluator_ground_truth` 拋出 `ManifestValidationError`。
      - 恢復合法時間戳後，立即恢復 HTTP 200 並完整匯出 3 筆事件。
 
+### 9.10 複審 Round 5 裁示與人工試行指引 (Round 5 Ruling & Pilot Instructions)
+
+依 Reviewer A 於 `cli-review-609-round5.md` 之正式裁示：
+* **審查結論**：`SOURCE / STATIC / UNIT REVIEW PASS`。全數 P1 審查缺陷已正式關閉，核准進入人工標註試行。
+* **工程驗收**：40/40 單元測試獨立通過，`git diff --check ada9761 dee5ee4` PASS，工作樹乾淨。
+* **邊界鐵律**：
+  - 本輪不執行 merge、push 或 deploy。
+  - 正式 `data/**` 維持完全唯讀。
+  - 正式真人真值與 Precision／Recall 維持 `NOT VERIFIED / PENDING_HUMAN_PILOT`。
+
+#### 人工試行操作指引 (Human Pilot Workflow)
+1. **啟動標註伺服器**：指定臨時輸出目錄（例如沿用既有草稿目錄 `/private/tmp/task-v8-609-human-preview` 或新臨時目錄）：
+   ```bash
+   ./.venv/bin/python scripts/annotation_server.py \
+     --port 8080 \
+     --videos-dir "/Users/ethanchen/Desktop/匹克球/test systeam/匹克球N-GO.v1/data/videos" \
+     --output-dir /private/tmp/task-v8-609-human-pilot
+   ```
+2. **通看盲測標註 (模式 1)**：
+   - 瀏覽器打開 `http://127.0.0.1:8080/tools/annotate_visual.html`。
+   - 對 3 支試行影片（`dink2.mp4`、`smash2.mp4`、`serve_legal1.mp4`）依序進行完整通看。
+   - 記錄所有目視確認之擊球（若確認無擊球則保持空陣列）。
+   - 勾選「我已通看整部影片」並點擊「凍結真值」。
+3. **候選審查簽核 (模式 2)**：
+   - 凍結後解鎖「模式 2」，依序審查各影片之候選事件（共 67 筆），完成 TP/FP 簽署。
+4. **同範圍評估產出**：
+   - 完成 3 片凍結與審核後，調用 `GET /api/ground_truth/export` 匯出正式真值，再執行 `evaluate_detector_v2.py` 產出同範圍 Precision／Recall 報告。
