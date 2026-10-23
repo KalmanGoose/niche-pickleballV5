@@ -16,6 +16,7 @@
 
     <!-- ═══════ PWA 漸進式網頁應用與離線球場支援 ═══════ -->
     <link rel="manifest" href="./manifest.json">
+    <link rel="icon" href="./images/pickleball_lab_logo.jpg">
     <meta name="theme-color" content="#2e7d32">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -164,6 +165,7 @@
                 <button type="button" class="btn-close-profile" onclick="closeProfileModal()" aria-label="關閉個人球員檔案">✕</button>
             </div>
 
+            <button type="button" class="profile-character-link" onclick="openCharPickerModal()">🎭 今日出戰：<strong id="profile-character-name">匹克鵝</strong><span>更換角色 →</span></button>
             <!-- 頂部頁籤導航：選手證 vs 編輯資料 -->
             <div class="profile-nav-tabs">
                 <button type="button" class="profile-nav-tab on" id="ptab-btn-passport" onclick="switchProfileTab('passport')">🪪 島民選手證 & 成就</button>
@@ -1348,65 +1350,17 @@ I_syn(t) = w_syn · x · u · (dθ/dt)</div>
         </div>
     </div>
 
-    <!-- ══════ 🎭 角色造型選擇彈窗 (#char-picker-modal) ══════ -->
-    <div id="char-picker-modal" class="modal-overlay" style="display:none;" onclick="if(event.target===this)closeCharPickerModal()">
-        <div class="modal-card" style="width:min(94vw, 460px);max-height:88dvh;overflow-y:auto;padding:20px;">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;position:sticky;top:-4px;background:#fffef9;z-index:2;padding-bottom:6px;border-bottom:1.5px solid #ebd9c0;">
-                <div>
-                    <h3 style="margin:0;font-size:18px;font-weight:900;color:#3d2b1f;">🎭 選擇出戰角色 (Character Select)</h3>
-                    <div style="font-size:11.5px;color:#85694f;font-weight:700;">選擇你在 3D 球場上的專屬外觀與動作</div>
-                </div>
-                <button type="button" class="ac-btn-sub" style="padding:4px 10px;font-size:12px;" onclick="closeCharPickerModal()">✕</button>
+    <div id="opponent-stamina" hidden role="status" aria-label="對手體力"><div><strong id="opponent-stamina-label">對手體力</strong><span id="opponent-stamina-text">100%</span></div><div class="stamina-track"><div id="opponent-stamina-fill"></div></div><small id="opponent-stamina-hint">換分恢復</small></div>
+    <div id="char-picker-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="char-picker-title" style="display:none;" onclick="if(event.target===this)closeCharPickerModal()">
+        <div class="modal-card character-picker-card">
+            <div class="character-picker-heading"><div><h2 id="char-picker-title">今天想用誰上場？</h2><p>人偶、匹克鵝、黑天鵝，操作與能力相同。</p></div><button id="char-picker-close" type="button" onclick="closeCharPickerModal()" aria-label="關閉角色選擇">✕</button></div>
+            <div class="character-choices">
+                <button type="button" id="char-card-human" class="character-choice" aria-pressed="false" onclick="selectPlayerCharacter('human')"><span class="character-icon">👦</span><span><strong>人偶</strong><small>熟悉的興大球員</small></span><span id="char-badge-human">選這位</span></button>
+                <button type="button" id="char-card-goose" class="character-choice" aria-pressed="false" onclick="selectPlayerCharacter('goose')"><span class="character-icon">🪿</span><span><strong>匹克鵝</strong><small>藍色帽 T 的湖畔夥伴</small></span><span id="char-badge-goose">選這位</span></button>
+                <button type="button" id="char-card-swan" class="character-choice" aria-pressed="false" onclick="selectPlayerCharacter('swan')"><span class="character-icon">🦢</span><span><strong>黑天鵝</strong><small>黑金配色的冠軍氣勢</small></span><span id="char-badge-swan">選這位</span></button>
             </div>
-
-            <!-- 角色 1: 興大陽光球員 -->
-            <div class="stage-opt-card" id="char-card-human" onclick="selectPlayerCharacter('human')" style="cursor:pointer;border:2px solid #38bdf8;background:#f0f9ff;margin-bottom:12px;padding:12px;border-radius:14px;display:flex;gap:12px;align-items:center;">
-                <div style="font-size:36px;width:56px;height:56px;border-radius:50%;background:#e0f2fe;display:grid;place-items:center;flex-shrink:0;">👦</div>
-                <div style="flex:1;">
-                    <div style="display:flex;justify-content:space-between;align-items:center;">
-                        <span style="font-size:16px;font-weight:900;color:#0369a1;">興大陽光球員 (Chibi Human)</span>
-                        <span id="char-badge-human" style="font-size:11px;padding:2px 8px;border-radius:99px;background:#0284c7;color:#fff;font-weight:800;">✓ 出戰中</span>
-                    </div>
-                    <div style="font-size:11.5px;color:#475569;margin-top:4px;line-height:1.4;">
-                        👔 湖水藍綠 Polo 衫、活力運動短褲、紅白遮陽帽。<br>
-                        ✨ <b>特色</b>：視野平衡清晰，手感穩定！
-                    </div>
-                </div>
-            </div>
-
-            <!-- 角色 2: 中興村長匹克鵝 -->
-            <div class="stage-opt-card" id="char-card-goose" onclick="selectPlayerCharacter('goose')" style="cursor:pointer;border:1.5px solid #d1d5db;background:#fff;margin-bottom:12px;padding:12px;border-radius:14px;display:flex;gap:12px;align-items:center;">
-                <div style="font-size:36px;width:56px;height:56px;border-radius:50%;background:#fef3c7;display:grid;place-items:center;flex-shrink:0;">🪿</div>
-                <div style="flex:1;">
-                    <div style="display:flex;justify-content:space-between;align-items:center;">
-                        <span style="font-size:16px;font-weight:900;color:#92400e;">中興村長匹克鵝 (Pickler Goose)</span>
-                        <span id="char-badge-goose" style="font-size:11px;padding:2px 8px;border-radius:99px;background:#e5e7eb;color:#6b7280;font-weight:800;">選擇出戰</span>
-                    </div>
-                    <div style="font-size:11.5px;color:#475569;margin-top:4px;line-height:1.4;">
-                        🪶 3D 骨骼蒙皮高精度白鵝、亮橘長喙蹼足、村長紅帽子。<br>
-                        ✨ <b>特色</b>：具備完整 21 骨骨架，走路、跑步與揮拍專屬動作！
-                    </div>
-                </div>
-            </div>
-
-            <!-- 角色 3: 冠軍匹克黑天鵝 -->
-            <div class="stage-opt-card" id="char-card-swan" onclick="selectPlayerCharacter('swan')" style="cursor:pointer;border:1.5px solid #d1d5db;background:#fff;margin-bottom:12px;padding:12px;border-radius:14px;display:flex;gap:12px;align-items:center;">
-                <div style="font-size:36px;width:56px;height:56px;border-radius:50%;background:#e2e8f0;display:grid;place-items:center;flex-shrink:0;">🦢</div>
-                <div style="flex:1;">
-                    <div style="display:flex;justify-content:space-between;align-items:center;">
-                        <span style="font-size:16px;font-weight:900;color:#1e293b;">冠軍匹克黑天鵝 (Black Swan)</span>
-                        <span id="char-badge-swan" style="font-size:11px;padding:2px 8px;border-radius:99px;background:#e5e7eb;color:#6b7280;font-weight:800;">選擇出戰</span>
-                    </div>
-                    <div style="font-size:11.5px;color:#475569;margin-top:4px;line-height:1.4;">
-                        👑 深邃午夜黑曜羽翼、金色頂級皇冠、鮮紅長喙、尊爵蹼足。<br>
-                        ✨ <b>特色</b>：第 7 關隱藏神獸！王者霸氣揮拍！
-                    </div>
-                </div>
-            </div>
-
-            <div style="text-align:center;margin-top:10px;">
-                <a href="./tools/character-preview/index.html" target="_blank" style="font-size:12px;color:#0284c7;font-weight:700;text-decoration:none;">🔍 開啟 3D 骨架動作獨立預覽器 ↗</a>
-            </div>
+            <button type="button" id="char-picker-confirm" class="btn-main" disabled onclick="confirmPlayerCharacter()">先選一位角色</button>
+            <p class="character-picker-note">進入後，也能從個人設定或手機選單更換。</p>
         </div>
     </div>
 
@@ -1498,6 +1452,7 @@ I_syn(t) = w_syn · x · u · (dθ/dt)</div>
                 <!-- 🍃 微風落櫻花瓣與飄逸夏葉動態粒子層 -->
                 <canvas id="hub-particle-canvas"></canvas>
 
+                <button type="button" id="lake-goose-dancer" aria-label="湖畔匹克鵝閃身步" onclick="toast('🪿 湖畔閃身步', '跟著匹克鵝側步、轉肩、擺手！')"><span id="lake-goose-portrait"></span><span class="lake-goose-label">匹克鵝 · 閃身步</span></button>
                 <!-- 🐾 活體島民與天鵝動態生態演員 (Living Campus Actors) -->
                 <!-- 1. 👑 皇冠黑天鵝村長 (在湖中自由游弋巡邏) -->
                 <div class="ac-actor ac-swan" id="actor-swan" onclick="HubSandbox.interactActor('swan', event)" title="中興湖黑天鵝村長 (點擊互動)">
@@ -1742,6 +1697,7 @@ I_syn(t) = w_syn · x · u · (dθ/dt)</div>
 
                     <!-- 應用程式 Squircle 現代圖標網格 -->
                     <div class="phone-app-grid nook-grid">
+                        <button class="nook-app phone-app" onclick="toggleNookPhone(false); openCharPickerModal();"><div class="nook-app-icon phone-app-icon app-profile">🪿</div><span class="nook-app-label phone-app-label">出戰角色</span></button>
                         <button class="nook-app phone-app" onclick="toggleNookPhone(false); openModeHub();">
                             <div class="nook-app-icon phone-app-icon app-hub">🏠</div>
                             <span class="nook-app-label phone-app-label">模式大廳</span>
@@ -2341,6 +2297,8 @@ I_syn(t) = w_syn · x · u · (dθ/dt)</div>
     <script src="./js/referee.js"></script>
     <script src="./js/motion.js"></script>
     <script src="./js/hub_sandbox.js"></script>
+    <script src="./js/character-portrait.js"></script>
+    <script src="./js/opponent-stamina.js"></script>
     <script src="./js/profile_card.js"></script>
     <script src="./js/ui.js"></script>
     <script src="./js/social.js"></script>

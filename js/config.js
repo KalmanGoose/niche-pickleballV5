@@ -458,7 +458,7 @@ function apiGet(qs) {
                 clearKeys();
                 S.init();
                 toast('👋 歡迎回來,' + playerProfile.department, '編號 ' + playerProfile.playerId);
-                switchStage(1);
+                beginCharacterEntry();
             } else {
                 showFullLoginForm();
             }
@@ -486,8 +486,7 @@ function apiGet(qs) {
             clearKeys();
             S.init();
             toast('👋 歡迎訪客！', '建議先用手機搖桿熟悉規則，可按右上角 📷 隨時切換體感！');
-            switchStage(1, { skipAutoDemo: true });
-            if (typeof openModeHub === 'function') openModeHub();
+            beginCharacterEntry();
         }
 
         function handleLogin() {
@@ -531,8 +530,7 @@ function apiGet(qs) {
             clearKeys();
             S.init();
             toast('👋 歡迎,' + playerProfile.department, '建議先用手機搖桿熟悉規則，可按右上角 📷 切換體感！');
-            switchStage(1, { skipAutoDemo: true });
-            if (typeof openModeHub === 'function') openModeHub();
+            beginCharacterEntry();
         }
         function buildEditDeptOptions() {
             const sel = document.getElementById('edit-dept-sel');

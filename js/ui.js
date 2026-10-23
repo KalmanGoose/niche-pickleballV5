@@ -980,7 +980,7 @@ function cycleTeachLevelQuick() {
 /* ═══════ 彈窗控制器、HUD 面板自由拖曳與卡片縮放手柄 ═══════ */
         const MODAL_IDS = ['login-overlay', 'profile-modal', 'audio-modal', 'tech-modal', 'social-modal',
             'audit-modal', 'social-card-modal', 'mock-chat-modal', 'rules-modal', 'item-cards-modal',
-            'first-play-onboarding-modal', 'practice-settlement-modal'];
+            'first-play-onboarding-modal', 'practice-settlement-modal', 'char-picker-modal'];
         window.MODAL_IDS = MODAL_IDS;
         function isTypingTarget(e) {
             const t = e.target;
@@ -1328,6 +1328,8 @@ function cycleTeachLevelQuick() {
             if (!hub) return;
             // 進入大廳時立即凍結 3D 渲染，GPU/CPU 負載歸零，徹底消除手機發燙
             if (typeof suspend3DLoop === 'function') suspend3DLoop();
+            const staminaHUD = document.getElementById('opponent-stamina');
+            if (staminaHUD) staminaHUD.hidden = true;
 
             const av = document.getElementById('hub-avatar');
             const nk = document.getElementById('hub-nick');
@@ -1529,7 +1531,12 @@ function cycleTeachLevelQuick() {
             const cur = (typeof diffLevel !== 'undefined') ? diffLevel : 'easy';
             ['easy', 'medium', 'hard', 'fly'].forEach(k => {
                 const card = document.getElementById('diff-card-' + k);
-                if (card) card.classList.toggle('on', k === cur);
+                if (card) {
+                    card.classList.toggle('on', k === cur);
+                    let caption = card.querySelector('.diff-stamina-caption');
+                    if (!caption) { caption = document.createElement('div'); caption.className = 'diff-stamina-caption diff-opt-desc'; card.querySelector('.diff-opt-info').appendChild(caption); }
+                    caption.textContent = '體力：這一分來回 ' + OpponentStamina.capacity(k, stage) + ' 拍後，開始增加失誤。';
+                }
             });
             if (typeof S !== 'undefined' && S.swap) S.swap();
         }
@@ -1580,51 +1587,87 @@ function cycleTeachLevelQuick() {
         }
 
         /* ═══════ 🎭 角色造型選擇彈窗控制器 (Character Picker Controller) ═══════ */
-        function openCharPickerModal() {
+        let charPickerRequired = false;
+        let pendingPlayerCharacter = null;
+        let charPickerWasSuspended = false;
+
+        function beginCharacterEntry() {
+            charPickerRequired = true;
+            openCharPickerModal(true);
+        }
+        function openCharPickerModal(required = false) {
             const m = document.getElementById('char-picker-modal');
             if (!m) return;
+            charPickerRequired = required || charPickerRequired;
+            pendingPlayerCharacter = charPickerRequired ? null : playerCharacter;
+            charPickerWasSuspended = typeof isLoopSuspended !== 'undefined' && isLoopSuspended;
+            clearKeys();
+            if (typeof suspend3DLoop === 'function') suspend3DLoop();
+            const staminaHUD = document.getElementById('opponent-stamina');
+            if (staminaHUD) staminaHUD.hidden = true;
             m.style.display = 'flex';
+            document.getElementById('char-picker-close').hidden = charPickerRequired;
+            document.getElementById('char-picker-title').textContent = charPickerRequired ? '今天想用誰上場？' : '更換出戰角色';
             syncCharPickerUI();
-            if (typeof S !== 'undefined' && S.swap) S.swap();
+            document.getElementById('char-card-goose').focus();
         }
-
         function closeCharPickerModal() {
+            if (charPickerRequired) return;
             const m = document.getElementById('char-picker-modal');
             if (m) m.style.display = 'none';
+            if (!charPickerWasSuspended && typeof resume3DLoop === 'function') resume3DLoop();
         }
-
-        function selectPlayerCharacter(charType) {
-            if (typeof setPlayerCharacter === 'function') {
-                setPlayerCharacter(charType);
-            }
+        function selectPlayerCharacter(type) {
+            if (!['human', 'goose', 'swan'].includes(type)) return;
+            pendingPlayerCharacter = type;
             syncCharPickerUI();
-            if (typeof S !== 'undefined' && S.point) S.point();
-            setTimeout(closeCharPickerModal, 350);
         }
-
+        function confirmPlayerCharacter() {
+            const type = pendingPlayerCharacter;
+            if (!type || !characterChoiceReady(type)) return;
+            const entering = charPickerRequired;
+            setPlayerCharacter(type);
+            charPickerRequired = false;
+            closeCharPickerModal();
+            if (entering) {
+                switchStage(1, { skipAutoDemo: true });
+                openModeHub();
+            }
+        }
+        function characterChoiceReady(type) {
+            return type === 'human' || (type === 'goose' ? playerRiggedGoose.ready : type === 'swan' && playerRiggedSwan.ready);
+        }
         function syncCharPickerUI() {
-            const curChar = (typeof playerCharacter === 'string') ? playerCharacter : (localStorage.getItem('nchu_player_char') || 'human');
-            const chars = ['human', 'goose', 'swan'];
-            const names = { human: '👦 球員', goose: '🪿 匹克鵝', swan: '🦢 黑天鵝' };
-
-            chars.forEach(c => {
-                const card = document.getElementById('char-card-' + c);
-                const badge = document.getElementById('char-badge-' + c);
-                const isCur = (c === curChar);
-                if (card) {
-                    card.style.borderColor = isCur ? (c === 'swan' ? '#1e293b' : (c === 'goose' ? '#f59e0b' : '#0284c7')) : '#d1d5db';
-                    card.style.background = isCur ? (c === 'swan' ? '#f8fafc' : (c === 'goose' ? '#fffbeb' : '#f0f9ff')) : '#ffffff';
-                }
-                if (badge) {
-                    badge.innerText = isCur ? '✓ 出戰中' : '選擇出戰';
-                    badge.style.background = isCur ? (c === 'swan' ? '#1e293b' : (c === 'goose' ? '#f59e0b' : '#0284c7')) : '#e5e7eb';
-                    badge.style.color = isCur ? '#ffffff' : '#6b7280';
-                }
-            });
-
-            const qcn = document.getElementById('quick-char-name');
-            if (qcn) qcn.innerText = names[curChar] || '👦 球員';
+            const names = { human: '人偶', goose: '匹克鵝', swan: '黑天鵝' };
+            for (const type of Object.keys(names)) {
+                const card = document.getElementById('char-card-' + type);
+                const selected = pendingPlayerCharacter === type;
+                if (card) { card.classList.toggle('selected', selected); card.setAttribute('aria-pressed', String(selected)); }
+                const badge = document.getElementById('char-badge-' + type);
+                if (badge) badge.textContent = selected ? '✓ 已選擇' : '選這位';
+            }
+            const confirm = document.getElementById('char-picker-confirm');
+            if (confirm) {
+                const ready = pendingPlayerCharacter && characterChoiceReady(pendingPlayerCharacter);
+                confirm.disabled = !ready;
+                confirm.textContent = !pendingPlayerCharacter ? '先選一位角色' : !ready ? '角色載入中…' : charPickerRequired ? '就用這位，進入中興湖' : '確定更換';
+            }
+            const label = document.getElementById('quick-char-name');
+            if (label) label.textContent = names[playerCharacter] || names.goose;
+            const profileLabel = document.getElementById('profile-character-name');
+            if (profileLabel) profileLabel.textContent = names[playerCharacter] || names.goose;
         }
+
+        document.addEventListener('keydown', event => {
+            const modal = document.getElementById('char-picker-modal');
+            if (!modal || modal.style.display === 'none') return;
+            if (event.key === 'Escape') { event.preventDefault(); closeCharPickerModal(); }
+            if (event.key !== 'Tab') return;
+            const items = [...modal.querySelectorAll('button:not(:disabled)')].filter(el => !el.hidden);
+            const first = items[0], last = items[items.length - 1];
+            if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+            else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+        });
 
         function openCommunityModal() {
             const m = document.getElementById('community-modal');
@@ -2009,6 +2052,8 @@ function cycleTeachLevelQuick() {
         window.isOnboardingActive = () => isOnboardingActive;
         window.getOnboardingStep = () => onboardingCurrentStep;
         window.anyModalOpen = anyModalOpen;
+        window.beginCharacterEntry = beginCharacterEntry;
+        window.confirmPlayerCharacter = confirmPlayerCharacter;
         window.openCharPickerModal = openCharPickerModal;
         window.closeCharPickerModal = closeCharPickerModal;
         window.selectPlayerCharacter = selectPlayerCharacter;

@@ -16,6 +16,7 @@
 
     <!-- ═══════ PWA 漸進式網頁應用與離線球場支援 ═══════ -->
     <link rel="manifest" href="./manifest.json">
+    <link rel="icon" href="./images/pickleball_lab_logo.jpg">
     <meta name="theme-color" content="#2e7d32">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -7682,6 +7683,43 @@ body.distant-hud-active #subbar-ai-btn {
         padding: 6px 10px;
     }
 }
+/* Daily character choice and compact opponent energy HUD. */
+#char-picker-modal{z-index:20050}
+.character-picker-card{width:min(94vw,440px);max-height:90dvh;overflow-y:auto;padding:22px;background:#fffbed;border:2px solid #c9d3b5}
+.character-picker-heading{display:flex;gap:12px;justify-content:space-between;align-items:flex-start;margin-bottom:18px}
+.character-picker-heading h2{font-size:23px;margin:0;color:#294d37}
+.character-picker-heading p,.character-picker-note{font-size:12px;line-height:1.6;color:#68765a;margin:7px 0}
+#char-picker-close{border:0;background:#e8ecd9;border-radius:12px;padding:8px 12px;color:#375639}
+#char-picker-close[hidden]{display:none!important}
+.character-choices{display:grid;gap:10px;margin-bottom:18px}
+.character-choice{display:flex;align-items:center;gap:12px;width:100%;padding:15px 12px;border-radius:18px;border:2px solid #d7ddc5;background:#fffef6;color:#35513a;text-align:left;font:inherit;cursor:pointer;min-height:86px}
+.character-choice.selected{background:#e5eed7;border-color:#527b46;box-shadow:0 0 0 2px #527b4622}
+.character-choice strong{font-size:17px;display:block}.character-choice small{font-size:12px;display:block;margin-top:5px;color:#6a755d}
+.character-choice>span:last-child{margin-left:auto;flex-shrink:0;font-size:11px;font-weight:700}.character-icon{font-size:34px}
+.character-choice:focus-visible,#char-picker-confirm:focus-visible{outline:3px solid #b28538;outline-offset:3px}
+#char-picker-confirm:disabled{opacity:.5;cursor:default}.character-picker-note{text-align:center;margin-top:12px}
+.profile-character-link{display:flex;align-items:center;gap:6px;width:100%;border:1px solid #b9cca5;background:#eef3e3;border-radius:13px;padding:12px;color:#36593b;font:inherit;margin:8px 0 14px;cursor:pointer;font-size:13px}
+.profile-character-link span{margin-left:auto;font-size:12px}
+#passport-avatar-3d canvas{display:block;width:100%;height:100%}
+#lake-goose-dancer{position:absolute;left:44%;top:59%;width:100px;height:142px;transform:translate(-50%,-85%);z-index:14;border:0;padding:0;background:transparent;color:#34503b;cursor:pointer}
+#lake-goose-portrait{display:block;width:100%;height:125px;pointer-events:none;filter:drop-shadow(0 3px 2px #233d3322);font-size:10px}
+#lake-goose-portrait canvas{display:block;width:100%;height:100%}.lake-goose-label{display:block;white-space:nowrap;font-size:10px;font-weight:800;background:#fffbeadf;padding:4px 6px;border-radius:12px}
+#opponent-stamina{position:fixed;top:calc(76px + env(safe-area-inset-top));right:12px;z-index:21;width:142px;padding:9px 11px;background:#fffbe9eb;border:1px solid #b9cba6;border-radius:13px;color:#37543a;pointer-events:none}
+#opponent-stamina[hidden]{display:none!important}#opponent-stamina>div:first-child{display:flex;justify-content:space-between;gap:6px;font-size:11px}
+.stamina-track{height:5px;background:#dce3ce;border-radius:9px;margin:6px 0;overflow:hidden}#opponent-stamina-fill{height:100%;width:100%;background:#6d9851;transition:width .2s}#opponent-stamina small{display:block;font-size:10px;color:#6d705a}
+#opponent-stamina.exhausted{border-color:#d5a466}#opponent-stamina.exhausted #opponent-stamina-fill{background:#c07c43}
+@media(max-width:400px){.character-picker-card{padding:18px}.character-choice{padding:13px 10px;gap:9px}.character-choice strong{font-size:16px}#lake-goose-dancer{width:86px;height:125px}#lake-goose-portrait{height:110px}}
+@media(max-width:600px){
+    #profile-modal .passport-hero-row{flex-direction:column;align-items:stretch}
+    #profile-modal .passport-doll-box{flex:none;width:100%;height:242px;padding:8px}
+    #profile-modal .passport-info-col{width:100%;gap:9px}
+    #profile-modal .passport-player-nick{max-width:100%;white-space:normal;overflow-wrap:anywhere}
+    #profile-modal .passport-header-bar{flex-wrap:wrap;gap:8px}
+    #profile-modal .passport-level-right{min-width:0}
+}
+#lake-goose-dancer::before{content:'';position:absolute;bottom:19px;left:14%;width:72%;height:12px;background:#d5b57c;border:1px solid #ad8c56;border-radius:50%;z-index:-1}
+#char-picker-modal .character-picker-heading p,#char-picker-modal .character-picker-note{color:#627357!important}
+#char-picker-confirm{background:#3d6848;color:#fffbed;border:0;border-radius:14px;padding:14px;font-size:15px;font-weight:800;box-shadow:none}
 
 
     </style>
@@ -7779,6 +7817,7 @@ body.distant-hud-active #subbar-ai-btn {
                 <button type="button" class="btn-close-profile" onclick="closeProfileModal()" aria-label="關閉個人球員檔案">✕</button>
             </div>
 
+            <button type="button" class="profile-character-link" onclick="openCharPickerModal()">🎭 今日出戰：<strong id="profile-character-name">匹克鵝</strong><span>更換角色 →</span></button>
             <!-- 頂部頁籤導航：選手證 vs 編輯資料 -->
             <div class="profile-nav-tabs">
                 <button type="button" class="profile-nav-tab on" id="ptab-btn-passport" onclick="switchProfileTab('passport')">🪪 島民選手證 & 成就</button>
@@ -8963,65 +9002,17 @@ I_syn(t) = w_syn · x · u · (dθ/dt)</div>
         </div>
     </div>
 
-    <!-- ══════ 🎭 角色造型選擇彈窗 (#char-picker-modal) ══════ -->
-    <div id="char-picker-modal" class="modal-overlay" style="display:none;" onclick="if(event.target===this)closeCharPickerModal()">
-        <div class="modal-card" style="width:min(94vw, 460px);max-height:88dvh;overflow-y:auto;padding:20px;">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;position:sticky;top:-4px;background:#fffef9;z-index:2;padding-bottom:6px;border-bottom:1.5px solid #ebd9c0;">
-                <div>
-                    <h3 style="margin:0;font-size:18px;font-weight:900;color:#3d2b1f;">🎭 選擇出戰角色 (Character Select)</h3>
-                    <div style="font-size:11.5px;color:#85694f;font-weight:700;">選擇你在 3D 球場上的專屬外觀與動作</div>
-                </div>
-                <button type="button" class="ac-btn-sub" style="padding:4px 10px;font-size:12px;" onclick="closeCharPickerModal()">✕</button>
+    <div id="opponent-stamina" hidden role="status" aria-label="對手體力"><div><strong id="opponent-stamina-label">對手體力</strong><span id="opponent-stamina-text">100%</span></div><div class="stamina-track"><div id="opponent-stamina-fill"></div></div><small id="opponent-stamina-hint">換分恢復</small></div>
+    <div id="char-picker-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="char-picker-title" style="display:none;" onclick="if(event.target===this)closeCharPickerModal()">
+        <div class="modal-card character-picker-card">
+            <div class="character-picker-heading"><div><h2 id="char-picker-title">今天想用誰上場？</h2><p>人偶、匹克鵝、黑天鵝，操作與能力相同。</p></div><button id="char-picker-close" type="button" onclick="closeCharPickerModal()" aria-label="關閉角色選擇">✕</button></div>
+            <div class="character-choices">
+                <button type="button" id="char-card-human" class="character-choice" aria-pressed="false" onclick="selectPlayerCharacter('human')"><span class="character-icon">👦</span><span><strong>人偶</strong><small>熟悉的興大球員</small></span><span id="char-badge-human">選這位</span></button>
+                <button type="button" id="char-card-goose" class="character-choice" aria-pressed="false" onclick="selectPlayerCharacter('goose')"><span class="character-icon">🪿</span><span><strong>匹克鵝</strong><small>藍色帽 T 的湖畔夥伴</small></span><span id="char-badge-goose">選這位</span></button>
+                <button type="button" id="char-card-swan" class="character-choice" aria-pressed="false" onclick="selectPlayerCharacter('swan')"><span class="character-icon">🦢</span><span><strong>黑天鵝</strong><small>黑金配色的冠軍氣勢</small></span><span id="char-badge-swan">選這位</span></button>
             </div>
-
-            <!-- 角色 1: 興大陽光球員 -->
-            <div class="stage-opt-card" id="char-card-human" onclick="selectPlayerCharacter('human')" style="cursor:pointer;border:2px solid #38bdf8;background:#f0f9ff;margin-bottom:12px;padding:12px;border-radius:14px;display:flex;gap:12px;align-items:center;">
-                <div style="font-size:36px;width:56px;height:56px;border-radius:50%;background:#e0f2fe;display:grid;place-items:center;flex-shrink:0;">👦</div>
-                <div style="flex:1;">
-                    <div style="display:flex;justify-content:space-between;align-items:center;">
-                        <span style="font-size:16px;font-weight:900;color:#0369a1;">興大陽光球員 (Chibi Human)</span>
-                        <span id="char-badge-human" style="font-size:11px;padding:2px 8px;border-radius:99px;background:#0284c7;color:#fff;font-weight:800;">✓ 出戰中</span>
-                    </div>
-                    <div style="font-size:11.5px;color:#475569;margin-top:4px;line-height:1.4;">
-                        👔 湖水藍綠 Polo 衫、活力運動短褲、紅白遮陽帽。<br>
-                        ✨ <b>特色</b>：視野平衡清晰，手感穩定！
-                    </div>
-                </div>
-            </div>
-
-            <!-- 角色 2: 中興村長匹克鵝 -->
-            <div class="stage-opt-card" id="char-card-goose" onclick="selectPlayerCharacter('goose')" style="cursor:pointer;border:1.5px solid #d1d5db;background:#fff;margin-bottom:12px;padding:12px;border-radius:14px;display:flex;gap:12px;align-items:center;">
-                <div style="font-size:36px;width:56px;height:56px;border-radius:50%;background:#fef3c7;display:grid;place-items:center;flex-shrink:0;">🪿</div>
-                <div style="flex:1;">
-                    <div style="display:flex;justify-content:space-between;align-items:center;">
-                        <span style="font-size:16px;font-weight:900;color:#92400e;">中興村長匹克鵝 (Pickler Goose)</span>
-                        <span id="char-badge-goose" style="font-size:11px;padding:2px 8px;border-radius:99px;background:#e5e7eb;color:#6b7280;font-weight:800;">選擇出戰</span>
-                    </div>
-                    <div style="font-size:11.5px;color:#475569;margin-top:4px;line-height:1.4;">
-                        🪶 3D 骨骼蒙皮高精度白鵝、亮橘長喙蹼足、村長紅帽子。<br>
-                        ✨ <b>特色</b>：具備完整 21 骨骨架，走路、跑步與揮拍專屬動作！
-                    </div>
-                </div>
-            </div>
-
-            <!-- 角色 3: 冠軍匹克黑天鵝 -->
-            <div class="stage-opt-card" id="char-card-swan" onclick="selectPlayerCharacter('swan')" style="cursor:pointer;border:1.5px solid #d1d5db;background:#fff;margin-bottom:12px;padding:12px;border-radius:14px;display:flex;gap:12px;align-items:center;">
-                <div style="font-size:36px;width:56px;height:56px;border-radius:50%;background:#e2e8f0;display:grid;place-items:center;flex-shrink:0;">🦢</div>
-                <div style="flex:1;">
-                    <div style="display:flex;justify-content:space-between;align-items:center;">
-                        <span style="font-size:16px;font-weight:900;color:#1e293b;">冠軍匹克黑天鵝 (Black Swan)</span>
-                        <span id="char-badge-swan" style="font-size:11px;padding:2px 8px;border-radius:99px;background:#e5e7eb;color:#6b7280;font-weight:800;">選擇出戰</span>
-                    </div>
-                    <div style="font-size:11.5px;color:#475569;margin-top:4px;line-height:1.4;">
-                        👑 深邃午夜黑曜羽翼、金色頂級皇冠、鮮紅長喙、尊爵蹼足。<br>
-                        ✨ <b>特色</b>：第 7 關隱藏神獸！王者霸氣揮拍！
-                    </div>
-                </div>
-            </div>
-
-            <div style="text-align:center;margin-top:10px;">
-                <a href="./tools/character-preview/index.html" target="_blank" style="font-size:12px;color:#0284c7;font-weight:700;text-decoration:none;">🔍 開啟 3D 骨架動作獨立預覽器 ↗</a>
-            </div>
+            <button type="button" id="char-picker-confirm" class="btn-main" disabled onclick="confirmPlayerCharacter()">先選一位角色</button>
+            <p class="character-picker-note">進入後，也能從個人設定或手機選單更換。</p>
         </div>
     </div>
 
@@ -9113,6 +9104,7 @@ I_syn(t) = w_syn · x · u · (dθ/dt)</div>
                 <!-- 🍃 微風落櫻花瓣與飄逸夏葉動態粒子層 -->
                 <canvas id="hub-particle-canvas"></canvas>
 
+                <button type="button" id="lake-goose-dancer" aria-label="湖畔匹克鵝閃身步" onclick="toast('🪿 湖畔閃身步', '跟著匹克鵝側步、轉肩、擺手！')"><span id="lake-goose-portrait"></span><span class="lake-goose-label">匹克鵝 · 閃身步</span></button>
                 <!-- 🐾 活體島民與天鵝動態生態演員 (Living Campus Actors) -->
                 <!-- 1. 👑 皇冠黑天鵝村長 (在湖中自由游弋巡邏) -->
                 <div class="ac-actor ac-swan" id="actor-swan" onclick="HubSandbox.interactActor('swan', event)" title="中興湖黑天鵝村長 (點擊互動)">
@@ -9357,6 +9349,7 @@ I_syn(t) = w_syn · x · u · (dθ/dt)</div>
 
                     <!-- 應用程式 Squircle 現代圖標網格 -->
                     <div class="phone-app-grid nook-grid">
+                        <button class="nook-app phone-app" onclick="toggleNookPhone(false); openCharPickerModal();"><div class="nook-app-icon phone-app-icon app-profile">🪿</div><span class="nook-app-label phone-app-label">出戰角色</span></button>
                         <button class="nook-app phone-app" onclick="toggleNookPhone(false); openModeHub();">
                             <div class="nook-app-icon phone-app-icon app-hub">🏠</div>
                             <span class="nook-app-label phone-app-label">模式大廳</span>
@@ -10411,7 +10404,7 @@ function apiGet(qs) {
                 clearKeys();
                 S.init();
                 toast('👋 歡迎回來,' + playerProfile.department, '編號 ' + playerProfile.playerId);
-                switchStage(1);
+                beginCharacterEntry();
             } else {
                 showFullLoginForm();
             }
@@ -10439,8 +10432,7 @@ function apiGet(qs) {
             clearKeys();
             S.init();
             toast('👋 歡迎訪客！', '建議先用手機搖桿熟悉規則，可按右上角 📷 隨時切換體感！');
-            switchStage(1, { skipAutoDemo: true });
-            if (typeof openModeHub === 'function') openModeHub();
+            beginCharacterEntry();
         }
 
         function handleLogin() {
@@ -10484,8 +10476,7 @@ function apiGet(qs) {
             clearKeys();
             S.init();
             toast('👋 歡迎,' + playerProfile.department, '建議先用手機搖桿熟悉規則，可按右上角 📷 切換體感！');
-            switchStage(1, { skipAutoDemo: true });
-            if (typeof openModeHub === 'function') openModeHub();
+            beginCharacterEntry();
         }
         function buildEditDeptOptions() {
             const sel = document.getElementById('edit-dept-sel');
@@ -13273,6 +13264,7 @@ if (typeof window !== "undefined") {
 (function(window) {
     'use strict';
 
+    let lakeGoose = null;
     let pCanvas = null;
     let pCtx = null;
     let animId = null;
@@ -13669,6 +13661,8 @@ if (typeof window !== "undefined") {
     function start() {
         if (isRunning) return;
         refreshDomCache();
+        const portrait = document.getElementById('lake-goose-portrait');
+        if (portrait && window.NGoCharacterPortrait && !lakeGoose) lakeGoose = new window.NGoCharacterPortrait(portrait, { dance: true });
 
         pCanvas = document.getElementById('hub-particle-canvas');
         pCtx = pCanvas ? pCanvas.getContext('2d') : null;
@@ -13684,6 +13678,7 @@ if (typeof window !== "undefined") {
 
     // 停止沙盤動態 (進入球場時 100% 釋放 CPU/GPU)
     function stop() {
+        if (lakeGoose) { lakeGoose.destroy(); lakeGoose = null; }
         isRunning = false;
         if (animId) {
             cancelAnimationFrame(animId);
@@ -13716,23 +13711,201 @@ if (typeof window !== "undefined") {
 })(window);
 
 
+/* ─── character-portrait.js ─── */
+/* Small, independent GLB portraits for the passport and the lake. */
+(function (window) {
+    'use strict';
+    const files = new Map();
+    function modelBytes() {
+        const url = 'models/characters/pickler_goose_mobile.glb';
+        if (!files.has(url)) {
+            files.set(url, fetch(url).then(r => {
+                if (!r.ok) throw new Error('模型讀取失敗');
+                return r.arrayBuffer();
+            }).catch(e => { files.delete(url); throw e; }));
+        }
+        return files.get(url);
+    }
+    function disposePortraitModel(root) {
+        const geometries = new Set(), materials = new Set(), textures = new Set();
+        root.traverse(o => {
+            if (o.geometry) geometries.add(o.geometry);
+            for (const m of o.material ? [].concat(o.material) : []) {
+                materials.add(m);
+                for (const value of Object.values(m)) if (value && value.isTexture) textures.add(value);
+            }
+            if (o.skeleton && o.skeleton.boneTexture) textures.add(o.skeleton.boneTexture);
+        });
+        geometries.forEach(g => g.dispose());
+        materials.forEach(m => m.dispose());
+        textures.forEach(t => t.dispose());
+    }
+    // Side steps, shoulder turns and alternating knee bends. Stylized, not video mocap.
+    function shanshenClip(root) {
+        const THREE = window.THREE, tracks = [];
+        const times = [0, .3, .6, .9, 1.2, 1.5, 1.8, 2.1, 2.4];
+        const sway = [0, 1, 0, -1, 0, 1, 0, -1, 0];
+        const rotations = {
+            Spine: [0, .2, .13], Head: [0, -.13, -.07],
+            'UpperArm.L': [.28, .08, .12], 'UpperArm.R': [-.28, -.08, -.12],
+            'Forearm.L': [.16, 0, .12], 'Forearm.R': [-.16, 0, -.12],
+            'Thigh.L': [.32, 0, .1], 'Thigh.R': [-.32, 0, -.1],
+            'Shin.L': [-.28, 0, 0], 'Shin.R': [.28, 0, 0]
+        };
+        root.traverse(bone => {
+            if (!bone.isBone) return;
+            const name = bone.userData.name || bone.name, amplitude = rotations[name];
+            if (!amplitude) return;
+            const rest = bone.quaternion.clone(), values = [];
+            for (const phase of sway) {
+                const delta = new THREE.Quaternion().setFromEuler(new THREE.Euler(
+                    amplitude[0] * phase, amplitude[1] * phase, amplitude[2] * phase));
+                rest.clone().multiply(delta).toArray(values, values.length);
+            }
+            tracks.push(new THREE.QuaternionKeyframeTrack(bone.name + '.quaternion', times, values));
+        });
+        return new THREE.AnimationClip('Lake_Shanshen', 2.4, tracks);
+    }
+    class CharacterPortrait {
+        constructor(container, options = {}) {
+            this.container = container;
+            this.dance = !!options.dance;
+            this.destroyed = false;
+            this.listeners = [];
+            this.yaw = .2;
+            this.time = 0;
+            this.last = 0;
+            this.frame = 0;
+            this.container.textContent = '匹克鵝準備中…';
+            this.ready = this.init();
+        }
+        async init() {
+            const THREE = window.THREE;
+            try {
+                if (!THREE || !THREE.GLTFLoader) throw new Error('3D 套件尚未就緒');
+                const bytes = await modelBytes();
+                const gltf = await new Promise((resolve, reject) => new THREE.GLTFLoader().parse(bytes, '', resolve, reject));
+                if (this.destroyed) { disposePortraitModel(gltf.scene); return; }
+                this.scene = new THREE.Scene();
+                this.camera = new THREE.PerspectiveCamera(32, 1, .05, 20);
+                this.camera.position.set(0, 1.05, 4.5);
+                this.camera.lookAt(0, 1.05, 0);
+                this.renderer = new THREE.WebGLRenderer({ alpha: true, antialias: false, powerPreference: 'low-power' });
+                this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.25));
+                this.renderer.outputEncoding = THREE.sRGBEncoding;
+                this.container.textContent = '';
+                this.container.appendChild(this.renderer.domElement);
+                this.renderer.domElement.setAttribute('aria-label', this.dance ? '匹克鵝的閃身步風格舞步' : '可轉身的 3D 匹克鵝');
+                this.scene.add(new THREE.HemisphereLight(0xfff8ed, 0x728769, 1.2));
+                const light = new THREE.DirectionalLight(0xffffff, 1.2);
+                light.position.set(2, 4, 4); this.scene.add(light);
+                this.root = gltf.scene;
+                this.root.updateMatrixWorld(true);
+                const box = new THREE.Box3().setFromObject(this.root);
+                this.root.scale.setScalar(2.05 / box.getSize(new THREE.Vector3()).y);
+                this.root.updateMatrixWorld(true);
+                box.setFromObject(this.root);
+                const center = box.getCenter(new THREE.Vector3());
+                this.root.position.set(-center.x, -box.min.y, -center.z);
+                this.baseX = this.root.position.x;
+                this.root.traverse(o => { if (o.isMesh) o.frustumCulled = false; });
+                this.scene.add(this.root);
+                this.mixer = new THREE.AnimationMixer(this.root);
+                const clip = this.dance ? shanshenClip(this.root) : gltf.animations.find(c => c.name === 'Idle');
+                if (clip) this.mixer.clipAction(clip).play();
+                this.resizeObserver = new ResizeObserver(() => this.resize());
+                this.resizeObserver.observe(this.container); this.resize();
+                if (!this.dance) this.bindDrag();
+                this.tick = this.tick.bind(this); this.frame = requestAnimationFrame(this.tick);
+            } catch (e) {
+                if (!this.destroyed) this.container.textContent = '匹克鵝暫時未載入，請稍後重開。';
+                console.warn('Character portrait:', e.message);
+            }
+        }
+        resize() {
+            if (!this.renderer) return;
+            const width = this.container.clientWidth || 170, height = this.container.clientHeight || 220;
+            this.renderer.setSize(width, height, false);
+            this.camera.aspect = width / height; this.camera.updateProjectionMatrix();
+        }
+        bindDrag() {
+            const canvas = this.renderer.domElement;
+            let start = null;
+            canvas.style.touchAction = 'pan-y';
+            const on = (event, fn) => { canvas.addEventListener(event, fn); this.listeners.push([event, fn]); };
+            on('pointerdown', e => { start = e.clientX; canvas.setPointerCapture(e.pointerId); });
+            on('pointermove', e => { if (start !== null) { this.yaw += (e.clientX - start) * .015; start = e.clientX; } });
+            on('pointerup', () => { start = null; });
+            on('pointercancel', () => { start = null; });
+        }
+        tick(now) {
+            if (this.destroyed) return;
+            this.frame = requestAnimationFrame(this.tick);
+            if (document.hidden || now - this.last < 50) return;
+            const dt = this.last ? Math.min(.1, (now - this.last) / 1000) : 0;
+            this.last = now; this.time += dt;
+            this.mixer.update(dt);
+            this.root.rotation.y = this.yaw + (this.dance ? Math.sin(this.time * Math.PI / 1.2) * .25 : 0);
+            this.root.position.x = this.baseX + (this.dance ? Math.sin(this.time * Math.PI / .6) * .09 : 0);
+            this.renderer.render(this.scene, this.camera);
+        }
+        destroy() {
+            this.destroyed = true; cancelAnimationFrame(this.frame);
+            if (this.resizeObserver) this.resizeObserver.disconnect();
+            if (this.mixer) { this.mixer.stopAllAction(); this.mixer.uncacheRoot(this.root); }
+            if (this.root) disposePortraitModel(this.root);
+            if (this.renderer) {
+                for (const [event, fn] of this.listeners) this.renderer.domElement.removeEventListener(event, fn);
+                this.renderer.dispose(); this.renderer.forceContextLoss(); this.renderer.domElement.remove();
+            }
+        }
+    }
+    window.NGoCharacterPortrait = CharacterPortrait;
+})(window);
+
+
+/* ─── opponent-stamina.js ─── */
+/* Game balance only: rally strokes, including the serve; reset by resetServe(). */
+(function (root) {
+    'use strict';
+    const budgets = Object.freeze({ easy: 8, medium: 18, hard: 30, fly: 24 });
+    function capacity(level, stage) {
+        const base = budgets[level] || budgets.easy;
+        return stage === 7 ? Math.max(base, 36) : stage === 5 ? Math.max(base, 30) : base;
+    }
+    function evaluate(hits, level, stage) {
+        const limit = capacity(level, stage);
+        const used = Math.max(0, Number(hits) || 0);
+        const exhausted = used >= limit;
+        return {
+            capacity: limit, hits: used,
+            percent: Math.max(0, Math.ceil(100 * (1 - used / limit))),
+            exhausted,
+            speedScale: exhausted ? 0.72 : 1 - 0.15 * used / limit,
+            errorChance: exhausted ? Math.min(0.82, 0.28 + (used - limit) * 0.06) : 0
+        };
+    }
+    const api = Object.freeze({ budgets, capacity, evaluate });
+    root.OpponentStamina = api;
+    if (typeof module !== 'undefined' && module.exports) module.exports = api;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+
 /* ─── profile_card.js ─── */
 /* ══════════════════════════════════════════════════════════════
    中興大學匹克球 · 個人選手證 (NCHU Island Passport)
-   2D/3D 雙模動態人偶展示台、等級經驗值與成就系統 (含揚州炒飯傳奇梗)
+   匹克鵝 GLB 展示台、等級經驗值與成就系統 (含揚州炒飯傳奇梗)
    ══════════════════════════════════════════════════════════════ */
 
 (function (window) {
     'use strict';
 
-    let currentAvatarMode = '2D'; // '2D' | '3D'
     let currentProfileTab = 'passport'; // 'passport' | 'edit'
-    let threeMini = null; // 3D 微型人偶展示台實例
+    let threeMini = null; // 3D 匹克鵝展示台實例
 
     // ── 經驗值與成就資料存取 ──
     const EXP_KEY = 'nchu_player_exp';
     const ACH_KEY = 'nchu_player_achievements';
-    const AVATAR_MODE_KEY = 'nchu_player_avatar_mode';
 
     function getPlayerExp() {
         try {
@@ -13823,289 +13996,6 @@ if (typeof window !== "undefined") {
     // ══════════════════════════════════════════════════════════════
     // 🎨 2D 手繪動態人偶生成器
     // ══════════════════════════════════════════════════════════════
-    function render2DAvatar() {
-        const wrap = document.getElementById('passport-avatar-2d');
-        if (!wrap) return;
-
-        wrap.innerHTML = `
-            <div class="avatar-2d-canvas-wrap">
-                <svg viewBox="0 0 160 200" class="avatar-2d-svg" xmlns="http://www.w3.org/2000/svg">
-                    <defs>
-                        <radialGradient id="shadowGrad" cx="50%" cy="50%" r="50%">
-                            <stop offset="0%" stop-color="#2b1d14" stop-opacity="0.25"/>
-                            <stop offset="100%" stop-color="#2b1d14" stop-opacity="0"/>
-                        </radialGradient>
-                        <linearGradient id="jerseyGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                            <stop offset="0%" stop-color="#2e7d32"/>
-                            <stop offset="100%" stop-color="#1b5e20"/>
-                        </linearGradient>
-                        <linearGradient id="paddleGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                            <stop offset="0%" stop-color="#f59e0b"/>
-                            <stop offset="100%" stop-color="#d97706"/>
-                        </linearGradient>
-                    </defs>
-                    
-                    <!-- 投影 -->
-                    <ellipse cx="80" cy="188" rx="42" ry="7" fill="url(#shadowGrad)"/>
-                    
-                    <!-- 身體與球衣 (中興森林墨綠運動服) -->
-                    <g class="avatar-2d-body-group">
-                        <!-- 雙腿與運動鞋 -->
-                        <rect x="66" y="145" width="10" height="28" rx="4" fill="#fcd34d"/>
-                        <rect x="84" y="145" width="10" height="28" rx="4" fill="#fcd34d"/>
-                        <rect x="62" y="168" width="16" height="12" rx="4" fill="#ffffff" stroke="#dec8a7" stroke-width="1.5"/>
-                        <rect x="82" y="168" width="16" height="12" rx="4" fill="#ffffff" stroke="#dec8a7" stroke-width="1.5"/>
-                        
-                        <!-- 白色運動短褲 -->
-                        <path d="M 60 128 L 100 128 L 96 148 L 84 148 L 80 138 L 76 148 L 64 148 Z" fill="#ffffff" stroke="#e0d0b8" stroke-width="1.5"/>
-                        
-                        <!-- 中興綠球衣主體 -->
-                        <path d="M 52 74 Q 80 70 108 74 L 104 130 L 56 130 Z" fill="url(#jerseyGrad)"/>
-                        <!-- 球衣白色運動斜切飾條 -->
-                        <path d="M 54 84 L 106 100 L 105 108 L 55 92 Z" fill="#ffffff" opacity="0.3"/>
-                        <!-- NCHU 校名標誌 -->
-                        <text x="80" y="112" font-size="10.5" font-weight="900" fill="#ffffff" text-anchor="middle" font-family="system-ui">NCHU</text>
-                        
-                        <!-- 左臂 (叉腰) -->
-                        <path d="M 54 78 Q 38 98 48 116" stroke="#fcd34d" stroke-width="8" stroke-linecap="round" fill="none"/>
-                        
-                        <!-- 右臂 (手持匹克球拍) -->
-                        <g class="avatar-2d-arm-right">
-                            <path d="M 106 78 Q 124 96 118 118" stroke="#fcd34d" stroke-width="8" stroke-linecap="round" fill="none"/>
-                            <!-- 握把 -->
-                            <rect x="114" y="116" width="6" height="16" rx="2" fill="#78350f" transform="rotate(-25 117 124)"/>
-                            <!-- 拍面 (中興暖金) -->
-                            <rect x="108" y="86" width="22" height="30" rx="8" fill="url(#paddleGrad)" stroke="#b45309" stroke-width="1.5" transform="rotate(-25 119 101)"/>
-                            <!-- 拍面匹克球孔洞裝飾 -->
-                            <circle cx="119" cy="98" r="2.5" fill="#fef3c7" opacity="0.8"/>
-                            <circle cx="113" cy="106" r="2" fill="#fef3c7" opacity="0.8"/>
-                            <circle cx="125" cy="103" r="2" fill="#fef3c7" opacity="0.8"/>
-                        </g>
-                        
-                        <!-- 脖子與頭部 -->
-                        <rect x="74" y="60" width="12" height="16" rx="3" fill="#fcd34d"/>
-                        <circle cx="80" cy="46" r="24" fill="#fed7aa"/>
-                        
-                        <!-- 可愛髮型 (中興島民自然短髮) -->
-                        <path d="M 56 42 Q 80 18 104 42 Q 106 28 88 22 Q 72 22 56 36 Z" fill="#4a2e18"/>
-                        <path d="M 56 42 Q 54 52 58 60 Q 62 48 64 42 Z" fill="#4a2e18"/>
-                        <path d="M 104 42 Q 106 52 102 60 Q 98 48 96 42 Z" fill="#4a2e18"/>
-                        
-                        <!-- 眼睛 (眨眼微笑) -->
-                        <circle cx="72" cy="45" r="2.8" fill="#2b1d14"/>
-                        <circle cx="88" cy="45" r="2.8" fill="#2b1d14"/>
-                        <circle cx="73" cy="44" r="0.9" fill="#ffffff"/>
-                        <circle cx="89" cy="44" r="0.9" fill="#ffffff"/>
-                        
-                        <!-- 腮紅 -->
-                        <ellipse cx="67" cy="51" rx="4.5" ry="2.2" fill="#f87171" opacity="0.45"/>
-                        <ellipse cx="93" cy="51" rx="4.5" ry="2.2" fill="#f87171" opacity="0.45"/>
-                        
-                        <!-- 自信微笑 -->
-                        <path d="M 76 53 Q 80 57 84 53" stroke="#2b1d14" stroke-width="1.8" stroke-linecap="round" fill="none"/>
-                    </g>
-                </svg>
-                <div class="avatar-idle-badge">🎾 待命中</div>
-            </div>
-        `;
-    }
-
-    // ══════════════════════════════════════════════════════════════
-    // 🧊 3D 微型旋轉公仔台 (Micro Three.js Scene)
-    // ══════════════════════════════════════════════════════════════
-    class ThreeMiniDoll {
-        constructor(containerEl) {
-            this.container = containerEl;
-            this.animId = null;
-            this.isDragging = false;
-            this.prevPointerX = 0;
-            this.rotY = 0;
-            this.targetRotY = 0;
-            this.clock = (window.THREE ? new window.THREE.Clock() : null);
-            this.init();
-        }
-
-        init() {
-            if (!window.THREE) return;
-            const w = this.container.clientWidth || 170;
-            const h = this.container.clientHeight || 200;
-
-            this.scene = new window.THREE.Scene();
-            this.camera = new window.THREE.PerspectiveCamera(40, w / h, 0.1, 50);
-            this.camera.position.set(0, 0.95, 3.2);
-
-            this.renderer = new window.THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'low-power' });
-            this.renderer.setSize(w, h);
-            this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-            this.renderer.outputEncoding = window.THREE.sRGBEncoding;
-
-            this.container.innerHTML = '';
-            this.container.appendChild(this.renderer.domElement);
-
-            // 柔和光照
-            const hemi = new window.THREE.HemisphereLight(0xffffff, 0xdec8a7, 0.9);
-            this.scene.add(hemi);
-            const dir = new window.THREE.DirectionalLight(0xfff7ed, 1.2);
-            dir.position.set(2, 4, 3);
-            this.scene.add(dir);
-
-            // 旋轉角色主 Group
-            this.dollGroup = new window.THREE.Group();
-            this.scene.add(this.dollGroup);
-
-            // 建造小人偶模型
-            this.buildModel();
-
-            // 綁定手指/滑鼠拖曳旋轉
-            this.bindEvents();
-
-            // 啟動渲染
-            this.animate = this.animate.bind(this);
-            this.animate();
-        }
-
-        buildModel() {
-            const THREE = window.THREE;
-
-            // 1. 底盤投影圓盤
-            const shadowGeo = new THREE.CylinderGeometry(0.75, 0.75, 0.02, 24);
-            const shadowMat = new THREE.MeshBasicMaterial({ color: 0xdec8a7, transparent: true, opacity: 0.6 });
-            const shadowMesh = new THREE.Mesh(shadowGeo, shadowMat);
-            shadowMesh.position.y = -0.52;
-            this.dollGroup.add(shadowMesh);
-
-            // 2. 身體 (中興綠運動球衣)
-            const bodyMat = new THREE.MeshStandardMaterial({ color: 0x1b5e20, roughness: 0.6 });
-            const bodyGeo = new THREE.CylinderGeometry(0.24, 0.28, 0.55, 12);
-            this.bodyMesh = new THREE.Mesh(bodyGeo, bodyMat);
-            this.bodyMesh.position.y = 0.18;
-            this.dollGroup.add(this.bodyMesh);
-
-            // 3. 白色運動短褲
-            const pantsMat = new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.7 });
-            const pantsGeo = new THREE.CylinderGeometry(0.28, 0.29, 0.22, 12);
-            const pantsMesh = new THREE.Mesh(pantsGeo, pantsMat);
-            pantsMesh.position.y = -0.15;
-            this.dollGroup.add(pantsMesh);
-
-            // 4. 雙腿與運動鞋
-            const skinMat = new THREE.MeshStandardMaterial({ color: 0xfcd34d, roughness: 0.7 });
-            const shoeMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.5 });
-            for (const sx of [-0.12, 0.12]) {
-                const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.32, 8), skinMat);
-                leg.position.set(sx, -0.32, 0);
-                this.dollGroup.add(leg);
-
-                const shoe = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.08, 0.22), shoeMat);
-                shoe.position.set(sx, -0.48, 0.04);
-                this.dollGroup.add(shoe);
-            }
-
-            // 5. 頭部 (Q版大頭)
-            const headGeo = new THREE.SphereGeometry(0.38, 16, 16);
-            this.headMesh = new THREE.Mesh(headGeo, skinMat);
-            this.headMesh.position.y = 0.72;
-            this.dollGroup.add(this.headMesh);
-
-            // 髮型 (自然深棕短髮)
-            const hairMat = new THREE.MeshStandardMaterial({ color: 0x4a2e18, roughness: 0.8 });
-            const hairGeo = new THREE.SphereGeometry(0.40, 16, 16, 0, Math.PI * 2, 0, Math.PI * 0.55);
-            const hairMesh = new THREE.Mesh(hairGeo, hairMat);
-            hairMesh.position.set(0, 0.78, 0);
-            this.dollGroup.add(hairMesh);
-
-            // 6. 右手拿著匹克球拍
-            const armR = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.36, 8), skinMat);
-            armR.position.set(0.34, 0.20, 0.12);
-            armR.rotation.z = -Math.PI / 4;
-            armR.rotation.x = Math.PI / 6;
-            this.dollGroup.add(armR);
-
-            // 匹克球拍 Group
-            this.paddleGroup = new THREE.Group();
-            this.paddleGroup.position.set(0.48, 0.28, 0.22);
-            this.paddleGroup.rotation.z = -Math.PI / 6;
-            this.dollGroup.add(this.paddleGroup);
-
-            // 握把
-            const handle = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 0.18, 8),
-                new THREE.MeshStandardMaterial({ color: 0x78350f, roughness: 0.8 }));
-            this.paddleGroup.add(handle);
-
-            // 拍面 (金黃色)
-            const paddleFace = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.32, 0.02),
-                new THREE.MeshStandardMaterial({ color: 0xf59e0b, roughness: 0.4 }));
-            paddleFace.position.y = 0.22;
-            this.paddleGroup.add(paddleFace);
-
-            // 左手
-            const armL = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.34, 8), skinMat);
-            armL.position.set(-0.32, 0.18, 0.05);
-            armL.rotation.z = Math.PI / 4;
-            this.dollGroup.add(armL);
-        }
-
-        bindEvents() {
-            const el = this.renderer.domElement;
-            const onDown = (clientX) => {
-                this.isDragging = true;
-                this.prevPointerX = clientX;
-            };
-            const onMove = (clientX) => {
-                if (!this.isDragging) return;
-                const deltaX = clientX - this.prevPointerX;
-                this.prevPointerX = clientX;
-                this.targetRotY += deltaX * 0.015;
-            };
-            const onUp = () => {
-                this.isDragging = false;
-            };
-
-            el.addEventListener('mousedown', (e) => onDown(e.clientX));
-            window.addEventListener('mousemove', (e) => onMove(e.clientX));
-            window.addEventListener('mouseup', onUp);
-
-            el.addEventListener('touchstart', (e) => {
-                if (e.touches.length > 0) onDown(e.touches[0].clientX);
-            }, { passive: true });
-            window.addEventListener('touchmove', (e) => {
-                if (e.touches.length > 0) onMove(e.touches[0].clientX);
-            }, { passive: true });
-            window.addEventListener('touchend', onUp);
-        }
-
-        animate() {
-            this.animId = requestAnimationFrame(this.animate);
-            if (!this.clock) return;
-            const t = this.clock.getElapsedTime();
-
-            // 平滑旋轉跟隨
-            this.rotY += (this.targetRotY - this.rotY) * 0.12;
-
-            // 待機輕微自動呼吸上下浮動
-            if (!this.isDragging) {
-                this.dollGroup.position.y = Math.sin(t * 2.2) * 0.035;
-                if (this.paddleGroup) {
-                    this.paddleGroup.rotation.x = Math.sin(t * 2.5) * 0.12;
-                }
-            }
-            this.dollGroup.rotation.y = this.rotY;
-
-            this.renderer.render(this.scene, this.camera);
-        }
-
-        destroy() {
-            if (this.animId) cancelAnimationFrame(this.animId);
-            this.animId = null;
-            if (this.renderer && this.renderer.domElement && this.renderer.domElement.parentNode) {
-                this.renderer.domElement.parentNode.removeChild(this.renderer.domElement);
-            }
-        }
-    }
-
-    // ══════════════════════════════════════════════════════════════
-    // 🪪 渲染個人選手證主面板
-    // ══════════════════════════════════════════════════════════════
     function renderPassportView() {
         const exp = getPlayerExp();
         const { level, title, curExpInLevel, maxExpInLevel } = calcLevelInfo(exp);
@@ -14132,8 +14022,7 @@ if (typeof window !== "undefined") {
                         </div>
                     </div>
                     <div class="passport-mode-switcher">
-                        <button type="button" class="btn-avatar-mode ${currentAvatarMode === '2D' ? 'on' : ''}" onclick="switchAvatarMode('2D')">🎨 2D插畫</button>
-                        <button type="button" class="btn-avatar-mode ${currentAvatarMode === '3D' ? 'on' : ''}" onclick="switchAvatarMode('3D')">🧊 3D公仔</button>
+                        <span class="btn-avatar-mode on">🪿 匹克鵝</span>
                     </div>
                 </div>
 
@@ -14141,9 +14030,8 @@ if (typeof window !== "undefined") {
                 <div class="passport-hero-row">
                     <!-- 左側人偶展示台 -->
                     <div class="passport-doll-box">
-                        <div id="passport-avatar-2d" style="display:${currentAvatarMode === '2D' ? 'block' : 'none'};"></div>
-                        <div id="passport-avatar-3d" style="display:${currentAvatarMode === '3D' ? 'block' : 'none'};width:170px;height:200px;"></div>
-                        <div class="avatar-tip-caption">${currentAvatarMode === '3D' ? '👆 手指拖曳可 360° 旋轉' : '🍃 2D 待機呼吸浮動中'}</div>
+                        <div id="passport-avatar-3d" style="width:150px;height:210px;"></div>
+                        <div class="avatar-tip-caption">👆 拖曳轉身看看匹克鵝</div>
                     </div>
 
                     <!-- 右側球員資訊與等級 -->
@@ -14230,11 +14118,8 @@ if (typeof window !== "undefined") {
         `;
 
         // 依據目前模式啟動人偶渲染
-        if (currentAvatarMode === '2D') {
-            render2DAvatar();
-        } else {
-            init3DAvatar();
-        }
+        init3DAvatar();
+        if (typeof syncCharPickerUI === 'function') syncCharPickerUI();
     }
 
     function init3DAvatar() {
@@ -14244,42 +14129,12 @@ if (typeof window !== "undefined") {
         }
         const box = document.getElementById('passport-avatar-3d');
         if (box && window.THREE) {
-            threeMini = new ThreeMiniDoll(box);
+            threeMini = new window.NGoCharacterPortrait(box);
         }
     }
 
     // ── 雙模切換 ──
-    function switchAvatarMode(mode) {
-        currentAvatarMode = mode;
-        try { localStorage.setItem(AVATAR_MODE_KEY, mode); } catch (e) {}
-
-        const b2d = document.getElementById('passport-avatar-2d');
-        const b3d = document.getElementById('passport-avatar-3d');
-        const btns = document.querySelectorAll('.btn-avatar-mode');
-
-        btns.forEach(btn => {
-            btn.classList.toggle('on', btn.innerText.includes(mode));
-        });
-
-        if (mode === '2D') {
-            if (threeMini) { threeMini.destroy(); threeMini = null; }
-            if (b3d) b3d.style.display = 'none';
-            if (b2d) {
-                b2d.style.display = 'block';
-                render2DAvatar();
-            }
-        } else {
-            if (b2d) b2d.style.display = 'none';
-            if (b3d) {
-                b3d.style.display = 'block';
-                init3DAvatar();
-            }
-        }
-        const tip = document.querySelector('.avatar-tip-caption');
-        if (tip) {
-            tip.innerText = (mode === '3D' ? '👆 手指拖曳可 360° 旋轉' : '🍃 2D 待機呼吸浮動中');
-        }
-    }
+    function switchAvatarMode() { init3DAvatar(); }
 
     // ── 選手證與編輯分頁切換 ──
     function switchProfileTab(tab) {
@@ -15304,7 +15159,7 @@ function cycleTeachLevelQuick() {
 /* ═══════ 彈窗控制器、HUD 面板自由拖曳與卡片縮放手柄 ═══════ */
         const MODAL_IDS = ['login-overlay', 'profile-modal', 'audio-modal', 'tech-modal', 'social-modal',
             'audit-modal', 'social-card-modal', 'mock-chat-modal', 'rules-modal', 'item-cards-modal',
-            'first-play-onboarding-modal', 'practice-settlement-modal'];
+            'first-play-onboarding-modal', 'practice-settlement-modal', 'char-picker-modal'];
         window.MODAL_IDS = MODAL_IDS;
         function isTypingTarget(e) {
             const t = e.target;
@@ -15652,6 +15507,8 @@ function cycleTeachLevelQuick() {
             if (!hub) return;
             // 進入大廳時立即凍結 3D 渲染，GPU/CPU 負載歸零，徹底消除手機發燙
             if (typeof suspend3DLoop === 'function') suspend3DLoop();
+            const staminaHUD = document.getElementById('opponent-stamina');
+            if (staminaHUD) staminaHUD.hidden = true;
 
             const av = document.getElementById('hub-avatar');
             const nk = document.getElementById('hub-nick');
@@ -15853,7 +15710,12 @@ function cycleTeachLevelQuick() {
             const cur = (typeof diffLevel !== 'undefined') ? diffLevel : 'easy';
             ['easy', 'medium', 'hard', 'fly'].forEach(k => {
                 const card = document.getElementById('diff-card-' + k);
-                if (card) card.classList.toggle('on', k === cur);
+                if (card) {
+                    card.classList.toggle('on', k === cur);
+                    let caption = card.querySelector('.diff-stamina-caption');
+                    if (!caption) { caption = document.createElement('div'); caption.className = 'diff-stamina-caption diff-opt-desc'; card.querySelector('.diff-opt-info').appendChild(caption); }
+                    caption.textContent = '體力：這一分來回 ' + OpponentStamina.capacity(k, stage) + ' 拍後，開始增加失誤。';
+                }
             });
             if (typeof S !== 'undefined' && S.swap) S.swap();
         }
@@ -15904,51 +15766,87 @@ function cycleTeachLevelQuick() {
         }
 
         /* ═══════ 🎭 角色造型選擇彈窗控制器 (Character Picker Controller) ═══════ */
-        function openCharPickerModal() {
+        let charPickerRequired = false;
+        let pendingPlayerCharacter = null;
+        let charPickerWasSuspended = false;
+
+        function beginCharacterEntry() {
+            charPickerRequired = true;
+            openCharPickerModal(true);
+        }
+        function openCharPickerModal(required = false) {
             const m = document.getElementById('char-picker-modal');
             if (!m) return;
+            charPickerRequired = required || charPickerRequired;
+            pendingPlayerCharacter = charPickerRequired ? null : playerCharacter;
+            charPickerWasSuspended = typeof isLoopSuspended !== 'undefined' && isLoopSuspended;
+            clearKeys();
+            if (typeof suspend3DLoop === 'function') suspend3DLoop();
+            const staminaHUD = document.getElementById('opponent-stamina');
+            if (staminaHUD) staminaHUD.hidden = true;
             m.style.display = 'flex';
+            document.getElementById('char-picker-close').hidden = charPickerRequired;
+            document.getElementById('char-picker-title').textContent = charPickerRequired ? '今天想用誰上場？' : '更換出戰角色';
             syncCharPickerUI();
-            if (typeof S !== 'undefined' && S.swap) S.swap();
+            document.getElementById('char-card-goose').focus();
         }
-
         function closeCharPickerModal() {
+            if (charPickerRequired) return;
             const m = document.getElementById('char-picker-modal');
             if (m) m.style.display = 'none';
+            if (!charPickerWasSuspended && typeof resume3DLoop === 'function') resume3DLoop();
         }
-
-        function selectPlayerCharacter(charType) {
-            if (typeof setPlayerCharacter === 'function') {
-                setPlayerCharacter(charType);
-            }
+        function selectPlayerCharacter(type) {
+            if (!['human', 'goose', 'swan'].includes(type)) return;
+            pendingPlayerCharacter = type;
             syncCharPickerUI();
-            if (typeof S !== 'undefined' && S.point) S.point();
-            setTimeout(closeCharPickerModal, 350);
         }
-
+        function confirmPlayerCharacter() {
+            const type = pendingPlayerCharacter;
+            if (!type || !characterChoiceReady(type)) return;
+            const entering = charPickerRequired;
+            setPlayerCharacter(type);
+            charPickerRequired = false;
+            closeCharPickerModal();
+            if (entering) {
+                switchStage(1, { skipAutoDemo: true });
+                openModeHub();
+            }
+        }
+        function characterChoiceReady(type) {
+            return type === 'human' || (type === 'goose' ? playerRiggedGoose.ready : type === 'swan' && playerRiggedSwan.ready);
+        }
         function syncCharPickerUI() {
-            const curChar = (typeof playerCharacter === 'string') ? playerCharacter : (localStorage.getItem('nchu_player_char') || 'human');
-            const chars = ['human', 'goose', 'swan'];
-            const names = { human: '👦 球員', goose: '🪿 匹克鵝', swan: '🦢 黑天鵝' };
-
-            chars.forEach(c => {
-                const card = document.getElementById('char-card-' + c);
-                const badge = document.getElementById('char-badge-' + c);
-                const isCur = (c === curChar);
-                if (card) {
-                    card.style.borderColor = isCur ? (c === 'swan' ? '#1e293b' : (c === 'goose' ? '#f59e0b' : '#0284c7')) : '#d1d5db';
-                    card.style.background = isCur ? (c === 'swan' ? '#f8fafc' : (c === 'goose' ? '#fffbeb' : '#f0f9ff')) : '#ffffff';
-                }
-                if (badge) {
-                    badge.innerText = isCur ? '✓ 出戰中' : '選擇出戰';
-                    badge.style.background = isCur ? (c === 'swan' ? '#1e293b' : (c === 'goose' ? '#f59e0b' : '#0284c7')) : '#e5e7eb';
-                    badge.style.color = isCur ? '#ffffff' : '#6b7280';
-                }
-            });
-
-            const qcn = document.getElementById('quick-char-name');
-            if (qcn) qcn.innerText = names[curChar] || '👦 球員';
+            const names = { human: '人偶', goose: '匹克鵝', swan: '黑天鵝' };
+            for (const type of Object.keys(names)) {
+                const card = document.getElementById('char-card-' + type);
+                const selected = pendingPlayerCharacter === type;
+                if (card) { card.classList.toggle('selected', selected); card.setAttribute('aria-pressed', String(selected)); }
+                const badge = document.getElementById('char-badge-' + type);
+                if (badge) badge.textContent = selected ? '✓ 已選擇' : '選這位';
+            }
+            const confirm = document.getElementById('char-picker-confirm');
+            if (confirm) {
+                const ready = pendingPlayerCharacter && characterChoiceReady(pendingPlayerCharacter);
+                confirm.disabled = !ready;
+                confirm.textContent = !pendingPlayerCharacter ? '先選一位角色' : !ready ? '角色載入中…' : charPickerRequired ? '就用這位，進入中興湖' : '確定更換';
+            }
+            const label = document.getElementById('quick-char-name');
+            if (label) label.textContent = names[playerCharacter] || names.goose;
+            const profileLabel = document.getElementById('profile-character-name');
+            if (profileLabel) profileLabel.textContent = names[playerCharacter] || names.goose;
         }
+
+        document.addEventListener('keydown', event => {
+            const modal = document.getElementById('char-picker-modal');
+            if (!modal || modal.style.display === 'none') return;
+            if (event.key === 'Escape') { event.preventDefault(); closeCharPickerModal(); }
+            if (event.key !== 'Tab') return;
+            const items = [...modal.querySelectorAll('button:not(:disabled)')].filter(el => !el.hidden);
+            const first = items[0], last = items[items.length - 1];
+            if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+            else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+        });
 
         function openCommunityModal() {
             const m = document.getElementById('community-modal');
@@ -16333,6 +16231,8 @@ function cycleTeachLevelQuick() {
         window.isOnboardingActive = () => isOnboardingActive;
         window.getOnboardingStep = () => onboardingCurrentStep;
         window.anyModalOpen = anyModalOpen;
+        window.beginCharacterEntry = beginCharacterEntry;
+        window.confirmPlayerCharacter = confirmPlayerCharacter;
         window.openCharPickerModal = openCharPickerModal;
         window.closeCharPickerModal = closeCharPickerModal;
         window.selectPlayerCharacter = selectPlayerCharacter;
@@ -19890,7 +19790,7 @@ function cycleTeachLevelQuick() {
         let dinkRallyCount = 0, isChanceBall = false;
 
         // ═══════ 🎭 玩家自選出戰角色 (Player Character Selection) ═══════
-        let playerCharacter = (typeof localStorage !== 'undefined' && localStorage.getItem('nchu_player_char')) || 'human'; // 'human' | 'goose' | 'swan'
+        let playerCharacter = (typeof localStorage !== 'undefined' && localStorage.getItem('nchu_player_char')) || 'goose'; // 'human' | 'goose' | 'swan'
         let playerRiggedGoose = { root: null, mixer: null, actions: {}, ready: false };
         let playerRiggedSwan = { root: null, mixer: null, actions: {}, ready: false };
         let currentPlayerAction = 'Idle';
@@ -19945,6 +19845,7 @@ function cycleTeachLevelQuick() {
             if (playerRiggedSwan && playerRiggedSwan.root) {
                 playerRiggedSwan.root.visible = isSwan;
             }
+            if (typeof syncCharPickerUI === 'function') syncCharPickerUI();
         }
 
         function setPlayerCharacter(type) {
@@ -23487,11 +23388,36 @@ function gooseForceNet(b) {
     const xn = THREE.MathUtils.clamp(b.x * 0.5, -(COURT_W / 2 - 0.3), COURT_W / 2 - 0.3);
     PH.vel.set((xn - b.x) / T, (0.45 - b.y + 0.5 * GRAVITY * T * T) / T, -b.z / T);
 }
+        let opponentStaminaCache = null;
+        let opponentStaminaHUDKey = '';
+        function currentOpponentStamina() {
+            if (!opponentStaminaCache || opponentStaminaCache.hits !== rallyHits || opponentStaminaCache.level !== diffLevel || opponentStaminaCache.stage !== stage) {
+                opponentStaminaCache = OpponentStamina.evaluate(rallyHits, diffLevel, stage);
+                opponentStaminaCache.level = diffLevel;
+                opponentStaminaCache.stage = stage;
+            }
+            return opponentStaminaCache;
+        }
+        function updateOpponentStaminaHUD() {
+            const hud = document.getElementById('opponent-stamina');
+            if (!hud) return;
+            hud.hidden = demoOn || courtEntrance || isWallPractice || anyModalOpen() || document.getElementById('mode-hub-overlay').style.display !== 'none';
+            if (hud.hidden) return;
+            const energy = currentOpponentStamina();
+            const key = [energy.hits, energy.capacity, energy.level, energy.stage].join(':');
+            if (key === opponentStaminaHUDKey) return;
+            opponentStaminaHUDKey = key;
+            document.getElementById('opponent-stamina-text').textContent = energy.percent + '%';
+            document.getElementById('opponent-stamina-fill').style.width = energy.percent + '%';
+            document.getElementById('opponent-stamina-hint').textContent = energy.exhausted ? '體力耗盡 · 回球開始不穩' : energy.hits + ' / ' + energy.capacity + ' 拍 · 換分恢復';
+            hud.classList.toggle('exhausted', energy.exhausted);
+        }
         function updateGoose(dt) {
             if (demoOn || courtEntrance || (typeof isWallPractice !== 'undefined' && isWallPractice) || !gGrp || !gGrp.visible) return;
             const isFly = (typeof diffLevel !== 'undefined' && diffLevel === 'fly');
 
             const active = (state === 'RALLY' || state === 'SERVE_AIR');
+            const energy = currentOpponentStamina();
 
             if (isFly) {
                 // ═══════ 普林斯頓 FlyWire 巨大纖維視覺逃逸神經迴路 (LIF-A SNN) ═══════
@@ -23737,6 +23663,8 @@ function gooseForceNet(b) {
                 spd = baseSpd;
             }
 
+            spd *= energy.speedScale;
+
             const dx = aiTo.x - gGrp.position.x, dz = aiTo.z - gGrp.position.z, d = Math.hypot(dx, dz);
             if (d > 1e-4) {
                 const mv = Math.min(d, spd * dt);
@@ -23797,6 +23725,16 @@ function gooseForceNet(b) {
             // ★ 🍄 瘋狂道具戰：若玩家打出巨無霸鐵球，蒼蠅硬接直接被砸成一張紙片！
             if (isFly && typeof FunMode !== 'undefined' && FunMode.activeBuff === 'MEGA_BALL') {
                 FunMode.squashFly();
+                return;
+            }
+
+            // Fatigue errors still produce real net/out trajectories and normal scoring.
+            if (energy.exhausted && Math.random() < energy.errorChance) {
+                gooseErrorHit(); triggerOpponentSwing();
+                if (Math.random() < .45) gooseForceNet(b);
+                else solveArc(b.x, b.y, b.z, (Math.random() < .5 ? -1 : 1) * (COURT_W / 2 + 1.5), HALF_L * .65, PH.vel, .9);
+                if (typeof updateGooseEmote === 'function') updateGooseEmote('💦');
+                S.pop(.45); toast('💦 對手體力耗盡', '長回合開始出現失誤，把握機會！');
                 return;
             }
 
@@ -24437,6 +24375,7 @@ function updateGuides(dt) {
             if (typeof FunMode !== 'undefined') FunMode.update(dt);
             updateAimZones(dt); updateRings(dt);
             updateFlyBillboard(now * 0.001);
+            updateOpponentStaminaHUD();
 
             // 速度儀表文字降頻更新 (每 4 幀更新一次，徹底消除 Layout Reflow 造成的掉幀)
             if ((loopFrameCount++ & 3) === 0) {

@@ -1,19 +1,17 @@
 /* ══════════════════════════════════════════════════════════════
    中興大學匹克球 · 個人選手證 (NCHU Island Passport)
-   2D/3D 雙模動態人偶展示台、等級經驗值與成就系統 (含揚州炒飯傳奇梗)
+   匹克鵝 GLB 展示台、等級經驗值與成就系統 (含揚州炒飯傳奇梗)
    ══════════════════════════════════════════════════════════════ */
 
 (function (window) {
     'use strict';
 
-    let currentAvatarMode = '2D'; // '2D' | '3D'
     let currentProfileTab = 'passport'; // 'passport' | 'edit'
-    let threeMini = null; // 3D 微型人偶展示台實例
+    let threeMini = null; // 3D 匹克鵝展示台實例
 
     // ── 經驗值與成就資料存取 ──
     const EXP_KEY = 'nchu_player_exp';
     const ACH_KEY = 'nchu_player_achievements';
-    const AVATAR_MODE_KEY = 'nchu_player_avatar_mode';
 
     function getPlayerExp() {
         try {
@@ -104,289 +102,6 @@
     // ══════════════════════════════════════════════════════════════
     // 🎨 2D 手繪動態人偶生成器
     // ══════════════════════════════════════════════════════════════
-    function render2DAvatar() {
-        const wrap = document.getElementById('passport-avatar-2d');
-        if (!wrap) return;
-
-        wrap.innerHTML = `
-            <div class="avatar-2d-canvas-wrap">
-                <svg viewBox="0 0 160 200" class="avatar-2d-svg" xmlns="http://www.w3.org/2000/svg">
-                    <defs>
-                        <radialGradient id="shadowGrad" cx="50%" cy="50%" r="50%">
-                            <stop offset="0%" stop-color="#2b1d14" stop-opacity="0.25"/>
-                            <stop offset="100%" stop-color="#2b1d14" stop-opacity="0"/>
-                        </radialGradient>
-                        <linearGradient id="jerseyGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                            <stop offset="0%" stop-color="#2e7d32"/>
-                            <stop offset="100%" stop-color="#1b5e20"/>
-                        </linearGradient>
-                        <linearGradient id="paddleGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                            <stop offset="0%" stop-color="#f59e0b"/>
-                            <stop offset="100%" stop-color="#d97706"/>
-                        </linearGradient>
-                    </defs>
-                    
-                    <!-- 投影 -->
-                    <ellipse cx="80" cy="188" rx="42" ry="7" fill="url(#shadowGrad)"/>
-                    
-                    <!-- 身體與球衣 (中興森林墨綠運動服) -->
-                    <g class="avatar-2d-body-group">
-                        <!-- 雙腿與運動鞋 -->
-                        <rect x="66" y="145" width="10" height="28" rx="4" fill="#fcd34d"/>
-                        <rect x="84" y="145" width="10" height="28" rx="4" fill="#fcd34d"/>
-                        <rect x="62" y="168" width="16" height="12" rx="4" fill="#ffffff" stroke="#dec8a7" stroke-width="1.5"/>
-                        <rect x="82" y="168" width="16" height="12" rx="4" fill="#ffffff" stroke="#dec8a7" stroke-width="1.5"/>
-                        
-                        <!-- 白色運動短褲 -->
-                        <path d="M 60 128 L 100 128 L 96 148 L 84 148 L 80 138 L 76 148 L 64 148 Z" fill="#ffffff" stroke="#e0d0b8" stroke-width="1.5"/>
-                        
-                        <!-- 中興綠球衣主體 -->
-                        <path d="M 52 74 Q 80 70 108 74 L 104 130 L 56 130 Z" fill="url(#jerseyGrad)"/>
-                        <!-- 球衣白色運動斜切飾條 -->
-                        <path d="M 54 84 L 106 100 L 105 108 L 55 92 Z" fill="#ffffff" opacity="0.3"/>
-                        <!-- NCHU 校名標誌 -->
-                        <text x="80" y="112" font-size="10.5" font-weight="900" fill="#ffffff" text-anchor="middle" font-family="system-ui">NCHU</text>
-                        
-                        <!-- 左臂 (叉腰) -->
-                        <path d="M 54 78 Q 38 98 48 116" stroke="#fcd34d" stroke-width="8" stroke-linecap="round" fill="none"/>
-                        
-                        <!-- 右臂 (手持匹克球拍) -->
-                        <g class="avatar-2d-arm-right">
-                            <path d="M 106 78 Q 124 96 118 118" stroke="#fcd34d" stroke-width="8" stroke-linecap="round" fill="none"/>
-                            <!-- 握把 -->
-                            <rect x="114" y="116" width="6" height="16" rx="2" fill="#78350f" transform="rotate(-25 117 124)"/>
-                            <!-- 拍面 (中興暖金) -->
-                            <rect x="108" y="86" width="22" height="30" rx="8" fill="url(#paddleGrad)" stroke="#b45309" stroke-width="1.5" transform="rotate(-25 119 101)"/>
-                            <!-- 拍面匹克球孔洞裝飾 -->
-                            <circle cx="119" cy="98" r="2.5" fill="#fef3c7" opacity="0.8"/>
-                            <circle cx="113" cy="106" r="2" fill="#fef3c7" opacity="0.8"/>
-                            <circle cx="125" cy="103" r="2" fill="#fef3c7" opacity="0.8"/>
-                        </g>
-                        
-                        <!-- 脖子與頭部 -->
-                        <rect x="74" y="60" width="12" height="16" rx="3" fill="#fcd34d"/>
-                        <circle cx="80" cy="46" r="24" fill="#fed7aa"/>
-                        
-                        <!-- 可愛髮型 (中興島民自然短髮) -->
-                        <path d="M 56 42 Q 80 18 104 42 Q 106 28 88 22 Q 72 22 56 36 Z" fill="#4a2e18"/>
-                        <path d="M 56 42 Q 54 52 58 60 Q 62 48 64 42 Z" fill="#4a2e18"/>
-                        <path d="M 104 42 Q 106 52 102 60 Q 98 48 96 42 Z" fill="#4a2e18"/>
-                        
-                        <!-- 眼睛 (眨眼微笑) -->
-                        <circle cx="72" cy="45" r="2.8" fill="#2b1d14"/>
-                        <circle cx="88" cy="45" r="2.8" fill="#2b1d14"/>
-                        <circle cx="73" cy="44" r="0.9" fill="#ffffff"/>
-                        <circle cx="89" cy="44" r="0.9" fill="#ffffff"/>
-                        
-                        <!-- 腮紅 -->
-                        <ellipse cx="67" cy="51" rx="4.5" ry="2.2" fill="#f87171" opacity="0.45"/>
-                        <ellipse cx="93" cy="51" rx="4.5" ry="2.2" fill="#f87171" opacity="0.45"/>
-                        
-                        <!-- 自信微笑 -->
-                        <path d="M 76 53 Q 80 57 84 53" stroke="#2b1d14" stroke-width="1.8" stroke-linecap="round" fill="none"/>
-                    </g>
-                </svg>
-                <div class="avatar-idle-badge">🎾 待命中</div>
-            </div>
-        `;
-    }
-
-    // ══════════════════════════════════════════════════════════════
-    // 🧊 3D 微型旋轉公仔台 (Micro Three.js Scene)
-    // ══════════════════════════════════════════════════════════════
-    class ThreeMiniDoll {
-        constructor(containerEl) {
-            this.container = containerEl;
-            this.animId = null;
-            this.isDragging = false;
-            this.prevPointerX = 0;
-            this.rotY = 0;
-            this.targetRotY = 0;
-            this.clock = (window.THREE ? new window.THREE.Clock() : null);
-            this.init();
-        }
-
-        init() {
-            if (!window.THREE) return;
-            const w = this.container.clientWidth || 170;
-            const h = this.container.clientHeight || 200;
-
-            this.scene = new window.THREE.Scene();
-            this.camera = new window.THREE.PerspectiveCamera(40, w / h, 0.1, 50);
-            this.camera.position.set(0, 0.95, 3.2);
-
-            this.renderer = new window.THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'low-power' });
-            this.renderer.setSize(w, h);
-            this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-            this.renderer.outputEncoding = window.THREE.sRGBEncoding;
-
-            this.container.innerHTML = '';
-            this.container.appendChild(this.renderer.domElement);
-
-            // 柔和光照
-            const hemi = new window.THREE.HemisphereLight(0xffffff, 0xdec8a7, 0.9);
-            this.scene.add(hemi);
-            const dir = new window.THREE.DirectionalLight(0xfff7ed, 1.2);
-            dir.position.set(2, 4, 3);
-            this.scene.add(dir);
-
-            // 旋轉角色主 Group
-            this.dollGroup = new window.THREE.Group();
-            this.scene.add(this.dollGroup);
-
-            // 建造小人偶模型
-            this.buildModel();
-
-            // 綁定手指/滑鼠拖曳旋轉
-            this.bindEvents();
-
-            // 啟動渲染
-            this.animate = this.animate.bind(this);
-            this.animate();
-        }
-
-        buildModel() {
-            const THREE = window.THREE;
-
-            // 1. 底盤投影圓盤
-            const shadowGeo = new THREE.CylinderGeometry(0.75, 0.75, 0.02, 24);
-            const shadowMat = new THREE.MeshBasicMaterial({ color: 0xdec8a7, transparent: true, opacity: 0.6 });
-            const shadowMesh = new THREE.Mesh(shadowGeo, shadowMat);
-            shadowMesh.position.y = -0.52;
-            this.dollGroup.add(shadowMesh);
-
-            // 2. 身體 (中興綠運動球衣)
-            const bodyMat = new THREE.MeshStandardMaterial({ color: 0x1b5e20, roughness: 0.6 });
-            const bodyGeo = new THREE.CylinderGeometry(0.24, 0.28, 0.55, 12);
-            this.bodyMesh = new THREE.Mesh(bodyGeo, bodyMat);
-            this.bodyMesh.position.y = 0.18;
-            this.dollGroup.add(this.bodyMesh);
-
-            // 3. 白色運動短褲
-            const pantsMat = new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.7 });
-            const pantsGeo = new THREE.CylinderGeometry(0.28, 0.29, 0.22, 12);
-            const pantsMesh = new THREE.Mesh(pantsGeo, pantsMat);
-            pantsMesh.position.y = -0.15;
-            this.dollGroup.add(pantsMesh);
-
-            // 4. 雙腿與運動鞋
-            const skinMat = new THREE.MeshStandardMaterial({ color: 0xfcd34d, roughness: 0.7 });
-            const shoeMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.5 });
-            for (const sx of [-0.12, 0.12]) {
-                const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.32, 8), skinMat);
-                leg.position.set(sx, -0.32, 0);
-                this.dollGroup.add(leg);
-
-                const shoe = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.08, 0.22), shoeMat);
-                shoe.position.set(sx, -0.48, 0.04);
-                this.dollGroup.add(shoe);
-            }
-
-            // 5. 頭部 (Q版大頭)
-            const headGeo = new THREE.SphereGeometry(0.38, 16, 16);
-            this.headMesh = new THREE.Mesh(headGeo, skinMat);
-            this.headMesh.position.y = 0.72;
-            this.dollGroup.add(this.headMesh);
-
-            // 髮型 (自然深棕短髮)
-            const hairMat = new THREE.MeshStandardMaterial({ color: 0x4a2e18, roughness: 0.8 });
-            const hairGeo = new THREE.SphereGeometry(0.40, 16, 16, 0, Math.PI * 2, 0, Math.PI * 0.55);
-            const hairMesh = new THREE.Mesh(hairGeo, hairMat);
-            hairMesh.position.set(0, 0.78, 0);
-            this.dollGroup.add(hairMesh);
-
-            // 6. 右手拿著匹克球拍
-            const armR = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.36, 8), skinMat);
-            armR.position.set(0.34, 0.20, 0.12);
-            armR.rotation.z = -Math.PI / 4;
-            armR.rotation.x = Math.PI / 6;
-            this.dollGroup.add(armR);
-
-            // 匹克球拍 Group
-            this.paddleGroup = new THREE.Group();
-            this.paddleGroup.position.set(0.48, 0.28, 0.22);
-            this.paddleGroup.rotation.z = -Math.PI / 6;
-            this.dollGroup.add(this.paddleGroup);
-
-            // 握把
-            const handle = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 0.18, 8),
-                new THREE.MeshStandardMaterial({ color: 0x78350f, roughness: 0.8 }));
-            this.paddleGroup.add(handle);
-
-            // 拍面 (金黃色)
-            const paddleFace = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.32, 0.02),
-                new THREE.MeshStandardMaterial({ color: 0xf59e0b, roughness: 0.4 }));
-            paddleFace.position.y = 0.22;
-            this.paddleGroup.add(paddleFace);
-
-            // 左手
-            const armL = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.34, 8), skinMat);
-            armL.position.set(-0.32, 0.18, 0.05);
-            armL.rotation.z = Math.PI / 4;
-            this.dollGroup.add(armL);
-        }
-
-        bindEvents() {
-            const el = this.renderer.domElement;
-            const onDown = (clientX) => {
-                this.isDragging = true;
-                this.prevPointerX = clientX;
-            };
-            const onMove = (clientX) => {
-                if (!this.isDragging) return;
-                const deltaX = clientX - this.prevPointerX;
-                this.prevPointerX = clientX;
-                this.targetRotY += deltaX * 0.015;
-            };
-            const onUp = () => {
-                this.isDragging = false;
-            };
-
-            el.addEventListener('mousedown', (e) => onDown(e.clientX));
-            window.addEventListener('mousemove', (e) => onMove(e.clientX));
-            window.addEventListener('mouseup', onUp);
-
-            el.addEventListener('touchstart', (e) => {
-                if (e.touches.length > 0) onDown(e.touches[0].clientX);
-            }, { passive: true });
-            window.addEventListener('touchmove', (e) => {
-                if (e.touches.length > 0) onMove(e.touches[0].clientX);
-            }, { passive: true });
-            window.addEventListener('touchend', onUp);
-        }
-
-        animate() {
-            this.animId = requestAnimationFrame(this.animate);
-            if (!this.clock) return;
-            const t = this.clock.getElapsedTime();
-
-            // 平滑旋轉跟隨
-            this.rotY += (this.targetRotY - this.rotY) * 0.12;
-
-            // 待機輕微自動呼吸上下浮動
-            if (!this.isDragging) {
-                this.dollGroup.position.y = Math.sin(t * 2.2) * 0.035;
-                if (this.paddleGroup) {
-                    this.paddleGroup.rotation.x = Math.sin(t * 2.5) * 0.12;
-                }
-            }
-            this.dollGroup.rotation.y = this.rotY;
-
-            this.renderer.render(this.scene, this.camera);
-        }
-
-        destroy() {
-            if (this.animId) cancelAnimationFrame(this.animId);
-            this.animId = null;
-            if (this.renderer && this.renderer.domElement && this.renderer.domElement.parentNode) {
-                this.renderer.domElement.parentNode.removeChild(this.renderer.domElement);
-            }
-        }
-    }
-
-    // ══════════════════════════════════════════════════════════════
-    // 🪪 渲染個人選手證主面板
-    // ══════════════════════════════════════════════════════════════
     function renderPassportView() {
         const exp = getPlayerExp();
         const { level, title, curExpInLevel, maxExpInLevel } = calcLevelInfo(exp);
@@ -413,8 +128,7 @@
                         </div>
                     </div>
                     <div class="passport-mode-switcher">
-                        <button type="button" class="btn-avatar-mode ${currentAvatarMode === '2D' ? 'on' : ''}" onclick="switchAvatarMode('2D')">🎨 2D插畫</button>
-                        <button type="button" class="btn-avatar-mode ${currentAvatarMode === '3D' ? 'on' : ''}" onclick="switchAvatarMode('3D')">🧊 3D公仔</button>
+                        <span class="btn-avatar-mode on">🪿 匹克鵝</span>
                     </div>
                 </div>
 
@@ -422,9 +136,8 @@
                 <div class="passport-hero-row">
                     <!-- 左側人偶展示台 -->
                     <div class="passport-doll-box">
-                        <div id="passport-avatar-2d" style="display:${currentAvatarMode === '2D' ? 'block' : 'none'};"></div>
-                        <div id="passport-avatar-3d" style="display:${currentAvatarMode === '3D' ? 'block' : 'none'};width:170px;height:200px;"></div>
-                        <div class="avatar-tip-caption">${currentAvatarMode === '3D' ? '👆 手指拖曳可 360° 旋轉' : '🍃 2D 待機呼吸浮動中'}</div>
+                        <div id="passport-avatar-3d" style="width:150px;height:210px;"></div>
+                        <div class="avatar-tip-caption">👆 拖曳轉身看看匹克鵝</div>
                     </div>
 
                     <!-- 右側球員資訊與等級 -->
@@ -511,11 +224,8 @@
         `;
 
         // 依據目前模式啟動人偶渲染
-        if (currentAvatarMode === '2D') {
-            render2DAvatar();
-        } else {
-            init3DAvatar();
-        }
+        init3DAvatar();
+        if (typeof syncCharPickerUI === 'function') syncCharPickerUI();
     }
 
     function init3DAvatar() {
@@ -525,42 +235,12 @@
         }
         const box = document.getElementById('passport-avatar-3d');
         if (box && window.THREE) {
-            threeMini = new ThreeMiniDoll(box);
+            threeMini = new window.NGoCharacterPortrait(box);
         }
     }
 
     // ── 雙模切換 ──
-    function switchAvatarMode(mode) {
-        currentAvatarMode = mode;
-        try { localStorage.setItem(AVATAR_MODE_KEY, mode); } catch (e) {}
-
-        const b2d = document.getElementById('passport-avatar-2d');
-        const b3d = document.getElementById('passport-avatar-3d');
-        const btns = document.querySelectorAll('.btn-avatar-mode');
-
-        btns.forEach(btn => {
-            btn.classList.toggle('on', btn.innerText.includes(mode));
-        });
-
-        if (mode === '2D') {
-            if (threeMini) { threeMini.destroy(); threeMini = null; }
-            if (b3d) b3d.style.display = 'none';
-            if (b2d) {
-                b2d.style.display = 'block';
-                render2DAvatar();
-            }
-        } else {
-            if (b2d) b2d.style.display = 'none';
-            if (b3d) {
-                b3d.style.display = 'block';
-                init3DAvatar();
-            }
-        }
-        const tip = document.querySelector('.avatar-tip-caption');
-        if (tip) {
-            tip.innerText = (mode === '3D' ? '👆 手指拖曳可 360° 旋轉' : '🍃 2D 待機呼吸浮動中');
-        }
-    }
+    function switchAvatarMode() { init3DAvatar(); }
 
     // ── 選手證與編輯分頁切換 ──
     function switchProfileTab(tab) {

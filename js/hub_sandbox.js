@@ -7,6 +7,7 @@
 (function(window) {
     'use strict';
 
+    let lakeGoose = null;
     let pCanvas = null;
     let pCtx = null;
     let animId = null;
@@ -403,6 +404,8 @@
     function start() {
         if (isRunning) return;
         refreshDomCache();
+        const portrait = document.getElementById('lake-goose-portrait');
+        if (portrait && window.NGoCharacterPortrait && !lakeGoose) lakeGoose = new window.NGoCharacterPortrait(portrait, { dance: true });
 
         pCanvas = document.getElementById('hub-particle-canvas');
         pCtx = pCanvas ? pCanvas.getContext('2d') : null;
@@ -418,6 +421,7 @@
 
     // 停止沙盤動態 (進入球場時 100% 釋放 CPU/GPU)
     function stop() {
+        if (lakeGoose) { lakeGoose.destroy(); lakeGoose = null; }
         isRunning = false;
         if (animId) {
             cancelAnimationFrame(animId);

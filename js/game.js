@@ -21,7 +21,7 @@
         let dinkRallyCount = 0, isChanceBall = false;
 
         // ═══════ 🎭 玩家自選出戰角色 (Player Character Selection) ═══════
-        let playerCharacter = (typeof localStorage !== 'undefined' && localStorage.getItem('nchu_player_char')) || 'human'; // 'human' | 'goose' | 'swan'
+        let playerCharacter = (typeof localStorage !== 'undefined' && localStorage.getItem('nchu_player_char')) || 'goose'; // 'human' | 'goose' | 'swan'
         let playerRiggedGoose = { root: null, mixer: null, actions: {}, ready: false };
         let playerRiggedSwan = { root: null, mixer: null, actions: {}, ready: false };
         let currentPlayerAction = 'Idle';
@@ -76,6 +76,7 @@
             if (playerRiggedSwan && playerRiggedSwan.root) {
                 playerRiggedSwan.root.visible = isSwan;
             }
+            if (typeof syncCharPickerUI === 'function') syncCharPickerUI();
         }
 
         function setPlayerCharacter(type) {
@@ -3618,11 +3619,36 @@ function gooseForceNet(b) {
     const xn = THREE.MathUtils.clamp(b.x * 0.5, -(COURT_W / 2 - 0.3), COURT_W / 2 - 0.3);
     PH.vel.set((xn - b.x) / T, (0.45 - b.y + 0.5 * GRAVITY * T * T) / T, -b.z / T);
 }
+        let opponentStaminaCache = null;
+        let opponentStaminaHUDKey = '';
+        function currentOpponentStamina() {
+            if (!opponentStaminaCache || opponentStaminaCache.hits !== rallyHits || opponentStaminaCache.level !== diffLevel || opponentStaminaCache.stage !== stage) {
+                opponentStaminaCache = OpponentStamina.evaluate(rallyHits, diffLevel, stage);
+                opponentStaminaCache.level = diffLevel;
+                opponentStaminaCache.stage = stage;
+            }
+            return opponentStaminaCache;
+        }
+        function updateOpponentStaminaHUD() {
+            const hud = document.getElementById('opponent-stamina');
+            if (!hud) return;
+            hud.hidden = demoOn || courtEntrance || isWallPractice || anyModalOpen() || document.getElementById('mode-hub-overlay').style.display !== 'none';
+            if (hud.hidden) return;
+            const energy = currentOpponentStamina();
+            const key = [energy.hits, energy.capacity, energy.level, energy.stage].join(':');
+            if (key === opponentStaminaHUDKey) return;
+            opponentStaminaHUDKey = key;
+            document.getElementById('opponent-stamina-text').textContent = energy.percent + '%';
+            document.getElementById('opponent-stamina-fill').style.width = energy.percent + '%';
+            document.getElementById('opponent-stamina-hint').textContent = energy.exhausted ? '體力耗盡 · 回球開始不穩' : energy.hits + ' / ' + energy.capacity + ' 拍 · 換分恢復';
+            hud.classList.toggle('exhausted', energy.exhausted);
+        }
         function updateGoose(dt) {
             if (demoOn || courtEntrance || (typeof isWallPractice !== 'undefined' && isWallPractice) || !gGrp || !gGrp.visible) return;
             const isFly = (typeof diffLevel !== 'undefined' && diffLevel === 'fly');
 
             const active = (state === 'RALLY' || state === 'SERVE_AIR');
+            const energy = currentOpponentStamina();
 
             if (isFly) {
                 // ═══════ 普林斯頓 FlyWire 巨大纖維視覺逃逸神經迴路 (LIF-A SNN) ═══════
@@ -3868,6 +3894,8 @@ function gooseForceNet(b) {
                 spd = baseSpd;
             }
 
+            spd *= energy.speedScale;
+
             const dx = aiTo.x - gGrp.position.x, dz = aiTo.z - gGrp.position.z, d = Math.hypot(dx, dz);
             if (d > 1e-4) {
                 const mv = Math.min(d, spd * dt);
@@ -3928,6 +3956,16 @@ function gooseForceNet(b) {
             // ★ 🍄 瘋狂道具戰：若玩家打出巨無霸鐵球，蒼蠅硬接直接被砸成一張紙片！
             if (isFly && typeof FunMode !== 'undefined' && FunMode.activeBuff === 'MEGA_BALL') {
                 FunMode.squashFly();
+                return;
+            }
+
+            // Fatigue errors still produce real net/out trajectories and normal scoring.
+            if (energy.exhausted && Math.random() < energy.errorChance) {
+                gooseErrorHit(); triggerOpponentSwing();
+                if (Math.random() < .45) gooseForceNet(b);
+                else solveArc(b.x, b.y, b.z, (Math.random() < .5 ? -1 : 1) * (COURT_W / 2 + 1.5), HALF_L * .65, PH.vel, .9);
+                if (typeof updateGooseEmote === 'function') updateGooseEmote('💦');
+                S.pop(.45); toast('💦 對手體力耗盡', '長回合開始出現失誤，把握機會！');
                 return;
             }
 
@@ -4568,6 +4606,7 @@ function updateGuides(dt) {
             if (typeof FunMode !== 'undefined') FunMode.update(dt);
             updateAimZones(dt); updateRings(dt);
             updateFlyBillboard(now * 0.001);
+            updateOpponentStaminaHUD();
 
             // 速度儀表文字降頻更新 (每 4 幀更新一次，徹底消除 Layout Reflow 造成的掉幀)
             if ((loopFrameCount++ & 3) === 0) {
