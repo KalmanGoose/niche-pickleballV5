@@ -1579,6 +1579,53 @@ function cycleTeachLevelQuick() {
             }
         }
 
+        /* ═══════ 🎭 角色造型選擇彈窗控制器 (Character Picker Controller) ═══════ */
+        function openCharPickerModal() {
+            const m = document.getElementById('char-picker-modal');
+            if (!m) return;
+            m.style.display = 'flex';
+            syncCharPickerUI();
+            if (typeof S !== 'undefined' && S.swap) S.swap();
+        }
+
+        function closeCharPickerModal() {
+            const m = document.getElementById('char-picker-modal');
+            if (m) m.style.display = 'none';
+        }
+
+        function selectPlayerCharacter(charType) {
+            if (typeof setPlayerCharacter === 'function') {
+                setPlayerCharacter(charType);
+            }
+            syncCharPickerUI();
+            if (typeof S !== 'undefined' && S.point) S.point();
+            setTimeout(closeCharPickerModal, 350);
+        }
+
+        function syncCharPickerUI() {
+            const curChar = (typeof playerCharacter === 'string') ? playerCharacter : (localStorage.getItem('nchu_player_char') || 'human');
+            const chars = ['human', 'goose', 'swan'];
+            const names = { human: '👦 球員', goose: '🪿 匹克鵝', swan: '🦢 黑天鵝' };
+
+            chars.forEach(c => {
+                const card = document.getElementById('char-card-' + c);
+                const badge = document.getElementById('char-badge-' + c);
+                const isCur = (c === curChar);
+                if (card) {
+                    card.style.borderColor = isCur ? (c === 'swan' ? '#1e293b' : (c === 'goose' ? '#f59e0b' : '#0284c7')) : '#d1d5db';
+                    card.style.background = isCur ? (c === 'swan' ? '#f8fafc' : (c === 'goose' ? '#fffbeb' : '#f0f9ff')) : '#ffffff';
+                }
+                if (badge) {
+                    badge.innerText = isCur ? '✓ 出戰中' : '選擇出戰';
+                    badge.style.background = isCur ? (c === 'swan' ? '#1e293b' : (c === 'goose' ? '#f59e0b' : '#0284c7')) : '#e5e7eb';
+                    badge.style.color = isCur ? '#ffffff' : '#6b7280';
+                }
+            });
+
+            const qcn = document.getElementById('quick-char-name');
+            if (qcn) qcn.innerText = names[curChar] || '👦 球員';
+        }
+
         function openCommunityModal() {
             const m = document.getElementById('community-modal');
             if (m) {
@@ -1962,3 +2009,7 @@ function cycleTeachLevelQuick() {
         window.isOnboardingActive = () => isOnboardingActive;
         window.getOnboardingStep = () => onboardingCurrentStep;
         window.anyModalOpen = anyModalOpen;
+        window.openCharPickerModal = openCharPickerModal;
+        window.closeCharPickerModal = closeCharPickerModal;
+        window.selectPlayerCharacter = selectPlayerCharacter;
+        window.syncCharPickerUI = syncCharPickerUI;

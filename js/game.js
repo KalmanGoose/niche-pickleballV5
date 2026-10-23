@@ -20,6 +20,75 @@
         let flyStunTimer = 0, flyHoverTime = 0, consecutiveDinks = 0;
         let dinkRallyCount = 0, isChanceBall = false;
 
+        // ═══════ 🎭 玩家自選出戰角色 (Player Character Selection) ═══════
+        let playerCharacter = (typeof localStorage !== 'undefined' && localStorage.getItem('nchu_player_char')) || 'human'; // 'human' | 'goose' | 'swan'
+        let playerRiggedGoose = { root: null, mixer: null, actions: {}, ready: false };
+        let playerRiggedSwan = { root: null, mixer: null, actions: {}, ready: false };
+        let currentPlayerAction = 'Idle';
+        let isPlayerSwinging = false;
+
+        function updatePlayerMeshVisibility() {
+            const isHuman = (playerCharacter === 'human');
+            const isGoose = (playerCharacter === 'goose');
+            const isSwan = (playerCharacter === 'swan');
+
+            if (pTorso) pTorso.visible = isHuman;
+            if (pLegs) pLegs.visible = isHuman;
+            if (pHead) pHead.visible = isHuman;
+            if (pCap) pCap.visible = isHuman;
+            if (pLeftArm) pLeftArm.visible = isHuman;
+            if (pArm) pArm.visible = isHuman;
+
+            if (playerRiggedGoose && playerRiggedGoose.root) {
+                playerRiggedGoose.root.visible = isGoose;
+            }
+            if (playerRiggedSwan && playerRiggedSwan.root) {
+                playerRiggedSwan.root.visible = isSwan;
+            }
+        }
+
+        function setPlayerCharacter(type) {
+            if (!['human', 'goose', 'swan'].includes(type)) return;
+            playerCharacter = type;
+            try { localStorage.setItem('nchu_player_char', type); } catch(e){}
+            updatePlayerMeshVisibility();
+            if (typeof syncCharPickerUI === 'function') syncCharPickerUI();
+            const charNames = { human: '👦 興大陽光球員', goose: '🪿 中興村長匹克鵝', swan: '🦢 冠軍匹克黑天鵝' };
+            if (typeof toast === 'function') toast('🎭 出戰角色已切換', charNames[type] || type);
+        }
+        window.setPlayerCharacter = setPlayerCharacter;
+
+        function playPlayerAction(actionName, duration = 0.15) {
+            if (playerCharacter === 'human') return;
+            const activeData = (playerCharacter === 'swan') ? playerRiggedSwan : playerRiggedGoose;
+            if (!activeData.ready || !activeData.actions[actionName]) return;
+            const nextAction = activeData.actions[actionName];
+            const prevAction = activeData.actions[currentPlayerAction];
+
+            if (currentPlayerAction === actionName && nextAction.isRunning()) return;
+
+            nextAction.reset().setEffectiveTimeScale(1).setEffectiveWeight(1);
+            if (actionName === 'Swing') {
+                nextAction.setLoop(THREE.LoopOnce, 1);
+                nextAction.clampWhenFinished = false;
+                isPlayerSwinging = true;
+            } else {
+                nextAction.setLoop(THREE.LoopRepeat, Infinity);
+            }
+
+            if (prevAction && prevAction !== nextAction) {
+                nextAction.crossFadeFrom(prevAction, duration, false);
+            }
+            nextAction.play();
+            currentPlayerAction = actionName;
+        }
+
+        function triggerPlayerSwing() {
+            if (playerCharacter === 'human') return;
+            isPlayerSwinging = true;
+            playPlayerAction('Swing', 0.08);
+        }
+
         // ═══════ 🪿 3D 骨骼蒙皮對手角色 (Rigged Opponent Characters) ═══════
         let riggedGoose = { root: null, mixer: null, actions: {}, ready: false };
         let riggedSwan = { root: null, mixer: null, actions: {}, ready: false };
@@ -196,6 +265,110 @@
                     console.error('Rigged swan setup error:', e);
                 }
             }, undefined, err => console.warn('Rigged swan load fallback:', err));
+
+            // 3. 載入玩家專用白鵝 (Player Rigged Goose)
+            loader.load('models/characters/pickler_goose_mobile.glb', function(gltf) {
+                try {
+                    const root = gltf.scene;
+                    root.updateMatrixWorld(true);
+                    const box = new THREE.Box3().setFromObject(root);
+                    const size = box.getSize(new THREE.Vector3());
+                    const scale = 1.55 / Math.max(0.1, size.y);
+                    root.scale.setScalar(scale);
+                    root.updateMatrixWorld(true);
+
+                    const box2 = new THREE.Box3().setFromObject(root);
+                    const center = box2.getCenter(new THREE.Vector3());
+                    root.position.set(-center.x, -box2.min.y, -center.z);
+                    root.rotation.y = Math.PI;
+                    root.updateMatrixWorld(true);
+
+                    root.traverse(o => {
+                        if (o.isMesh) {
+                            o.castShadow = true;
+                            o.receiveShadow = true;
+                            o.frustumCulled = false;
+                        }
+                    });
+
+                    const mixer = new THREE.AnimationMixer(root);
+                    const actions = {};
+                    for (const clip of gltf.animations) {
+                        const match = ['Idle', 'Walk', 'Run', 'Swing'].find(n => clip.name === n || clip.name.endsWith('_' + n) || clip.name.includes(n));
+                        if (match && !actions[match]) {
+                            actions[match] = mixer.clipAction(clip);
+                        }
+                    }
+
+                    mixer.addEventListener('finished', e => {
+                        if (actions.Swing && e.action === actions.Swing) {
+                            isPlayerSwinging = false;
+                            playPlayerAction('Idle', 0.18);
+                        }
+                    });
+
+                    playerRiggedGoose = { root, mixer, actions, ready: true };
+                    root.visible = false;
+                    pGrp.add(root);
+                    if (actions.Idle) actions.Idle.play();
+                    updatePlayerMeshVisibility();
+                    console.log('✅ 玩家專屬匹克鵝 3D 骨骼蒙皮模型成功接入！');
+                } catch(e) {
+                    console.error('Player rigged goose setup error:', e);
+                }
+            }, undefined, err => console.warn('Player rigged goose load fallback:', err));
+
+            // 4. 載入玩家專用黑天鵝 (Player Rigged Black Swan)
+            loader.load('models/characters/black_swan_mobile.glb', function(gltf) {
+                try {
+                    const root = gltf.scene;
+                    root.updateMatrixWorld(true);
+                    const box = new THREE.Box3().setFromObject(root);
+                    const size = box.getSize(new THREE.Vector3());
+                    const scale = 1.62 / Math.max(0.1, size.y);
+                    root.scale.setScalar(scale);
+                    root.updateMatrixWorld(true);
+
+                    const box2 = new THREE.Box3().setFromObject(root);
+                    const center = box2.getCenter(new THREE.Vector3());
+                    root.position.set(-center.x, -box2.min.y, -center.z);
+                    root.rotation.y = Math.PI;
+                    root.updateMatrixWorld(true);
+
+                    root.traverse(o => {
+                        if (o.isMesh) {
+                            o.castShadow = true;
+                            o.receiveShadow = true;
+                            o.frustumCulled = false;
+                        }
+                    });
+
+                    const mixer = new THREE.AnimationMixer(root);
+                    const actions = {};
+                    for (const clip of gltf.animations) {
+                        const match = ['Idle', 'Walk', 'Run', 'Swing'].find(n => clip.name === n || clip.name.endsWith('_' + n) || clip.name.includes(n));
+                        if (match && !actions[match]) {
+                            actions[match] = mixer.clipAction(clip);
+                        }
+                    }
+
+                    mixer.addEventListener('finished', e => {
+                        if (actions.Swing && e.action === actions.Swing) {
+                            isPlayerSwinging = false;
+                            playPlayerAction('Idle', 0.18);
+                        }
+                    });
+
+                    playerRiggedSwan = { root, mixer, actions, ready: true };
+                    root.visible = false;
+                    pGrp.add(root);
+                    if (actions.Idle) actions.Idle.play();
+                    updatePlayerMeshVisibility();
+                    console.log('✅ 玩家專屬冠軍黑天鵝 3D 骨骼蒙皮模型成功接入！');
+                } catch(e) {
+                    console.error('Player rigged swan setup error:', e);
+                }
+            }, undefined, err => console.warn('Player rigged swan load fallback:', err));
         }
 
         function updateOpponentMeshVisibility() {
@@ -1439,6 +1612,7 @@
             grip.position.y = -0.055; pPad.add(grip);
             pPad.scale.setScalar(2.175); pGrp.add(pPad); // ★ 球拍放大 1.5 倍 (1.45 * 1.5 = 2.175)
             scene.add(pGrp);
+            updatePlayerMeshVisibility();
         }
 
         let gooseEmoteSprite = null, gooseEmoteCanvas = null, gooseEmoteTex = null, gooseEmoteTimer = 0;
@@ -2410,6 +2584,7 @@ function solveArc(fx, fy, fz, tx, tz, out, speedScale) {
             }
             dismissFingerTutorial();
             state = 'SERVE_AIR'; lastHitter = 'PLAYER';
+            triggerPlayerSwing();
             rallyHits = 1; bounces = 0; pLock = 0.3; gLock = 0;
             serveFromRight = pPos.x >= 0;
             serveVel(p, PH.vel); S.pop(p / 100);
@@ -2548,6 +2723,7 @@ function solveArc(fx, fy, fz, tx, tz, out, speedScale) {
                 consumeSwingEvent();
             }
             pLock = 0.28; lastHitter = 'PLAYER'; rallyHits++; bounces = 0;
+            triggerPlayerSwing();
             if (typeof addPlayerExp === 'function') addPlayerExp(2, '擊球');
 
             // 🍄 瘋狂道具戰：擊球特殊觸發 (電蚊拍電擊、巨球震撼、巨拍轟擊)
@@ -3218,6 +3394,24 @@ function solveArc(fx, fy, fz, tx, tz, out, speedScale) {
                     } else {
                         pGrp.position.y = 0;
                         if (pHead) pHead.rotation.z = 0;
+                    }
+                }
+            }
+
+            // ── 更新玩家 3D 骨骼蒙皮動作 (Player Rigged Character Animation) ──
+            if (playerCharacter !== 'human') {
+                const activePlayerRigged = (playerCharacter === 'swan') ? playerRiggedSwan : playerRiggedGoose;
+                if (activePlayerRigged && activePlayerRigged.ready && activePlayerRigged.mixer) {
+                    activePlayerRigged.mixer.update(dt);
+                    const speed = Math.hypot(playerVel.x, playerVel.z);
+                    if (!isPlayerSwinging) {
+                        if (speed > 1.8) {
+                            playPlayerAction('Run', 0.15);
+                        } else if (speed > 0.15) {
+                            playPlayerAction('Walk', 0.15);
+                        } else {
+                            playPlayerAction('Idle', 0.18);
+                        }
                     }
                 }
             }
