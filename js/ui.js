@@ -2013,3 +2013,14 @@ function cycleTeachLevelQuick() {
         window.closeCharPickerModal = closeCharPickerModal;
         window.selectPlayerCharacter = selectPlayerCharacter;
         window.syncCharPickerUI = syncCharPickerUI;
+        window.cycleCamView = cycleCamView;
+        window.setCameraMode = function(mode) {
+            if (typeof mode === 'number' && mode >= 0 && mode <= 5) {
+                camViewMode = mode;
+                const qcn = document.getElementById('quick-cam-name');
+                if (qcn) {
+                    const shortNames = ['經典', '俯瞰', '越肩', '轉播', '第一人稱', '自訂'];
+                    qcn.innerText = shortNames[camViewMode] || VIEW_NAMES[camViewMode];
+                }
+            }
+        };

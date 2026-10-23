@@ -1,0 +1,16 @@
+{
+  "name": "中興大學匹克球 N-GO",
+  "short_name": "匹克球N-GO",
+  "description": "NCHU 3D 匹克球網頁體感與觸控遊戲",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#060d12",
+  "theme_color": "#0f766e",
+  "icons": [
+    {
+      "src": "images/pickleball_lab_logo.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg"
+    }
+  ]
+}
