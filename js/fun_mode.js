@@ -526,9 +526,9 @@
 
         toggle: function(forceState) {
             const currentStage = (typeof stage !== 'undefined') ? stage : 1;
-            if (currentStage <= 4) {
+            if (currentStage <= 4 || currentStage === 7) {
                 if (typeof toast === 'function') {
-                    toast('🔒 道具戰為特殊模式', '前 4 關為正規教學賽制，請切換至 STAGE 5 (魔王) 或 STAGE 6 (娛樂關) 暢玩！');
+                    toast('🔒 道具戰為特殊模式', currentStage === 7 ? '黑天鵝冠軍賽採正常計分；道具請到 STAGE 6 娛樂關使用。' : '前 4 關為正規教學賽制，請切換至 STAGE 5 (魔王) 或 STAGE 6 (娛樂關) 暢玩！');
                 }
                 this.enabled = false;
                 this.syncUI();
@@ -1500,7 +1500,7 @@
     window.filterItemCards = function(type) { FunMode.filterItemCards(type); };
     window.testItemFromCard = function(id) {
         FunMode.closeItemCardsModal();
-        if (typeof switchStage === 'function' && typeof stage !== 'undefined' && stage <= 4) {
+        if (typeof switchStage === 'function' && typeof stage !== 'undefined' && (stage <= 4 || stage === 7)) {
             switchStage(6);
         } else if (!FunMode.enabled) {
             FunMode.toggle(true);

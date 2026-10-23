@@ -36,10 +36,10 @@
             if (!scoring()) { fail(msg, sub); return; }   // ★ 練習關轉交 fail(),不扣分
             state = 'FAULT'; freeze();
 
-            const isMatch = (stage === 4 || stage === 5 || stage === 6);
+            const isMatch = stage >= 4;
             if (isMatch) {
                 // ★ 規格 8: 正式匹克球單打發球得分制 (USA Pickleball Official Singles Rules)
-                const oppName = (typeof diffLevel !== 'undefined' && diffLevel === 'fly') ? '🪰 仿生蒼蠅' : '🪿 匹克鵝';
+                const oppName = stage === 7 ? '🦢 冠軍匹克黑天鵝' : ((typeof diffLevel !== 'undefined' && diffLevel === 'fly') ? '🪰 仿生蒼蠅' : '🪿 匹克鵝');
                 if (scorer === server) {
                     // 發球方贏得回合 ➔ 得 1 分 + 依新分數奇偶切換發球區 (偶數右區、奇數左區)
                     if (server === 'PLAYER') {
@@ -83,12 +83,13 @@
 
             updateScore(); updateGoal();
             const goal = STAGES[stage].goal;
-            if (stage === 3 || stage === 4 || stage === 5 || stage === 6) {
-                if (pScore >= goal) { clearStage(); return; }
-                if (aScore >= goal) {
+            if (stage >= 3) {
+                const lead = stage === 7 ? 2 : 0;
+                if (pScore >= goal && pScore - aScore >= lead) { clearStage(); return; }
+                if (aScore >= goal && aScore - pScore >= lead) {
                     state = 'OVER'; clearTimers();
-                    const opp = (typeof diffLevel !== 'undefined' && diffLevel === 'fly') ? '🪰 仿生蒼蠅' : '🪿 匹克鵝';
-                    const loseMsg = stage === 5 ? '魔王匹克鵝獲勝!' : (stage === 6 ? '🍄 道具戰 ' + opp + ' 獲勝!' : (opp + '先得 ' + goal + ' 分'));
+                    const opp = stage === 7 ? '🦢 冠軍匹克黑天鵝' : ((typeof diffLevel !== 'undefined' && diffLevel === 'fly') ? '🪰 仿生蒼蠅' : '🪿 匹克鵝');
+                    const loseMsg = stage === 5 ? '魔王匹克鵝獲勝!' : (stage === 6 ? '🍄 道具戰 ' + opp + ' 獲勝!' : (opp + '獲勝！'));
                     toast(loseMsg, '比賽結束，點擊檢視紀念卡');
                     if (typeof updateGooseEmote === 'function') updateGooseEmote('🏆');
                     if (typeof showPolaroidSouvenir === 'function') showPolaroidSouvenir(false, pScore, aScore);
@@ -126,15 +127,19 @@
             updateLastAuditOutcome('關卡順利通過');
             state = 'CLEARED'; freeze(); clearTimers(); locked = true; S.point();
             popRing(0, 2, 8, 0xffc857);
+            if (stage === 4 || stage === 5 || stage === 7) {
+                if (typeof startVictoryCelebration === 'function') startVictoryCelebration();
+                popFloatText(pPos.x, 1.45, pPos.z, '😊');
+            }
             if (typeof updateGooseEmote === 'function') updateGooseEmote('👏');
+            if (stageAdvanceTimer) { clearTimeout(stageAdvanceTimer); stageAdvanceTimer = null; }
             if (typeof showPolaroidSouvenir === 'function' && stage >= 4) {
-                showPolaroidSouvenir(true, pScore, aScore);
+                stageAdvanceTimer = setTimeout(() => {
+                    stageAdvanceTimer = null;
+                    if (state === 'CLEARED') showPolaroidSouvenir(true, pScore, aScore);
+                }, (stage === 4 || stage === 5 || stage === 7) ? 1600 : 0);
                 // ★ 正式關卡通關拍立得彈出時，等待玩家點擊 [繼續遊戲] 再推進關卡！
                 return;
-            }
-            if (stageAdvanceTimer) {
-                clearTimeout(stageAdvanceTimer);
-                stageAdvanceTimer = null;
             }
             if (stage < 5) {
                 const nextSt = stage + 1;
@@ -144,19 +149,19 @@
                     switchStage(nextSt, { fromClear: true });
                 }, 1200);
             } else if (stage === 5) {
-                toast('STAGE 5 CLEARED', '🏆 擊敗中興湖魔王！解鎖隱藏娛樂關！');
+                toast('STAGE 5 CLEARED', '🏆 擊敗匹克鵝大魔王！黑天鵝冠軍賽登場！');
                 stageAdvanceTimer = setTimeout(() => {
                     stageAdvanceTimer = null;
                     submitScoreToCloud(pScore);
-                    switchStage(6, { fromClear: true });
+                    switchStage(7, { fromClear: true, showEntrance: true });
                 }, 2400);
             } else {
-                toast('🎉 STAGE 6 完美通關！', '🏆 稱霸瘋狂道具戰！登錄英雄榜！');
+                toast(stage === 7 ? '🦢 黑天鵝冠軍賽通關！' : '🎉 STAGE 6 完美通關！', stage === 7 ? '🏆 11 分制冠軍賽獲勝！' : '🏆 稱霸瘋狂道具戰！登錄英雄榜！');
                 stageAdvanceTimer = setTimeout(() => {
                     stageAdvanceTimer = null;
                     locked = false;
                     resetServe();
-                    submitScoreToCloud(pScore);
+                    if (stage === 6) submitScoreToCloud(pScore);
                 }, 2000);
             }
         }
@@ -208,7 +213,7 @@
             if (stage === 1) cur = legalServes;
             else if (stage === 2 || stage === 3) cur = twoBounceDone;
             else cur = pScore;
-            D.gTxt.innerText = cur + ' / ' + goal;
+            D.gTxt.innerText = cur + ' / ' + goal + (stage === 7 ? ' · 領先 2 分' : '');
             D.gFill.style.width = Math.min(100, cur / goal * 100) + '%';
         }
 

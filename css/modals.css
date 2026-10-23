@@ -1410,8 +1410,8 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            gap: 8px;
-            padding: 8px 12px 6px;
+            gap: 6px;
+            padding: 6px 10px 5px;
             background: #fdfbf7;
             border-bottom: 1.5px solid #ebd9c0;
             z-index: 30;
@@ -1419,6 +1419,7 @@
             flex-shrink: 0;
             box-sizing: border-box;
             width: 100%;
+            min-width: 0;
         }
         .hub-map-topbar > * {
             pointer-events: auto;
@@ -1426,30 +1427,40 @@
         .hub-map-top-ctrls {
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 4px;
             flex-shrink: 0;
+            min-width: 0;
         }
         .hub-map-icon-btn {
-            background: rgba(255, 255, 255, 0.92);
+            background: rgba(255, 255, 255, 0.94);
             backdrop-filter: blur(6px);
             -webkit-backdrop-filter: blur(6px);
-            border: 2px solid #ecd8b8;
+            border: 1.5px solid #ecd8b8;
             color: #5d4634;
-            border-radius: 12px;
-            padding: 6px 10px;
-            font-size: 11.5px;
+            border-radius: 10px;
+            padding: 4px 7px;
+            font-size: 10.5px;
             font-weight: 800;
             cursor: pointer;
-            box-shadow: 0 2.5px 0 #d9c49f, 0 4px 10px rgba(0,0,0,0.12);
+            box-shadow: 0 2px 0 #d9c49f, 0 3px 6px rgba(0,0,0,0.08);
             transition: all 0.15s ease;
             white-space: nowrap;
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 4px;
+            gap: 3px;
+            flex-shrink: 0;
         }
         .hub-map-icon-btn:hover { background: #faf4e8; transform: translateY(-1px); }
         .hub-map-icon-btn:active { transform: translateY(2px); box-shadow: 0 0 0 #d9c49f; }
+
+        /* 📷 體感系統切換按鈕 (相機運行中顯示綠色指示) */
+        #hub-motion-btn.active-motion {
+            background: #f0fdf4 !important;
+            border-color: #16a34a !important;
+            color: #15803d !important;
+            box-shadow: 0 2px 0 #15803d, 0 3px 8px rgba(22, 163, 74, 0.25) !important;
+        }
         
         /* 📱 智慧手機特色膠囊按鈕 (原木象牙底、墨綠金邊、高對比文字) */
         #hub-phone-btn {
@@ -1608,18 +1619,18 @@
             z-index: 40 !important;
         }
 
-        /* 東北第一球場 (Bear vs Bunny: 往上方延伸，與東側水上小碼頭拉開充足空間) */
+        /* 東北第一球場 (Bear vs Bunny: 準確對齊 2.5D 手繪水上第一球場) */
         #court-duel-ne {
-            left: 50%;
-            top: 32%;
-            width: 17%;
+            left: 51.5%;
+            top: 42%;
+            width: 16%;
             height: 9%;
         }
-        /* 西南第二球場 (Fox vs Penguin) */
+        /* 西南第二球場 (Fox vs Penguin: 準確對齊 2.5D 手繪水上第二球場) */
         #court-duel-sw {
-            left: 27%;
-            top: 53.5%;
-            width: 17%;
+            left: 26.5%;
+            top: 54%;
+            width: 16.5%;
             height: 9%;
         }
 
@@ -1647,19 +1658,19 @@
             justify-content: center;
         }
         .player-avatar {
-            font-size: 24px;
+            font-size: 22px;
             filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.25));
             line-height: 1;
         }
         .player-paddle {
             position: absolute;
-            font-size: 14px;
+            font-size: 13px;
             filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3));
         }
 
         /* 東北球場站位與揮拍動畫 */
         #court-duel-ne .player-p1 {
-            right: 8%;
+            right: 10%;
             bottom: 12%;
             transform-origin: bottom center;
             animation: swingDuelNEP1 1.7s ease-in-out infinite;
@@ -2159,51 +2170,92 @@
         .mode-hub-profile {
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 6px;
             background: rgba(255, 249, 240, 0.94);
             backdrop-filter: blur(8px);
             -webkit-backdrop-filter: blur(8px);
-            padding: 4px 12px 4px 6px;
+            padding: 3px 8px 3px 4px;
             border-radius: 99px;
             border: 2px solid #ecd8b8;
             cursor: pointer;
-            box-shadow: 0 2.5px 0 #d9c49f, 0 4px 10px rgba(0,0,0,0.08);
+            box-shadow: 0 2px 0 #d9c49f, 0 3px 8px rgba(0,0,0,0.08);
             transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+            flex: 1 1 auto;
+            min-width: 0;
             max-width: 48%;
             box-sizing: border-box;
-            flex-shrink: 1;
-            min-width: 0;
+            overflow: hidden;
         }
         .mode-hub-profile:hover {
             background: #faefe0;
             transform: scale(1.02);
         }
+        .hub-profile-text {
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+            flex: 1 1 auto;
+            overflow: hidden;
+            line-height: 1.15;
+            justify-content: center;
+        }
+        .hub-profile-name-row {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            min-width: 0;
+            overflow: hidden;
+        }
         #hub-nick {
-            max-width: 110px;
+            max-width: 95px;
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
-            display: inline-block;
-            vertical-align: middle;
+            font-size: 11.5px;
+            font-weight: 900;
+            color: #3d2b1f;
+            min-width: 0;
+            flex-shrink: 1;
+        }
+        #hub-role-tag {
+            font-size: 8px;
+            background: #e2d1b3;
+            color: #6b5239;
+            padding: 1px 4px;
+            border-radius: 5px;
+            font-weight: 800;
+            white-space: nowrap;
+            flex-shrink: 0;
         }
         #hub-dept {
-            max-width: 130px;
+            max-width: 120px;
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
             display: block;
+            font-size: 8.5px;
+            color: #85694f;
+            font-weight: 700;
+            min-width: 0;
+        }
+        .hub-profile-edit-btn {
+            font-size: 10px;
+            color: #85694f;
+            flex-shrink: 0;
+            margin-left: 1px;
+            display: inline-block;
         }
         .hub-avatar-circle {
-            width: 36px;
-            height: 36px;
+            width: 28px;
+            height: 28px;
             border-radius: 50%;
             background: #fffaee;
-            border: 2.5px solid #d4a373;
-            box-shadow: 0 2px 6px rgba(100, 60, 20, 0.18);
+            border: 2px solid #d4a373;
+            box-shadow: 0 1.5px 4px rgba(100, 60, 20, 0.15);
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 22px;
+            font-size: 16px;
             flex-shrink: 0;
             transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
         }
@@ -2420,44 +2472,45 @@
             max-width: 1120px;
         }
 
-        /* ═══════ 對手難度直選彈窗 (Difficulty Picker Modal) ═══════ */
-        #diff-picker-modal .modal-card {
+        /* ═══════ 難度與關卡直選彈窗 (Picker Modals) ═══════ */
+        #diff-picker-modal .modal-card,
+        #stage-picker-modal .modal-card {
             background: #fffef9;
             border: 3px solid #e8d7be;
             border-radius: 28px;
             box-shadow: 0 16px 36px rgba(60, 40, 20, 0.22);
-            width: min(94vw, 420px);
+            width: min(94vw, 440px);
             padding: 22px;
             text-align: left;
         }
-        .diff-opt-card {
+        .diff-opt-card, .stage-opt-card {
             display: flex;
             align-items: center;
             gap: 12px;
             background: #fbf8f0;
             border: 2px solid #eadecb;
             border-radius: 18px;
-            padding: 12px 14px;
-            margin-bottom: 10px;
+            padding: 11px 13px;
+            margin-bottom: 9px;
             cursor: pointer;
             transition: all 0.18s ease;
             box-shadow: 0 3px 0 #dfcfb8;
         }
-        .diff-opt-card:hover {
+        .diff-opt-card:hover, .stage-opt-card:hover {
             transform: translateY(-2px);
             background: #ffffff;
             border-color: #2d6a4f;
             box-shadow: 0 5px 0 #2d6a4f;
         }
-        .diff-opt-card.on {
+        .diff-opt-card.on, .stage-opt-card.on {
             background: #f0fdf4;
             border: 2.5px solid #2d6a4f;
             box-shadow: 0 4px 0 #1b4332;
         }
-        .diff-opt-icon {
-            font-size: 28px;
-            width: 44px;
-            height: 44px;
+        .diff-opt-icon, .stage-opt-icon {
+            font-size: 26px;
+            width: 42px;
+            height: 42px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -2466,10 +2519,10 @@
             border-radius: 12px;
             flex-shrink: 0;
         }
-        .diff-opt-info { flex: 1; min-width: 0; }
-        .diff-opt-title { font-size: 15px; font-weight: 900; color: #3d2b1f; display: flex; align-items: center; justify-content: space-between; }
-        .diff-opt-desc { font-size: 11.5px; color: #786048; margin-top: 3px; line-height: 1.4; }
-        .diff-opt-check {
+        .diff-opt-info, .stage-opt-info { flex: 1; min-width: 0; }
+        .diff-opt-title, .stage-opt-title { font-size: 14.5px; font-weight: 900; color: #3d2b1f; display: flex; align-items: center; justify-content: space-between; }
+        .diff-opt-desc, .stage-opt-desc { font-size: 11px; color: #786048; margin-top: 3px; line-height: 1.35; }
+        .diff-opt-check, .stage-opt-check {
             font-size: 16px;
             font-weight: 900;
             color: #2d6a4f;
@@ -2477,7 +2530,8 @@
             transform: scale(0.6);
             transition: all 0.18s ease;
         }
-        .diff-opt-card.on .diff-opt-check {
+        .diff-opt-card.on .diff-opt-check,
+        .stage-opt-card.on .stage-opt-check {
             opacity: 1;
             transform: scale(1);
         }
@@ -3068,7 +3122,7 @@
                 gap: 10px;
                 padding-bottom: 10px;
             }
-            .mode-hub-profile {
+            .hub-hero-topbar .mode-hub-profile {
                 justify-content: center;
                 padding: 8px 14px;
             }

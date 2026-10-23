@@ -15,17 +15,24 @@
         let ball, ballGlow, ballBlob, ballTrail = [];
         let pGrp, pPad, pArm, gGrp, gPad, gArm, netGrp;
         let gooseMesh = null, flyMesh = null, flyWings = [], flyDizzy = null;
+        let bossOutfit = null, gooseMayorCap = null, swanMesh = null;
         let flyState = 'HOVER'; // 'HOVER' | 'LOOMING_REFLEX' | 'STUNNED' | 'DINK_APPROACH' | 'POPUP' | 'RECOVERY'
         let flyStunTimer = 0, flyHoverTime = 0, consecutiveDinks = 0;
         let dinkRallyCount = 0, isChanceBall = false;
 
         function updateOpponentMeshVisibility() {
             const isFly = (typeof diffLevel !== 'undefined' && diffLevel === 'fly');
-            if (gooseMesh) gooseMesh.visible = !isFly;
             if (flyMesh) flyMesh.visible = isFly;
             if (gArm) gArm.visible = !isFly;
+            const isSwan = stage === 7;
+            const isBoss = !isFly && stage === 5;
+            if (gooseMesh) gooseMesh.visible = !isFly && !isSwan;
+            if (swanMesh) swanMesh.visible = isSwan;
+            if (bossOutfit) bossOutfit.visible = isBoss;
+            if (gooseMayorCap) gooseMayorCap.visible = !isBoss;
+            if (gArm) gArm.material.color.setHex(isSwan ? 0x111827 : 0xffffff);
             const aiWho = document.getElementById('ai-who-label');
-            if (aiWho) aiWho.innerText = isFly ? '🪰 仿生蒼蠅' : '🪿 匹克鵝';
+            if (aiWho) aiWho.innerText = isSwan ? '🦢 黑天鵝' : isFly ? '🪰 仿生蒼蠅' : '🪿 匹克鵝';
 
             const snnHud = document.getElementById('fly-snn-hud');
             if (snnHud) {
@@ -39,6 +46,98 @@
         let zoneServe, arc, ringLand, ringSpot, warnKitchen, rings = [];
         let floatTexts = [], floatTextures = {};
         let practiceWallMesh = null, isWallPractice = false, wallCombo = 0;
+        let victoryCamTime = 0;
+        let courtEntrance = null;
+        const cueScreenPos = new THREE.Vector3();
+        function startVictoryCelebration() { victoryCamTime = 1.6; }
+        function stopCourtEntrance(ready) {
+            if (!courtEntrance) return;
+            const sceneState = courtEntrance;
+            courtEntrance = null;
+            const overlay = document.getElementById('court-intro');
+            if (overlay) overlay.style.display = 'none';
+            pPos.x = sceneState.playerX; pPos.z = sceneState.playerZ;
+            pGrp.position.set(pPos.x, 0, pPos.z);
+            pGrp.rotation.z = 0;
+            gGrp.position.set(sceneState.gooseX, 0, sceneState.gooseZ);
+            gGrp.rotation.z = 0;
+            if (flyMesh) flyMesh.rotation.z = 0;
+            if (ready) {
+                if (sceneState.playDemo) startDemo(stage);
+                else resetServe();
+            }
+        }
+        function skipCourtEntrance() { stopCourtEntrance(true); }
+        function startCourtEntrance() {
+            if (!pGrp || !gGrp) return;
+            stopCourtEntrance(false);
+            courtEntrance = {
+                time: 0, shot: -1,
+                kind: stage === 7 ? 'swan' : diffLevel === 'fly' ? 'fly' : (stage === 5 ? 'boss' : 'normal'),
+                playerX: pPos.x, playerZ: pPos.z,
+                gooseX: gGrp.position.x, gooseZ: gGrp.position.z
+            };
+            locked = true; charging = false;
+            playerVel.x = 0; playerVel.z = 0;
+            const overlay = document.getElementById('court-intro');
+            if (overlay) {
+                const title = overlay.querySelector('.court-intro-title');
+                const taunt = overlay.querySelector('.court-intro-taunt');
+                const welcome = overlay.querySelector('.court-intro-welcome');
+                overlay.classList.toggle('boss-intro', courtEntrance.kind === 'boss');
+                overlay.classList.toggle('fly-intro', courtEntrance.kind === 'fly');
+                overlay.classList.toggle('swan-intro', courtEntrance.kind === 'swan');
+                if (welcome) welcome.textContent = courtEntrance.kind === 'swan' ? '🦢 最終冠軍登場' : courtEntrance.kind === 'boss' ? '👑 大魔王登場' : courtEntrance.kind === 'fly' ? '⚡ 高速挑戰者來襲' : '🎾 歡迎來到中興湖球場';
+                if (title) title.textContent = `STAGE ${stage} · ${STAGES[stage].name}`;
+                if (taunt) taunt.textContent = courtEntrance.kind === 'swan' ? '🦢 冠軍匹克黑天鵝：11 分，領先 2 分才算贏！' : courtEntrance.kind === 'fly' ? '🪰 果蠅：跟得上我的速度嗎？' : courtEntrance.kind === 'boss' ? '🪿 匹克鵝大魔王：這座球場由我守護！' : '🪿 匹克鵝：準備接招吧！';
+                overlay.style.display = 'flex';
+            }
+        }
+        function updateCourtEntrance(dt) {
+            if (!courtEntrance) return;
+            const intro = courtEntrance;
+            intro.time += dt;
+            const walk = Math.min(1, intro.time / (intro.kind === 'fly' ? 1.15 : 1.55));
+            const eased = walk * walk * (3 - 2 * walk);
+            pPos.x = intro.playerX;
+            pPos.z = THREE.MathUtils.lerp(intro.playerZ + 2.4, intro.playerZ, eased);
+            pGrp.position.set(pPos.x, Math.abs(Math.sin(intro.time * 13)) * 0.07 * (1 - eased), pPos.z);
+            gGrp.position.set(intro.gooseX + (intro.kind === 'fly' ? Math.sin(intro.time * 19) * 0.55 * (1 - eased) : 0),
+                (intro.kind === 'fly' ? 0.95 + Math.sin(intro.time * 22) * 0.12 : Math.abs(Math.sin(intro.time * (intro.kind === 'boss' ? 7 : 12) + 1)) * (intro.kind === 'boss' ? 0.09 : 0.05) * (1 - eased)),
+                THREE.MathUtils.lerp(intro.gooseZ - 2.4, intro.gooseZ, eased));
+            pGrp.rotation.y = 0;
+            pGrp.rotation.z = Math.sin(intro.time * 11) * 0.035 * (1 - eased);
+            gGrp.rotation.y = Math.PI;
+            gGrp.rotation.z = Math.sin(intro.time * (intro.kind === 'fly' ? 19 : 10) + 1) * (intro.kind === 'fly' ? 0.18 : 0.035) * (1 - eased);
+            if (flyMesh && intro.kind === 'fly') flyMesh.rotation.z = Math.sin(intro.time * 25) * 0.12 * (1 - eased);
+            PH.reset(pPos.x - 0.2, 0.85, pPos.z - 0.25);
+            if (intro.time >= 2.45) stopCourtEntrance(true);
+        }
+        window.skipCourtEntrance = skipCourtEntrance;
+        function updateHitCue() {
+            const cue = document.getElementById('hit-cue');
+            if (!cue) return;
+            const incoming = state === 'RALLY' && !locked && PH.vel.z > 0 && PH.pos.z > 0;
+            const cueZ = Math.max(0.8, pPos.z - 1.8);
+            const timeLeft = incoming ? (cueZ - PH.pos.z) / PH.vel.z : -1;
+            if (!incoming || timeLeft <= 0 || timeLeft > 1.15) {
+                cue.style.display = 'none';
+                return;
+            }
+            cam.updateMatrixWorld();
+            cueScreenPos.copy(PH.pos).project(cam);
+            if (cueScreenPos.z < -1 || cueScreenPos.z > 1 || Math.abs(cueScreenPos.x) > 1 || Math.abs(cueScreenPos.y) > 1) {
+                cue.style.display = 'none';
+                return;
+            }
+            const rect = ren.domElement.getBoundingClientRect();
+            cue.style.left = (rect.left + (cueScreenPos.x + 1) * rect.width / 2) + 'px';
+            cue.style.top = (rect.top + (1 - cueScreenPos.y) * rect.height / 2) + 'px';
+            const progress = 1 - timeLeft / 1.15;
+            cue.style.transform = `translate(-50%, -50%) scale(${1.35 - progress * 0.7})`;
+            cue.style.opacity = String(Math.min(1, 0.45 + progress));
+            cue.style.display = 'block';
+        }
         window.isWallPractice = false;
 
 /* ═══════ Three.js 場景、燈光、球場與材質初始化 ═══════ */
@@ -1119,11 +1218,34 @@
             head.position.set(0, 1.26, 0.20); head.castShadow = true; gooseMesh.add(head);
 
             // 5. 村長紅色遮陽帽 (Mayor Red Visor Cap)
+            gooseMayorCap = new THREE.Group();
+            gooseMesh.add(gooseMayorCap);
             const gVisor = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.23, 0.06, 14), visorMat);
-            gVisor.position.set(0, 1.39, 0.20); gVisor.castShadow = true; gooseMesh.add(gVisor);
+            gVisor.position.set(0, 1.39, 0.20); gVisor.castShadow = true; gooseMayorCap.add(gVisor);
             const gBrim = new THREE.Mesh(new THREE.CylinderGeometry(0.26, 0.26, 0.02, 14, 1, false, -Math.PI * 0.32, Math.PI * 0.64),
                 new THREE.MeshStandardMaterial({ color: 0xef4444, roughness: 0.35, side: THREE.DoubleSide }));
-            gBrim.rotation.x = 0.16; gBrim.position.set(0, 1.36, 0.29); gooseMesh.add(gBrim);
+            gBrim.rotation.x = 0.16; gBrim.position.set(0, 1.36, 0.29); gooseMayorCap.add(gBrim);
+
+            // 第 5 關大魔王裝扮：金冠與深紅披風，跟著鵝模型一起移動。
+            bossOutfit = new THREE.Group();
+            const gold = new THREE.MeshStandardMaterial({ color: 0xfacc15, metalness: 0.35, roughness: 0.28 });
+            const capeRed = new THREE.MeshStandardMaterial({ color: 0x991b1b, roughness: 0.7, side: THREE.DoubleSide });
+            const crownBand = new THREE.Mesh(new THREE.CylinderGeometry(0.23, 0.22, 0.10, 12), gold);
+            crownBand.position.set(0, 1.44, 0.20); crownBand.castShadow = true; bossOutfit.add(crownBand);
+            for (let i = 0; i < 5; i++) {
+                const angle = i * Math.PI * 2 / 5;
+                const tip = new THREE.Mesh(new THREE.ConeGeometry(0.075, 0.19, 5), gold);
+                tip.position.set(Math.sin(angle) * 0.16, 1.56, 0.20 + Math.cos(angle) * 0.16);
+                tip.castShadow = true; bossOutfit.add(tip);
+            }
+            const cape = new THREE.Mesh(new THREE.PlaneGeometry(0.68, 0.72), capeRed);
+            cape.position.set(0, 0.59, -0.39); cape.rotation.x = -0.22;
+            cape.castShadow = true; bossOutfit.add(cape);
+            const capeCollar = new THREE.Mesh(new THREE.TorusGeometry(0.18, 0.035, 8, 12), gold);
+            capeCollar.rotation.x = Math.PI / 2; capeCollar.position.set(0, 0.84, 0.16);
+            bossOutfit.add(capeCollar);
+            bossOutfit.visible = false;
+            gooseMesh.add(bossOutfit);
 
             // 6. 鮮橘色鵝喙 (Orange Beak)
             const beak = new THREE.Mesh(new THREE.ConeGeometry(0.10, 0.22, 10), bk);
@@ -1137,6 +1259,44 @@
                 foot.position.set(sx, 0.02, 0.05); foot.castShadow = true; gooseMesh.add(foot);
             }
             gGrp.add(gooseMesh);
+
+            // 冠軍黑天鵝沿用同一套跑位與擊球邏輯，只替換 3D 外觀。
+            swanMesh = new THREE.Group();
+            const feather = new THREE.MeshStandardMaterial({ color: 0x111827, roughness: 0.55 });
+            const wingFeather = new THREE.MeshStandardMaterial({ color: 0x263344, roughness: 0.6 });
+            const swanBeak = new THREE.MeshStandardMaterial({ color: 0xef4444, roughness: 0.4 });
+            const swanBody = new THREE.Mesh(new THREE.SphereGeometry(0.43, 16, 16), feather);
+            swanBody.position.set(0, 0.57, -0.06); swanBody.scale.set(1, 0.9, 1.4);
+            swanBody.castShadow = true; swanMesh.add(swanBody);
+            for (const side of [-1, 1]) {
+                const wing = new THREE.Mesh(new THREE.SphereGeometry(0.28, 12, 12), wingFeather);
+                wing.position.set(side * 0.31, 0.64, -0.13);
+                wing.scale.set(0.55, 0.55, 1.15); wing.rotation.z = side * 0.25;
+                swanMesh.add(wing);
+            }
+            const swanNeck = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.15, 0.64, 12), feather);
+            swanNeck.position.set(0, 1.06, 0.27); swanNeck.rotation.x = -0.16;
+            swanNeck.castShadow = true; swanMesh.add(swanNeck);
+            const swanHead = new THREE.Mesh(new THREE.SphereGeometry(0.20, 14, 14), feather);
+            swanHead.position.set(0, 1.43, 0.35); swanHead.castShadow = true; swanMesh.add(swanHead);
+            const bill = new THREE.Mesh(new THREE.ConeGeometry(0.10, 0.25, 10), swanBeak);
+            bill.rotation.x = Math.PI / 2; bill.position.set(0, 1.38, 0.55); swanMesh.add(bill);
+            const swanEyeMat = new THREE.MeshBasicMaterial({ color: 0xfff7ed });
+            for (const side of [-1, 1]) {
+                const eye = new THREE.Mesh(new THREE.SphereGeometry(0.035, 8, 8), swanEyeMat);
+                eye.position.set(side * 0.155, 1.47, 0.45); swanMesh.add(eye);
+            }
+            const swanCrownMat = new THREE.MeshStandardMaterial({ color: 0xfbbf24, metalness: 0.5, roughness: 0.25 });
+            const swanCrown = new THREE.Mesh(new THREE.CylinderGeometry(0.19, 0.18, 0.09, 12), swanCrownMat);
+            swanCrown.position.set(0, 1.62, 0.35); swanMesh.add(swanCrown);
+            for (let i = 0; i < 5; i++) {
+                const a = i * Math.PI * 2 / 5;
+                const tip = new THREE.Mesh(new THREE.ConeGeometry(0.055, 0.15, 5), swanCrownMat);
+                tip.position.set(Math.sin(a) * 0.13, 1.72, 0.35 + Math.cos(a) * 0.13);
+                swanMesh.add(tip);
+            }
+            swanMesh.visible = false;
+            gGrp.add(swanMesh);
 
             // ═══════ 仿生蒼蠅 3D 輕量模型 (Bio-inspired Fly Opponent Mesh) ═══════
             flyMesh = new THREE.Group();
@@ -1206,7 +1366,7 @@
             flyMesh.visible = false;
             gGrp.add(flyMesh);
 
-            gArm = new THREE.Mesh(new THREE.BoxGeometry(0.12, 1, 0.12), gs);
+            gArm = new THREE.Mesh(new THREE.BoxGeometry(0.12, 1, 0.12), gs.clone());
             gArm.castShadow = true; gGrp.add(gArm);
             gPad = new THREE.Group();
             const gf = new THREE.Mesh(new THREE.BoxGeometry(0.27, 0.36, 0.035),
@@ -1271,7 +1431,8 @@
                 'OUT': { col: '#f87171', size: 80, stroke: '#7f1d1d', scale: 0.55, yOff: 0.6, drift: 0.8 },
                 'NET': { col: '#f87171', size: 80, stroke: '#7f1d1d', scale: 0.55, yOff: 0.6, drift: 0.8 },
                 'FAULT': { col: '#ef4444', size: 80, stroke: '#7f1d1d', scale: 0.55, yOff: 0.6, drift: 0.8 },
-                'MISS': { col: '#94a3b8', size: 60, stroke: '#334155', scale: 0.45, yOff: 0.6, drift: 0.5 }
+                'MISS': { col: '#94a3b8', size: 60, stroke: '#334155', scale: 0.45, yOff: 0.6, drift: 0.5 },
+                '😊': { col: '#ffffff', size: 120, stroke: '#ffffff', scale: 0.55, yOff: 0.5, drift: 0.6 }
             };
             for (const [key, tpl] of Object.entries(templates)) {
                 const cvs = document.createElement('canvas');
@@ -1306,7 +1467,7 @@
                     f.m.position.set(x, y + tmpl.cfg.yOff, z);
                     f.oy = f.m.position.y;
                     f.drift = tmpl.cfg.drift;
-                    f.life = 1.0; f.t = 0;
+                    f.life = key === '😊' ? 1.5 : 1.0; f.t = 0;
                     f.m.visible = true;
                     return;
                 }
@@ -1355,13 +1516,35 @@
             }
         }
         function addShake(v) { shake = Math.min(0.5, shake + v); }
-/* 真空彈道解算（原版邏輯） */
+/* 真空彈道解算（依 speedScale 動態調節飛行時間與過網裕度，兼顧輕推慢弧與強抽/截擊平快軌跡） */
 function solveArcVacuum(fx, fy, fz, tx, tz, out, speedScale) {
     const dist = Math.hypot(tx - fx, tz - fz);
-    const baseSpd = (speedScale || 1.0) * 11.8;
-    const reqClear = NET_CLEAR + ((fz < 0 && tz < 2.6) ? 0.22 : 0.0);
+    const s = speedScale || 1.0;
+    const baseSpd = s * 11.8;
+    // 輕推 (s < 0.85) 給予充裕滯空時間，強抽/平快截擊 (s > 1.1) 縮減時間墊高以拉出明顯球速差
+    const timePad = s < 0.85 ? 0.25 : (s > 1.10 ? Math.max(0.03, 0.20 - (s - 1.0) * 0.22) : 0.18);
+    // 高速球採用緊湊過網高度（仍保有足夠安全裕度避免掛網），使軌跡更平直；慢速短球則補償空氣阻尼下墜
+    const fastBonus = s > 1.08 ? Math.min(0.095, (s - 1.08) * 0.14) : 0;
+    const slowShortPad = (s < 0.75 && fz > 3.0 && tz < 0 && tz > -2.0) ? 0.10 : 0;
+    const reqClear = (NET_CLEAR - fastBonus + slowShortPad) + ((fz < 0 && tz < 2.6) ? 0.20 : 0.0);
+
+    // 解析求解過網最低飛行時間 T_min，避免粗步長迴圈將高速球過度減速變高吊球
+    let tMinNet = 0.16;
+    if ((fz > 0) !== (tz > 0) && Math.abs(tz - fz) > 1e-4) {
+        const alpha = -fz / (tz - fz);
+        if (alpha > 0.02 && alpha < 0.98) {
+            const linY = (1 - alpha) * fy + alpha * BALL_R;
+            const needH = reqClear - linY;
+            if (needH > 0) {
+                tMinNet = Math.sqrt((2 * needH) / (GRAVITY * alpha * (1 - alpha))) + 0.008;
+            }
+        }
+    }
+
+    const tDesired = dist / Math.max(3.2, baseSpd) + timePad;
+    const T0 = Math.max(tDesired, tMinNet);
     for (let k = 0; k < 16; k++) {
-        const T = dist / Math.max(3.5, baseSpd - k * 0.70) + 0.22 + k * 0.06;
+        const T = T0 + k * 0.03;
         const vx = (tx - fx) / T, vz = (tz - fz) / T;
         const vy = (BALL_R - fy + 0.5 * GRAVITY * T * T) / T;
         if ((fz > 0) !== (tz > 0)) {
@@ -1388,6 +1571,7 @@ function solveArc(fx, fy, fz, tx, tz, out, speedScale) {
         /* ═══════ 示範 ═══════ */
         let demoOn = false, demoHold = true;
         let dSteps = [], dIdx = 0, dClock = 0, dEnd = 0, dFlash = 0;
+        let dBallKeys = null;
         const dSeen = {};
         const dWalk = { x: 1.5, z: HALF_L + 0.35 }, dPad = { x: 0.34, y: 0.74 }, dGoose = { x: 0, z: -HALF_L - 0.5 }, dDemoTgt = { x: -1.5, z: -4.8 };
         function dMove(x, z) { dWalk.x = x; dWalk.z = z; }
@@ -1410,27 +1594,29 @@ function solveArc(fx, fy, fz, tx, tz, out, speedScale) {
             const A = [], add = (at, main, tag, fn) => A.push({ at: at, main: main, tag: tag, do: fn });
             const back = HALF_L + 0.35;
             if (st === 1) {
-                add(0.0, '發球預備: 雙腳在底線後，球拍自然就位', 'STEP 1 站位預備', () => { dMove(1.5, back); dPaddle(0.34, 0.74); dDemoTgt.x = -1.5; dDemoTgt.z = -4.8; });
-                add(1.0, '👆 向上滑動推拍: 球拍由下往上推球', 'STEP 2 向上推拍', () => { dPaddle(0.31, 0.60); });
-                add(2.8, '拍面低於腰部向上直推，將球對角送進綠區！', 'STEP 3 直推發球', () => { dHit(-1.5, -4.8, 0); });
-                add(4.5, '球落入綠色對角區即成功過關！點擊任意處開始', '通關重點');
+                dBallKeys = [[0, 1.25, 0.72, back - 0.2], [0.7, 1.25, 0.72, back - 0.2], [1.25, 0.4, 2.05, 0.7], [2.05, -1.5, BALL_R, -4.8], [2.38, -1.5, 0.55, -5.2], [3.5, -1.5, 0.55, -5.2]];
+                add(0, '站在底線後，拍面放低，準備低手發球。', '① 底線後站位', () => { dMove(1.5, back); dPaddle(0.34, 0.58); });
+                add(0.7, '由下往上揮拍，把球送到對角發球區。', '② 向上對角發球', () => dPaddle(0.31, 1.08));
+                add(2.05, '球落在對角發球區內；輪到你試試！', '③ 看落點');
+                add(3.55, '點畫面可跳過或開始操作。', '教學完成');
             } else if (st === 2) {
-                add(0.0, '先正常對角發球過網', 'STEP 1 發球', () => { dMove(1.5, back); dPaddle(0.31, 0.60); dG(0, -HALF_L - 0.5); dDemoTgt.x = -1.6; dDemoTgt.z = -4.8; });
-                add(1.4, null, null, () => dHit(-1.6, -4.8));
-                add(3.4, '匹克鵝回擊一顆底線深球', 'STEP 2 對手深球', () => { dG(-1.4, -3.2); dDemoTgt.x = 1.2; dDemoTgt.z = 5.8; });
-                add(4.2, null, null, () => dGHit(1.2, 5.8));
-                add(5.2, '⚠️ 核心法則: 接發球必須等球落地彈跳一次！', 'STEP 3 等球落地', () => { dMove(1.2, 6.0); dPaddle(0.27, 0.54); dDemoTgt.x = -1.2; dDemoTgt.z = -3.6; });
-                add(7.8, '落地彈起後平穩回擊，完成雙彈跳規則！', 'STEP 4 合法回擊', () => { dHit(-1.2, -3.6); });
-                add(10.0, '雙方各落地一次後，方開放凌空截擊', '雙彈跳核心');
+                dBallKeys = [[0, 1.25, 0.72, back - 0.2], [0.5, 1.25, 0.72, back - 0.2], [1.05, 0.2, 2.0, 0.6], [1.65, -1.4, BALL_R, -4.8], [1.95, -1.4, 0.75, -4.1], [2.2, -1.3, 0.78, -3.5], [2.8, -0.1, 2.0, 0.4], [3.35, 1.15, BALL_R, 5.5], [3.75, 1.15, 0.72, 5.7], [4.0, 1.15, 0.72, 5.7], [4.55, -0.1, 1.8, 0.2], [5.15, -1.2, BALL_R, -3.8], [5.9, -1.2, BALL_R, -3.8]];
+                add(0, '先從底線後對角發球。', '① 玩家發球', () => { dMove(1.5, back); dPaddle(0.31, 0.6); dG(-1.4, -3.5); });
+                add(0.5, '發球飛向對角區。', '① 玩家發球', () => dPaddle(0.31, 1.0));
+                add(1.65, '發球先在對方場地落地一次。', '② 第一次落地');
+                add(2.2, '對手等球反彈後回擊；你的接發球也要先落地。', '③ 對手回球', () => { dMove(1.15, 5.7); dPaddle(0.27, 0.55); });
+                add(3.35, '接發球在我方場地落地一次。', '④ 第二次落地');
+                add(4.0, '現在反彈後可以回擊；兩次落地完成後才可截擊。', '⑤ 合法回擊', () => dPaddle(0.27, 1.0));
+                add(5.3, '記住：發球、接發球，各要落地一次。', '雙彈跳規則');
             } else if (st === 3) {
-                add(0.0, '中興湖畔 7 呎廚房非截擊區 (Kitchen)', 'STEP 1 網前規則', () => { dMove(1.5, back); dPaddle(0.31, 0.60); dG(0, -HALF_L - 0.5); dDemoTgt.x = -1.6; dDemoTgt.z = -4.8; });
-                add(1.4, null, null, () => dHit(-1.6, -4.8));
-                add(3.4, '匹克鵝把球輕吊進廚房區', 'STEP 2 對手吊球', () => { dG(-1.2, -3.0); dDemoTgt.x = 0.8; dDemoTgt.z = 1.35; });
-                add(4.2, null, null, () => dGHit(0.8, 1.35));
-                add(5.6, '❌ 球未落地就在廚房內揮拍 = KITCHEN FAULT 犯規', '錯誤示範', () => { dMove(0.8, 1.5); dPaddle(0.29, 1.0); dBad(); });
-                add(7.4, '✅ 正確做法: 耐心等球落地彈起後再輕推 (Dink)', '正確做法', () => { dPaddle(0.25, 0.48); dDemoTgt.x = -0.9; dDemoTgt.z = -1.7; });
-                add(9.2, '落地後輕推小球安全過網，成功通關！', 'STEP 3 廚房輕推', () => { dHit(-0.9, -1.7); });
-                add(11.4, '廚房區落地後方可入內擊球', '通關重點');
+                dBallKeys = [[0, -0.8, 0.78, -2.8], [0.5, -0.8, 0.78, -2.8], [1.1, 0.1, 1.45, -0.15], [1.55, 0.8, 0.75, 1.25], [2.25, 0.8, 0.75, 1.25], [2.65, -0.8, 0.78, -2.8], [3.2, 0.1, 1.45, -0.15], [3.75, 0.8, BALL_R, 1.25], [4.2, 0.8, 0.65, 1.35], [4.5, 0.8, 0.65, 1.35], [5.1, 0, 1.3, 0], [5.55, -0.9, BALL_R, -1.6], [6.1, -0.9, BALL_R, -1.6]];
+                add(0, '廚房是網前的非截擊區；看對手吊球。', '① 網前規則', () => { dMove(0.8, 1.5); dPaddle(0.25, 0.48); dG(-0.8, -2.8); });
+                add(0.5, '球還沒落地，先不要揮拍。', '② 未落地');
+                add(1.55, '❌ 站在廚房內凌空擊球，犯規！', '錯誤示範', () => { dPaddle(0.25, 1.05); dBad(); });
+                add(2.65, '再看一次：在廚房內等球落地。', '③ 正確做法', () => dPaddle(0.25, 0.48));
+                add(3.75, '球先在廚房內落地、反彈。', '④ 等球反彈');
+                add(4.5, '✅ 反彈後輕推過網，合法！', '⑤ 輕推 Dink', () => dPaddle(0.25, 0.9));
+                add(5.65, '在廚房可以打落地反彈球；不能在裡面截擊。', '廚房規則');
             } else if (st === 4) {
                 add(0.0, '對決關卡: 先得 3 分者獲勝', 'STEP 1 對決匹克鵝', () => { dMove(1.5, back); dPaddle(0.31, 0.60); dG(0, -HALF_L - 0.5); dDemoTgt.x = -1.6; dDemoTgt.z = -4.8; });
                 add(1.6, null, null, () => dHit(-1.6, -4.8));
@@ -1447,7 +1633,9 @@ function solveArc(fx, fy, fz, tx, tz, out, speedScale) {
             return A;
         }
         function startDemo(st) {
+            if (courtEntrance) stopCourtEntrance(false);
             clearTimers();
+            dSeen[st] = true;
             if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
             demoOn = true; locked = true; demoHold = true; state = 'DEMO';
             document.body.classList.add('demo-mode-active');
@@ -1457,13 +1645,14 @@ function solveArc(fx, fy, fz, tx, tz, out, speedScale) {
             dMove(1.5, HALF_L + 0.35); dPaddle(0.34, 0.74); dG(0, -HALF_L - 0.5);
             dDemoTgt.x = -1.5; dDemoTgt.z = -4.8;
             pPos.x = dWalk.x; pPos.z = dWalk.z; gGrp.position.set(dGoose.x, 0, dGoose.z);
-            dSteps = buildDemo(st); dEnd = dSteps[dSteps.length - 1].at + 2.4;
+            dBallKeys = null;
+            dSteps = buildDemo(st); dEnd = dSteps[dSteps.length - 1].at + (st <= 3 ? 0.55 : 2.4);
             dCap('準備開始示範…', 'STAGE ' + st);
             D.demo.style.display = 'block';
             const wm = document.getElementById('demo-watermark'); if (wm) wm.style.display = 'block';
         }
         function endDemo() {
-            demoOn = false; locked = false; demoHold = true; dFlash = 0;
+            demoOn = false; locked = false; demoHold = true; dFlash = 0; dBallKeys = null;
             D.demo.style.display = 'none';
             const wm = document.getElementById('demo-watermark'); if (wm) wm.style.display = 'none';
             warnKitchen.material.opacity = 0; resetServe();
@@ -1559,6 +1748,14 @@ function solveArc(fx, fy, fz, tx, tz, out, speedScale) {
             }
             if (demoHold) PH.reset(padW.x - 0.22, Math.max(BALL_R, padW.y + 0.1), padW.z - 0.06);
         }
+        function demoBallPose() {
+            if (!dBallKeys) return;
+            let i = 0;
+            while (i < dBallKeys.length - 2 && dClock > dBallKeys[i + 1][0]) i++;
+            const a = dBallKeys[i], b = dBallKeys[i + 1];
+            const t = THREE.MathUtils.clamp((dClock - a[0]) / (b[0] - a[0]), 0, 1);
+            PH.reset(THREE.MathUtils.lerp(a[1], b[1], t), THREE.MathUtils.lerp(a[2], b[2], t), THREE.MathUtils.lerp(a[3], b[3], t));
+        }
         function runDemo(dt) {
             dClock += dt;
             if (dFlash > 0) dFlash = Math.max(0, dFlash - dt * 0.5);
@@ -1569,6 +1766,8 @@ function solveArc(fx, fy, fz, tx, tz, out, speedScale) {
             if (dClock >= dEnd) endDemo();
         }
         function switchStage(n, opts) {
+            if (!STAGES[n]) return;
+            stopCourtEntrance(false);
             if (typeof stageAdvanceTimer !== 'undefined' && stageAdvanceTimer) {
                 clearTimeout(stageAdvanceTimer);
                 stageAdvanceTimer = null;
@@ -1582,6 +1781,7 @@ function solveArc(fx, fy, fz, tx, tz, out, speedScale) {
             document.body.classList.remove('demo-mode-active');
             if (typeof dismissFingerTutorial === 'function') dismissFingerTutorial(true);
             stage = n;
+            if (n === 7 && diffLevel === 'fly') setDifficulty('medium');
             isWallPractice = false;
             window.isWallPractice = false;
             if (practiceWallMesh) practiceWallMesh.visible = false;
@@ -1598,7 +1798,7 @@ function solveArc(fx, fy, fz, tx, tz, out, speedScale) {
                 gGrp.position.set(0, 0, -HALF_L - 0.5);
             }
 
-            // ★ 🍄 道具戰關卡管理 (前4關鎖定停用，第5關魔王自由開關，第6關常駐開啟)
+            // ★ 🍄 第 6 關是道具戰；黑天鵝冠軍賽採正常計分，不帶入道具。
             if (typeof FunMode !== 'undefined') {
                 if (n === 6) {
                     FunMode.enabled = true;
@@ -1610,7 +1810,7 @@ function solveArc(fx, fy, fz, tx, tz, out, speedScale) {
                     if (diffLevel !== 'fly' && typeof setDifficulty === 'function') {
                         setDifficulty('fly');
                     }
-                } else if (n <= 4) {
+                } else if (n <= 4 || n === 7) {
                     FunMode.enabled = false;
                     FunMode.clearAll();
                     FunMode.syncUI();
@@ -1621,22 +1821,24 @@ function solveArc(fx, fy, fz, tx, tz, out, speedScale) {
 
             updateOpponentMeshVisibility();
             warnKitchen.material.opacity = 0;
-            const isAdvance = !!(opts && opts.fromClear);
             const showDemo = !!(opts && opts.showDemo);
-            // ★ 永遠優先讓玩家親自操作，手上永遠有球！只有點擊「觀看示範」時才啟動 startDemo
-            if (showDemo) {
-                dSeen[n] = true;
+            const playDemo = showDemo || (n <= 3 && !dSeen[n] && !(opts && opts.skipAutoDemo));
+            resetServe();
+            if (opts && opts.showEntrance) {
+                startCourtEntrance();
+                if (courtEntrance) courtEntrance.playDemo = playDemo;
+                else if (playDemo) startDemo(n);
+            } else if (playDemo) {
                 startDemo(n);
             } else {
-                dSeen[n] = true;
-                resetServe();
                 const stageHints = {
                     1: '向上滑動推拍，將球對角發進綠區即過關！',
                     2: '雙彈跳規則：發球過網，等匹克鵝回球落地彈起再打回去！',
                     3: '廚房區攻防：等球在廚房落地彈起後輕推小球過網！',
                     4: '綜合對決：發球得分制，先得 3 分過關！',
                     5: '魔王對決：全力揮拍擊敗中興湖魔王匹克鵝！',
-                    6: '瘋狂道具戰：拾取盲盒神裝，稱霸全場！'
+                    6: '瘋狂道具戰：拾取盲盒神裝，稱霸全場！',
+                    7: '冠軍匹克黑天鵝：先得 11 分，並領先 2 分才獲勝！'
                 };
                 toast('🎯 STAGE ' + n + '：' + STAGES[n].name, stageHints[n] || STAGES[n].desc);
             }
@@ -1747,8 +1949,16 @@ function solveArc(fx, fy, fz, tx, tz, out, speedScale) {
             if (!charging) return;
             charging = false;
             const p = power; power = 0; powerDir = 1; D.pFill.style.width = '0%';
-            if (state === 'SERVE_READY') doServe(p);
-            else if (state === 'RALLY') { swingT = 0.22; swingP = p; }
+            if (state === 'SERVE_READY') {
+                const sw = getActiveSwipe();
+                const swDist = Math.hypot(sw.distX || 0, sw.distY || 0);
+                const swSpd = Math.hypot((sw.peakVx || 0) * 0.65, sw.peakVy || 0);
+                const swP = (swDist >= 15 || swSpd >= 90)
+                    ? THREE.MathUtils.clamp((swDist / 160) * 55 + (swSpd / 1100) * 45, 18, 96)
+                    : p;
+                doServe(Math.max(p, swP));
+            }
+            else if (state === 'RALLY') { swingT = 0.28; swingP = p; }
         }
         /**
          * ★ 簡化直覺的滑動自旋計算器:
@@ -1760,7 +1970,7 @@ function solveArc(fx, fy, fz, tx, tz, out, speedScale) {
         /**
          * ★ 取得當前有效揮拍手勢快照 (Active or Recent Swipe Snapshot)
          * - 若手指正在滑動且已具備動量，優先採用當前手勢
-         * - 若手指剛離手 (320ms 內)，採用已完成手勢快照，杜絕擊球時手勢被早洩截斷
+         * - 若手指剛離手 (1 秒內)，採用已完成手勢快照，讓手機可稍早出拍
          */
         function getActiveSwipe() {
             if (typeof SWIPE === 'undefined') return { distX: 0, distY: 0, peakVx: 0, peakVy: 0, sagitta: 0, spinArea: 0, spin: 0 };
@@ -1771,7 +1981,7 @@ function solveArc(fx, fy, fz, tx, tz, out, speedScale) {
             if (SWIPE.active && (curDist >= 15 || curSpeed >= 120)) {
                 return SWIPE;
             }
-            if (ls && (now - ls.time) < 320) {
+            if (ls && (now - ls.time) < 1000) {
                 const lsDist = Math.hypot(ls.distX, ls.distY);
                 if (lsDist >= curDist) return ls;
             }
@@ -1794,9 +2004,12 @@ function solveArc(fx, fy, fz, tx, tz, out, speedScale) {
             if (webcamActive) {
                 const wristFree = (typeof RIGHT !== 'undefined' && typeof RIGHT.padXFree === 'number') ? RIGHT.padXFree : 0;
                 const torsoDeg = (typeof torsoYawDeg === 'function') ? torsoYawDeg() : 0;
-                if (Math.abs(wristFree) < 0.15 && Math.abs(torsoDeg) < 6) return 0;
-                const spinVal = (wristFree * 0.35) + (torsoDeg / 35.0 * 0.30);
-                return THREE.MathUtils.clamp(spinVal, -0.60, 0.60);
+                const trajX = (typeof currentSwingEvent === 'object' && currentSwingEvent && typeof currentSwingEvent.trajectoryX === 'number')
+                    ? currentSwingEvent.trajectoryX
+                    : ((typeof SWING !== 'undefined' && SWING && typeof SWING.peakDx === 'number') ? SWING.peakDx : 0);
+                if (Math.abs(wristFree) < 0.12 && Math.abs(torsoDeg) < 5 && Math.abs(trajX) < 0.02) return 0;
+                const spinVal = (wristFree * 0.40) + (torsoDeg / 20.0 * 0.85) + (trajX * 3.6);
+                return THREE.MathUtils.clamp(spinVal, -1.0, 1.0);
             }
             const s = getActiveSwipe();
             const distX = s.distX || 0;
@@ -1876,7 +2089,9 @@ function solveArc(fx, fy, fz, tx, tz, out, speedScale) {
         }
         function serveVel(p, out) {
             const tg = serveTarget(p);
-            solveArc(PH.pos.x, PH.pos.y, PH.pos.z, tg.x, tg.z, out);
+            const t = THREE.MathUtils.clamp((typeof p === 'number' ? p : 50) / 100, 0, 1);
+            const spdScale = 0.78 + t * 0.50;
+            solveArc(PH.pos.x, PH.pos.y, PH.pos.z, tg.x, tg.z, out, spdScale);
             return out;
         }
         /* Math.sign(0) 回傳 0,永不等於 ±1 → 玩家站正中央會拿到看不懂的犯規 */
@@ -1946,15 +2161,27 @@ function solveArc(fx, fy, fz, tx, tz, out, speedScale) {
             }
 
             const now = performance.now();
-            const hasValidSwing = (typeof currentSwingEvent === 'object' && currentSwingEvent && !currentSwingEvent.consumed && (now - currentSwingEvent.t <= 600));
+            const hasValidSwing = (typeof currentSwingEvent === 'object' && currentSwingEvent && !currentSwingEvent.consumed && (now - currentSwingEvent.t <= 850));
 
             const b = PH.pos, prevB = (PH.prevPos || b), p = padW;
+            if (IS_MOBILE && !webcamActive && needBounce() && bounces === 0) return;
+            const sw = getActiveSwipe();
+            const swipeDist = Math.hypot(sw.distX, sw.distY);
+            const swipeSpeed = Math.hypot(sw.peakVx * 0.65, sw.peakVy);
+            const gestureFresh = SWIPE.active || (SWIPE.lastStroke && now - SWIPE.lastStroke.time < 1000);
+            const downSwipe = !webcamActive && gestureFresh && sw.distY <= -32 && -sw.distY >= Math.abs(sw.distX) * 0.55;
+            const freshSwipe = !webcamActive && gestureFresh && (swipeDist >= 12 || swipeSpeed >= 75);
+            const freshTouchSwipe = IS_MOBILE && freshSwipe;
+            // 手機操作：來球進到可回擊區後，以有效滑動直接出拍，不要求畫面上的球拍碰到球。
+            const touchShotReady = freshTouchSwipe && b.y <= (downSwipe ? 3.2 : 2.2) &&
+                b.z >= (bounces > 0 ? 0.8 : KITCHEN_D + 0.1) && b.z <= HALF_L + 1.2 &&
+                (!needBounce() || bounces > 0);
             const isMegaPad = (typeof FunMode !== 'undefined' && FunMode.activeBuff === 'MEGA_PADDLE');
             const isMiniPad = (typeof FunMode !== 'undefined' && FunMode.activeBuff === 'MINI_PADDLE');
             const padScale = isMegaPad ? 3.8 : (isMiniPad ? 0.45 : 1.5); // ★ 巨無霸球拍 3.8 倍超寬判定，迷你拍 0.45 倍極限縮水，一般 1.5 倍
-            const assist = (webcamActive ? 1.45 : 1.0) * padScale;
+            const assist = (webcamActive ? 1.45 : 1.10) * padScale;
             const r = (swingT > 0 || hasValidSwing)
-                ? { z: (0.25 + BALL_R) * assist, x: (0.82 + BALL_R) * assist, y: (0.78 + BALL_R) * assist }
+                ? { z: ((webcamActive ? 0.36 : 0.25) + BALL_R) * assist, x: (0.85 + BALL_R) * assist, y: (0.80 + BALL_R) * assist }
                 : { z: (0.15 + BALL_R) * assist, x: (0.60 + BALL_R) * assist, y: (0.55 + BALL_R) * assist };
 
             // ★ 連續碰撞檢測 (Swept Continuous Collision Detection)：
@@ -1962,7 +2189,7 @@ function solveArc(fx, fy, fz, tx, tz, out, speedScale) {
             const minZ = Math.min(prevB.z, b.z) - r.z;
             const maxZ = Math.max(prevB.z, b.z) + r.z;
             const crossesZ = (p.z >= minZ && p.z <= maxZ) || (Math.abs(b.z - p.z) <= r.z);
-            if (!crossesZ) return;
+            if (!touchShotReady && !crossesZ) return;
 
             // 根據穿過球拍平面的時刻插值 X、Y 座標
             const dz = b.z - prevB.z;
@@ -1972,20 +2199,18 @@ function solveArc(fx, fy, fz, tx, tz, out, speedScale) {
 
             const inX = Math.abs(crossX - p.x) <= r.x || Math.abs(b.x - p.x) <= r.x;
             const inY = Math.abs(crossY - p.y) <= r.y || Math.abs(b.y - p.y) <= r.y;
-            if (!inX || !inY) return;
+            if (!touchShotReady && (!inX || !inY)) return;
 
             dismissFingerTutorial();
             const volley = (bounces === 0);
-
-            const sw = (typeof getActiveSwipe === 'function') ? getActiveSwipe() : SWIPE;
-            const swipeDist = Math.hypot(sw.distX, sw.distY);
-            const swipeSpeed = Math.hypot(sw.peakVx * 0.65, sw.peakVy);
+            const overheadSmash = downSwipe && volley && b.y >= 1.45 && !needBounce();
 
             // 判斷玩家當前是否具有主動出拍意圖 (體感嚴格仰賴揮拍事件；鍵盤/觸控仰賴蓄力或手指滑動)
-            const isSwingActive = webcamActive ? hasValidSwing : (swingT > 0 || swipeDist >= 12 || swipeSpeed >= 75);
+            const isSwingActive = webcamActive ? hasValidSwing : (IS_MOBILE ? freshTouchSwipe : (swingT > 0 || freshSwipe));
 
             // ── 未主動揮拍之防護 ──
             if (!isSwingActive) {
+                if (IS_MOBILE && !webcamActive) return;
                 if (volley) {
                     // 凌空球（接發球等候落地）：放行穿透，不攔截、不觸球、不判雙彈跳違規、不判廚房凌空犯規！
                     return;
@@ -2018,7 +2243,12 @@ function solveArc(fx, fy, fz, tx, tz, out, speedScale) {
                 }
             }
 
-            // ── 主動擊球正式成立 ──
+            // ── 主動擊球正式成立（先擷取揮拍事件峰值，避免 consumeSwingEvent 清空後讀不到） ──
+            const swingEvtSpeed = (hasValidSwing && currentSwingEvent && typeof currentSwingEvent.proxySpeed === 'number') ? currentSwingEvent.proxySpeed : 0;
+            const swingEvtPath = (hasValidSwing && currentSwingEvent && typeof currentSwingEvent.peakPath === 'number') ? currentSwingEvent.peakPath : 0;
+            const swingEvtTrajX = (hasValidSwing && currentSwingEvent && typeof currentSwingEvent.trajectoryX === 'number')
+                ? currentSwingEvent.trajectoryX
+                : ((typeof SWING !== 'undefined' && SWING && typeof SWING.peakDx === 'number') ? SWING.peakDx : 0);
             if (webcamActive && typeof consumeSwingEvent === 'function') {
                 consumeSwingEvent();
             }
@@ -2070,16 +2300,31 @@ function solveArc(fx, fy, fz, tx, tz, out, speedScale) {
             let ch = 0.20;
             let isPassiveBlock = false;
             
+            let isWebcamSmash = false;
             if (webcamActive) {
-                const isWeakSwing = (typeof KIN !== 'undefined' && KIN.vPeak < 1.05 && typeof SWING !== 'undefined' && SWING.path < 0.15)
-                    || (hasValidSwing && currentSwingEvent && currentSwingEvent.proxySpeed < 1.05 && typeof SWING !== 'undefined' && SWING.path < 0.15);
+                const effV = Math.max(
+                    (typeof KIN !== 'undefined' && KIN ? KIN.vPeak : 0),
+                    swingEvtSpeed
+                );
+                const effPath = Math.max(
+                    (typeof SWING !== 'undefined' && SWING ? SWING.path : 0),
+                    swingEvtPath
+                );
+                isWebcamSmash = volley && !needBounce() && b.y >= 1.25 && (effV >= 1.15 || effPath >= 0.14);
+                const isWeakSwing = (effV < 0.92 && effPath < 0.12);
                 if (isWeakSwing) {
                     isPassiveBlock = true;
                     ch = 0.12;
+                } else if (isWebcamSmash) {
+                    ch = 0.92;
+                } else if (volley) {
+                    // ★ 截擊力道強化：重速度輕路徑，使乾脆的推擋截擊達到 Level 3 Power Volley
+                    const volleyPower = Math.min(1.0, (effV / 1.35) * 0.70 + (effPath / 0.25) * 0.30);
+                    ch = THREE.MathUtils.clamp(volleyPower * 0.85, 0.32, 1.0);
                 } else {
-                    ch = THREE.MathUtils.clamp(hitPower(KIN.vPeak, SWING.path) / 100, 0.25, 1.0);
+                    ch = THREE.MathUtils.clamp(hitPower(effV, effPath) / 100, 0.18, 1.0);
                 }
-            } else if (swingT > 0) {
+            } else if (swingT > 0 && !freshSwipe) {
                 ch = THREE.MathUtils.clamp(swingP / 100, 0.15, 1.0);
             } else if (swipeDist < 12 && swipeSpeed < 75) {
                 isPassiveBlock = true;
@@ -2088,13 +2333,21 @@ function solveArc(fx, fy, fz, tx, tz, out, speedScale) {
                 const t = Math.max(0, (swipeDist - 12) / 33);
                 ch = 0.18 + t * 0.06;
             } else if (swipeDist < 100 && swipeSpeed < 700) {
-                const t = Math.max(0, (swipeDist - 45) / 55);
-                ch = 0.28 + t * 0.18;
+                const t = Math.max(0, (swipeDist - 45) / 55, (swipeSpeed - 320) / 380);
+                ch = 0.28 + Math.min(1.0, t) * 0.18;
             } else {
-                const t = Math.min(1.0, Math.max(0, (swipeSpeed - 700) / 800));
+                const tSpd = Math.min(1.0, Math.max(0, (swipeSpeed - 650) / 850));
+                const tDist = Math.min(1.0, Math.max(0, (swipeDist - 95) / 140));
+                const t = Math.max(tSpd, tDist * 0.85);
                 ch = 0.55 + t * 0.45;
             }
             swingT = 0;
+            const lateralSwipe = !webcamActive && gestureFresh && Math.abs(sw.distX) >= 18;
+            const swipeDirection = Math.sign(sw.distX);
+            let swipeAimX = b.x + swipeDirection * THREE.MathUtils.clamp(Math.abs(sw.distX) / 70, 0.65, 1.55);
+            // 保留邊線安全裕度 (0.55m)，防止高速側旋或斜線強抽漂出邊線
+            swipeAimX = THREE.MathUtils.clamp(swipeAimX, -COURT_W / 2 + 0.55, COURT_W / 2 - 0.55);
+            if (lateralSwipe && swipeDirection * (swipeAimX - b.x) < 0.08) swipeAimX = b.x + swipeDirection * 0.08;
 
             // ★ 🧱 對牆擊球特訓模式 (Wall Rebound Practice): 朝木牆瞄準發射
             if (isWallPractice) {
@@ -2108,9 +2361,9 @@ function solveArc(fx, fy, fz, tx, tz, out, speedScale) {
 
             // ★ 🌟 第三桿放短 (Third Shot Drop) 戰術判定：發球後第 3 桿自後場打出柔和下墜球落入廚房區
             const isThirdShot = (rallyHits === 1);
-            if (isThirdShot && b.z > 3.6 && ch <= 0.28 && !isPassiveBlock) {
+            if (isThirdShot && b.z > 3.6 && ch <= 0.28 && !isPassiveBlock && !downSwipe) {
                 const tz = -1.2; // 精準落入對手廚房區
-                const tx = THREE.MathUtils.clamp(padX * 0.6, -1.5, 1.5);
+                const tx = lateralSwipe ? swipeAimX : THREE.MathUtils.clamp(padX * 0.6, -1.5, 1.5);
                 solveArc(b.x, b.y, b.z, tx, tz, PH.vel, 0.76);
                 popFloatText(b.x, b.y, b.z, 'PERFECT!');
                 toast('🌟 完美第三桿放短！', 'PERFECT THIRD SHOT DROP · 成功瓦解對手網前壓迫！');
@@ -2132,45 +2385,74 @@ function solveArc(fx, fy, fz, tx, tz, out, speedScale) {
                 const torsoBias = THREE.MathUtils.clamp(torsoDeg / 28.0, -1.0, 1.0);
 
                 if (isServeState) {
+                    // 發球保留身體轉向瞄準
                     const aimZoneX = (typeof aimTargetX === 'function') ? aimTargetX() : 0;
                     tx = THREE.MathUtils.clamp(aimZoneX * 0.70 + wristFree * 0.40 + torsoBias * 0.40, -COURT_W / 2 + 0.5, COURT_W / 2 - 0.5);
                 } else {
-                    // 常規對打 (Rally)：瞄準平穩溫和 (腰腹轉身 60% + 手臂導向 40%)，落點嚴格限制在界內安全範圍
-                    const rallyAimX = torsoBias * 1.25 + wristFree * 0.65;
-                    tx = THREE.MathUtils.clamp(rallyAimX, -1.85, 1.85);
+                    // 常規回球：先核對前鏡頭鏡像方向，以本次揮拍左右軌跡作為主要出球方向，身體轉向作顯著導向
+                    const activeTrajX = (Math.abs(swingEvtTrajX) > 0.02)
+                        ? swingEvtTrajX
+                        : ((typeof SWING !== 'undefined' && SWING && Math.abs(SWING.peakDx) > 0.02) ? SWING.peakDx : 0);
+
+                    let primaryDirX = 0;
+                    if (Math.abs(activeTrajX) > 0.03) {
+                        // 往右揮拍 activeTrajX > 0，球穩定往右側場地飛；往左揮拍 activeTrajX < 0，球穩定往左飛
+                        primaryDirX = THREE.MathUtils.clamp(activeTrajX * 4.2, -1.8, 1.8) + wristFree * 0.35;
+                    } else {
+                        // 直向推拍或未顯著刷拍時，以手部當前指向為主
+                        primaryDirX = wristFree * 1.25;
+                    }
+
+                    // 身體轉向顯著導向 (1.25 權重，滿足玩家用力轉向時打出大角度對角線球)
+                    const rallyAimX = primaryDirX * 0.85 + torsoBias * 1.25;
+                    tx = THREE.MathUtils.clamp(rallyAimX, -2.40, 2.40);
                 }
                 spin = (typeof getSwipeCurve === 'function') ? getSwipeCurve() : 0;
             } else {
                 spin = getSwipeCurve();
-                // 初速瞄準微調：曲球先朝反向/內側啟動，再由馬格努斯側向力優雅劃出經典香蕉弧線
-                // 若甩球過猛 (|spin| > 1.10)，限制初始偏角，使最誇張出界僅在邊線/底線外0.5~0.8米以內，絕不暴衝
-                if (Math.abs(spin) > 1.10) {
-                    tx = Math.sign(spin) * 1.55; // 限制橫向初速度，保證最誇張出界不超過邊線外 0.8m
-                } else if (Math.abs(spin) >= 0.20) {
-                    // 香蕉弧線初始彈道：反向引導 (-spin * 0.55)，由馬格努斯效應優雅兜回場內！
-                    tx = -spin * 0.55 + (padX * 0.4);
+                // 左右滑先決定球的起飛方向；側旋只能順著該方向彎，不再反向起手。
+                if (lateralSwipe) {
+                    tx = swipeAimX;
+                    spin = swipeDirection * Math.min(Math.abs(spin), 0.75);
                 } else {
-                    // 純直球：依照拍面橫向位置自然微調瞄準，零自旋零偏漂
-                    tx = THREE.MathUtils.clamp(padX * 0.85, -1.8, 1.8);
+                    tx = downSwipe ? 0 : THREE.MathUtils.clamp(padX * 0.35, -0.45, 0.45);
+                    spin = THREE.MathUtils.clamp(spin, -0.75, 0.75);
                 }
             }
 
             PH.spin = spin; PH.spinInc = 0;
 
             // 側旋切球裁判廣播 (只在顯著自旋且非暴抽時提示，避免過度干擾)
-            if (Math.abs(spin) >= 0.25) {
+            if (!downSwipe && Math.abs(spin) >= 0.25) {
                 const spinSideTxt = spin > 0 ? '⭐ 寶可夢式右曲球 (RIGHT CURVE)' : '⭐ 寶可夢式左曲球 (LEFT CURVE)';
                 announceReferee(spinSideTxt, Math.abs(spin) > 1.10 ? '⚠️ 甩球過猛，球偏出界外！' : '精準曲球已觸發', false);
             }
 
-            // ★ v5.0.14 依手指滑動階梯精確解算落點 (0動=被動擋球/掛網, 微動=廚房丁克, 中推=深球, 大動=抽殺)
+            // ★ 依力道階梯與是否為合法凌空截擊 (volley) 解算落點與平快軌跡（不改動 b.y，避免球體位置瞬移）
             let tz = -3.5, spdScale = 1.0;
-            if (isChanceBall && (ch >= 0.22 || b.y > 0.70 || swipeDist > 20 || swipeSpeed > 180)) {
+            if (downSwipe || isWebcamSmash) {
+                spin = 0; PH.spin = 0;
+                const isSmash = (overheadSmash || isWebcamSmash);
+                ch = Math.max(ch, isSmash ? 0.88 : 0.58);
+                tz = isSmash ? -3.35 : -4.65;
+                spdScale = isSmash ? 1.68 : 1.38;
+                solveArc(b.x, b.y, b.z, tx, tz, PH.vel, spdScale);
+                if (isSmash) {
+                    popFloatText(b.x, b.y, b.z, 'SMASH!');
+                    toast('💥 凌空殺球！', isWebcamSmash ? '體感重扣極速殺球！' : (lateralSwipe ? (swipeDirection > 0 ? '右下殺球' : '左下殺球') : '正面殺球'));
+                    addShake(0.24);
+                    popRing(b.x, b.z, 2.8, 0xff4500);
+                    if (typeof S !== 'undefined' && S.thump) S.thump(1.6);
+                    isChanceBall = false;
+                } else {
+                    toast('💥 強力回球！', '低球或落地球以強力平抽回擊');
+                }
+            } else if (isChanceBall && (ch >= 0.22 || b.y > 0.70 || swipeDist > 20 || swipeSpeed > 180)) {
                 // ★ 機會球凌空扣殺：抓到浮高破綻，強制轉為極速暴扣 (SMASH WINNER)！
                 ch = Math.max(ch, 0.85);
                 tz = -(HALF_L - 0.70); // -5.30m (直轟對角深線)
-                tx = (gGrp.position.x > 0 ? -1.65 : 1.65); // 殺向遠離對手的無人死角
-                spdScale = 1.45; // 極速重扣
+                tx = lateralSwipe ? swipeAimX : (gGrp.position.x > 0 ? -1.65 : 1.65);
+                spdScale = 1.55; // 極速重扣
                 solveArc(b.x, b.y, b.z, tx, tz, PH.vel, spdScale);
                 popFloatText(b.x, b.y, b.z, 'SMASH!');
                 toast('💥 凌空扣殺得分 (SMASH WINNER)!', '抓到浮高破綻，極速重扣殺向空檔！');
@@ -2201,27 +2483,36 @@ function solveArc(fx, fy, fz, tx, tz, out, speedScale) {
                 } else {
                     // 借力卸力柔和過網，落入廚房前端 (0.75m ~ 1.25m)
                     tz = -(0.75 + Math.min(1.0, (incomingEnergy - 4.8) / 6.0) * 0.50);
-                    spdScale = 0.60;
+                    spdScale = volley ? 0.58 : 0.60;
                     solveArc(b.x, b.y, b.z, tx, tz, PH.vel, spdScale);
                 }
             } else if (ch < 0.26) {
-                // 第 1 級：稍微動一點點 -> 100% 精準落在廚房區 (Kitchen Dink: 1.15m ~ 1.75m)
-                const k = (ch - 0.18) / 0.08;
+                // 第 1 級：輕推 / 輕擋截擊 -> 柔和慢速落在廚房區 (Kitchen Dink / Soft Volley: 1.15m ~ 1.75m)
+                const k = THREE.MathUtils.clamp((ch - 0.18) / 0.08, 0, 1);
                 tz = -(1.15 + k * 0.60); // 1.15m ~ 1.75m (廚房線以內)
-                spdScale = 0.65; // ★ 柔和低速弧線 (約 5.5 m/s)
+                spdScale = volley ? (0.62 + k * 0.06) : 0.65; // ★ 柔和低速弧線 (約 5.5 m/s)
                 solveArc(b.x, b.y, b.z, tx, tz, PH.vel, spdScale);
             } else if (ch < 0.52) {
-                // 第 2 級：稍微動多一點 -> 落在廚房線後緣或過渡區 (Deep Dink / Drop: 2.10m ~ 3.60m)
-                const k = (ch - 0.26) / 0.26;
-                tz = -(2.10 + k * 1.50); // 2.10m ~ 3.60m
-                spdScale = 0.95 + k * 0.15;
+                // 第 2 級：中等力道 -> 過渡區深推球 或 網前快推截擊 (Punch Volley / Deep Drop)
+                const k = THREE.MathUtils.clamp((ch - 0.26) / 0.26, 0, 1);
+                if (volley) {
+                    tz = -(3.25 + k * 1.25); // -3.25m ~ -4.50m
+                    spdScale = 1.18 + k * 0.24; // 1.18 ~ 1.42
+                } else {
+                    tz = -(2.10 + k * 1.50); // -2.10m ~ -3.60m
+                    spdScale = 0.95 + k * 0.17;
+                }
                 solveArc(b.x, b.y, b.z, tx, tz, PH.vel, spdScale);
             } else {
-                // 第 3 級：大幅/快速滑動 -> 底線平抽或扣殺 (Power Drive / Smash)
-                const k = (ch - 0.52) / 0.48;
-                // 校準目標深度與初速縮放：即使極限抽殺，落地距底線最誇張亦壓在 0.8m 以內 (不超過 -7.5m)
-                tz = -(4.40 + k * 1.70); // -4.40m ~ -6.10m
-                spdScale = 1.10 + k * 0.25; // 1.10 ~ 1.35
+                // 第 3 級：大幅/快速滑動或強力揮拍 -> 底線平抽 (Power Drive) 或 強力平快截擊 (Power Volley)
+                const k = THREE.MathUtils.clamp((ch - 0.52) / 0.48, 0, 1);
+                if (volley) {
+                    tz = -(4.80 + k * 1.15); // -4.80m ~ -5.95m
+                    spdScale = 1.48 + k * 0.34; // 1.48 ~ 1.82
+                } else {
+                    tz = -(4.40 + k * 1.65); // -4.40m ~ -6.05m
+                    spdScale = 1.28 + k * 0.38; // 1.28 ~ 1.66
+                }
                 solveArc(b.x, b.y, b.z, tx, tz, PH.vel, spdScale);
             }
 
@@ -2238,14 +2529,21 @@ function solveArc(fx, fy, fz, tx, tz, out, speedScale) {
             }
 
             const hitMph = Math.round(PH.vel.length() * 2.23694);
-            const hitType = volley ? 'VOLLEY' : (ch < 0.5 ? 'DINK' : 'POWER SHOT');
+
+            // ★ 正手/反手判定：依球相對持拍手 (右手持拍) 的位置判斷，不把「畫面右側」直接寫死成反手
+            const padHandX = (typeof padW !== 'undefined' && padW) ? padW.x : (pPos.x + 0.18);
+            const isForehand = (b.x >= (padHandX - 0.12));
+            const strokeSideName = isForehand ? '正手' : '反手';
+            const strokeSideCode = isForehand ? 'FOREHAND' : 'BACKHAND';
+            const baseHitType = overheadSmash ? 'SMASH' : (volley ? 'VOLLEY' : (ch < 0.5 ? 'DINK' : 'POWER SHOT'));
+            const hitType = (baseHitType === 'SMASH') ? 'SMASH' : (strokeSideCode + '_' + baseHitType);
 
             if (stage === 3 && !volley) {
                 S.pop(0.4 + ch * 0.6);
-                toast('NICE DINK! · ' + hitMph + ' mph', '成功完成中興湖廚房合法回擊!');
+                toast('NICE ' + strokeSideName + ' DINK! · ' + hitMph + ' mph', '成功完成中興湖廚房合法回擊!');
                 twoBounceDone = 1; updateGoal();
                 auditLogAdd({
-                    stage: stage, type: hitType, hitter: 'PLAYER', speed: hitMph,
+                    stage: stage, type: hitType, strokeSide: strokeSideCode, hitter: 'PLAYER', speed: hitMph,
                     power: Math.round(ch * 100), spin: +spin.toFixed(2), chain: chainRes,
                     stance: { ok: stanceOK, bal: +stanceBal.toFixed(2) }, outcome: '廚房合法回擊 (過關)'
                 });
@@ -2258,20 +2556,21 @@ function solveArc(fx, fy, fz, tx, tz, out, speedScale) {
 
             // ★ 統一單一高品質 Toast 回饋，杜絕 0ms 內連續覆蓋與閃爍
             const spinBadge = Math.abs(spin) >= 0.20 ? (spin > 0 ? '🌪️ 右側旋 · ' : '🌪️ 左側旋 · ') : '';
-            if (!isChanceBall) {
+            if (!isChanceBall && !downSwipe) {
+                const sidePrefix = (webcamActive ? strokeSideName : '');
                 if (isPassiveBlock) {
-                    if (tz < -0.2) toast('🎾 減力擋球 · ' + hitMph + ' mph', '借力卸力柔和過網，落入廚房前端');
+                    if (tz < -0.2) toast((volley ? ('🎾 ' + sidePrefix + '輕擋截擊 · ') : ('🎾 ' + sidePrefix + '減力擋球 · ')) + hitMph + ' mph', '借力卸力柔和過網，落入廚房前端');
                 } else if (ch < 0.26) {
-                    toast(spinBadge + '🎾 廚房精準丁克 · ' + hitMph + ' mph', '柔和越網，貼網低彈跳');
+                    toast(spinBadge + (volley ? ('🎾 ' + sidePrefix + '輕推截擊 · ') : ('🎾 ' + sidePrefix + '精準丁克 · ')) + hitMph + ' mph', '柔和越網，貼網低彈跳');
                 } else if (ch < 0.52) {
-                    toast(spinBadge + '🎾 過渡區深推球 · ' + hitMph + ' mph', '壓制在對手腳邊');
+                    toast(spinBadge + (volley ? ('⚡ ' + sidePrefix + '平推截擊 · ') : ('🎾 ' + sidePrefix + '深推球 · ')) + hitMph + ' mph', volley ? '網前俐落攔截壓深' : '壓制在對手腳邊');
                 } else {
-                    toast(spinBadge + '💥 重砲抽球 · ' + hitMph + ' mph', '極速直轟底線！');
+                    toast(spinBadge + (volley ? ('💥 ' + sidePrefix + '強力截擊 · ') : ('💥 ' + sidePrefix + '重砲抽球 · ')) + hitMph + ' mph', volley ? '高速平飛壓制底線！' : '極速直轟底線！');
                 }
             }
 
             auditLogAdd({
-                stage: stage, type: hitType, hitter: 'PLAYER', speed: hitMph,
+                stage: stage, type: hitType, strokeSide: strokeSideCode, hitter: 'PLAYER', speed: hitMph,
                 power: Math.round(ch * 100), spin: +spin.toFixed(2), chain: chainRes,
                 stance: { ok: stanceOK, bal: +stanceBal.toFixed(2) }, outcome: '合法回擊'
             });
@@ -2289,7 +2588,7 @@ function solveArc(fx, fy, fz, tx, tz, out, speedScale) {
         const groundHit = new THREE.Vector3();
 
         function updatePlayer(dt) {
-            if (demoOn) return;
+            if (demoOn || courtEntrance) return;
 
             // ★ ⚡ 霹靂電蚊拍：第三人稱動態越肩自動鎖定與觸控拖曳過網追殺 (Third-Person Chase & Rush across the Net)
             const isHunting = (typeof FunMode !== 'undefined' && FunMode.activeBuff === 'ELECTRIC_SWATTER');
@@ -2521,7 +2820,39 @@ function solveArc(fx, fy, fz, tx, tz, out, speedScale) {
                     maxSpeed *= 0.40;
                 }
 
-                if (Math.hypot(joyAnalog.x, joyAnalog.z) > 0.05) {
+                const hasManualMove = Math.hypot(joyAnalog.x, joyAnalog.z) > 0.05 || keys.w || keys.a || keys.s || keys.d;
+                if (typeof movementMode !== 'undefined' && movementMode === 'auto' && !hasManualMove &&
+                    (state === 'RALLY' || state === 'SERVE_AIR')) {
+                    let wantX = 0;
+                    let wantZ = dinkRallyCount > 0 ? KITCHEN_D + 0.35 : HALF_L - 0.40;
+                    if (PH.vel.z > 0) {
+                        const hasLand = predictLanding(_land) && _land.z > 0;
+                        const mustBounce = needBounce() && bounces === 0;
+                        if (hasLand) {
+                            wantX = _land.x;
+                            if (mustBounce) {
+                                wantZ = Math.max(KITCHEN_D + 0.30, _land.z + 0.55);
+                            } else if (_land.z < KITCHEN_D) {
+                                wantZ = bounces > 0 ? Math.max(1.20, _land.z + 0.40) : KITCHEN_D + 0.30;
+                            } else {
+                                wantZ = _land.z + 0.55;
+                            }
+                        } else {
+                            wantX = PH.pos.x;
+                            wantZ = Math.max(KITCHEN_D + 0.30, PH.pos.z + 0.85);
+                        }
+                    }
+                    wantX = THREE.MathUtils.clamp(wantX, -COURT_W / 2 + 0.40, COURT_W / 2 - 0.40);
+                    wantZ = THREE.MathUtils.clamp(wantZ, 1.20, HALF_L + 0.50);
+                    const dx = wantX - pPos.x;
+                    const dz = wantZ - pPos.z;
+                    const distance = Math.hypot(dx, dz);
+                    if (distance > 0.12) {
+                        const speed = Math.min(maxSpeed, distance * 4);
+                        targetVx = dx / distance * speed;
+                        targetVz = dz / distance * speed;
+                    }
+                } else if (Math.hypot(joyAnalog.x, joyAnalog.z) > 0.05) {
                     targetVx = joyAnalog.x * maxSpeed;
                     targetVz = joyAnalog.z * maxSpeed;
                 } else {
@@ -2621,6 +2952,10 @@ function solveArc(fx, fy, fz, tx, tz, out, speedScale) {
             }
             pPad.getWorldPosition(padW);
             limb(pArm, _b.set(0.2, 1.16, 0.02), _a.set(padX, padY - 0.17, -0.24));
+            if (state === 'CLEARED' && victoryCamTime > 0) {
+                pGrp.position.y = Math.abs(Math.sin(performance.now() * 0.014)) * 0.12;
+                if (pLeftArm) pLeftArm.rotation.z = -0.5 + Math.sin(performance.now() * 0.014) * 0.2;
+            } else if (pLeftArm) pLeftArm.rotation.z = 0.16;
             if (state === 'SERVE_READY' && server === 'PLAYER') PH.reset(padW.x - 0.22, Math.max(BALL_R, padW.y + 0.1), padW.z - 0.06);
         }
         function planShot() {
@@ -2693,7 +3028,7 @@ function gooseForceNet(b) {
     PH.vel.set((xn - b.x) / T, (0.45 - b.y + 0.5 * GRAVITY * T * T) / T, -b.z / T);
 }
         function updateGoose(dt) {
-            if (demoOn || (typeof isWallPractice !== 'undefined' && isWallPractice) || !gGrp || !gGrp.visible) return;
+            if (demoOn || courtEntrance || (typeof isWallPractice !== 'undefined' && isWallPractice) || !gGrp || !gGrp.visible) return;
             const isFly = (typeof diffLevel !== 'undefined' && diffLevel === 'fly');
 
             const active = (state === 'RALLY' || state === 'SERVE_AIR');
@@ -3614,7 +3949,9 @@ function updateGuides(dt) {
                 if (cachedMiniPwr) cachedMiniPwr.innerText = power.toFixed(0) + '%';
             }
 
-            PH.update(dt); tryHit(); updateGoose(dt); updateGuides(dt);
+            if (demoOn && dBallKeys) demoBallPose();
+            else PH.update(dt);
+            tryHit(); updateGoose(dt); updateCourtEntrance(dt); updateGuides(dt);
             if (typeof FunMode !== 'undefined') FunMode.update(dt);
             updateAimZones(dt); updateRings(dt);
 
@@ -3643,7 +3980,45 @@ function updateGuides(dt) {
             const sy = (Math.random() - 0.5) * shake * 0.7;
 
             const isHuntingCam = (typeof FunMode !== 'undefined' && FunMode.activeBuff === 'ELECTRIC_SWATTER');
-            if (isHuntingCam) {
+            if (courtEntrance) {
+                const shot = courtEntrance.time < 0.85 ? 0 : (courtEntrance.time < 1.65 ? 1 : 2);
+                if (shot !== courtEntrance.shot) {
+                    courtEntrance.shot = shot;
+                    if (shot === 0) {
+                        cam.position.set(pPos.x + 1.7, 1.8, pPos.z - 2.8);
+                        camLookTarget.set(pPos.x, 0.95, pPos.z);
+                    } else if (shot === 1) {
+                        if (courtEntrance.kind === 'swan') {
+                            cam.position.set(gGrp.position.x - 1.55, 1.15, gGrp.position.z + 2.3);
+                            popRing(gGrp.position.x, gGrp.position.z, 1.7, 0xc4b5fd);
+                            updateGooseEmote('🦢');
+                        } else if (courtEntrance.kind === 'boss') {
+                            cam.position.set(gGrp.position.x - 1.35, 0.95, gGrp.position.z + 2.1);
+                            popRing(gGrp.position.x, gGrp.position.z, 1.4, 0xfacc15);
+                            updateGooseEmote('👑');
+                        } else if (courtEntrance.kind === 'fly') {
+                            cam.position.set(gGrp.position.x - 1.4, 2.15, gGrp.position.z + 2.25);
+                            popRing(gGrp.position.x, gGrp.position.z, 1.0, 0xa855f7);
+                            updateGooseEmote('⚡');
+                        } else cam.position.set(gGrp.position.x - 1.7, 1.8, gGrp.position.z + 2.8);
+                        camLookTarget.set(gGrp.position.x, courtEntrance.kind === 'swan' ? 1.55 : courtEntrance.kind === 'boss' ? 1.35 : 0.95, gGrp.position.z);
+                    } else {
+                        cam.position.set(8.0, 3.6, 0);
+                        camLookTarget.set(0, 0.85, 0);
+                    }
+                }
+                if (shot === 0) camLookTarget.set(pPos.x, 0.95, pPos.z);
+                else if (shot === 1) camLookTarget.set(gGrp.position.x, courtEntrance.kind === 'swan' ? 1.55 : courtEntrance.kind === 'boss' ? 1.35 : 0.95, gGrp.position.z);
+                cam.lookAt(camLookTarget);
+            } else if (victoryCamTime > 0 && state === 'CLEARED') {
+                victoryCamTime = Math.max(0, victoryCamTime - dt);
+                const orbit = (1 - victoryCamTime / 1.6) * Math.PI;
+                const frontPos = _camDesPos.set(pPos.x + Math.sin(orbit) * 3.2, 2.1, pPos.z + Math.cos(orbit) * 3.2);
+                const frontLook = _camDesLook.set(pPos.x, 1.0, pPos.z);
+                cam.position.lerp(frontPos, Math.min(1, dt * 3.5));
+                camLookTarget.lerp(frontLook, Math.min(1, dt * 6));
+                cam.lookAt(camLookTarget);
+            } else if (isHuntingCam) {
                 huntReturnTimer = 0.45; // 標記離開追殺時需平滑回航
                 const targetObj = (typeof gGrp !== 'undefined' && gGrp) ? gGrp.position : { x: 0, z: -HALF_L * 0.7 };
                 const desiredPos = _camDesPos;
@@ -3747,6 +4122,7 @@ function updateGuides(dt) {
                 }
             }
 
+            updateHitCue();
             ren.render(scene, cam);
         }
 
@@ -3878,7 +4254,7 @@ function updateGuides(dt) {
                     stampEl.innerText = 'VICTORY!';
                     stampEl.style.color = '#10b981';
                     stampEl.style.borderColor = '#10b981';
-                    msgEl.innerText = '「太精彩了！村長鵝為你熱烈鼓掌，中興大學的球迷們都為你的球技歡呼！」';
+                    msgEl.innerText = stage === 7 ? '「你以 11 分制擊敗冠軍匹克黑天鵝，拿下中興湖最終冠軍！」' : '「太精彩了！村長鵝為你熱烈鼓掌，中興大學的球迷們都為你的球技歡呼！」';
                     if (S && S.fanfare) S.fanfare();
                 } else {
                     stampEl.innerText = 'NICE PLAY!';
@@ -3901,7 +4277,10 @@ function updateGuides(dt) {
                     switchStage(stage + 1, { fromClear: true });
                 } else if (stage === 5) {
                     if (typeof submitScoreToCloud === 'function') submitScoreToCloud(pScore);
-                    switchStage(6, { fromClear: true });
+                    switchStage(7, { fromClear: true, showEntrance: true });
+                } else if (stage === 7) {
+                    toast('🦢 黑天鵝冠軍賽完成！', '可從關卡選單再次挑戰。');
+                    if (typeof openModeHub === 'function') openModeHub();
                 } else {
                     resetServe();
                 }
@@ -4117,8 +4496,10 @@ function handleStageResize() {
     cam.updateProjectionMatrix();
     BALL_VIS.base = cfg.ballScale;
     BALL_VIS.glow = cfg.glowScale;
-    const curPR = PERF_PRESETS[perfLevel] ? PERF_PRESETS[perfLevel].pixelRatio : 2.0;
-    ren.setPixelRatio(Math.min(window.devicePixelRatio || 2, curPR));
+    const isMobile = (typeof isMobileDevice !== 'undefined') ? isMobileDevice : /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent || '');
+    const maxPR = isMobile ? 1.4 : 2.0;
+    const curPR = (typeof PERF_PRESETS !== 'undefined' && typeof perfLevel !== 'undefined' && PERF_PRESETS[perfLevel]) ? Math.min(PERF_PRESETS[perfLevel].pixelRatio, maxPR) : maxPR;
+    ren.setPixelRatio(Math.min(window.devicePixelRatio || 1.5, curPR));
     ren.setSize(dims.w, dims.h);
 }
 
@@ -4209,6 +4590,7 @@ function handleStageResize() {
         syncAimPips();
         syncBottomCollapseUI();
         if (typeof syncJoySpeedUI === 'function') syncJoySpeedUI();
+        if (typeof syncMovementModeUI === 'function') syncMovementModeUI();
         if (typeof syncNetAssistUI === 'function') syncNetAssistUI();
         syncPhysicsModeUI();
         syncSubbarStates();

@@ -73,6 +73,7 @@
                 document.getElementById('joy').classList.add('cam-mode');
                 D.camVert.classList.add('on');
             }
+            if (typeof syncMovementModeUI === 'function') syncMovementModeUI();
             updateCamEditUI();
             toast('🎨 自訂視角編輯中', IS_MOBILE ? '搖桿暫時用來調鏡頭' : '用 U J I K O L 調整');
         }
@@ -84,8 +85,9 @@
             D.camEdit.classList.remove('on');
             document.getElementById('joy').classList.remove('cam-mode');
             D.camVert.classList.remove('on');
+            if (typeof syncMovementModeUI === 'function') syncMovementModeUI();
             saveCamCustom();
-            toast('✓ 視角已儲存', '搖桿恢復為移動控制');
+            toast('✓ 視角已儲存', movementMode === 'auto' ? '已恢復自動跑位' : '搖桿恢復為移動控制');
         }
         function resetCamCustom() {
             camCustom.h = CAM_DEF.h; camCustom.dist = CAM_DEF.dist; camCustom.yaw = CAM_DEF.yaw;
@@ -1331,11 +1333,11 @@ function cycleTeachLevelQuick() {
             const role = document.getElementById('hub-role-tag');
             if (av) av.innerText = (typeof playerProfile !== 'undefined' && playerProfile.avatar) ? playerProfile.avatar : '🧢';
             if (nk) nk.innerText = (typeof playerProfile !== 'undefined' && playerProfile.nickname) ? playerProfile.nickname : '興大球神';
-            if (dp) dp.innerText = (typeof playerProfile !== 'undefined' && playerProfile.department) ? (playerProfile.department + ' · 國立中興大學') : '國立中興大學匹克球社群';
+            if (dp) dp.innerText = (typeof playerProfile !== 'undefined' && playerProfile.department) ? (playerProfile.department + ' · 興大') : '國立中興大學 · 匹克球社群';
             if (role) {
                 const isGuest = (typeof playerProfile !== 'undefined' && (playerProfile.sidPrefix === 'GUEST' || !playerProfile.sidPrefix || playerProfile.isGuest));
                 if (isGuest) {
-                    role.innerText = '👟 訪客 (點擊轉正)';
+                    role.innerText = '👟 訪客';
                     role.style.background = '#e2d1b3';
                     role.style.color = '#6b5239';
                 } else {
@@ -1344,8 +1346,7 @@ function cycleTeachLevelQuick() {
                     role.style.color = '#2e7d32';
                 }
             }
-            const camBtn = document.getElementById('hub-webcam-btn');
-            if (camBtn) camBtn.innerText = '📷 體感: ' + (typeof webcamActive !== 'undefined' && webcamActive ? '開' : '關');
+            updateHubMotionBtn();
             hub.style.display = 'flex';
             if (typeof closePanel === 'function') closePanel();
             if (typeof HubSandbox !== 'undefined' && HubSandbox.start) {
@@ -1387,12 +1388,14 @@ function cycleTeachLevelQuick() {
             "【第 2 關 · 雙彈跳特訓】接發球方與發球方各讓球落地一次後方能截擊，建立防守節奏！",
             "【第 3 關 · 廚房區短打】不可在廚房區凌空截擊！精準控球放短，壓制網前鵝鵝！",
             "【第 4 關 · 決戰神鵝】中興湖傳奇神鵝親自過招！速度與旋轉全面升級！",
-            "【第 5 關 · 終極冠軍賽】頂尖對決！結合馬格努斯旋球與動力鏈發力奪得島嶼冠軍！"
+            "【第 5 關 · 匹克鵝大魔王】打贏大魔王後，挑戰冠軍匹克黑天鵝！",
+            "",
+            "【第 7 關 · 黑天鵝冠軍賽】先得 11 分且領先 2 分，才能拿下冠軍！"
         ];
 
         function selectDockStage(n) {
             hubSelectedStage = n;
-            for (let i = 1; i <= 5; i++) {
+            for (let i = 1; i <= 7; i++) {
                 const btn = document.getElementById(`dock-stage-btn-${i}`);
                 if (btn) btn.classList.toggle('on', i === n);
             }
@@ -1407,7 +1410,7 @@ function cycleTeachLevelQuick() {
             closeDockPicker();
             closeModeHub();
             if (typeof switchStage === 'function') {
-                switchStage(hubSelectedStage || 1);
+                switchStage(hubSelectedStage || 1, { showEntrance: true });
             }
         }
 
@@ -1423,7 +1426,7 @@ function cycleTeachLevelQuick() {
             closeDockPicker();
             closeModeHub();
             if (typeof switchStage === 'function') {
-                switchStage(6);
+                switchStage(6, { showEntrance: true });
             }
         }
 
@@ -1486,6 +1489,9 @@ function cycleTeachLevelQuick() {
                 const gs = (typeof gScore === 'number') ? gScore : (typeof gooseScore !== 'undefined' ? gooseScore : 0);
                 scTxt.innerText = `${ps} - ${gs}`;
             }
+            if (typeof syncStagePickerUI === 'function') {
+                syncStagePickerUI();
+            }
         }
 
         function startWallPractice() {
@@ -1539,6 +1545,38 @@ function cycleTeachLevelQuick() {
             closeDiffPicker();
         }
 
+        /* ═══════ 關卡直選彈窗控制器 (Stage Picker Controller) ═══════ */
+        function openStagePicker() {
+            const m = document.getElementById('stage-picker-modal');
+            if (!m) return;
+            m.style.display = 'flex';
+            syncStagePickerUI();
+            if (typeof S !== 'undefined' && S.swap) S.swap();
+        }
+
+        function closeStagePicker() {
+            const m = document.getElementById('stage-picker-modal');
+            if (m) m.style.display = 'none';
+        }
+
+        function selectStagePicker(n) {
+            const stageNum = parseInt(n, 10);
+            if (isNaN(stageNum) || stageNum < 1 || stageNum > 7) return;
+            if (typeof switchStage === 'function') {
+                switchStage(stageNum);
+            }
+            if (typeof S !== 'undefined' && S.point) S.point();
+            closeStagePicker();
+        }
+
+        function syncStagePickerUI() {
+            const curStage = (typeof stage === 'number') ? stage : 1;
+            for (let i = 1; i <= 7; i++) {
+                const card = document.getElementById('stage-card-' + i);
+                if (card) card.classList.toggle('on', i === curStage);
+            }
+        }
+
         function openCommunityModal() {
             const m = document.getElementById('community-modal');
             if (m) {
@@ -1564,6 +1602,10 @@ function cycleTeachLevelQuick() {
         window.openDiffPicker = openDiffPicker;
         window.closeDiffPicker = closeDiffPicker;
         window.selectDiffLevel = selectDiffLevel;
+        window.openStagePicker = openStagePicker;
+        window.closeStagePicker = closeStagePicker;
+        window.selectStagePicker = selectStagePicker;
+        window.syncStagePickerUI = syncStagePickerUI;
         window.openCommunityModal = openCommunityModal;
         window.closeCommunityModal = closeCommunityModal;
         window.openDockPicker = openDockPicker;
@@ -1786,7 +1828,7 @@ function cycleTeachLevelQuick() {
         /* ── 首頁雙入口 ── */
         function hubPlayNow() {
             closeModeHub();
-            if (typeof switchStage === 'function') switchStage(1);
+            if (typeof switchStage === 'function') switchStage(1, { showEntrance: true });
         }
 
         function hubMotionPractice() {
@@ -1794,6 +1836,33 @@ function cycleTeachLevelQuick() {
             if (typeof startWallPractice === 'function') {
                 startWallPractice();
                 checkFirstPlayOnboarding();
+            }
+        }
+
+        function toggleHubMotion() {
+            if (typeof toggleWebcamAI === 'function') {
+                toggleWebcamAI();
+            }
+            updateHubMotionBtn();
+        }
+
+        function updateHubMotionBtn() {
+            const btn = document.getElementById('hub-motion-btn') || document.getElementById('hub-webcam-btn');
+            if (!btn) return;
+            const isActive = (typeof isWebcamActive === 'function') ? isWebcamActive() : (typeof webcamActive !== 'undefined' && webcamActive);
+            const isStarting = (typeof isWebcamStarting === 'function') ? isWebcamStarting() : (typeof webcamStarting !== 'undefined' && webcamStarting);
+            if (isActive) {
+                btn.innerText = '📷 體感：開';
+                btn.title = '相機體感運行中，點擊關閉相機';
+                btn.classList.add('active-motion');
+            } else if (isStarting) {
+                btn.innerText = '⏳ 啟動中…';
+                btn.title = '相機正在啟動中…';
+                btn.classList.remove('active-motion');
+            } else {
+                btn.innerText = '📷 體感系統';
+                btn.title = '點擊開啟相機體感系統 (支援前鏡頭揮拍)';
+                btn.classList.remove('active-motion');
             }
         }
 
@@ -1886,6 +1955,8 @@ function cycleTeachLevelQuick() {
         window.fallbackToManualMode = fallbackToManualMode;
         window.hubPlayNow = hubPlayNow;
         window.hubMotionPractice = hubMotionPractice;
+        window.toggleHubMotion = toggleHubMotion;
+        window.updateHubMotionBtn = updateHubMotionBtn;
         window.isOnboardingActive = () => isOnboardingActive;
         window.getOnboardingStep = () => onboardingCurrentStep;
         window.anyModalOpen = anyModalOpen;

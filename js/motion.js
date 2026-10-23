@@ -20,7 +20,9 @@
             const p = PERF_PRESETS[level]; if (!p) return;
             perfLevel = level; frameSkip = p.frameSkip;
             try { localStorage.setItem('nchu_pb_perf', level); } catch(e) {}
-            const dpr = Math.min(window.devicePixelRatio || 2, p.pixelRatio);
+            const isMobile = (typeof isMobileDevice !== 'undefined') ? isMobileDevice : /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent || '');
+            const maxPR = isMobile ? 1.4 : 2.0;
+            const dpr = Math.min(window.devicePixelRatio || 1.5, Math.min(p.pixelRatio, maxPR));
             const stageEl = document.getElementById('stage3d');
             const sw = (stageEl && stageEl.clientWidth) ? stageEl.clientWidth : window.innerWidth;
             const sh = (stageEl && stageEl.clientHeight) ? stageEl.clientHeight : window.innerHeight;
@@ -183,15 +185,22 @@
             KIN.dtEMA = KIN.dtEMA * 0.7 + dtRaw * 0.3;
             const dt = Math.max(0.016, KIN.dtEMA);
             const vNow = step / dt;
-            KIN.vEMA = KIN.vEMA * 0.65 + vNow * 0.35;
-            KIN.vPeak = Math.max(KIN.vPeak * (1 - 1.8 * dtRaw), KIN.vEMA);
+            // Landmarks 已通過 OneEuroFilter，降低二次 EMA 滯後以即時捕捉短促揮拍/截擊峰值
+            KIN.vEMA = KIN.vEMA * 0.45 + vNow * 0.55;
+            KIN.vPeak = Math.max(KIN.vPeak * (1 - 1.8 * dtRaw), KIN.vEMA, vNow * 0.72);
         }
-        const SWING = { path: 0, active: false, peakV: 0, idle: 0 };
-        function accumulateSwing(step, dt) {
+        const SWING = { path: 0, active: false, peakV: 0, idle: 0, trajectoryX: 0, peakDx: 0 };
+        function accumulateSwing(step, dt, mirrorDx) {
             if (step > 0.014) {
                 SWING.active = true; SWING.idle = 0;
                 SWING.path += step;
                 SWING.peakV = Math.max(SWING.peakV, KIN.vPeak);
+                if (typeof mirrorDx === 'number') {
+                    SWING.trajectoryX = (SWING.trajectoryX || 0) + mirrorDx;
+                    if (Math.abs(SWING.trajectoryX) > Math.abs(SWING.peakDx || 0)) {
+                        SWING.peakDx = SWING.trajectoryX;
+                    }
+                }
             } else if (SWING.active) {
                 SWING.idle += dt;
                 if (SWING.idle > 0.35) resetSwing();
@@ -199,7 +208,7 @@
         }
         // ★ TASK-V8-606: 體感揮拍意圖無量綱啟發式代理指標 (Dimensionless Kinematic Proxy)
         // 依據任務規範：此數值為基於常規化軀幹尺度的速度代理指標，非經標定之物理 m/s
-        const SWING_PROXY_V_THRESH = 0.85;
+        const SWING_PROXY_V_THRESH = 0.72;
 
         /**
          * 判定手腕運動是否符合自然前推/向上/側推之揮拍意圖 (無量綱運動學啟發式)
@@ -212,16 +221,19 @@
         function evalStrokeIntent(relDx, relDy, relDz, proxyV) {
             const v = (typeof proxyV === 'number') ? proxyV : KIN.vPeak;
             if (v < SWING_PROXY_V_THRESH) return false;
-            // 前推 (向鏡頭 dz < -0.025)、向上推 (螢幕 y 減小 dy < -0.025)、橫向側刷 (|dx| > 0.045)
-            const isIntentionalDirection = (relDz < -0.025) || (relDy < -0.025) || (Math.abs(relDx) > 0.045);
+            // 前推 (向鏡頭 dz < -0.020)、向上推 (螢幕 y 減小 dy < -0.020)、橫向側刷 (|dx| > 0.036) 或斜向截擊出拍
+            const isIntentionalDirection = (relDz < -0.020) || (relDy < -0.020) || (Math.abs(relDx) > 0.036)
+                || (Math.hypot(relDx, relDy) > 0.032 && relDy < 0.022);
             return isIntentionalDirection;
         }
 
         function resetSwing() {
-            SWING.path = 0; SWING.peakV = 0; SWING.active = false; SWING.idle = 0; KIN.vPeak = 0; KIN.vEMA = 0;
+            SWING.path = 0; SWING.peakV = 0; SWING.active = false; SWING.idle = 0;
+            SWING.trajectoryX = 0; SWING.peakDx = 0;
+            KIN.vPeak = 0; KIN.vEMA = 0;
         }
 
-        const POWER_W = { a: 0.4, d: 0.6, vScale: 11, dScale: 30, min: 18, max: 92 };
+        const POWER_W = { a: 0.50, d: 0.50, vScale: 28, dScale: 68, min: 16, max: 98 };
         function hitPower(vPeak, pathNorm) {
             const raw = (vPeak * POWER_W.vScale * POWER_W.a) + (pathNorm * POWER_W.dScale * POWER_W.d);
             return THREE.MathUtils.clamp(Math.round(raw), POWER_W.min, POWER_W.max);
@@ -558,7 +570,7 @@
             history: [],   // 軌跡點序列 [{x, y, t}]
             sagitta: 0,    // 弧度拱高垂直偏移量 (px, 右凸為正, 左凸為負)
             spinArea: 0,   // 有向多邊形面積 (px², 順時針正, 逆時針負)
-            lastStroke: null // 最近剛完成的手勢快照 (保留 320ms，杜絕擊球時手勢早洩截斷)
+            lastStroke: null // 最近剛完成的手勢快照，供來球時短暫緩衝出拍
         };
 
         function swipeStart(x, y) {
@@ -566,6 +578,7 @@
             if (window.FunMode && FunMode.onSwipeStart) FunMode.onSwipeStart(x, y);
             const now = performance.now();
             SWIPE.active = true;
+            SWIPE.lastStroke = null;
             SWIPE.startX = SWIPE.prevX = SWIPE.currX = x;
             SWIPE.startY = SWIPE.prevY = SWIPE.currY = y;
             SWIPE.startTime = now;

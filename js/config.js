@@ -302,7 +302,7 @@ function apiGet(qs) {
         function mergeStages(src) {
             if (!src || typeof src !== 'object') return;
             Object.keys(src).forEach(k => {
-                if (!STAGES[k] || !src[k]) return;              // 只允許覆寫既有關卡
+                if (!STAGES[k] || !src[k] || Number(k) === 7) return; // 黑天鵝冠軍賽固定 11 分
                 const g = Math.floor(Number(src[k].goal));
                 if (isFinite(g) && g >= 1 && g <= 21) STAGES[k].goal = g;  // ★ 只動 goal
             });
@@ -486,7 +486,7 @@ function apiGet(qs) {
             clearKeys();
             S.init();
             toast('👋 歡迎訪客！', '建議先用手機搖桿熟悉規則，可按右上角 📷 隨時切換體感！');
-            switchStage(1);
+            switchStage(1, { skipAutoDemo: true });
             if (typeof openModeHub === 'function') openModeHub();
         }
 
@@ -531,7 +531,7 @@ function apiGet(qs) {
             clearKeys();
             S.init();
             toast('👋 歡迎,' + playerProfile.department, '建議先用手機搖桿熟悉規則，可按右上角 📷 切換體感！');
-            switchStage(1);
+            switchStage(1, { skipAutoDemo: true });
             if (typeof openModeHub === 'function') openModeHub();
         }
         function buildEditDeptOptions() {
@@ -744,7 +744,7 @@ function apiGet(qs) {
             const hubRole = document.getElementById('hub-role-tag');
             if (hubAv) hubAv.innerText = playerProfile.avatar;
             if (hubNk) hubNk.innerText = playerProfile.nickname;
-            if (hubDp) hubDp.innerText = playerProfile.department + ' · 國立中興大學';
+            if (hubDp) hubDp.innerText = playerProfile.department + ' · 興大';
             if (hubRole) {
                 if (playerProfile.sidPrefix && playerProfile.sidPrefix !== 'GUEST') {
                     hubRole.innerText = '🍃 正式島民';
@@ -796,11 +796,12 @@ function apiGet(qs) {
             3: { name: '廚房區攻防', sub: 'Kitchen Zone', desc: '球落進廚房時,等它彈起後再輕推回去 1 次即過關;球未落地就在廚房揮拍會被判違規。', goal: 1 },
             4: { name: '對決匹克鵝', sub: 'Full Match', desc: '綜合對決匹克鵝,先得 3 分過關。', goal: 3 },
             5: { name: '魔王匹克鵝', sub: 'Boss Fight', desc: '終極對決!打敗中興湖魔王匹克鵝登錄英雄榜。', goal: 5 },
-            6: { name: '瘋狂道具戰', sub: 'Item Chaos Battle', desc: '中興湖極限娛樂! 拾取地面盲盒道具, 善用神力同時提防踩雷陷阱!', goal: 5 }
+            6: { name: '瘋狂道具戰', sub: 'Item Chaos Battle', desc: '中興湖極限娛樂! 拾取地面盲盒道具, 善用神力同時提防踩雷陷阱!', goal: 5 },
+            7: { name: '冠軍匹克黑天鵝', sub: 'Black Swan Championship', desc: '擊敗匹克鵝大魔王後的冠軍挑戰：先得 11 分，並領先 2 分才過關。', goal: 11 }
         };
-        const AI_SPEED = { 2: 5.2, 3: 5.9, 4: 5.2, 5: 5.6, 6: 5.8 };
-        const AI_MISS = { 1: 0.0, 2: 0.005, 3: 0.005, 4: 0.20, 5: 0.14, 6: 0.12 }; // ★ v5.0.14: 前三關教學關卡匹克鵝失誤率極低 (0.5%)，偶爾失誤
-        const AI_PLAN = { 2: 'DEEP', 3: 'KITCHEN', 4: 'MIX', 5: 'BOSS', 6: 'BOSS' };
+        const AI_SPEED = { 2: 5.2, 3: 5.9, 4: 5.2, 5: 5.6, 6: 5.8, 7: 5.9 };
+        const AI_MISS = { 1: 0.0, 2: 0.005, 3: 0.005, 4: 0.20, 5: 0.14, 6: 0.12, 7: 0.13 }; // ★ v5.0.14: 前三關教學關卡匹克鵝失誤率極低 (0.5%)，偶爾失誤
+        const AI_PLAN = { 2: 'DEEP', 3: 'KITCHEN', 4: 'MIX', 5: 'BOSS', 6: 'BOSS', 7: 'BOSS' };
 
         /* ★ v5.0.4: AI 難度平衡調優 (初階失誤率大幅調低，強化連續來回抽球的互動與參與感) */
         const DIFF_PRESETS = {
@@ -823,6 +824,10 @@ function apiGet(qs) {
 
         function setDifficulty(level) {
             if (!DIFF_PRESETS[level]) return;
+            if (stage === 7 && level === 'fly') {
+                toast('🦢 黑天鵝冠軍賽', '這一關的對手固定為冠軍匹克黑天鵝；果蠅可到第 6 關挑戰。');
+                return;
+            }
             diffLevel = level;
             try { localStorage.setItem('nchu_pb_diff', level); } catch(e) {}
             syncDifficultyUI();
@@ -902,6 +907,38 @@ function apiGet(qs) {
             document.querySelectorAll('[data-joy-speed]').forEach(b => {
                 b.classList.toggle('on', b.getAttribute('data-joy-speed') === joySpeedLevel);
             });
+        }
+
+        /* 觸控走位模式：預設自動跑位，仍可切回搖桿。 */
+        let movementMode = 'auto';
+        try {
+            if (localStorage.getItem('nchu_pb_movement_mode') === 'manual') movementMode = 'manual';
+        } catch (e) { }
+
+        function setMovementMode(mode) {
+            if (mode !== 'auto' && mode !== 'manual') return;
+            movementMode = mode;
+            try { localStorage.setItem('nchu_pb_movement_mode', mode); } catch (e) { }
+            syncMovementModeUI();
+            if (typeof toast === 'function') {
+                toast('🏃 走位模式', mode === 'auto' ? '自動跑位：滑動專心擊球，搖桿隨時可切回' : '手動跑位：使用搖桿或 WASD');
+            }
+        }
+
+        function toggleMovementMode() {
+            setMovementMode(movementMode === 'auto' ? 'manual' : 'auto');
+        }
+
+        function syncMovementModeUI() {
+            const label = movementMode === 'auto' ? '自動' : '搖桿';
+            for (const id of ['movement-mode-btn', 'subbar-movement-btn']) {
+                const btn = document.getElementById(id);
+                if (btn) btn.textContent = `🏃 走位: ${label}`;
+            }
+            const joy = document.getElementById('joy');
+            if (joy && typeof IS_MOBILE !== 'undefined' && IS_MOBILE) {
+                joy.style.display = (movementMode === 'manual' || (typeof camEdit !== 'undefined' && camEdit)) ? 'block' : 'none';
+            }
         }
 
         /* ═══════ 網前自動走位助攻設定 (Net Auto-Assist Config) ═══════ */
@@ -1030,6 +1067,7 @@ function apiGet(qs) {
         if (typeof cycleCardScaleQuick === 'function') window.cycleCardScaleQuick = cycleCardScaleQuick;
         if (typeof cycleRefereeModeQuick === 'function') window.cycleRefereeModeQuick = cycleRefereeModeQuick;
         if (typeof cycleJoySpeedQuick === 'function') window.cycleJoySpeedQuick = cycleJoySpeedQuick;
+        if (typeof toggleMovementMode === 'function') window.toggleMovementMode = toggleMovementMode;
         if (typeof showFingerTutorial === 'function') window.showFingerTutorial = showFingerTutorial;
         if (typeof startSpotlightTour === 'function') window.startSpotlightTour = startSpotlightTour;
         if (typeof syncDigitalTwin === 'function') window.syncDigitalTwin = syncDigitalTwin;

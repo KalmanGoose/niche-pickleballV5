@@ -220,7 +220,7 @@
             position: fixed;
             inset: 0;
             z-index: 10050;
-            background: rgba(15, 23, 42, 0.75);
+            background: rgba(48, 78, 62, 0.48);
             backdrop-filter: blur(8px);
             display: flex;
             align-items: center;
@@ -234,9 +234,9 @@
             pointer-events: none;
         }
         .finger-tut-card {
-            background: rgba(30, 41, 59, 0.96);
-            border: 1px solid rgba(56, 189, 248, 0.45);
-            box-shadow: 0 25px 60px rgba(0, 0, 0, 0.7), 0 0 35px rgba(56, 189, 248, 0.25);
+            background: #fffaf0;
+            border: 2px solid #e4cda5;
+            box-shadow: 0 10px 0 #d9c7a5, 0 25px 60px rgba(50, 75, 55, 0.25);
             border-radius: 20px;
             width: min(92vw, 420px);
             padding: 22px 18px;
@@ -246,12 +246,12 @@
         .finger-tut-title {
             font-size: 18px;
             font-weight: 800;
-            color: #38bdf8;
+            color: #2d7954;
             letter-spacing: 0.5px;
         }
         .finger-tut-desc {
             font-size: 12px;
-            color: #cbd5e1;
+            color: #4d6252;
             margin: 8px 0 14px;
             min-height: 34px;
             display: flex;
@@ -264,8 +264,8 @@
             width: 220px;
             height: 170px;
             margin: 0 auto 12px;
-            background: radial-gradient(circle at 50% 85%, rgba(56, 189, 248, 0.18), transparent 70%), rgba(15, 23, 42, 0.7);
-            border: 1px solid rgba(255, 255, 255, 0.12);
+            background: radial-gradient(circle at 50% 85%, #d3f2db, #f2f9e9 75%);
+            border: 1px solid #c9dfc3;
             border-radius: 16px;
             overflow: hidden;
         }
@@ -299,14 +299,14 @@
             font-weight: 700;
             padding: 4px 8px;
             border-radius: 12px;
-            background: rgba(255, 255, 255, 0.08);
-            color: #94a3b8;
+            background: #eaf2df;
+            color: #526b58;
             transition: all 0.3s ease;
         }
         .finger-mode-pill.on {
-            background: rgba(56, 189, 248, 0.25);
-            color: #38bdf8;
-            border: 1px solid rgba(56, 189, 248, 0.55);
+            background: #d5efd8;
+            color: #286446;
+            border: 1px solid #9dc9a5;
         }
         
 
@@ -681,54 +681,55 @@
             white-space: nowrap
         }
 
-        /* ★ v5.0.1 示範講解對話框升級為高對比純白毛玻璃卡片 */
+        /* ★ 示範講解對話框：可愛明亮的動森森林紙張風格 */
         #demo {
             position: absolute;
             bottom: 118px;
             left: 50%;
             transform: translateX(-50%);
-            padding: 15px 24px;
+            padding: 12px 20px;
             text-align: center;
-            width: min(92vw, 460px);
+            width: min(92vw, 440px);
             display: none;
             z-index: 12;
-            background: rgba(255, 255, 255, 0.96) !important;
-            backdrop-filter: blur(16px);
-            border: 1.5px solid rgba(255, 255, 255, 0.95) !important;
-            border-radius: 18px;
-            box-shadow: 0 18px 45px rgba(0, 0, 0, 0.35), 0 2px 12px rgba(0, 0, 0, 0.08);
+            background: rgba(255, 250, 236, 0.96) !important;
+            backdrop-filter: blur(12px);
+            border: 2px solid #dec79f !important;
+            border-radius: 20px;
+            box-shadow: 0 5px 0 #cdb48d, 0 16px 35px rgba(53, 80, 56, .22) !important;
         }
 
         #d-tag {
             display: inline-block;
-            font-size: 10px;
+            font-size: 11px;
             font-weight: 800;
-            letter-spacing: .12em;
-            color: #1e293b;
-            background: var(--lime);
-            padding: 2px 9px;
-            border-radius: 6px;
+            letter-spacing: .08em;
+            color: #264a35;
+            background: #d8f3dc;
+            border: 1px solid #b7e4c7;
+            padding: 2px 10px;
+            border-radius: 99px;
             text-transform: uppercase;
         }
 
         #d-cap {
-            font-size: 16.5px;
+            font-size: 15.5px;
             font-weight: 800;
-            margin: 8px 0 6px;
+            margin: 6px 0 4px;
             line-height: 1.4;
-            color: #0f172a;
+            color: #2b1d14;
         }
 
         #d-skip {
             font-size: 11px;
-            color: #64748b;
+            color: #6c7c6e;
             font-weight: 600;
         }
         #d-skip kbd {
-            background: #f1f5f9;
-            border: 1px solid #cbd5e1;
-            color: #1e293b;
-            padding: 2px 6px;
+            background: #ede3cc;
+            border: 1px solid #d5c39f;
+            color: #4a3622;
+            padding: 1px 6px;
             border-radius: 4px;
             font-weight: 700;
         }
@@ -862,6 +863,71 @@
             background: rgba(56, 189, 248, .42)
         }
 
+        #hit-cue {
+            display: none;
+            position: fixed;
+            width: 48px;
+            height: 48px;
+            border: 3px solid #58f5d2;
+            border-radius: 50%;
+            box-shadow: 0 0 10px #58f5d2, inset 0 0 8px #58f5d2;
+            pointer-events: none;
+            z-index: 40;
+            box-sizing: border-box;
+        }
+
+        #court-intro {
+            position: fixed;
+            inset: 0;
+            z-index: 45;
+            align-items: flex-end;
+            justify-content: center;
+            padding: 0 16px max(30px, env(safe-area-inset-bottom));
+            box-sizing: border-box;
+            background: linear-gradient(180deg, rgba(34, 77, 58, .12), transparent 30%, transparent 62%, rgba(39, 71, 52, .35));
+            cursor: pointer;
+        }
+        .court-intro-card {
+            width: min(460px, 100%);
+            padding: 12px 18px;
+            border: 2px solid #dec79f;
+            border-radius: 18px;
+            background: rgba(255, 250, 235, .96);
+            color: #365642;
+            text-align: center;
+            box-shadow: 0 5px 0 #cdb48d, 0 12px 35px rgba(54, 80, 54, .2);
+            animation: court-intro-rise .4s ease-out;
+        }
+        #court-intro.boss-intro .court-intro-card {
+            border-color: #e6b858;
+            background: rgba(255, 238, 197, .97);
+            color: #754d28;
+            box-shadow: 0 5px 0 #d6a84f, 0 12px 30px rgba(100, 74, 41, .2);
+        }
+        #court-intro.boss-intro .court-intro-welcome { color: #a06119; }
+        #court-intro.fly-intro .court-intro-card {
+            border-color: #cbb7e8;
+            background: rgba(245, 235, 255, .97);
+            color: #65477a;
+            box-shadow: 0 5px 0 #baa2d8, 0 12px 30px rgba(82, 54, 111, .18);
+        }
+        #court-intro.fly-intro .court-intro-welcome { color: #7852a0; }
+        #court-intro.swan-intro .court-intro-card {
+            border-color: #abb5d8;
+            background: rgba(235, 239, 255, .97);
+            color: #394969;
+            box-shadow: 0 5px 0 #a2acd1, 0 12px 30px rgba(48, 63, 101, .2);
+        }
+        #court-intro.swan-intro .court-intro-welcome { color: #5f5d9d; }
+        .court-intro-welcome { font-size: 12px; letter-spacing: .08em; color: #3a8863; }
+        .court-intro-title { margin-top: 4px; font-size: 20px; font-weight: 900; }
+        .court-intro-taunt { margin-top: 5px; font-size: 14px; }
+        .court-intro-skip { margin-top: 7px; font-size: 11px; color: #677e6f; }
+        @keyframes court-intro-rise {
+            from { opacity: 0; transform: translateY(12px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
         #joy.cam-mode {
             border-color: rgba(56, 189, 248, .75);
             box-shadow: 0 0 0 2px rgba(56, 189, 248, .3), 0 8px 24px -6px rgba(0, 0, 0, .5)
@@ -951,10 +1017,10 @@
             top: 22%;
             left: 50%;
             transform: translate(-50%, -50%);
-            background: rgba(15, 23, 42, 0.88);
-            border: 2px solid var(--accent);
-            box-shadow: 0 0 28px rgba(56, 189, 248, 0.45);
-            color: #fff;
+            background: rgba(255, 249, 226, 0.96);
+            border: 2px solid #e4c78a;
+            box-shadow: 0 6px 20px rgba(70, 95, 59, 0.22);
+            color: #386049;
             padding: 10px 22px;
             border-radius: 30px;
             font-size: 16px;
@@ -968,8 +1034,8 @@
         }
 
         @keyframes pulseDemo {
-            0%, 100% { transform: translate(-50%, -50%) scale(1); box-shadow: 0 0 20px rgba(56, 189, 248, 0.3); }
-            50% { transform: translate(-50%, -50%) scale(1.04); box-shadow: 0 0 32px rgba(56, 189, 248, 0.65); }
+            0%, 100% { transform: translate(-50%, -50%) scale(1); box-shadow: 0 4px 14px rgba(95, 130, 72, .2); }
+            50% { transform: translate(-50%, -50%) scale(1.04); box-shadow: 0 6px 20px rgba(95, 130, 72, .3); }
         }
 
         kbd {
@@ -995,9 +1061,9 @@
             pointer-events: auto;
             touch-action: none;
             transition: box-shadow .2s, border-color .2s;
-            background: radial-gradient(circle, rgba(255, 255, 255, .12), rgba(15, 23, 42, .4));
-            border: 1px solid rgba(255, 255, 255, .25);
-            box-shadow: 0 8px 24px -6px rgba(0, 0, 0, .5)
+            background: radial-gradient(circle, rgba(255, 253, 232, .92), rgba(185, 223, 191, .72));
+            border: 2px solid rgba(255, 255, 255, .82);
+            box-shadow: 0 5px 15px rgba(53, 82, 60, .25)
         }
 
         #nub {
@@ -1008,8 +1074,8 @@
             height: 40px;
             border-radius: 50%;
             pointer-events: none;
-            background: radial-gradient(circle at 35% 30%, #fff, var(--accent) 60%, #0284c7);
-            box-shadow: 0 3px 12px rgba(56, 189, 248, .4);
+            background: radial-gradient(circle at 35% 30%, #fff, #a7e3bd 55%, #57af85);
+            box-shadow: 0 3px 12px rgba(55, 131, 79, .3);
             transition: transform .05s
         }
     
@@ -1358,15 +1424,15 @@
 /* ── 側旋教學指引與示範模式 HUD 隔離 ── */
         /* ══════ ★ v5.0.13: 側旋教學指引視窗專用關閉按鈕與樣式 ══════ */
         .finger-tut-close-btn {
-            background: linear-gradient(135deg, #0284c7, #38bdf8);
-            border: 1px solid rgba(255, 255, 255, 0.35);
-            color: #ffffff;
+            background: linear-gradient(135deg, #9bdaa8, #74bf91);
+            border: 1px solid #5ca97c;
+            color: #194c35;
             font-size: 13px;
             font-weight: 800;
             padding: 8px 22px;
             border-radius: 24px;
             cursor: pointer;
-            box-shadow: 0 4px 14px rgba(56, 189, 248, 0.4);
+            box-shadow: 0 4px 14px rgba(54, 116, 76, 0.25);
             pointer-events: auto !important;
             touch-action: manipulation !important;
             transition: transform 0.15s ease, background 0.2s ease;
@@ -1375,9 +1441,9 @@
             transform: scale(0.94);
         }
         .finger-tut-close-icon {
-            background: rgba(255, 255, 255, 0.12);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            color: #ffffff;
+            background: #f5ecd9;
+            border: 1px solid #dcc69f;
+            color: #56644e;
             width: 28px;
             height: 28px;
             border-radius: 50%;
@@ -1423,25 +1489,64 @@
             transition: opacity 0.3s ease, transform 0.3s ease !important;
         }
 
-        /* 示範教學文字卡片：純白高對比、醒目置中、具備明確跳過/關閉按鈕 */
+        /* 示範教學文字卡片：動森木框暖米紙、適配安全區域、不遮擋球員與底線 */
         body.demo-mode-active #demo {
             display: block !important;
             opacity: 1 !important;
             pointer-events: auto !important;
             z-index: 10000 !important;
             position: fixed !important;
-            bottom: 24px !important;
+            bottom: max(14px, calc(6px + env(safe-area-inset-bottom))) !important;
             left: 50% !important;
             transform: translateX(-50%) !important;
-            box-shadow: 0 16px 45px rgba(0, 0, 0, 0.45), 0 0 0 1.5px rgba(255,255,255,0.95) !important;
+            width: min(92vw, 440px) !important;
+            background: rgba(255, 250, 236, 0.96) !important;
+            border: 2px solid #dec79f !important;
+            border-radius: 20px !important;
+            box-shadow: 0 5px 0 #cdb48d, 0 16px 35px rgba(53, 80, 56, .22) !important;
         }
 
-        /* 示範浮水印 / 頂部標籤 */
+        /* 示範浮水印 / 頂部標籤：動森森林系精緻膠囊，放置於主選單下方，不遮擋選單與對手視線 */
         body.demo-mode-active #demo-watermark {
-            display: block !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
             opacity: 1 !important;
-            z-index: 10000 !important;
-            top: 14px !important;
+            z-index: 90 !important;
+            top: calc(env(safe-area-inset-top, 0px) + 116px) !important;
+            padding: 4px 16px !important;
+            font-size: 12px !important;
+            font-weight: 800 !important;
+            letter-spacing: 0.5px !important;
+            border-radius: 99px !important;
+            border: 1.5px solid #dec79f !important;
+            background: rgba(255, 249, 226, 0.94) !important;
+            color: #264a35 !important;
+            box-shadow: 0 3px 0 #cdb48d, 0 6px 16px rgba(53, 80, 56, 0.16) !important;
+        }
+
+        @media (max-width: 600px) {
+            body.demo-mode-active #demo {
+                width: min(94vw, 380px) !important;
+                padding: 8px 14px !important;
+                border-radius: 16px !important;
+            }
+            body.demo-mode-active #d-cap {
+                font-size: 14px !important;
+                margin: 4px 0 2px !important;
+                line-height: 1.35 !important;
+            }
+            body.demo-mode-active #d-skip {
+                font-size: 10.5px !important;
+            }
+            body.demo-mode-active #demo-watermark {
+                font-size: 11px !important;
+                padding: 3px 12px !important;
+                top: calc(env(safe-area-inset-top, 0px) + 104px) !important;
+            }
+            .desktop-only-inline {
+                display: none !important;
+            }
         }
 
         /* ══════ 手指手勢浮空小工具：示範期間化身為非阻礙懸浮 HUD，徹底杜絕畫面遮擋 ══════ */
@@ -1458,10 +1563,10 @@
             padding-right: 20px !important;
         }
         body.demo-mode-active #finger-tutorial .finger-tut-card {
-            background: rgba(15, 23, 42, 0.72) !important;
+            background: rgba(255, 250, 234, .94) !important;
             backdrop-filter: blur(8px) !important;
-            border: 1px solid rgba(56, 189, 248, 0.45) !important;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), 0 0 20px rgba(56, 189, 248, 0.2) !important;
+            border: 1px solid #ddc698 !important;
+            box-shadow: 0 8px 25px rgba(53, 80, 56, .2) !important;
             border-radius: 16px !important;
             width: 200px !important;
             padding: 10px !important;
@@ -1475,7 +1580,7 @@
         body.demo-mode-active #finger-tutorial .finger-tut-title {
             font-size: 11.5px !important;
             font-weight: 800 !important;
-            color: #38bdf8 !important;
+            color: #2e7651 !important;
             text-align: center !important;
             width: 100% !important;
         }
@@ -1491,7 +1596,7 @@
             width: 170px !important;
             height: 110px !important;
             margin: 6px auto 0 !important;
-            background: radial-gradient(circle at 50% 85%, rgba(56, 189, 248, 0.15), transparent 70%), rgba(15, 23, 42, 0.45) !important;
+            background: radial-gradient(circle at 50% 85%, #d4efda, #f6faeb 75%) !important;
             border-radius: 12px !important;
         }
         @media (max-width: 600px) {
@@ -2827,3 +2932,21 @@ body.distant-hud-active #subbar-ai-btn {
     display: inline-block;
     transition: transform 0.5s ease;
 }
+
+/* 場上常駐控制維持湖畔大廳的柔和色系。 */
+#speed-hud-mini, #meter, #keys {
+    background: rgba(255, 250, 237, .94) !important;
+    border: 2px solid #e4cfaa !important;
+    color: #355941 !important;
+    box-shadow: 0 3px 0 #d5bd93, 0 8px 22px rgba(48, 79, 55, .18) !important;
+}
+#speed-hud-mini > span, #keys b { color: #355941 !important; }
+#speed-hud-joy-btn {
+    background: #ddf2dc !important;
+    border: 1px solid #a5cba8 !important;
+    color: #2c6849 !important;
+}
+#m-top { color: #526b57 !important; }
+#m-top b { color: #2d7954 !important; }
+#p-track { background: #e6dcc5 !important; }
+#keys:hover { background: #fffdf3 !important; border-color: #add1ab !important; }

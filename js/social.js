@@ -2,7 +2,10 @@
         let ecoModeActive = false;
         function setEcoMode(active) {
             ecoModeActive = !!active;
-            frameSkip = ecoModeActive ? 3 : (PERF_PRESETS[perfLevel].skip || 1);
+            const baseSkip = (typeof PERF_PRESETS !== 'undefined' && typeof perfLevel !== 'undefined' && PERF_PRESETS[perfLevel] && typeof PERF_PRESETS[perfLevel].frameSkip === 'number')
+                ? PERF_PRESETS[perfLevel].frameSkip
+                : 2;
+            frameSkip = ecoModeActive ? 3 : baseSkip;
         }
         window.setEcoMode = setEcoMode;
 
@@ -508,6 +511,8 @@
                 generation: swingEventGen,
                 t: (typeof now === 'number') ? now : performance.now(),
                 proxySpeed: (typeof proxySpeed === 'number') ? proxySpeed : 1.0,
+                peakPath: (typeof SWING !== 'undefined' && SWING && typeof SWING.path === 'number') ? SWING.path : 0,
+                trajectoryX: (typeof SWING !== 'undefined' && SWING && typeof SWING.peakDx === 'number') ? SWING.peakDx : 0,
                 consumed: false
             };
             if (typeof window !== 'undefined') window.currentSwingEvent = currentSwingEvent;
@@ -587,6 +592,7 @@
                 if (lbl) lbl.innerText = '體感';
                 if (icon) icon.innerText = '📷';
             }
+            if (typeof updateHubMotionBtn === 'function') updateHubMotionBtn();
         }
 
         function toggleWebcamAI() {
@@ -746,7 +752,8 @@
                     const dRelX = relX - lx, dRelY = relY - ly, dRelZ = relZ - lz;
                     const step = nd(dRelX, dRelY, dRelZ);
                     updateKinematics(step, dt);
-                    accumulateSwing(step, dt);
+                    const mirrorDx = -dRelX;
+                    accumulateSwing(step, dt, mirrorDx);
 
                     // ★ TASK-V8-606: 揮拍意圖評估 (無量綱方向位移與速度門檻)
                     const hasStrokeIntent = (typeof evalStrokeIntent === 'function')
@@ -775,7 +782,15 @@
                             swingArmed = false;
                             tryHit();
                         } else {
-                            // 同一揮拍動作持續中：不重複註冊新事件，但允許 tryHit 判定擊球
+                            // 同一揮拍動作持續加速中：刷新未消耗事件的時效與峰值速度，避免起手幀過早過期或鎖死初段低速
+                            if (currentSwingEvent && !currentSwingEvent.consumed) {
+                                currentSwingEvent.t = now;
+                                currentSwingEvent.proxySpeed = Math.max(currentSwingEvent.proxySpeed || 0, KIN.vPeak);
+                                currentSwingEvent.peakPath = Math.max(currentSwingEvent.peakPath || 0, SWING.path);
+                                if (typeof SWING !== 'undefined' && SWING && typeof SWING.peakDx === 'number') {
+                                    currentSwingEvent.trajectoryX = SWING.peakDx;
+                                }
+                            }
                             tryHit();
                         }
                     } else {
