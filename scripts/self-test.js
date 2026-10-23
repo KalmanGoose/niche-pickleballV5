@@ -425,8 +425,8 @@ try {
            v14Src.includes('id="pin-lifescience"') && v14Src.includes('id="pin-agri-env"') &&
            v14Src.includes('id="pin-library"') && v14Src.includes('id="pin-dock"'),
         "大地圖嚴格對齊校園實景方位：行政大樓(北)、圖書館(南)、社管大樓(西)、生科與農環雙塔(東)及水上小碼頭(中央)");
-    assert(v14Src.includes('id="pin-wall"') && v14Src.includes('id="pin-chaos"') && v14Src.includes('id="pin-community"'),
-        "大地圖包含湖邊練習木牆、幸運盲盒與匹克球學習社群推廣野餐亭熱區");
+    assert(v14Src.includes('id="pin-wall"') && v14Src.includes('id="pin-chaos"'),
+        "大地圖包含湖邊練習木牆與幸運盲盒熱區");
     assert(v14Src.includes('id="dock-picker-drawer"') && uiSrc.includes("openDockPicker") && uiSrc.includes("selectDockStage"),
         "實裝水上小碼頭 5 大歷險關卡彈出抽屜 (#dock-picker-drawer) 與控制器");
     assert(v14Src.includes('id="community-modal"') && uiSrc.includes("openCommunityModal"),

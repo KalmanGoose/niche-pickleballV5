@@ -487,7 +487,6 @@ function apiGet(qs) {
             S.init();
             toast('👋 歡迎訪客！', '建議先用手機搖桿熟悉規則，可按右上角 📷 隨時切換體感！');
             switchStage(1, { skipAutoDemo: true });
-            if (typeof openModeHub === 'function') openModeHub();
         }
 
         function handleLogin() {
@@ -532,7 +531,6 @@ function apiGet(qs) {
             S.init();
             toast('👋 歡迎,' + playerProfile.department, '建議先用手機搖桿熟悉規則，可按右上角 📷 切換體感！');
             switchStage(1, { skipAutoDemo: true });
-            if (typeof openModeHub === 'function') openModeHub();
         }
         function buildEditDeptOptions() {
             const sel = document.getElementById('edit-dept-sel');
