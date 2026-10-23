@@ -7,7 +7,7 @@
  * 5. 伺服器端 HMAC-SHA256 簽章（證明請求經過本代理；玩家身分由 GAS 以 token 驗證）
  */
 
-const POST_ACTS = new Set(['submit', 'like', 'friendReq', 'friendAccept', 'updateProfile', 'sync_twin']);
+const POST_ACTS = new Set(['submit', 'like', 'friendReq', 'friendAccept', 'updateProfile', 'sync_twin', 'deleteMe']);
 const GET_ACTS = new Set(['ping', 'leaderboard', 'me', 'friends']);
 const MAX_BODY_CHARS = 40 * 1024;
 const WINDOW_MS = 60 * 1000;

@@ -1158,13 +1158,19 @@
                 this.updateGuideBanner();
 
                 // 結算當前回合 (若達標則通關)
-                const isMatch = (typeof stage !== 'undefined' && (stage === 4 || stage === 5 || stage === 6));
+                const isMatch = (typeof stage !== 'undefined' && stage >= 4);
                 if (isMatch && typeof serveSide !== 'undefined') {
-                    serveSide *= -1;
-                    if (typeof secondServe !== 'undefined') secondServe = false;
+                    if (typeof server !== 'undefined' && server !== 'PLAYER') {
+                        server = 'PLAYER';
+                        serveSide = 1;
+                        if (typeof secondServe !== 'undefined') secondServe = false;
+                    } else {
+                        serveSide *= -1;
+                    }
+                    if (typeof updateScore === 'function') updateScore();
                 }
                 const goal = (typeof STAGES !== 'undefined' && STAGES[stage]) ? STAGES[stage].goal : 11;
-                if (typeof stage !== 'undefined' && (stage === 3 || stage === 4 || stage === 5 || stage === 6) && pScore >= goal) {
+                if (typeof stage !== 'undefined' && stage >= 3 && pScore >= goal) {
                     if (typeof later === 'function') {
                         later(() => {
                             this.restoreFlyMaterials();

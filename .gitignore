@@ -7,3 +7,6 @@ data/videos/*.mov
 data/videos/*.MOV
 models/*.task
 data/previews/
+.worktrees/
+__pycache__/
+*.pyc

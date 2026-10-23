@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>匹克球 N-GO 隱私權、數據治理與服務授權政策</title>
+  <style>
+    :root {
+      --primary: #059669;
+      --primary-dark: #047857;
+      --primary-light: #ecfdf5;
+      --accent: #2563eb;
+      --accent-light: #eff6ff;
+      --text: #1f2937;
+      --text-muted: #4b5563;
+      --bg: #f8fafc;
+      --card-bg: #ffffff;
+      --border: #e2e8f0;
+      --danger: #dc2626;
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "PingFang TC", "Noto Sans TC", sans-serif;
+      line-height: 1.8;
+      color: var(--text);
+      background-color: var(--bg);
+      margin: 0;
+      padding: 0;
+    }
+    .container {
+      max-width: 940px;
+      margin: 40px auto;
+      padding: 44px 36px;
+      background: var(--card-bg);
+      border-radius: 16px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
+      border: 1px solid var(--border);
+    }
+    header {
+      border-bottom: 2px solid var(--border);
+      padding-bottom: 24px;
+      margin-bottom: 32px;
+    }
+    .badge-group {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 14px;
+      flex-wrap: wrap;
+    }
+    .badge {
+      display: inline-block;
+      font-size: 0.85rem;
+      background: var(--primary-light);
+      color: var(--primary-dark);
+      padding: 4px 12px;
+      border-radius: 9999px;
+      font-weight: 600;
+    }
+    .badge.community {
+      background: var(--accent-light);
+      color: var(--accent);
+    }
+    h1 {
+      font-size: 2.1rem;
+      color: #0f172a;
+      margin: 0 0 10px 0;
+      line-height: 1.3;
+    }
+    .effective-date {
+      font-size: 0.95rem;
+      color: var(--text-muted);
+    }
+    h2 {
+      font-size: 1.35rem;
+      color: #0f172a;
+      margin-top: 40px;
+      margin-bottom: 16px;
+      padding-left: 12px;
+      border-left: 5px solid var(--primary);
+    }
+    h3 {
+      font-size: 1.15rem;
+      color: #1e293b;
+      margin-top: 24px;
+      margin-bottom: 10px;
+    }
+    p, li {
+      font-size: 1rem;
+      color: var(--text-muted);
+    }
+    ul, ol {
+      padding-left: 24px;
+      margin: 10px 0;
+    }
+    li {
+      margin-bottom: 8px;
+    }
+    .highlight-card {
+      background-color: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 22px;
+      margin: 20px 0;
+    }
+    .highlight-card.camera {
+      background-color: #f0fdf4;
+      border-color: #bbf7d0;
+    }
+    .highlight-card.ai {
+      background-color: #eff6ff;
+      border-color: #bfdbfe;
+    }
+    .highlight-card h4 {
+      margin: 0 0 10px 0;
+      font-size: 1.1rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .camera h4 { color: #166534; }
+    .ai h4 { color: #1e40af; }
+
+    .tag {
+      background: #e2e8f0;
+      color: #334155;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 0.85rem;
+      font-family: monospace;
+    }
+    .contact-card {
+      background: linear-gradient(145deg, #f0fdf4 0%, #ecfdf5 100%);
+      border: 1px solid #bbf7d0;
+      border-radius: 14px;
+      padding: 26px;
+      margin-top: 40px;
+    }
+    .contact-card h3 {
+      margin-top: 0;
+      color: var(--primary-dark);
+    }
+    footer {
+      text-align: center;
+      margin-top: 50px;
+      font-size: 0.9rem;
+      color: #94a3b8;
+      border-top: 1px solid var(--border);
+      padding-top: 24px;
+    }
+    a {
+      color: var(--primary-dark);
+      font-weight: 500;
+      text-decoration: underline;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 20px 0;
+    }
+    th, td {
+      border: 1px solid #e2e8f0;
+      padding: 12px 14px;
+      text-align: left;
+      font-size: 0.95rem;
+      vertical-align: top;
+    }
+    th {
+      background-color: #f1f5f9;
+      color: #1e293b;
+      font-weight: 600;
+    }
+    .audit-notice {
+      background-color: #fefce8;
+      border-left: 4px solid #eab308;
+      padding: 14px 18px;
+      margin: 20px 0;
+      font-size: 0.95rem;
+      color: #713f12;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <header>
+    <div class="badge-group">
+      <span class="badge">匹克球 N-GO 官方條款</span>
+      <span class="badge community">中興大學匹克球學生學習社群</span>
+    </div>
+    <h1>隱私權、數據治理與服務授權政策</h1>
+    <div class="effective-date">生效日期：2026 年 10 月 13 日 ｜ 版本：v2.0</div>
+  </header>
+
+  <section>
+    <h2>一、組織主體與服務性質</h2>
+    <p>
+      1. <strong>研發維運主體</strong>：本系統由「國立中興大學匹克球學生學習社群」（以下簡稱「社群團隊」或「我們」）自主研發、維運與進行演算法訓練。<br>
+      2. <strong>服務性質</strong>：智慧體感匹克球運動科技、動作分析、教育輔助與數位互動訓練系統。<br>
+      3. <strong>適用規範</strong>：恪遵《中華民國個人資料保護法》及主流應用平台審查標準。
+    </p>
+  </section>
+
+  <section>
+    <h2>二、同意方式與契約成立（按鈕即同意原則）</h2>
+    <p>
+      本系統於入口頁面提供本政策之顯著摘要與超連結。使用者點擊「🚀 快速進入球場」、「🚀 進入中興球場開打!」或「👟 訪客快速試玩」任一按鈕，即視為您已充分閱讀、理解並同意本政策之全部條款。若不同意本政策，請立即關閉瀏覽器離開。
+    </p>
+  </section>
+
+  <section>
+    <h2>三、相機影像處理與 MediaPipe 邊緣運算防護</h2>
+    <div class="highlight-card camera">
+      <h4>📷 邊緣端即時運算（Edge Real-Time Processing）</h4>
+      <p>
+        當您啟用相機體感功能時，相機視訊畫面<strong>僅於您個人設備之本地記憶體中進行即時關節座標萃取與擊球判定</strong>。
+      </p>
+      <p>
+        <strong>【零影像上傳承諾】</strong>：本系統目前<strong>絕不錄影、絕不上傳、亦不在伺服器儲存任何使用者的原始視訊、生活背景或個人容貌影像</strong>。每一幀畫面在計算完畢後立即於記憶體中銷毀。未來若因新功能調整，將另行取得使用者明確同意。
+      </p>
+    </div>
+    <div class="highlight-card ai">
+      <h4>🦴 空間骨架關鍵點座標（Pose Landmarks）</h4>
+      <p>
+        演算法自即時影像中計算之資訊，僅為人體 33 處關節點之三維幾何座標（<span class="tag">x, y, z</span> 與可信度 <span class="tag">visibility</span>），非唯一生物辨識特徵，無法用於反向重現個人面貌或辨識自然人身分。
+      </p>
+    </div>
+  </section>
+
+  <section>
+    <h2>四、數據收集範疇、處理目的與假名化架構</h2>
+    <p>本系統採用<strong>假名化（Pseudonymization）識別架構</strong>，以裝置隨機產生之 `playerId` 存檔，不收集真實姓名與密碼：</p>
+    <table>
+      <thead>
+        <tr>
+          <th>數據類別</th>
+          <th>詳細項目說明</th>
+          <th>處理目的與法定用途</th>
+          <th>必填性</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>學號前綴與系級</strong></td>
+          <td>中興學號前 7 碼（學制+入學年+系所代碼）及推算之系所、年級</td>
+          <td>識別校園系級歸屬、計算系際排行榜</td>
+          <td>訪客免填</td>
+        </tr>
+        <tr>
+          <td><strong>球員檔案資料</strong></td>
+          <td>遊戲暱稱、代表頭像、Instagram 帳號（選填）</td>
+          <td>於遊戲介面、排行榜與球員名片中辨識玩家</td>
+          <td>IG為選填</td>
+        </tr>
+        <tr>
+          <td><strong>數位孿生與歷程</strong></td>
+          <td>數位孿生球風特徵（`twin_data`：球速、失誤率、近10次擊球）、關卡星級、愛心數（`likes`）、球友關係（`friends`）</td>
+          <td>建立 AI 數位孿生以供好友非即時對戰、紀錄訓練成長曲線</td>
+          <td>自動紀錄</td>
+        </tr>
+        <tr>
+          <td><strong>技術診斷與安全</strong></td>
+          <td>IP 位址（經 Cloudflare 處理）、設備類型、相機啟用狀態（`webcam`）</td>
+          <td>API 頻率限制（防阻刷分與攻擊）、排除硬體相容性錯誤</td>
+          <td>自動產生</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>五、資料公開範圍與社群能見度宣告</h2>
+    <p>為維護校園良性運動互動與排名樂趣，以下資料將於系統內對其他球員公開：</p>
+    <ul>
+      <li><strong>英雄榜（全體可見）</strong>：排名、頭像、暱稱、系所名稱、最高得分與獲讚數。<strong>⚠️ Instagram 帳號不會於公開英雄榜中直接洩漏。</strong></li>
+      <li><strong>球友名片與對抗（球友可見）</strong>：互相確認為球友後，好友得檢視您的數位孿生球風雷達圖並發起對戰挑戰；若您有填寫 IG 帳號，球友得透過名片前往您的個人頁面交流。</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>六、資料用於動作分析與 AI 模型訓練優化</h2>
+    <p>使用者理解並同意，本系統所處理或收集之假名化與去識別化數據，將用於：</p>
+    <ol>
+      <li><strong>模型訓練與演算法研發</strong>：以匹克球及運動動作分析相關之機器學習、深度學習模型訓練、驗證、微調與後續演算法開發為限。</li>
+      <li><strong>系統與體驗優化</strong>：提升辨識精準度、軌跡預測、運動力學分析及智慧功能改進。</li>
+      <li><strong>訓練成果之獨立性</strong>：已完成訓練之模型在技術上無法分離特定個別資料之貢獻，因此刪除帳號請求不溯及既往已編譯發布之模型演算法。</li>
+      <li><strong>安全承諾</strong>：<strong>絕不將使用者資料販售、出租予第三方商業廣告商或資料仲介業者</strong>。</li>
+    </ol>
+  </section>
+
+  <section>
+    <h2>七、智慧財產權歸屬與軟體授權規範</h2>
+    <p>
+      1. <strong>權利歸屬</strong>：本系統所包含之程式碼、視覺設計、音效、AI 動作辨識邏輯、模型權重及「匹克球 N-GO」標誌，均屬國立中興大學匹克球學生學習社群及專案成員合法所有，受著作權法及相關智財法規保護。<br>
+      2. <strong>有限授權</strong>：社群團隊授予使用者個人、非專屬、不可轉讓之有限使用許可。<br>
+      3. <strong>禁止反向工程</strong>：未經許可，使用者不得對本系統進行反向編譯、拆解、側錄萃取 AI 模型參數或重製改作核心程式碼。
+    </p>
+  </section>
+
+  <section>
+    <h2>八、運動安全、AI 辨識限制與免責聲明</h2>
+    <p>
+      1. <strong>非醫療或官方裁判替代</strong>：動作分析、發球判定與熱量推估僅供運動參考與自主訓練輔助，不得視為醫療診斷、復健指引或賽事裁判標準。<br>
+      2. <strong>環境安全責任</strong>：體感揮拍具有動態活動範圍，使用者啟動相機前應自行確認環境安全無障礙物並評估自身狀況。在法律允許之最大範圍內，除社群團隊有故意或重大過失外，社群團隊對個人運動意外衍生之損害不負賠償責任。<br>
+      3. <strong>客觀技術限制</strong>：姿態估計受現場光線、衣著、視角及硬體效能影響，系統不保證在所有環境下皆能達到百分之百零誤差。
+    </p>
+  </section>
+
+  <section>
+    <h2>九、被拍攝者隱私與使用者現場責任</h2>
+    <p>
+      若使用者於公共場所使用且畫面攝入其他第三人，<strong>使用者應自行確認已取得該在場第三人之同意</strong>。若衍生肖像權或隱私爭議，概由使用者自行承擔責任。
+    </p>
+  </section>
+
+  <section>
+    <h2>十、第三方基礎設施與無廣告追蹤宣告</h2>
+    <div class="audit-notice">
+      本系統原始碼中<strong>絕無嵌入任何第三方商業廣告追蹤 SDK 或廣告聚合聯播網</strong>。
+    </div>
+    <p>系統所採用之基礎架構包括：</p>
+    <ul>
+      <li><strong>jsDelivr CDN</strong>（`cdn.jsdelivr.net`）：提供開源 MediaPipe 函式庫快速載入。</li>
+      <li><strong>Cloudflare</strong>（`workers.dev`）：提供 API 反向代理、HTTPS 加密傳輸通道與防阻 DDoS 之頻率限制。</li>
+      <li><strong>Google Apps Script / Google Sheets</strong>：提供雲端排行榜、成績驗簽與球友資料庫之儲存運算。</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>十一、資料保存期限與跨境傳輸</h2>
+    <p>
+      1. <strong>保存期限</strong>：資料留存至使用者主動申請註銷。若帳號連續超過 2 年未有活動紀錄，系統得啟動自動封存或清除作業。<br>
+      2. <strong>跨境傳輸說明</strong>：Cloudflare 與 Google 伺服器節點可能設於中華民國境外，使用本服務即同意資料經安全加密通道進行國際傳輸與處理。
+    </p>
+  </section>
+
+  <section>
+    <h2>十二、使用者自主權利與帳號刪除機制</h2>
+    <p>
+      您享有隨時撤回鏡頭授權、修改個人檔案之權利。此外，本系統提供<strong>一鍵帳號註銷與資料刪除（Right to Erasure）</strong>功能：<br>
+      您可隨時於遊戲內「個人球員檔案」視窗底端點擊 <strong>「🗑️ 註銷並刪除帳號資料」</strong>，系統將立即向伺服器發送註銷請求，清除雲端英雄榜成績、系級與數位孿生特徵，並清除本機所有快取。您亦可透過官方信箱 `nchupickleballllab@gmail.com` 申請人工處理。
+    </p>
+  </section>
+
+  <section>
+    <h2>十三、未成年人使用規範</h2>
+    <p>
+      未滿 18 歲之使用者應於法定代理人陪同閱讀本政策並取得同意後方得使用。以訪客身分進行試玩之資料，原則上不納入後續長久演算法訓練特徵庫。
+    </p>
+  </section>
+
+  <div class="contact-card">
+    <h3>📬 聯絡研發團隊</h3>
+    <p>• <strong>主辦團隊</strong>：國立中興大學匹克球學生學習社群 (NCHU Pickleball Student Learning Community)</p>
+    <p>• <strong>系統專案</strong>：匹克球 N-GO (Pickleball N-GO)</p>
+    <p>• <strong>官方信箱</strong>：<a href="mailto:nchupickleballllab@gmail.com">nchupickleballllab@gmail.com</a></p>
+  </div>
+
+  <footer>
+    <p>© 2026 國立中興大學匹克球學生學習社群 · 匹克球 N-GO. All rights reserved.</p>
+  </footer>
+</div>
+
+</body>
+</html>

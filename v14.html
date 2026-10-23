@@ -31,10 +31,18 @@
         }
     </script>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.3.1675466862/camera_utils.js" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/pose.js" crossorigin="anonymous"></script>
+    <!-- ═══════ 外部第三方 3D 與 AI 核心函式庫 (嚴格 SRI 子資源完整性防禦) ═══════ -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"
+        integrity="sha384-CI3ELBVUz9XQO+97x6nwMDPosPR5XvsxW2ua7N1Xeygeh1IxtgqtCkGfQY9WWdHu"
+        crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.3.1675466862/camera_utils.js"
+        integrity="sha384-q1KhAZhJcJXr3zfC3Tz07pBqQSabwFIZhXlmlUAB8s0zk4ETWERkIKGBCFQ5Jc3e"
+        crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/pose.js"
+        integrity="sha384-qcJQ+n/ZcF15Xu2EoRupB4Av+GEAGeW0Td1mp2A90u0NdNLzLYQVMUq1Ax1YAHqk"
+        crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils@0.3.1675466124/drawing_utils.js"
+        integrity="sha384-W/7NVG2tfN12ld8faSFVOZ/W4UHFHze98GqEUPTl8EjY9QDwCKQIzoCHp8/IlIIr"
         crossorigin="anonymous"></script>
 
     <!-- ═══════ 早期互動防護存根 (Early-Click Bootstrap Stub) ═══════ -->
@@ -609,7 +617,7 @@
                             <h4 class="rule-title">計分與發球權 (Score & Service)</h4>
                         </div>
                         <p class="rule-desc">
-                            單打為 <strong>11 分制且須領先 2 分獲勝</strong>。採<strong>發球得分制 (Side-out)</strong>：唯有發球方獲勝方可得分；接發方獲勝則轉換發球權。偶數分由右發、奇數分由左發。
+                            冠軍賽為 <strong>11 分制且須領先 2 分獲勝</strong>。採<strong>發球得分制 (Side-out) 與雙發球機會 (1st / 2nd Serve)</strong>：唯有發球方獲勝方可得分並左右換邊繼續發球；第 1 次發球或回合失誤時，換到另一側進行第 2 次發球；兩次發球機會皆失誤則轉換發球權 (Side-out) 換對手發球。
                         </p>
                     </div>
                     <div class="rule-card">
@@ -1042,7 +1050,7 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
                                 當獵食者逼近或匹克球高速朝果蠅飛來時，果蠅複眼中的視覺神經元（LC4、LPLC2）會以光學逼近角擴張率 <b>dθ/dt</b> 偵測危險，並在極短時間內將訊號匯聚至大腦中央一對直徑巨大的神經元——<b>巨大纖維 (Giant Fiber, GF，aka 捷安特腳踏車神經 🚲，再次強調純屬諧音梗開玩笑亂講ㄉ千萬不要寫在生物期末考卷上喔！)</b>。
                             </p>
                             <div class="physics-analogy">
-                                ⚡ <b>雙突觸超極速跳躍反射（神經公路上的破風手）：</b><br>
+                                ⚡ <b>雙突觸超極速跳躍反射（神經公路上的極速巡航）：</b><br>
                                 GF 軸突直徑粗大、傳導阻抗極低（就像騎著高級捷安特碳纖維公路車一樣順暢），且與中胸部肌腱運動神經元（TTMn）之間同時具有<b>化學突觸</b>與<b>電突觸 (Gap Junctions)</b> 協同傳導，神經潛伏期僅 <b>2 ~ 5 毫秒</b>！使對手能對玩家的重砲殺球做出不可思議的本能救球反應。
                             </div>
                         </div>
@@ -1285,6 +1293,68 @@ I_syn(t) = w_syn · x · u · (dθ/dt)</div>
         </div>
     </div>
 
+    <!-- ══════ 🎯 關卡直選彈窗 (#stage-picker-modal) ══════ -->
+    <div id="stage-picker-modal" class="modal-overlay" style="display:none;" onclick="if(event.target===this)closeStagePicker()">
+        <div class="modal-card" style="width:min(94vw, 440px);max-height:86dvh;overflow-y:auto;padding:20px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;position:sticky;top:-4px;background:#fffef9;z-index:2;padding-bottom:6px;border-bottom:1.5px solid #ebd9c0;">
+                <div>
+                    <h3 style="margin:0;font-size:18px;font-weight:900;color:#3d2b1f;">🎯 選擇關卡 (Stage Select)</h3>
+                    <div style="font-size:11.5px;color:#85694f;font-weight:700;">自由切換教學與對戰關卡，鍛鍊球技</div>
+                </div>
+                <button type="button" class="ac-btn-sub" style="padding:4px 10px;font-size:12px;" onclick="closeStagePicker()">✕</button>
+            </div>
+            <div class="stage-opt-card" id="stage-card-1" onclick="selectStagePicker(1)">
+                <div class="stage-opt-icon">🎾</div>
+                <div class="stage-opt-info">
+                    <div class="stage-opt-title"><span>第 1 關 · 發球養成</span><span class="stage-opt-check">✓</span></div>
+                    <div class="stage-opt-desc">雙腳底線後、拍面低於腰，向上推拍將球對角送進綠區。</div>
+                </div>
+            </div>
+            <div class="stage-opt-card" id="stage-card-2" onclick="selectStagePicker(2)">
+                <div class="stage-opt-icon">🏓</div>
+                <div class="stage-opt-info">
+                    <div class="stage-opt-title"><span>第 2 關 · 雙彈跳規則</span><span class="stage-opt-check">✓</span></div>
+                    <div class="stage-opt-desc">發球與接發球各必須先落地一次，等球彈起再回擊。</div>
+                </div>
+            </div>
+            <div class="stage-opt-card" id="stage-card-3" onclick="selectStagePicker(3)">
+                <div class="stage-opt-icon">🥗</div>
+                <div class="stage-opt-info">
+                    <div class="stage-opt-title"><span>第 3 關 · 廚房區攻防 (NVZ)</span><span class="stage-opt-check">✓</span></div>
+                    <div class="stage-opt-desc">球落入廚房等彈起後輕推回去；未落地在廚房內凌空抽擊犯規。</div>
+                </div>
+            </div>
+            <div class="stage-opt-card" id="stage-card-4" onclick="selectStagePicker(4)">
+                <div class="stage-opt-icon">🪿</div>
+                <div class="stage-opt-info">
+                    <div class="stage-opt-title"><span>第 4 關 · 對決匹克鵝</span><span class="stage-opt-check">✓</span></div>
+                    <div class="stage-opt-desc">綜合實戰對決村長匹克鵝，先得 3 分過關。</div>
+                </div>
+            </div>
+            <div class="stage-opt-card" id="stage-card-5" onclick="selectStagePicker(5)">
+                <div class="stage-opt-icon">👑</div>
+                <div class="stage-opt-info">
+                    <div class="stage-opt-title"><span>第 5 關 · 魔王匹克鵝</span><span class="stage-opt-check">✓</span></div>
+                    <div class="stage-opt-desc">終極對決！打敗中興湖大魔王匹克鵝，先得 5 分登錄英雄榜。</div>
+                </div>
+            </div>
+            <div class="stage-opt-card" id="stage-card-6" onclick="selectStagePicker(6)">
+                <div class="stage-opt-icon">🍄</div>
+                <div class="stage-opt-info">
+                    <div class="stage-opt-title"><span>第 6 關 · 瘋狂道具戰</span><span class="stage-opt-check">✓</span></div>
+                    <div class="stage-opt-desc">拾取盲盒獲得電蚊拍、巨拍與神經果蠅，提防踩雷打滑！先得 5 分過關。</div>
+                </div>
+            </div>
+            <div class="stage-opt-card" id="stage-card-7" onclick="selectStagePicker(7)">
+                <div class="stage-opt-icon">🦢</div>
+                <div class="stage-opt-info">
+                    <div class="stage-opt-title"><span>第 7 關 · 冠軍匹克黑天鵝</span><span class="stage-opt-check">✓</span></div>
+                    <div class="stage-opt-desc">擊敗魔王後的冠軍殿堂挑戰：先得 11 分並領先 2 分獲勝。</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- ══════ 🏓 匹克球學習社群彈窗 (#community-modal) ══════ -->
     <div id="community-modal" class="modal-overlay" style="display:none;" onclick="if(event.target===this)closeCommunityModal()">
         <div class="modal-card" style="width:min(94vw, 460px);padding:20px;text-align:left;">
@@ -1337,18 +1407,18 @@ I_syn(t) = w_syn · x · u · (dθ/dt)</div>
                     <div class="hub-avatar-circle">
                         <span id="hub-avatar">🧢</span>
                     </div>
-                    <div>
-                        <div style="display:flex;align-items:center;gap:4px;">
-                            <span id="hub-nick" style="font-size:12.5px;font-weight:900;color:#3d2b1f;line-height:1.2;">興大球神</span>
-                            <span id="hub-role-tag" style="font-size:9px;background:#e2d1b3;color:#6b5239;padding:1px 5px;border-radius:6px;font-weight:800;">島民</span>
+                    <div class="hub-profile-text">
+                        <div class="hub-profile-name-row">
+                            <span id="hub-nick">興大球神</span>
+                            <span id="hub-role-tag">島民</span>
                         </div>
-                        <div id="hub-dept" style="font-size:9.5px;color:#85694f;font-weight:700;">國立中興大學 · 匹克球社群</div>
+                        <div id="hub-dept">國立中興大學 · 匹克球社群</div>
                     </div>
-                    <span style="font-size:11px;color:#85694f;">✏️</span>
+                    <span class="hub-profile-edit-btn">✏️</span>
                 </div>
                 <div class="hub-map-top-ctrls">
                     <button type="button" class="hub-map-icon-btn" onclick="openAudioModal()" title="廣播音效設定">🎶 音效</button>
-                    <button type="button" class="hub-map-icon-btn" id="hub-social-btn" onclick="openSocial()" title="球友社群與好友邀請榜單">👥 好友社群</button>
+                    <button type="button" class="hub-map-icon-btn" id="hub-social-btn" onclick="openSocial()" title="球友社群與好友邀請榜單">👥 社群</button>
                     <button type="button" class="hub-map-icon-btn" id="hub-phone-btn" onclick="toggleNookPhone(true)" title="開啟智慧手機">📱 手機</button>
                     <button type="button" class="hub-map-icon-btn hub-map-close-btn" onclick="closeModeHub()" title="踏上中興湖球場">🎾 踏上球場</button>
                 </div>
@@ -1519,7 +1589,8 @@ I_syn(t) = w_syn · x · u · (dθ/dt)</div>
                     <button type="button" class="dp-pill" id="dock-stage-btn-2" onclick="selectDockStage(2)">2 雙彈跳</button>
                     <button type="button" class="dp-pill" id="dock-stage-btn-3" onclick="selectDockStage(3)">3 廚房截擊</button>
                     <button type="button" class="dp-pill" id="dock-stage-btn-4" onclick="selectDockStage(4)">4 決戰神鵝</button>
-                    <button type="button" class="dp-pill" id="dock-stage-btn-5" onclick="selectDockStage(5)">5 終極冠軍</button>
+                    <button type="button" class="dp-pill" id="dock-stage-btn-5" onclick="selectDockStage(5)">5 匹克鵝大魔王</button>
+                    <button type="button" class="dp-pill" id="dock-stage-btn-7" onclick="selectDockStage(7)">7 黑天鵝冠軍</button>
                 </div>
                 <div class="dp-actions">
                     <button type="button" class="dp-btn-start" onclick="startDockQuest()">▶ 啟航踏上球場</button>
@@ -1624,7 +1695,7 @@ I_syn(t) = w_syn · x · u · (dθ/dt)</div>
                             <div class="nook-app-icon phone-app-icon app-wall">🧱</div>
                             <span class="nook-app-label phone-app-label">對牆特訓</span>
                         </button>
-                        <button class="nook-app phone-app" onclick="toggleNookPhone(false); toggleNavMenu('stage');">
+                        <button class="nook-app phone-app" onclick="toggleNookPhone(false); openStagePicker();">
                             <div class="nook-app-icon phone-app-icon app-stage">🎯</div>
                             <span class="nook-app-label phone-app-label">切換關卡</span>
                         </button>
@@ -1721,9 +1792,17 @@ I_syn(t) = w_syn · x · u · (dθ/dt)</div>
         </div>
         <div id="stage3d"></div>
         <div id="vignette"></div>
+        <div id="court-intro" style="display:none;" onclick="skipCourtEntrance()" role="button" aria-label="跳過入場動畫">
+            <div class="court-intro-card">
+                <div class="court-intro-welcome">🎾 歡迎來到中興湖球場</div>
+                <div class="court-intro-title">STAGE 1 · 發球養成</div>
+                <div class="court-intro-taunt">🪿 匹克鵝：準備接招吧！</div>
+                <div class="court-intro-skip">點一下跳過</div>
+            </div>
+        </div>
 
         <!-- 🍃 動態關卡藥丸島 (#dynamic-stage-pill) -->
-        <div id="dynamic-stage-pill" onclick="openModeHub()" title="點擊開啟模式大廳與關卡切換">
+        <div id="dynamic-stage-pill" onclick="openStagePicker()" title="點擊選擇關卡 (Stage Select)">
             <span class="dsp-leaf">🍃</span>
             <span class="dsp-stage-txt" id="dsp-stage">第 1 關 · 發球養成</span>
             <span class="dsp-divider"></span>
@@ -1762,14 +1841,25 @@ I_syn(t) = w_syn · x · u · (dθ/dt)</div>
         <div id="joy">
             <div id="nub"></div>
         </div>
+        <div id="hit-cue" aria-hidden="true"></div>
         <div id="cam-vert">
             <button id="cv-up" type="button">▲</button>
             <button id="cv-down" type="button">▼</button>
         </div>
 
-        <video id="webcam-video" style="display:none;" playsinline></video>
-        <canvas id="skeleton-canvas" class="card"
-            style="position:absolute;top:14px;right:150px;width:130px;height:95px;z-index:20;display:none;pointer-events:none;"></canvas>
+        <!-- ═══════ 體感視覺化 HUD：即時 33 點姿態與骨架回饋 (#motion-hud) ═══════ -->
+        <div id="motion-hud" class="motion-hud-pip" style="display:none;">
+            <div class="motion-hud-header">
+                <span class="motion-hud-dot"></span>
+                <span class="motion-hud-title">👤 體感骨架追蹤</span>
+                <button type="button" class="motion-hud-btn" id="motion-hud-size-btn" onclick="toggleMotionHudSize()" title="切換放大/標準視窗">⤢</button>
+            </div>
+            <div class="motion-hud-body">
+                <video id="webcam-video" style="display:none;" playsinline></video>
+                <canvas id="skeleton-canvas" width="240" height="180"></canvas>
+                <div id="motion-hud-status" class="motion-hud-badge">體感待命</div>
+            </div>
+        </div>
 
         <!-- ═══════ 普林斯頓 FlyWire 果蠅神經電生理示波器 HUD (#fly-snn-hud) ═══════ -->
         <div id="fly-snn-hud" class="card" style="display:none;">
@@ -1929,9 +2019,11 @@ I_syn(t) = w_syn · x · u · (dθ/dt)</div>
                     <div id="stab-pane-control" class="settings-tab-pane" style="display:none;flex-direction:column;gap:6px;width:100%;align-items:center;">
                         <div style="display:flex;gap:4px;flex-wrap:wrap;justify-content:center;">
                             <button onclick="cycleJoySpeedQuick()" style="color:var(--ok);">🕹️ 搖桿: <span id="joy-speed-lbl">標準</span></button>
+                            <button id="movement-mode-btn" onclick="toggleMovementMode()" style="color:var(--ok);">🏃 走位: 自動</button>
                             <button onclick="togglePhysicsMode()" style="color:#c7d2fe;">🌪️ 物理: <span id="physics-mode-pill">⚡ 極速</span></button>
                             <button onclick="showFingerTutorial()" style="color:var(--ok);">👆 揮拍教學</button>
                         </div>
+                        <small style="color:var(--dim);text-align:center;">回球左右滑＝往該方向打；高球向下／斜下滑＝殺球，低球＝強力回球</small>
                         <!-- 難度快速切換列 -->
                         <div style="display:flex;align-items:center;gap:4px;border-top:1px solid rgba(255,255,255,0.08);padding-top:5px;width:100%;justify-content:center;">
                             <span style="font-size:10px;font-weight:800;color:var(--dim);white-space:nowrap;">🤖 AI 難度:</span>
@@ -1961,8 +2053,9 @@ I_syn(t) = w_syn · x · u · (dθ/dt)</div>
                         <button class="stage-btn" data-stage="2" onclick="switchStage(2)">2 雙彈跳</button>
                         <button class="stage-btn" data-stage="3" onclick="switchStage(3)">3 廚房區</button>
                         <button class="stage-btn" data-stage="4" onclick="switchStage(4)">4 對決</button>
-                        <button class="stage-btn" data-stage="5" onclick="switchStage(5)">5 冠軍賽</button>
+                        <button class="stage-btn" data-stage="5" onclick="switchStage(5)">5 大魔王</button>
                         <button class="stage-btn" data-stage="6" onclick="switchStage(6)" style="color:#fbbf24;font-weight:700;">6 娛樂戰</button>
+                        <button class="stage-btn" data-stage="7" onclick="switchStage(7, {showEntrance:true})" style="color:#c4b5fd;font-weight:700;">7 黑天鵝</button>
                         <button class="stage-btn" onclick="openItemCardsModal()" style="color:#f59e0b;font-weight:700;">🃏 卡包</button>
                         <button class="stage-btn" onclick="replayDemo()" style="color:var(--accent);font-weight:700;">▶ 觀看示範</button>
                         <button class="stage-btn" onclick="showFingerTutorial(0)" style="color:var(--ok);font-weight:700;">👆 揮拍教學</button>
@@ -1983,6 +2076,7 @@ I_syn(t) = w_syn · x · u · (dθ/dt)</div>
                     <button id="subbar-teach-btn" onclick="cycleTeachLevelQuick()">🎚️ 體感判定: 寬鬆</button>
                     <button id="subbar-diff-btn" onclick="cycleDifficultyQuick()">🤖 匹克鵝難度: 初階</button>
                     <button id="subbar-joy-btn" onclick="cycleJoySpeedQuick()" style="color:var(--ok);">🕹️ 搖桿: 標準</button>
+                    <button id="subbar-movement-btn" onclick="toggleMovementMode()" style="color:var(--ok);">🏃 走位: 自動</button>
                     <button id="subbar-net-assist-btn" onclick="toggleNetAssist()" style="color:var(--dim);">🏃 網前助攻: 關</button>
                     <button id="subbar-perf-btn" onclick="cyclePerfQuick()">⚡ 畫質: 原生高畫質</button>
                     <button id="subbar-phys-btn" onclick="togglePhysicsMode()" style="color:#c7d2fe;">🌪️ 物理: ⚡極速</button>
@@ -2083,6 +2177,7 @@ I_syn(t) = w_syn · x · u · (dθ/dt)</div>
                 <button data-stage="4" onclick="switchStage(4)">4 對決</button>
                 <button data-stage="5" onclick="switchStage(5)">5 魔王戰</button>
                 <button data-stage="6" onclick="switchStage(6)" style="color:#fbbf24;font-weight:700;">6 娛樂戰</button>
+                <button data-stage="7" onclick="switchStage(7, {showEntrance:true})" style="color:#c4b5fd;font-weight:700;">7 黑天鵝</button>
                 <button onclick="openItemCardsModal()" style="color:#f59e0b;font-weight:700;">🃏 道具卡包</button>
                 <button onclick="replayDemo()">▶ 示範</button>
                 <div class="sheet-div"></div>
@@ -2159,10 +2254,10 @@ I_syn(t) = w_syn · x · u · (dθ/dt)</div>
         <div id="demo" class="card" onclick="skipDemo()" style="display:none;">
             <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px;">
                 <div id="d-tag">🎬 示範中</div>
-                <button id="d-skip-btn" onclick="event.stopPropagation(); skipDemo();" style="background:rgba(15,23,42,0.12);border:1px solid rgba(15,23,42,0.24);border-radius:20px;padding:4px 14px;font-size:12px;font-weight:800;color:#0f172a;cursor:pointer;">✕ 結束示範</button>
+                <button id="d-skip-btn" onclick="event.stopPropagation(); skipDemo();" style="background:rgba(230,215,185,0.45);border:1.5px solid #dec79f;border-radius:99px;padding:3px 12px;font-size:11.5px;font-weight:800;color:#5c4328;cursor:pointer;">✕ 結束示範</button>
             </div>
             <div id="d-cap">—</div>
-            <div id="d-skip" style="font-size:11.5px;color:#64748b;font-weight:600;margin-top:4px;">點擊任意處或按 <kbd>Space</kbd> 即刻開始揮拍</div>
+            <div id="d-skip" style="font-size:11px;color:#6c7c6e;font-weight:600;margin-top:3px;">點擊任意處即刻開始揮拍<span class="desktop-only-inline">（或按 <kbd>Space</kbd>）</span></div>
         </div>
         <div id="demo-watermark" style="display:none;">🤖 電腦動作示範中 (DEMO)</div>
 

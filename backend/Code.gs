@@ -15,7 +15,7 @@ var COL = { PID: 0, AVATAR: 1, NICK: 2, DEPT: 3, DEPTCODE: 4, GRADE: 5, ENTRY: 6
 var SCORE_STAGES = [5, 6];
 var MAX_SCORE = 5;
 var MAX_TWIN_CHARS = 30000;
-var POST_ACTS = ['submit', 'like', 'friendReq', 'friendAccept', 'updateProfile', 'sync_twin'];
+var POST_ACTS = ['submit', 'like', 'friendReq', 'friendAccept', 'updateProfile', 'sync_twin', 'deleteMe'];
 
 function getSecret() {
     var s = PropertiesService.getScriptProperties().getProperty('SIGN_SECRET');
@@ -157,7 +157,7 @@ function doGet(e) {
                 list.push({
                     playerId: row[COL.PID], avatar: String(row[COL.AVATAR] || '🪿'),
                     nickname: String(row[COL.NICK] || '匿名球員'), department: String(row[COL.DEPT] || ''),
-                    deptCode: String(row[COL.DEPTCODE] || ''), ig: String(row[COL.IG] || ''),
+                    deptCode: String(row[COL.DEPTCODE] || ''),
                     score: sc, likes: Number(row[COL.LIKES]) || 0
                 });
             }
@@ -367,6 +367,13 @@ function doPost(e) {
             if (!safeParse(twinData)) return jsonResponse({ ok: false, err: 'INVALID_TWIN_JSON' });
             writeCells(db.players, me, COL.UPDATED, [isoTime, twinData]);
             return jsonResponse({ ok: true });
+        }
+
+        if (act === 'deleteMe') {
+            // 清除玩家個資與數位孿生（重設為已註銷）
+            writeCells(db.players, me, COL.AVATAR, ['🪿', '已註銷球員', '', '', '', '']);
+            writeCells(db.players, me, COL.BEST, [0, 0, isoTime, '', '', '']);
+            return jsonResponse({ ok: true, deleted: true });
         }
 
         return jsonResponse({ ok: false, err: 'UNKNOWN_POST_ACTION' });

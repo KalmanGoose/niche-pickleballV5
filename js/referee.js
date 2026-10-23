@@ -36,26 +36,29 @@
             if (!scoring()) { fail(msg, sub); return; }   // ★ 練習關轉交 fail(),不扣分
             state = 'FAULT'; freeze();
 
-            const isMatch = (stage === 4 || stage === 5 || stage === 6);
+            const isMatch = (stage >= 4);
             if (isMatch) {
-                // ★ 規格 8: 正式匹克球單打發球得分制 (USA Pickleball Official Singles Rules)
-                const oppName = (typeof diffLevel !== 'undefined' && diffLevel === 'fly') ? '🪰 仿生蒼蠅' : '🪿 匹克鵝';
+                // ★ 正式匹克球實戰規則：發球得分制 (Side-out Scoring) + 每輪兩次發球機會 (1st / 2nd Serve) + 換邊發球
+                const oppName = (stage === 7) ? '🦢 冠軍黑天鵝' : ((typeof diffLevel !== 'undefined' && diffLevel === 'fly') ? '🪰 仿生蒼蠅' : '🪿 匹克鵝');
                 if (scorer === server) {
-                    // 發球方贏得回合 ➔ 得 1 分 + 依新分數奇偶切換發球區 (偶數右區、奇數左區)
+                    // 發球方贏得回合 ➔ 得 1 分 + 在自己半場左右換邊繼續發球 (維持當前 1st / 2nd Serve)
                     if (server === 'PLAYER') {
                         pScore++; S.point(); popRing(0, -3, 6, 0x3fe0c4);
                         if (typeof updateGooseEmote === 'function') updateGooseEmote('💦');
-                        serveSide = (pScore % 2 === 0) ? 1 : -1;
-                        toast('🏆 玩家得分！', '比分 ' + pScore + ' - ' + aScore + ' · ' + (serveSide === 1 ? '右側' : '左側') + '發球');
+                        serveSide *= -1;
+                        const srvNum = secondServe ? 2 : 1;
+                        toast('🏆 玩家得分！ (' + pScore + '-' + aScore + '-' + srvNum + ')',
+                            '比分 ' + pScore + ' - ' + aScore + ' · 換到' + (serveSide === 1 ? '右側' : '左側') + '繼續發球 (' + (secondServe ? '2nd' : '1st') + ' Serve)');
                     } else {
                         aScore++; S.fault(); addShake(0.22);
                         if (typeof updateGooseEmote === 'function') updateGooseEmote('🎵');
-                        serveSide = (aScore % 2 === 0) ? 1 : -1;
-                        toast(oppName + '得分！', '比分 ' + pScore + ' - ' + aScore + ' · ' + (serveSide === 1 ? '右側' : '左側') + '發球');
+                        serveSide *= -1;
+                        const srvNum = secondServe ? 2 : 1;
+                        toast(oppName + '得分！ (' + aScore + '-' + pScore + '-' + srvNum + ')',
+                            '比分 ' + pScore + ' - ' + aScore + ' · 對手換到' + (serveSide === 1 ? '右側' : '左側') + '繼續發球 (' + (secondServe ? '2nd' : '1st') + ' Serve)');
                     }
-                    secondServe = false;
                 } else {
-                    // 接球方贏得回合 ➔ 單打直接 Side-out 換發球權 (單打無第二發球員，失誤即換發球權)
+                    // 發球方失誤 / 接發球方贏得回合 ➔ 第 1 次失誤換邊進行第 2 次發球 (2nd Serve)；第 2 次失誤則 Side-out 交換球權
                     if (scorer === 'PLAYER') {
                         S.point();
                         if (typeof updateGooseEmote === 'function') updateGooseEmote('💦');
@@ -63,12 +66,25 @@
                         S.fault(); addShake(0.22);
                         if (typeof updateGooseEmote === 'function') updateGooseEmote('🎵');
                     }
-                    secondServe = false;
-                    server = (server === 'PLAYER' ? 'GOOSE' : 'PLAYER');
-                    const newServerScore = (server === 'PLAYER') ? pScore : aScore;
-                    serveSide = (newServerScore % 2 === 0) ? 1 : -1;
-                    const nextName = (server === 'PLAYER' ? '玩家' : oppName);
-                    toast('🔄 Side-out 換發球權！', '輪到 ' + nextName + ' (' + (serveSide === 1 ? '右側' : '左側') + '發球)');
+                    if (!secondServe) {
+                        secondServe = true;
+                        serveSide *= -1;
+                        if (server === 'PLAYER') {
+                            toast('🔄 一發失誤 · 換邊二發 (2nd Serve)',
+                                msg + ' · 換到' + (serveSide === 1 ? '右側' : '左側') + '進行第 2 次發球 (' + pScore + '-' + aScore + '-2)');
+                        } else {
+                            toast('🔄 ' + oppName + '一發失誤 · 換邊二發 (2nd Serve)',
+                                msg + ' · 對手換邊進行第 2 次發球 (' + aScore + '-' + pScore + '-2)');
+                        }
+                    } else {
+                        secondServe = false;
+                        server = (server === 'PLAYER' ? 'GOOSE' : 'PLAYER');
+                        serveSide = 1;
+                        const nextName = (server === 'PLAYER' ? '玩家' : oppName);
+                        const callScore = (server === 'PLAYER') ? (pScore + '-' + aScore + '-1') : (aScore + '-' + pScore + '-1');
+                        toast('🔄 Side-out 交換球權！',
+                            msg + ' · 兩次發球結束，換 ' + nextName + ' 右側發球 (' + callScore + ')');
+                    }
                 }
             } else {
                 if (scorer === 'PLAYER') {
@@ -83,12 +99,13 @@
 
             updateScore(); updateGoal();
             const goal = STAGES[stage].goal;
-            if (stage === 3 || stage === 4 || stage === 5 || stage === 6) {
-                if (pScore >= goal) { clearStage(); return; }
-                if (aScore >= goal) {
+            if (stage >= 3) {
+                const needLead = (stage === 7) ? 2 : 1;
+                if (pScore >= goal && (pScore - aScore) >= needLead) { clearStage(); return; }
+                if (aScore >= goal && (aScore - pScore) >= needLead) {
                     state = 'OVER'; clearTimers();
-                    const opp = (typeof diffLevel !== 'undefined' && diffLevel === 'fly') ? '🪰 仿生蒼蠅' : '🪿 匹克鵝';
-                    const loseMsg = stage === 5 ? '魔王匹克鵝獲勝!' : (stage === 6 ? '🍄 道具戰 ' + opp + ' 獲勝!' : (opp + '先得 ' + goal + ' 分'));
+                    const opp = (stage === 7) ? '🦢 冠軍黑天鵝' : ((typeof diffLevel !== 'undefined' && diffLevel === 'fly') ? '🪰 仿生蒼蠅' : '🪿 匹克鵝');
+                    const loseMsg = stage === 7 ? '🦢 冠軍黑天鵝獲勝!' : (stage === 5 ? '魔王匹克鵝獲勝!' : (stage === 6 ? '🍄 道具戰 ' + opp + ' 獲勝!' : (opp + '先得 ' + goal + ' 分')));
                     toast(loseMsg, '比賽結束，點擊檢視紀念卡');
                     if (typeof updateGooseEmote === 'function') updateGooseEmote('🏆');
                     if (typeof showPolaroidSouvenir === 'function') showPolaroidSouvenir(false, pScore, aScore);
@@ -127,6 +144,7 @@
             state = 'CLEARED'; freeze(); clearTimers(); locked = true; S.point();
             popRing(0, 2, 8, 0xffc857);
             if (typeof updateGooseEmote === 'function') updateGooseEmote('👏');
+            if (typeof triggerCourtSpin === 'function') triggerCourtSpin({ duration: 1.5, dir: 1, angle: Math.PI * 1.25, height: 5.2 });
             if (typeof showPolaroidSouvenir === 'function' && stage >= 4) {
                 showPolaroidSouvenir(true, pScore, aScore);
                 // ★ 正式關卡通關拍立得彈出時，等待玩家點擊 [繼續遊戲] 再推進關卡！
@@ -144,12 +162,19 @@
                     switchStage(nextSt, { fromClear: true });
                 }, 1200);
             } else if (stage === 5) {
-                toast('STAGE 5 CLEARED', '🏆 擊敗中興湖魔王！解鎖隱藏娛樂關！');
+                toast('STAGE 5 CLEARED', '🏆 擊敗中興湖魔王！晉級黑天鵝冠軍賽！');
                 stageAdvanceTimer = setTimeout(() => {
                     stageAdvanceTimer = null;
                     submitScoreToCloud(pScore);
-                    switchStage(6, { fromClear: true });
+                    switchStage(7, { fromClear: true, showEntrance: true });
                 }, 2400);
+            } else if (stage === 7) {
+                toast('🦢 STAGE 7 完美通關！', '🏆 擊敗冠軍匹克黑天鵝，制霸中興湖！');
+                stageAdvanceTimer = setTimeout(() => {
+                    stageAdvanceTimer = null;
+                    locked = false;
+                    resetServe();
+                }, 2000);
             } else {
                 toast('🎉 STAGE 6 完美通關！', '🏆 稱霸瘋狂道具戰！登錄英雄榜！');
                 stageAdvanceTimer = setTimeout(() => {
@@ -177,7 +202,7 @@
         function toast(main, sub) {
             // ★ V5 裁判廣播與操作指引分工解耦，杜絕多層重複疊字
             const isFault = (main.indexOf('FAULT') !== -1 || main.indexOf('失誤') !== -1 || main.indexOf('違規') !== -1 || main.indexOf('出界') !== -1 || main.indexOf('❌') !== -1);
-            const isMajorCall = isFault || main.indexOf('Side-out') !== -1 || main.indexOf('得分') !== -1 || main.indexOf('獲勝') !== -1 || main.indexOf('連擊中斷') !== -1;
+            const isMajorCall = isFault || main.indexOf('Side-out') !== -1 || main.indexOf('二發') !== -1 || main.indexOf('得分') !== -1 || main.indexOf('獲勝') !== -1 || main.indexOf('連擊中斷') !== -1;
 
             // 1. 裁判廣播橫幅 (頂部木質懸浮膠囊) 專司賽事正式判決
             announceReferee(main, sub, isFault);

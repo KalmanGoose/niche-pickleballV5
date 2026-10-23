@@ -98,16 +98,31 @@ POSE_CONNECTIONS = [
 KINEMATICS_SCRIPT_PATH = os.path.join(os.path.dirname(__file__), "kinematics_v2.py")
 EXTRACTOR_SCRIPT_PATH = os.path.abspath(__file__)
 
-DETECTOR_PARAMS = {
-    "frame_step": 2,
-    "min_peak_speed": 1.5,
-    "min_path_len": 0.3,
-    "merge_window_s": 0.45,
-    "max_cluster_span_s": 0.38,
-    "target_w": 540,
-    "min_pose_presence_confidence": 0.5,
-    "min_tracking_confidence": 0.5
+DETECTOR_PROFILES = {
+    "default": {
+        "frame_step": 2,
+        "min_peak_speed": 1.5,
+        "min_path_len": 0.3,
+        "merge_window_s": 0.45,
+        "max_cluster_span_s": 0.38,
+        "target_w": 540,
+        "min_pose_presence_confidence": 0.5,
+        "min_tracking_confidence": 0.5
+    },
+    "experimental_v3": {
+        "frame_step": 2,
+        "min_peak_speed": 2.8,
+        "min_path_len": 0.6,
+        "merge_window_s": 0.45,
+        "max_cluster_span_s": 0.38,
+        "target_w": 540,
+        "min_pose_presence_confidence": 0.5,
+        "min_tracking_confidence": 0.5
+    }
 }
+
+ACTIVE_PROFILE = os.getenv("DETECTOR_PROFILE", "default")
+DETECTOR_PARAMS = DETECTOR_PROFILES[ACTIVE_PROFILE]
 
 def compute_detector_params_hash(params):
     payload = json.dumps(params, sort_keys=True).encode("utf-8")

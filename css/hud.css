@@ -2827,3 +2827,206 @@ body.distant-hud-active #subbar-ai-btn {
     display: inline-block;
     transition: transform 0.5s ease;
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   🌀 曲球手感即時對比測試工具 (Curveball Comparison Dock)
+   ═══════════════════════════════════════════════════════════════════ */
+#curve-dock {
+    position: fixed;
+    right: 10px;
+    top: calc(68px + env(safe-area-inset-top));
+    z-index: 105;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    background: rgba(15, 23, 42, 0.90);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 12px;
+    padding: 8px 10px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+    max-width: 190px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    color: #f8fafc;
+    pointer-events: auto;
+    transition: transform 0.25s ease, opacity 0.25s ease;
+}
+
+#curve-dock.minimized {
+    padding: 4px 8px;
+    max-width: auto;
+}
+
+#curve-dock.minimized .curve-dock-body {
+    display: none !important;
+}
+
+.curve-dock-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 4px;
+    font-size: 11px;
+    font-weight: 800;
+}
+
+#btn-curve-mode {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(245, 158, 11, 0.5);
+    color: #f59e0b;
+    border-radius: 6px;
+    padding: 3px 6px;
+    font-size: 10.5px;
+    font-weight: 800;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+#curve-gesture-hud {
+    background: rgba(0, 0, 0, 0.35);
+    border-radius: 6px;
+    padding: 4px 6px;
+    font-size: 11px;
+    line-height: 1.25;
+    text-align: center;
+}
+
+.curve-test-btn {
+    flex: 1;
+    border-radius: 6px;
+    padding: 5px 2px;
+    font-size: 10.5px;
+    font-weight: 800;
+    cursor: pointer;
+    text-align: center;
+    border: 1px solid transparent;
+    transition: transform 0.1s ease, filter 0.1s ease;
+}
+.curve-test-btn:active {
+    transform: scale(0.95);
+}
+.curve-btn-straight {
+    background: rgba(220, 255, 106, 0.15);
+    border-color: #dcff6a;
+    color: #dcff6a;
+}
+.curve-btn-left {
+    background: rgba(0, 240, 255, 0.15);
+    border-color: #00f0ff;
+    color: #00f0ff;
+}
+.curve-btn-right {
+    background: rgba(245, 158, 11, 0.15);
+    border-color: #f59e0b;
+    color: #f59e0b;
+}
+
+@media (max-width: 480px) {
+    #curve-dock {
+        right: 6px;
+        top: calc(56px + env(safe-area-inset-top));
+        max-width: 170px;
+        padding: 6px 8px;
+    }
+}
+
+/* ═══════ 體感視覺化 HUD (Cyber PIP & 骨架監視器) ═══════ */
+#motion-hud {
+    position: absolute;
+    top: 62px;
+    right: 14px;
+    z-index: 45;
+    background: rgba(10, 24, 20, 0.90);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1.5px solid rgba(0, 240, 255, 0.7);
+    border-radius: 12px;
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.6), 0 0 16px rgba(0, 240, 255, 0.25);
+    overflow: hidden;
+    transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1), transform 0.2s ease;
+    user-select: none;
+}
+#motion-hud.motion-hud-pip {
+    width: 180px;
+}
+#motion-hud.motion-hud-expanded {
+    width: 280px;
+}
+.motion-hud-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 10px;
+    background: rgba(0, 240, 255, 0.15);
+    border-bottom: 1px solid rgba(0, 240, 255, 0.3);
+    font-size: 11px;
+    font-weight: 700;
+    color: #e0f2fe;
+    letter-spacing: 0.5px;
+}
+.motion-hud-dot {
+    width: 7px;
+    height: 7px;
+    background: #00f0ff;
+    border-radius: 50%;
+    margin-right: 6px;
+    box-shadow: 0 0 8px #00f0ff;
+    animation: motion-pulse 1.8s infinite;
+}
+@keyframes motion-pulse {
+    0%, 100% { transform: scale(1); opacity: 0.85; }
+    50% { transform: scale(1.4); opacity: 1; box-shadow: 0 0 12px #38bdf8; }
+}
+.motion-hud-title {
+    flex: 1;
+    display: flex;
+    align-items: center;
+}
+.motion-hud-btn {
+    background: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    color: #fff;
+    border-radius: 4px;
+    font-size: 11px;
+    padding: 1px 7px;
+    cursor: pointer;
+    line-height: 1.4;
+    transition: all 0.15s ease;
+}
+.motion-hud-btn:hover {
+    background: rgba(0, 240, 255, 0.35);
+    border-color: #00f0ff;
+    transform: scale(1.08);
+}
+.motion-hud-body {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    background: #040907;
+}
+#skeleton-canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+    object-fit: cover;
+}
+.motion-hud-badge {
+    position: absolute;
+    bottom: 6px;
+    left: 6px;
+    font-size: 9.5px;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 4px;
+    background: rgba(0, 0, 0, 0.72);
+    color: #38bdf8;
+    border: 1px solid rgba(56, 189, 248, 0.5);
+    letter-spacing: 0.3px;
+    pointer-events: none;
+    text-shadow: 0 0 4px rgba(56, 189, 248, 0.5);
+}
+@media (max-width: 480px) {
+    #motion-hud.motion-hud-pip { width: 145px; top: 56px; right: 8px; }
+    #motion-hud.motion-hud-expanded { width: 230px; top: 56px; right: 8px; }
+}

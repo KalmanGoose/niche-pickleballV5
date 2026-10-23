@@ -1,0 +1,31 @@
+# Pickler-er Mascot Materials
+newmtl Mat_Feather_White
+Kd 0.9690 0.9730 0.9800
+
+newmtl Mat_Beak_Orange
+Kd 0.9100 0.4430 0.1650
+
+newmtl Mat_Eye_Black
+Kd 0.0710 0.0750 0.0860
+
+newmtl Mat_Hoodie_RoyalBlue_Textured
+Kd 1.0000 1.0000 1.0000
+
+newmtl Mat_Hoodie_RoyalBlue
+Kd 0.1060 0.3410 0.6200
+
+newmtl Mat_Cap_Black_NCHU
+Kd 1.0000 1.0000 1.0000
+
+newmtl Mat_Cap_Black
+Kd 0.0940 0.1020 0.1140
+
+newmtl Mat_Paddle_Face
+Kd 1.0000 1.0000 1.0000
+
+newmtl Mat_Pickleball_Blue
+Kd 0.1450 0.4590 0.8160
+
+newmtl Mat_Pickleball_HoleDark
+Kd 0.0430 0.1450 0.2820
+

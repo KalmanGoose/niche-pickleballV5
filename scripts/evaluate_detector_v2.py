@@ -35,6 +35,19 @@ GT_EVENTS_PATH = "data/v2/ground_truth_events.json"
 
 HUMAN_VERIFIED_STATUSES = {"HUMAN_CONFIRMED", "HUMAN_REJECTED", "VERIFIED_TRUE", "VERIFIED_FALSE"}
 
+DETECTOR_PROFILES = {
+    "default": {
+        "name": "預設基準設定 (Default Baseline)",
+        "min_peak_speed": 1.5,
+        "min_path_len": 0.3,
+    },
+    "experimental_v3": {
+        "name": "三支影片上的經驗調參 (Empirical v3)",
+        "min_peak_speed": 2.8,
+        "min_path_len": 0.6,
+    }
+}
+
 
 def _solve_video_optimal_matching(dets, gts, tolerance_s):
     """
@@ -81,7 +94,7 @@ def _solve_video_optimal_matching(dets, gts, tolerance_s):
     return best_cnt, total_abs_err, matched_pairs
 
 
-def evaluate_event_detection(detected_events, ground_truth_events, tolerance_s=0.30):
+def evaluate_event_detection(detected_events, ground_truth_events, tolerance_s=0.30, eval_videos=None):
     """
     Match detected candidate events against ground-truth stroke events per video.
     Uses sequence DP per video to maximize matched pairs (TP) first and minimize
@@ -109,16 +122,33 @@ def evaluate_event_detection(detected_events, ground_truth_events, tolerance_s=0
     fn = 0
     total_abs_time_error_s = 0.0
 
-    all_videos = sorted(set(det_by_video.keys()) | set(gt_by_video.keys()))
+    per_video = {}
+    if eval_videos is not None:
+        all_videos = sorted(set(eval_videos))
+    else:
+        all_videos = sorted(set(det_by_video.keys()) | set(gt_by_video.keys()))
     for vid in all_videos:
         dets = sorted(det_by_video.get(vid, []), key=lambda x: (x[0], x[1], x[2]))
         gts = sorted(gt_by_video.get(vid, []), key=lambda x: (x[0], x[1], x[2]))
 
         vid_tp, vid_err, _ = _solve_video_optimal_matching(dets, gts, tolerance_s)
+        vid_fp = len(dets) - vid_tp
+        vid_fn = len(gts) - vid_tp
         tp += vid_tp
-        fp += len(dets) - vid_tp
-        fn += len(gts) - vid_tp
+        fp += vid_fp
+        fn += vid_fn
         total_abs_time_error_s += vid_err
+        vid_prec = (vid_tp / len(dets)) if dets else 0.0
+        vid_rec = (vid_tp / len(gts)) if gts else 0.0
+        per_video[vid] = {
+            "gt_count": len(gts),
+            "det_count": len(dets),
+            "tp": vid_tp,
+            "fp": vid_fp,
+            "fn": vid_fn,
+            "precision": vid_prec,
+            "recall": vid_rec,
+        }
 
     precision = tp / (tp + fp) if (tp + fp) > 0 else 0.0
     recall = tp / (tp + fn) if (tp + fn) > 0 else 0.0
@@ -133,6 +163,7 @@ def evaluate_event_detection(detected_events, ground_truth_events, tolerance_s=0
         "f1": f1,
         "tolerance_s": tolerance_s,
         "total_abs_time_error_s": total_abs_time_error_s,
+        "per_video": per_video,
     }
 
 
@@ -198,19 +229,59 @@ def summarize_manifest_audit(manifest_rows):
 
 
 def main():
-    target_dir = os.path.dirname(os.path.abspath(MANIFEST_PATH)) or "."
+    import argparse
+    parser = argparse.ArgumentParser(description="Candidate Event Detector Evaluator")
+    parser.add_argument("--manifest", default=os.getenv("MANIFEST_PATH", MANIFEST_PATH), help="Path to manifest CSV")
+    parser.add_argument("--gt-events", default=os.getenv("GT_EVENTS_PATH", GT_EVENTS_PATH), help="Path to ground truth JSON")
+    parser.add_argument("--checkpoint", default="data/v2/checkpoint_v2.json", help="Path to checkpoint JSON")
+    parser.add_argument("--profile", choices=["default", "experimental_v3", "compare"], default="default", help="Detector profile")
+    parser.add_argument("--tolerance", type=float, default=0.30, help="Matching tolerance in seconds")
+    parser.add_argument("--min-speed", type=float, default=None, help="Custom min peak speed override")
+    parser.add_argument("--min-path", type=float, default=None, help="Custom min path length override")
+    args = parser.parse_args()
+
+    manifest_file = args.manifest
+    target_dir = os.path.dirname(os.path.abspath(manifest_file)) or "."
     try:
         check_no_pending_recovery(target_dir)
     except ManifestValidationError as err:
         print(f"❌ {err}", file=sys.stderr)
         sys.exit(1)
 
-    if not os.path.exists(MANIFEST_PATH):
-        print(f"❌ 找不到 Manifest 檔案: {MANIFEST_PATH}")
+    if not os.path.exists(manifest_file):
+        print(f"❌ 找不到 Manifest 檔案: {manifest_file}")
         sys.exit(1)
 
-    with open(MANIFEST_PATH, "r", encoding="utf-8-sig", newline="") as f:
+    with open(manifest_file, "r", encoding="utf-8-sig", newline="") as f:
         rows = list(csv.DictReader(f))
+
+    # Enrich rows with peak_speed_torso_s and path_length_torso if available from checkpoint
+    chk_lookup = {}
+    if os.path.exists(args.checkpoint):
+        try:
+            with open(args.checkpoint, "r", encoding="utf-8") as cf:
+                chk_data = json.load(cf)
+            for vname, vdict in chk_data.items():
+                if isinstance(vdict, dict) and "events" in vdict:
+                    for ev in vdict["events"]:
+                        eid = ev.get("event_id")
+                        if eid:
+                            chk_lookup[(vname, eid)] = ev
+                        ts = round(float(ev.get("timestamp_peak_s", 0)), 2)
+                        chk_lookup[(vname, ts)] = ev
+        except Exception:
+            pass
+
+    for r in rows:
+        vname = r.get("video", "")
+        eid = r.get("event_id", "")
+        ts = round(float(r.get("timestamp_peak_s", 0)), 2)
+        match = chk_lookup.get((vname, eid)) or chk_lookup.get((vname, ts))
+        if match:
+            if not r.get("peak_speed_torso_s"):
+                r["peak_speed_torso_s"] = match.get("peak_speed_torso_s", 0.0)
+            if not r.get("path_length_torso"):
+                r["path_length_torso"] = match.get("path_length_torso", 0.0)
 
     summary = summarize_manifest_audit(rows)
 
@@ -246,18 +317,68 @@ def main():
         print("  ⚠️ 狀態: 尚未載入人工確認真值 (0 筆已人工簽核)。")
         print("     所有候選事件均標記為 PENDING_HUMAN_AUDIT，禁止於人工驗收前宣稱最終真值指標。")
 
-    if os.path.exists(GT_EVENTS_PATH):
-        with open(GT_EVENTS_PATH, "r", encoding="utf-8") as gf:
-            gt_events = json.load(gf)
-        pr_metrics = evaluate_event_detection(rows, gt_events, tolerance_s=0.30)
-        print("-" * 76)
-        print(f"  📐 獨立事件真值比對 (Ground-Truth Interval Matching, tol={pr_metrics['tolerance_s']:.2f}s):")
-        print(f"    - TP={pr_metrics['tp']}, FP={pr_metrics['fp']}, FN={pr_metrics['fn']}")
-        print(f"    - Precision : {pr_metrics['precision']*100:.2f}%")
-        print(f"    - Recall    : {pr_metrics['recall']*100:.2f}%")
-        print(f"    - F1 Score  : {pr_metrics['f1']*100:.2f}%")
+    gt_path = args.gt_events
+    if os.path.exists(gt_path):
+        with open(gt_path, "r", encoding="utf-8") as gf:
+            gt_raw = json.load(gf)
+        if isinstance(gt_raw, dict) and "videos" in gt_raw:
+            gt_events = []
+            for vname, vdata in gt_raw["videos"].items():
+                for ev in vdata.get("events", []):
+                    gt_events.append({
+                        "video": vname,
+                        "timestamp_peak_s": ev.get("timestamp_s", ev.get("timestamp_peak_s")),
+                        "event_id": ev.get("gt_id", ev.get("event_id")),
+                    })
+        elif isinstance(gt_raw, list):
+            gt_events = gt_raw
+        else:
+            gt_events = []
+
+        gt_vids = sorted(set(g["video"] for g in gt_events)) if gt_events else None
+
+        def run_eval(prof_key, min_s=None, min_p=None):
+            cfg = DETECTOR_PROFILES.get(prof_key, DETECTOR_PROFILES["default"])
+            eff_s = min_s if min_s is not None else cfg["min_peak_speed"]
+            eff_p = min_p if min_p is not None else cfg["min_path_len"]
+            filtered_cands = [
+                r for r in rows
+                if float(r.get("peak_speed_torso_s") or 0.0) >= eff_s
+                and float(r.get("path_length_torso") or 0.0) >= eff_p
+            ]
+            metrics = evaluate_event_detection(filtered_cands, gt_events, tolerance_s=args.tolerance, eval_videos=gt_vids)
+            metrics["profile_name"] = cfg["name"]
+            metrics["min_speed"] = eff_s
+            metrics["min_path"] = eff_p
+            metrics["filtered_count"] = sum(1 for c in filtered_cands if c.get("video") in gt_vids) if gt_vids else len(filtered_cands)
+            return metrics
+
+        if args.profile == "compare":
+            m_def = run_eval("default")
+            m_exp = run_eval("experimental_v3")
+            print("-" * 76)
+            print("  ⚖️ 門檻設定對比評估 (Profile Comparison):")
+            print(f"    - 基準設定 (Default, spd>={m_def['min_speed']}, path>={m_def['min_path']}):")
+            print(f"      候選數: {m_def['filtered_count']} | TP={m_def['tp']}, FP={m_def['fp']}, FN={m_def['fn']} | Prec={m_def['precision']*100:.1f}%, Rec={m_def['recall']*100:.1f}%, F1={m_def['f1']*100:.1f}%")
+            print(f"    - 經驗調參 (Experimental, spd>={m_exp['min_speed']}, path>={m_exp['min_path']}):")
+            print(f"      候選數: {m_exp['filtered_count']} | TP={m_exp['tp']}, FP={m_exp['fp']}, FN={m_exp['fn']} | Prec={m_exp['precision']*100:.1f}%, Rec={m_exp['recall']*100:.1f}%, F1={m_exp['f1']*100:.1f}%")
+        else:
+            pr_metrics = run_eval(args.profile, args.min_speed, args.min_path)
+            print("-" * 76)
+            print(f"  📐 獨立事件真值比對 [{pr_metrics['profile_name']}] (tol={pr_metrics['tolerance_s']:.2f}s):")
+            print(f"    - 篩選門檻  : 最低速度 >= {pr_metrics['min_speed']} torso/s, 最低位移 >= {pr_metrics['min_path']} torso")
+            print(f"    - 有效候選  : {pr_metrics['filtered_count']} 筆 (TP={pr_metrics['tp']}, FP={pr_metrics['fp']}, FN={pr_metrics['fn']})")
+            print(f"    - Precision : {pr_metrics['precision']*100:.2f}%")
+            print(f"    - Recall    : {pr_metrics['recall']*100:.2f}%")
+            print(f"    - F1 Score  : {pr_metrics['f1']*100:.2f}%")
+            if pr_metrics.get("per_video"):
+                print("    - 分影片指標:")
+                for vid, vst in pr_metrics["per_video"].items():
+                    print(f"      * {vid:<18}: GT={vst['gt_count']}, Dets={vst['det_count']}, TP={vst['tp']}, FP={vst['fp']}, FN={vst['fn']}, Prec={vst['precision']*100:.1f}%, Rec={vst['recall']*100:.1f}%")
+
     print("=" * 76)
 
 
 if __name__ == "__main__":
     main()
+

@@ -76,7 +76,7 @@ try {
 console.log("\n▶ [3/8] 安全邊界與金鑰洩漏掃描 (Secret Leak Scan)...");
 try {
     const res = cp.execSync(
-        "grep -rnE '(AKIA|AIza|ghp_|glpat-|https://script\\.google\\.com/macros/s/[A-Za-z0-9_-]{20,}/exec)' --exclude-dir={.git,node_modules} --exclude=self-test.js --exclude=review_round2.txt --exclude=\*.md . || true",
+        "grep -rnIE '(AKIA|AIza|ghp_|glpat-|https://script\\.google\\.com/macros/s/[A-Za-z0-9_-]{20,}/exec)' --exclude-dir={.git,node_modules,.venv,.worktrees,data,videos,images,models,匹克球學習社群拷貝,興程式競賽1} --exclude=self-test.js --exclude=review_round2.txt --exclude=\*.md . || true",
         { cwd: ROOT, encoding: "utf8" }
     ).trim();
     assert(res === "", "無真實 Google Apps Script exec 端點或 API 金鑰洩漏", res);
@@ -460,8 +460,8 @@ try {
         "js/game.js 還原順手舒適的實戰自適應相機 (camH: 6.1, camDist: 11.5) 與浮島木甲板材質");
     assert(gameSrc.includes("0x0284c7") && gameSrc.includes("0x38bdf8"),
         "js/game.js 球場升級為水上湛藍發球區 (0x0284c7) 與天青藍廚房區 (0x38bdf8)");
-    assert(refereeSrc.includes("USA Pickleball Official Singles Rules") && !refereeSrc.includes("Second Serve"),
-        "js/referee.js 單打模式遵循 USA Pickleball 官方規則：失分即 Side-out 換發球權，徹底根除雙打 Second Serve 誤用");
+    assert(refereeSrc.includes("isMatch = (stage >= 4)") && refereeSrc.includes("secondServe = true") && refereeSrc.includes("serveSide *= -1") && refereeSrc.includes("Side-out"),
+        "js/referee.js 實戰關卡 (Stage 4~7) 支援雙發球機會 (1st/2nd Serve)、得分與一發失誤左右換邊發球、以及二發失誤 Side-out 交換球權");
     assert(refereeSrc.includes("isMajorCall") && refereeSrc.includes("announceReferee(main, sub, isFault)"),
         "js/referee.js 實裝裁判廣播與中央提示分流，重大判決隱藏中央大字，徹底杜絕三層疊字遮擋");
     assert(fs.existsSync(path.join(ROOT, "js", "pickle_neural_policy.js")) && gameSrc.includes("TinyPicklePolicy.evaluate"),

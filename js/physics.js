@@ -72,6 +72,9 @@ function integrateVel(vel, spin, h, mode) {
         vel.z += WIND.z * 0.048 * h;
     }
 
+    // ★ 曲球倍率：原版 (1.0x 微弱物理) vs 加強版 (1.8x 顯著香蕉弧線)
+    const curveMult = (typeof curveMode !== 'undefined' && curveMode === 'normal') ? 1.0 : 1.8;
+
     if (mode === PHYSICS_MODES.ACADEMIC) {
         // ① 二次方阻力 a = −k|v|v，隱式形式：不會讓速度反向
         const v0 = vel.length();
@@ -81,7 +84,7 @@ function integrateVel(vel, spin, h, mode) {
         //    ωy 正負依前進方向決定，確保 spin > 0 永遠往 +x 偏
         const v = vel.length();
         if (Math.abs(spin) > 0.04 && v > 0.5) {
-            const wy = -spin * OMEGA_MAX * (vel.z < 0 ? 1 : -1);
+            const wy = -spin * OMEGA_MAX * curveMult * (vel.z < 0 ? 1 : -1);
             const cx = wy * vel.z;
             const cz = -wy * vel.x;
             const cm = Math.hypot(cx, cz);
@@ -99,7 +102,7 @@ function integrateVel(vel, spin, h, mode) {
     // ── FAST：經驗側向加速度（溫和馬格努斯效應，手感穩定不過甩） ──
     if (Math.abs(spin) > 0.04) {
         const spdForward = Math.min(12, Math.max(2, Math.abs(vel.z)));
-        const magnusAcc = spin * 2.6 * (0.80 + 0.20 * (spdForward / 8.0));
+        const magnusAcc = spin * (2.6 * curveMult) * (0.80 + 0.20 * (spdForward / 8.0));
         vel.x += magnusAcc * h;
         spin *= (1 - SPIN_DECAY_FAST * h);
     }
@@ -174,10 +177,13 @@ class Physics {
         ballGlow.material.opacity = 0.16 + Math.min(0.26, spd * 0.02);
         const hasCurve = Math.abs(this.spin) >= 0.12;
         if (hasCurve) {
-            ballGlow.material.color.set(this.spin > 0 ? 0xf6c445 : 0x2d6a4f);
-            ballGlow.material.opacity = 0.52;
+            // 右曲：金橘光 (0xf59e0b)，左曲：電光青藍 (0x00f0ff)
+            const cColor = this.spin > 0 ? 0xf59e0b : 0x00f0ff;
+            ballGlow.material.color.set(cColor);
+            ballGlow.material.opacity = 0.65;
         } else {
             ballGlow.material.color.set(0xdcff6a);
+            ballGlow.material.opacity = 0.22;
         }
         if (typeof ballTrail !== 'undefined' && ballTrail && ballTrail.length > 0) {
             for (let i = ballTrail.length - 1; i > 0; i--) ballTrail[i].p.copy(ballTrail[i - 1].p);
@@ -186,11 +192,12 @@ class Physics {
             for (let i = 0; i < ballTrail.length; i++) {
                 const tr = ballTrail[i], f = 1 - i / ballTrail.length;
                 tr.spr.position.copy(tr.p);
-                const sc = BALL_R * (hasCurve ? 5.2 : 3.8) * f;
+                const sc = BALL_R * (hasCurve ? 6.0 : 3.8) * f;
                 tr.spr.scale.set(sc, sc, 1);
                 if (hasCurve) {
-                    tr.spr.material.color.set(this.spin > 0 ? 0xf6c445 : 0x2d6a4f);
-                    tr.spr.material.opacity = on ? (0.48 * f) : 0;
+                    const cColor = this.spin > 0 ? 0xf59e0b : 0x00f0ff;
+                    tr.spr.material.color.set(cColor);
+                    tr.spr.material.opacity = on ? (0.60 * f) : 0;
                 } else {
                     tr.spr.material.color.set(0xdcff6a);
                     tr.spr.material.opacity = on ? (0.24 * f * f) : 0;

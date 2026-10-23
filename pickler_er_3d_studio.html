@@ -1,0 +1,2295 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>匹克鵝裁判教練 (Pickler-er Mascot) - Three.js 3D 角色與 GLB 匯出工作站</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang TC", "Microsoft JhengHei", sans-serif;
+      background: #181b20;
+      color: #f0f4f8;
+      overflow: hidden;
+      display: flex;
+      height: 100vh;
+    }
+    #viewport {
+      flex: 1;
+      position: relative;
+      height: 100%;
+      background: radial-gradient(circle at 50% 42%, #2c3545 0%, #171a21 75%);
+    }
+    #viewport.checkerboard {
+      background-color: #1e2229;
+      background-image:
+        linear-gradient(45deg, #262b34 25%, transparent 25%),
+        linear-gradient(-45deg, #262b34 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, #262b34 75%),
+        linear-gradient(-45deg, transparent 75%, #262b34 75%);
+      background-size: 24px 24px;
+      background-position: 0 0, 0 12px, 12px -12px, -12px 0;
+    }
+    #sidebar {
+      width: 360px;
+      background: #222730;
+      border-left: 1px solid #363e4c;
+      padding: 16px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      z-index: 10;
+      box-shadow: -6px 0 24px rgba(0,0,0,0.35);
+    }
+    h1 {
+      font-size: 16px;
+      font-weight: 700;
+      color: #f5c533;
+      border-bottom: 1px solid #363e4c;
+      padding-bottom: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    h1 span.badge {
+      font-size: 11px;
+      background: #1b579e;
+      color: #fff;
+      padding: 2px 7px;
+      border-radius: 999px;
+      font-weight: 600;
+    }
+    h2 {
+      font-size: 12px;
+      font-weight: 700;
+      color: #9ab0c7;
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .btn-group {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+    }
+    .btn-group.single {
+      grid-template-columns: 1fr;
+    }
+    .btn-group.triple {
+      grid-template-columns: 1fr 1fr 1fr;
+    }
+    button {
+      background: #2e3543;
+      color: #e2e8f0;
+      border: 1px solid #454f62;
+      padding: 8px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 500;
+      transition: all 0.15s ease;
+      text-align: center;
+    }
+    button:hover {
+      background: #3b4456;
+      border-color: #64748b;
+    }
+    button.active {
+      background: #1b579e;
+      border-color: #60a5fa;
+      color: #fff;
+      font-weight: 600;
+      box-shadow: 0 0 0 1px rgba(96, 165, 250, 0.35);
+    }
+    button.primary {
+      background: linear-gradient(135deg, #e8712a, #d95d16);
+      border-color: #f59e0b;
+      color: #fff;
+      font-weight: 700;
+      padding: 10px;
+      font-size: 13px;
+    }
+    button.primary:hover {
+      filter: brightness(1.08);
+    }
+    button.export-png {
+      background: #1d6850;
+      border-color: #34d399;
+      color: #fff;
+      font-weight: 600;
+    }
+    button.export-pack {
+      background: #3b3064;
+      border-color: #a78bfa;
+      color: #fff;
+      font-weight: 600;
+    }
+    .status-bar {
+      position: absolute;
+      bottom: 14px;
+      left: 14px;
+      background: rgba(18, 21, 26, 0.88);
+      padding: 8px 14px;
+      border-radius: 8px;
+      font-size: 12px;
+      border: 1px solid #383f4d;
+      pointer-events: none;
+      backdrop-filter: blur(6px);
+      line-height: 1.5;
+    }
+    .joint-legend {
+      font-size: 11px;
+      line-height: 1.55;
+      color: #cbd5e1;
+      background: #171a21;
+      padding: 10px 12px;
+      border-radius: 6px;
+      border: 1px solid #2e3543;
+    }
+    .swatch-row {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      margin-top: 8px;
+      flex-wrap: wrap;
+    }
+    .swatch-item {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 10px;
+      background: #222730;
+      padding: 3px 6px;
+      border-radius: 4px;
+      border: 1px solid #333b48;
+    }
+    .swatch {
+      width: 14px;
+      height: 14px;
+      border-radius: 3px;
+      border: 1px solid rgba(255,255,255,0.25);
+    }
+  </style>
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+        "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+      }
+    }
+  </script>
+</head>
+<body>
+  <div id="viewport">
+    <div class="status-bar" id="statusText">視角：45° 透視預覽 | 動作：待機 (Anim_Idle) | 配件：顯示</div>
+  </div>
+
+  <div id="sidebar">
+    <h1>
+      <span>匹克鵝裁判教練 3D 工作站</span>
+      <span class="badge">NCHU GLB v1.0</span>
+    </h1>
+
+    <div>
+      <h2>1. 匯出 3D 模型與正交參考包</h2>
+      <div class="btn-group single">
+        <button class="primary" id="btnExportGLB">⬇ 下載 Three.js 模型 (pickler_er_mascot.glb)</button>
+        <button class="export-png" id="btnExportOrthoPNG">📸 匯出當前視角 2048px 透明 PNG</button>
+        <button class="export-pack" id="btnExportAllPack">📦 一鍵匯出完整 8 張 2048px 建模參考包</button>
+      </div>
+    </div>
+
+    <div>
+      <h2>2. 骨骼動畫預覽 (Skeletal Animations)</h2>
+      <div class="btn-group">
+        <button class="anim-btn active" data-anim="Anim_Idle">待機 (Anim_Idle)</button>
+        <button class="anim-btn" data-anim="Anim_Run">交替跑動 (Anim_Run)</button>
+        <button class="anim-btn" data-anim="Anim_Swing">引拍擊球 (Anim_Swing)</button>
+        <button class="anim-btn" data-anim="Anim_Referee_Signal">裁判舉手 (Referee)</button>
+        <button class="anim-btn" data-anim="Anim_Coach_Point">教練指向 (Coach)</button>
+        <button class="anim-btn" data-anim="Anim_APose">中立站姿 (無配件查驗)</button>
+      </div>
+    </div>
+
+    <div>
+      <h2>3. 配件與關節顯示控制</h2>
+      <div class="btn-group">
+        <button id="btnToggleProps" class="active">顯示球拍與球</button>
+        <button id="btnToggleJoints">顯示關節標示點</button>
+        <button id="btnToggleTurntable">360° 自動轉身</button>
+        <button id="btnIsolateProps">獨立檢視球拍/球</button>
+      </div>
+    </div>
+
+    <div>
+      <h2>4. 標準視角與正交切換 (Camera)</h2>
+      <div class="btn-group">
+        <button class="cam-btn active" data-cam="persp45">45° 透視預覽</button>
+        <button class="cam-btn" data-cam="front">正面 (正交)</button>
+        <button class="cam-btn" data-cam="left">左側 (正交)</button>
+        <button class="cam-btn" data-cam="right">右側 (正交)</button>
+        <button class="cam-btn" data-cam="back">背面 (正交)</button>
+        <button class="cam-btn" data-cam="top">頂視 (正交)</button>
+      </div>
+    </div>
+
+    <div>
+      <h2>5. NCHU 標準色票與骨架規格</h2>
+      <div class="joint-legend">
+        <div><strong>標準遊戲骨架階層 (20 節點)：</strong></div>
+        • <code>Root</code> → <code>Pelvis</code> → <code>Spine_01</code> → <code>Spine_02</code><br>
+        • <code>Neck_01</code> → <code>Neck_02</code> → <code>Head</code> (含雙顎立體喙與帽)<br>
+        • <code>Shoulder_L/R</code> → <code>Elbow_L/R</code> → <code>Wrist_L/R</code> → <code>Prop_Socket_L/R</code><br>
+        • <code>Hip_L/R</code> → <code>Knee_L/R</code> → <code>Ankle_L/R</code> (三趾橘色鵝掌)<br>
+        <div class="swatch-row">
+          <div class="swatch-item"><div class="swatch" style="background:#1B579E"></div>#1B579E 皇家藍</div>
+          <div class="swatch-item"><div class="swatch" style="background:#F5C533"></div>#F5C533 中興金</div>
+          <div class="swatch-item"><div class="swatch" style="background:#E8712A"></div>#E8712A 鵝嘴橘</div>
+          <div class="swatch-item"><div class="swatch" style="background:#2575D0"></div>#2575D0 匹克球藍</div>
+          <div class="swatch-item"><div class="swatch" style="background:#181A1D"></div>#181A1D 棒球帽黑</div>
+          <div class="swatch-item"><div class="swatch" style="background:#F7F8FA"></div>#F7F8FA 鵝羽白</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+    import { GLTFExporter } from 'three/addons/exporters/GLTFExporter.js';
+
+    // ============================================================================
+    // 1. 高解析 Canvas 材質貼圖生成 (帽T正背面 NCHU、棒球帽 NCHU、斜切藍黃球拍貼圖)
+    // ============================================================================
+    function createHoodieTexture() {
+      const canvas = document.createElement('canvas');
+      canvas.width = 2048;
+      canvas.height = 2048;
+      const ctx = canvas.getContext('2d');
+
+      // 皇家藍基底 (#1B579E)
+      ctx.fillStyle = '#1B579E';
+      ctx.fillRect(0, 0, 2048, 2048);
+
+      // 細緻棉質針織紋理
+      ctx.fillStyle = 'rgba(255,255,255,0.018)';
+      for (let y = 0; y < 2048; y += 4) {
+        ctx.fillRect(0, y, 2048, 1);
+      }
+      ctx.fillStyle = 'rgba(0,0,0,0.025)';
+      for (let x = 0; x < 2048; x += 4) {
+        ctx.fillRect(x, 0, 1, 2048);
+      }
+
+      // 繪製微弧形文字輔助函式 (精準控制字距 spanPx 與拱形弧度)
+      function drawArchedText(text, centerX, centerY, fontSize, spanPx, archDropPx = 0) {
+        ctx.save();
+        ctx.font = `900 ${fontSize}px "Arial Black", "Helvetica Neue", Arial, sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        const chars = text.split('');
+        const n = chars.length;
+
+        for (let i = 0; i < n; i++) {
+          const u = (i / Math.max(1, n - 1)) * 2 - 1; // -1 .. +1
+          const dx = u * (spanPx * 0.5);
+          const dy = (u * u) * archDropPx;
+          ctx.save();
+          ctx.translate(centerX + dx, centerY + dy);
+          ctx.rotate(u * (archDropPx * 0.005));
+          // 刺繡立體暗邊
+          ctx.lineWidth = 8;
+          ctx.strokeStyle = 'rgba(12, 32, 68, 0.65)';
+          ctx.strokeText(chars[i], 0, 4);
+          // 中興金主色
+          ctx.fillStyle = '#F5C533';
+          ctx.fillText(chars[i], 0, 0);
+          ctx.restore();
+        }
+        ctx.restore();
+      }
+
+      // 正面中心 (u = 0.25 -> x = 512, v = 0.56 -> y = 885)
+      drawArchedText('NCHU', 512, 885, 118, 275, 6);
+
+      // 背面中心 (u = 0.75 -> x = 1536, v = 0.66 -> y = 700，對應上背部帽兜下方)
+      drawArchedText('NCHU', 1536, 700, 112, 290, 26);
+
+      // 下擺羅紋深色帶 (v < 0.12 -> y > 1800)
+      const grad = ctx.createLinearGradient(0, 1820, 0, 2048);
+      grad.addColorStop(0, 'rgba(10, 28, 58, 0.0)');
+      grad.addColorStop(0.2, 'rgba(12, 34, 68, 0.35)');
+      grad.addColorStop(1, 'rgba(10, 26, 54, 0.55)');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 1820, 2048, 228);
+
+      // 羅紋垂直壓線
+      ctx.fillStyle = 'rgba(8, 20, 42, 0.28)';
+      for (let x = 0; x < 2048; x += 16) {
+        ctx.fillRect(x, 1850, 4, 198);
+      }
+
+      const tex = new THREE.CanvasTexture(canvas);
+      tex.colorSpace = THREE.SRGBColorSpace;
+      tex.wrapS = THREE.RepeatWrapping;
+      tex.wrapT = THREE.ClampToEdgeWrapping;
+      tex.needsUpdate = true;
+      return tex;
+    }
+
+    function createCapFrontTexture() {
+      const canvas = document.createElement('canvas');
+      canvas.width = 1024;
+      canvas.height = 512;
+      const ctx = canvas.getContext('2d');
+
+      ctx.fillStyle = '#181A1D';
+      ctx.fillRect(0, 0, 1024, 512);
+
+      // 斜紋布料細節
+      ctx.strokeStyle = 'rgba(255,255,255,0.02)';
+      ctx.lineWidth = 2;
+      for (let i = -512; i < 1024; i += 8) {
+        ctx.beginPath();
+        ctx.moveTo(i, 0);
+        ctx.lineTo(i + 512, 512);
+        ctx.stroke();
+      }
+
+      // 帽前金色 NCHU 立體刺繡字樣 (位於正面 u=0.25 -> x=256)
+      ctx.save();
+      ctx.translate(256, 305);
+      ctx.font = '900 92px "Arial Black", "Helvetica Neue", Arial, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.lineWidth = 6;
+      ctx.strokeStyle = 'rgba(0,0,0,0.7)';
+      ctx.strokeText('NCHU', 0, 3);
+      ctx.fillStyle = '#F5C533';
+      ctx.fillText('NCHU', 0, 0);
+      ctx.restore();
+
+      const tex = new THREE.CanvasTexture(canvas);
+      tex.colorSpace = THREE.SRGBColorSpace;
+      tex.wrapS = THREE.RepeatWrapping;
+      tex.wrapT = THREE.ClampToEdgeWrapping;
+      tex.needsUpdate = true;
+      return tex;
+    }
+
+    function createPaddleFaceTexture() {
+      const canvas = document.createElement('canvas');
+      canvas.width = 1024;
+      canvas.height = 1024;
+      const ctx = canvas.getContext('2d');
+
+      // 主色：皇家藍
+      ctx.fillStyle = '#1D5B9E';
+      ctx.fillRect(0, 0, 1024, 1024);
+
+      // 右下斜切亮黃色塊 (忠實還原原圖球拍斜切配色)
+      ctx.save();
+      ctx.beginPath();
+      ctx.moveTo(1024, 350);
+      ctx.lineTo(1024, 1024);
+      ctx.lineTo(290, 1024);
+      ctx.closePath();
+      ctx.fillStyle = '#F5C533';
+      ctx.fill();
+
+      // 白色斜切分隔條與下緣白底塊
+      ctx.beginPath();
+      ctx.moveTo(180, 1024);
+      ctx.lineTo(1024, 240);
+      ctx.lineTo(1024, 305);
+      ctx.lineTo(245, 1024);
+      ctx.closePath();
+      ctx.fillStyle = '#F7F8FA';
+      ctx.fill();
+
+      // 左下白底區塊
+      ctx.beginPath();
+      ctx.moveTo(0, 830);
+      ctx.lineTo(1024, 830);
+      ctx.lineTo(1024, 1024);
+      ctx.lineTo(0, 1024);
+      ctx.closePath();
+      ctx.clip();
+      ctx.fillStyle = '#F7F8FA';
+      ctx.fillRect(0, 830, 540, 200);
+      ctx.restore();
+
+      // 球拍中央偏左上的金色 NCHU 字樣 (略帶斜角對齊拍面視覺)
+      ctx.save();
+      ctx.translate(495, 430);
+      ctx.rotate(-0.18);
+      ctx.font = '900 138px "Arial Black", "Helvetica Neue", Arial, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.lineWidth = 8;
+      ctx.strokeStyle = 'rgba(12, 35, 68, 0.55)';
+      ctx.strokeText('NCHU', 0, 4);
+      ctx.fillStyle = '#F5C533';
+      ctx.fillText('NCHU', 0, 0);
+      ctx.restore();
+
+      // 碳纖維磨砂拍面微粒
+      ctx.fillStyle = 'rgba(255,255,255,0.025)';
+      for (let i = 0; i < 18000; i++) {
+        ctx.fillRect(Math.random() * 1024, Math.random() * 1024, 2, 2);
+      }
+
+      const tex = new THREE.CanvasTexture(canvas);
+      tex.colorSpace = THREE.SRGBColorSpace;
+      tex.needsUpdate = true;
+      return tex;
+    }
+
+    // ============================================================================
+    // 2. 有機曲面幾何生成工具 (具備無縫 UV 與平滑頂點變形，絕非基礎球體拼湊)
+    // ============================================================================
+    /**
+     * 建立自定義有機 Loft 網格：
+     * slices: 每個高度截面定義 { y, rx, rz, cz, cyOffset, scaleXFn }
+     * 確保 u=0.25 為正前方 (+Z)，u=0.75 為正後方 (-Z)
+     */
+    function createOrganicLoftGeometry(slices, radialSegments = 64) {
+      const numRings = slices.length;
+      const positions = [];
+      const uvs = [];
+      const indices = [];
+
+      for (let i = 0; i < numRings; i++) {
+        const s = slices[i];
+        const v = i / (numRings - 1);
+        for (let j = 0; j <= radialSegments; j++) {
+          const u = j / radialSegments;
+          // 令 u = 0.25 時對應 +Z (正前方)，u = 0.75 對應 -Z (正後方)
+          const theta = (u - 0.25) * Math.PI * 2;
+          const sinT = Math.sin(theta);
+          const cosT = Math.cos(theta); // cosT = 1 為正前方 (+Z), cosT = -1 為正後方 (-Z)
+
+          let x = sinT * s.rx;
+          let z = cosT * s.rz + (s.cz || 0);
+          let y = s.y + (s.tiltZ ? cosT * s.tiltZ : 0);
+
+          if (s.customMod) {
+            const m = s.customMod(theta, sinT, cosT);
+            x += m.dx || 0;
+            y += m.dy || 0;
+            z += m.dz || 0;
+          }
+
+          positions.push(x, y, z);
+          uvs.push(u, v);
+        }
+      }
+
+      const ringVerts = radialSegments + 1;
+      for (let i = 0; i < numRings - 1; i++) {
+        for (let j = 0; j < radialSegments; j++) {
+          const a = i * ringVerts + j;
+          const b = (i + 1) * ringVerts + j;
+          const c = (i + 1) * ringVerts + (j + 1);
+          const d = i * ringVerts + (j + 1);
+          indices.push(a, b, d);
+          indices.push(b, c, d);
+        }
+      }
+
+      const geo = new THREE.BufferGeometry();
+      geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+      geo.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+      geo.setIndex(indices);
+      geo.computeVertexNormals();
+      return geo;
+    }
+
+    // ============================================================================
+    // 3. 建構「匹克鵝裁判教練」完整骨架階層與高精度 3D 網格
+    // ============================================================================
+    function buildPicklerErMascot() {
+      const root = new THREE.Group();
+      root.name = 'Root';
+
+      // --- PBR 標準材質定義 ---
+      const matFeatherWhite = new THREE.MeshStandardMaterial({
+        name: 'Mat_Feather_White',
+        color: 0xF7F8FA,
+        roughness: 0.46,
+        metalness: 0.02
+      });
+      const matBeakOrange = new THREE.MeshStandardMaterial({
+        name: 'Mat_Beak_Orange',
+        color: 0xE8712A,
+        roughness: 0.36,
+        metalness: 0.04
+      });
+      const matMouthInside = new THREE.MeshStandardMaterial({
+        name: 'Mat_Mouth_Inside',
+        color: 0x9E3812,
+        roughness: 0.65
+      });
+      const matEyeBlack = new THREE.MeshStandardMaterial({
+        name: 'Mat_Eye_Black',
+        color: 0x121316,
+        roughness: 0.12,
+        metalness: 0.15
+      });
+      const matEyeHighlight = new THREE.MeshBasicMaterial({
+        name: 'Mat_Eye_Highlight',
+        color: 0xFFFFFF
+      });
+      const matHoodieBody = new THREE.MeshStandardMaterial({
+        name: 'Mat_Hoodie_RoyalBlue_Textured',
+        map: createHoodieTexture(),
+        roughness: 0.72,
+        metalness: 0.02
+      });
+      const matHoodiePlain = new THREE.MeshStandardMaterial({
+        name: 'Mat_Hoodie_RoyalBlue',
+        color: 0x1B579E,
+        roughness: 0.72,
+        metalness: 0.02
+      });
+      const matHoodieRib = new THREE.MeshStandardMaterial({
+        name: 'Mat_Hoodie_Ribbing',
+        color: 0x154784,
+        roughness: 0.78,
+        metalness: 0.02
+      });
+      const matCapTextured = new THREE.MeshStandardMaterial({
+        name: 'Mat_Cap_Black_NCHU',
+        map: createCapFrontTexture(),
+        roughness: 0.55,
+        metalness: 0.05
+      });
+      const matCapBlack = new THREE.MeshStandardMaterial({
+        name: 'Mat_Cap_Black',
+        color: 0x181A1D,
+        roughness: 0.55,
+        metalness: 0.05
+      });
+      const matDrawstringWhite = new THREE.MeshStandardMaterial({
+        name: 'Mat_Drawstring_White',
+        color: 0xF2F5F8,
+        roughness: 0.5
+      });
+      const matPaddleFace = new THREE.MeshStandardMaterial({
+        name: 'Mat_Paddle_Face',
+        map: createPaddleFaceTexture(),
+        roughness: 0.35,
+        metalness: 0.08
+      });
+      const matPaddleEdge = new THREE.MeshStandardMaterial({
+        name: 'Mat_Paddle_EdgeGuard',
+        color: 0x181A1D,
+        roughness: 0.42,
+        metalness: 0.1
+      });
+      const matBallBlue = new THREE.MeshStandardMaterial({
+        name: 'Mat_Pickleball_Blue',
+        color: 0x2575D0,
+        roughness: 0.28,
+        metalness: 0.05
+      });
+      const matBallHole = new THREE.MeshStandardMaterial({
+        name: 'Mat_Pickleball_HoleDark',
+        color: 0x0B2548,
+        roughness: 0.85
+      });
+
+      // --- 骨架階層建立 (Bone / Group Hierarchy) ---
+      const bones = {};
+      function makeNode(name, x, y, z, parent) {
+        const g = new THREE.Group();
+        g.name = name;
+        g.position.set(x, y, z);
+        if (parent) parent.add(g);
+        bones[name] = g;
+        return g;
+      }
+
+      const Pelvis = makeNode('Pelvis', 0, 0.58, 0, root);
+      const Spine_01 = makeNode('Spine_01', 0, 0.12, 0, Pelvis);
+      const Spine_02 = makeNode('Spine_02', 0, 0.28, 0, Spine_01);
+      const Neck_01 = makeNode('Neck_01', 0, 0.30, 0.02, Spine_02);
+      const Neck_02 = makeNode('Neck_02', 0, 0.22, 0.01, Neck_01);
+      const Head = makeNode('Head', 0, 0.21, 0.02, Neck_02);
+
+      // 左右手臂系統 (掛載於 Spine_02)
+      const Shoulder_L = makeNode('Shoulder_L', 0.30, 0.22, 0.0, Spine_02);
+      const Elbow_L = makeNode('Elbow_L', 0.19, -0.15, 0.03, Shoulder_L);
+      const Wrist_L = makeNode('Wrist_L', 0.14, -0.15, 0.08, Elbow_L);
+      const Prop_Socket_L = makeNode('Prop_Socket_L', -0.05, 0.02, 0.06, Wrist_L);
+
+      const Shoulder_R = makeNode('Shoulder_R', -0.30, 0.22, 0.0, Spine_02);
+      const Elbow_R = makeNode('Elbow_R', -0.19, -0.15, 0.04, Shoulder_R);
+      const Wrist_R = makeNode('Wrist_R', -0.14, -0.14, 0.10, Elbow_R);
+      const Prop_Socket_R = makeNode('Prop_Socket_R', 0.0, 0.04, 0.05, Wrist_R);
+
+      // 左右雙腿系統 (掛載於 Pelvis)
+      const Hip_L = makeNode('Hip_L', 0.16, -0.16, 0.0, Pelvis);
+      const Knee_L = makeNode('Knee_L', 0.0, -0.19, 0.0, Hip_L);
+      const Ankle_L = makeNode('Ankle_L', 0.0, -0.19, 0.02, Knee_L);
+
+      const Hip_R = makeNode('Hip_R', -0.16, -0.16, 0.0, Pelvis);
+      const Knee_R = makeNode('Knee_R', 0.0, -0.19, 0.0, Hip_R);
+      const Ankle_R = makeNode('Ankle_R', 0.0, -0.19, 0.02, Knee_R);
+
+      // ========================================================================
+      // A. 白色鵝下半身腹部、圓潤屁股與上翹小尾巴 (Mesh_Goose_Body)
+      // 嚴格收束 y > 0.02 (帽T內部) 的截面半徑，確保正/側/背面轉動時 100% 零穿模！
+      // ========================================================================
+      const gooseBodySlices = [];
+      const bodySteps = 32;
+      for (let i = 0; i <= bodySteps; i++) {
+        const t = i / bodySteps; // 0 (底部收口) -> 1 (腰部內層)
+        const baseR = Math.sin(t * Math.PI);
+        const y = -0.21 + t * 0.37;
+        const taperInside = t <= 0.62 ? 1.0 : Math.max(0.25, 1.0 - ((t - 0.62) / 0.38) * 0.72);
+        const rx = (0.02 + 0.365 * Math.pow(baseR, 0.72)) * taperInside;
+        const rz = (0.02 + 0.375 * Math.pow(baseR, 0.72)) * taperInside;
+        const cz = -0.025 * Math.sin(t * Math.PI) * taperInside;
+
+        gooseBodySlices.push({
+          y,
+          rx,
+          rz,
+          cz,
+          customMod: (theta, sinT, cosT) => {
+            // cosT < 0 為背面 (-Z)：在帽T後下擺下方 (t ∈ [0.28, 0.60]) 隆起可愛的圓屁股與上翹鵝尾
+            let dy = 0, dz = 0, dx = 0;
+            if (cosT < -0.30) {
+              const backFactor = Math.pow((-cosT - 0.30) / 0.70, 1.7);
+              const tailWindow = Math.exp(-Math.pow((t - 0.45) / 0.14, 2));
+              dz -= 0.115 * backFactor * tailWindow;
+              dy += 0.065 * backFactor * tailWindow;
+            }
+            return { dx, dy, dz };
+          }
+        });
+      }
+      const meshGooseBody = new THREE.Mesh(createOrganicLoftGeometry(gooseBodySlices, 64), matFeatherWhite);
+      meshGooseBody.name = 'Mesh_Goose_Body';
+      meshGooseBody.castShadow = true;
+      meshGooseBody.receiveShadow = true;
+      Pelvis.add(meshGooseBody);
+
+      // ========================================================================
+      // B. 皇家藍 NCHU 帽 T 主體、前低後高下擺、立體前口袋、立體帽兜與抽繩
+      // ========================================================================
+      const hoodieSlices = [];
+      const hoodieSteps = 32;
+      for (let i = 0; i <= hoodieSteps; i++) {
+        const t = i / hoodieSteps;
+        const y = -0.17 + t * 0.75;
+        let profile;
+        if (t < 0.10) {
+          profile = 0.87 + (t / 0.10) * 0.11;
+        } else if (t < 0.45) {
+          profile = 0.98 + Math.sin(((t - 0.10) / 0.35) * Math.PI * 0.5) * 0.05;
+        } else {
+          const u = (t - 0.45) / 0.55;
+          profile = 1.03 * (1 - 0.58 * Math.pow(u, 1.45));
+        }
+
+        const rx = 0.440 * profile;
+        const rz = 0.422 * profile;
+        const tiltZ = -0.052 * Math.pow(1 - t, 1.3);
+        const cz = 0.015 * Math.sin(t * Math.PI);
+
+        hoodieSlices.push({
+          y,
+          rx,
+          rz,
+          cz,
+          tiltZ,
+          customMod: (theta, sinT, cosT) => {
+            let dz = 0, dy = 0;
+            if (cosT > 0) {
+              dz += 0.024 * cosT * Math.sin(t * Math.PI);
+            } else {
+              dz -= 0.028 * (-cosT) * Math.sin(t * Math.PI);
+            }
+            return { dx: 0, dy, dz };
+          }
+        });
+      }
+      const meshHoodieTorso = new THREE.Mesh(createOrganicLoftGeometry(hoodieSlices, 64), matHoodieBody);
+      meshHoodieTorso.name = 'Mesh_Hoodie_Torso';
+      meshHoodieTorso.castShadow = true;
+      meshHoodieTorso.receiveShadow = true;
+      Spine_01.add(meshHoodieTorso);
+
+      // 帽T下擺內側封口環 (給衣服真實厚度，從底視或側視絕無薄紙片感)
+      const hemInnerGeo = new THREE.TorusGeometry(0.372, 0.028, 14, 56);
+      hemInnerGeo.rotateX(Math.PI / 2 + 0.13);
+      hemInnerGeo.scale(1.02, 1.0, 0.96);
+      const meshHemThickness = new THREE.Mesh(hemInnerGeo, matHoodieRib);
+      meshHemThickness.position.set(0, -0.155, 0.005);
+      Spine_01.add(meshHemThickness);
+
+      // 立體袋鼠前袋 (Kangaroo Pocket) - 貼合於正前方肚腩曲面上
+      const pocketShape = new THREE.Shape();
+      const pw = 0.24, ph = 0.185, pTopW = 0.155;
+      pocketShape.moveTo(-pw, -ph * 0.5);
+      pocketShape.lineTo(pw, -ph * 0.5);
+      pocketShape.quadraticCurveTo(pw + 0.015, 0, pTopW, ph * 0.5);
+      pocketShape.lineTo(-pTopW, ph * 0.5);
+      pocketShape.quadraticCurveTo(-pw - 0.015, 0, -pw, -ph * 0.5);
+
+      const pocketGeo = new THREE.ExtrudeGeometry(pocketShape, {
+        depth: 0.045,
+        bevelEnabled: true,
+        bevelThickness: 0.012,
+        bevelSize: 0.010,
+        bevelSegments: 5,
+        curveSegments: 24
+      });
+      const pPos = pocketGeo.attributes.position;
+      for (let i = 0; i < pPos.count; i++) {
+        const vx = pPos.getX(i);
+        const vy = pPos.getY(i);
+        const vz = pPos.getZ(i);
+        const bendZ = -0.34 * (vx * vx) - 0.18 * (vy * vy);
+        pPos.setZ(i, vz + bendZ);
+      }
+      pocketGeo.computeVertexNormals();
+      const meshPocket = new THREE.Mesh(pocketGeo, matHoodiePlain);
+      meshPocket.name = 'Mesh_Hoodie_Pocket';
+      meshPocket.position.set(0, -0.01, 0.415);
+      meshPocket.castShadow = true;
+      Spine_01.add(meshPocket);
+
+      // 立體帽兜 (3D Sculpted Hood Collar & Rear Folded Hood) - 掛載於 Spine_02
+      const hoodGroup = new THREE.Group();
+      hoodGroup.name = 'Mesh_Hoodie_Hood';
+      hoodGroup.position.set(0, 0.27, 0.01);
+      Spine_02.add(hoodGroup);
+
+      const collarCurvePts = [];
+      const collarSegs = 64;
+      for (let i = 0; i <= collarSegs; i++) {
+        const t = (i / collarSegs) * Math.PI * 2;
+        const x = Math.sin(t) * 0.215;
+        const z = Math.cos(t) * 0.215 - 0.015;
+        const y = -0.03 * Math.cos(t) + (Math.cos(t) < 0 ? 0.035 * Math.pow(-Math.cos(t), 1.5) : 0);
+        collarCurvePts.push(new THREE.Vector3(x, y, z));
+      }
+      const collarCurve = new THREE.CatmullRomCurve3(collarCurvePts, true);
+      const collarGeo = new THREE.TubeGeometry(collarCurve, 64, 0.058, 18, true);
+      const meshCollar = new THREE.Mesh(collarGeo, matHoodiePlain);
+      meshCollar.castShadow = true;
+      hoodGroup.add(meshCollar);
+
+      const rearHoodSlices = [];
+      for (let i = 0; i <= 16; i++) {
+        const t = i / 16;
+        const s = Math.sin(t * Math.PI);
+        rearHoodSlices.push({
+          y: -0.08 + t * 0.17,
+          rx: 0.04 + 0.210 * Math.pow(s, 0.65),
+          rz: 0.03 + 0.150 * Math.pow(s, 0.7),
+          cz: -0.115 - 0.055 * Math.sin(t * Math.PI)
+        });
+      }
+      const meshRearHood = new THREE.Mesh(createOrganicLoftGeometry(rearHoodSlices, 40), matHoodiePlain);
+      meshRearHood.castShadow = true;
+      hoodGroup.add(meshRearHood);
+
+      // 兩條白色立體抽繩 (貼合於前胸表面外側，位於金色 NCHU 字樣上方)
+      for (const side of [-1, 1]) {
+        const strCurve = new THREE.CatmullRomCurve3([
+          new THREE.Vector3(side * 0.052, 0.23, 0.235),
+          new THREE.Vector3(side * 0.058, 0.15, 0.345),
+          new THREE.Vector3(side * 0.056, 0.07, 0.405),
+          new THREE.Vector3(side * 0.052, -0.01, 0.438)
+        ]);
+        const strGeo = new THREE.TubeGeometry(strCurve, 24, 0.011, 10, false);
+        const meshStr = new THREE.Mesh(strGeo, matDrawstringWhite);
+        meshStr.name = side < 0 ? 'Mesh_Drawstring_R' : 'Mesh_Drawstring_L';
+        meshStr.castShadow = true;
+        Spine_02.add(meshStr);
+
+        const tipGeo = new THREE.CapsuleGeometry(0.011, 0.018, 6, 10);
+        const meshTip = new THREE.Mesh(tipGeo, matDrawstringWhite);
+        meshTip.position.set(side * 0.052, -0.02, 0.442);
+        meshTip.rotation.x = 0.25;
+        Spine_02.add(meshTip);
+      }
+
+      // ========================================================================
+      // C. 雙段可動長脖子 (Neck_01 -> Neck_02) 與頭部、小黑眼、立體雙顎鵝嘴、棒球帽
+      // ========================================================================
+      // 第一段脖子 (Neck_01 -> 連接胸口至頸部中段)
+      const neck1Slices = [];
+      for (let i = 0; i <= 14; i++) {
+        const t = i / 14;
+        const r = 0.142 - t * 0.016;
+        neck1Slices.push({
+          y: -0.04 + t * 0.28,
+          rx: r,
+          rz: r * 0.98,
+          cz: 0.005 * t
+        });
+      }
+      const meshNeck1 = new THREE.Mesh(createOrganicLoftGeometry(neck1Slices, 36), matFeatherWhite);
+      meshNeck1.name = 'Mesh_Neck_01';
+      meshNeck1.castShadow = true;
+      Neck_01.add(meshNeck1);
+
+      // 第二段脖子 (Neck_02 -> 連接頸部中段至頭部下顎)
+      const neck2Slices = [];
+      for (let i = 0; i <= 14; i++) {
+        const t = i / 14;
+        // 往頭底微微外擴銜接臉頰
+        const r = 0.126 + Math.pow(t, 2.0) * 0.028;
+        neck2Slices.push({
+          y: -0.03 + t * 0.26,
+          rx: r,
+          rz: r * 0.98,
+          cz: 0.01 * t
+        });
+      }
+      const meshNeck2 = new THREE.Mesh(createOrganicLoftGeometry(neck2Slices, 36), matFeatherWhite);
+      meshNeck2.name = 'Mesh_Neck_02';
+      meshNeck2.castShadow = true;
+      Neck_02.add(meshNeck2);
+
+      // 鵝頭主體 (具備可愛豐滿雙頰與圓潤後腦勺)
+      const headSlices = [];
+      const headSteps = 26;
+      for (let i = 0; i <= headSteps; i++) {
+        const t = i / headSteps;
+        const sinP = Math.sin(t * Math.PI);
+        const y = -0.06 + t * 0.37;
+        // 下半部臉頰微寬 (t ∈ [0.2, 0.5])，呈現原圖可愛討喜的吉祥物臉型
+        const cheekBoost = Math.exp(-Math.pow((t - 0.34) / 0.18, 2)) * 0.032;
+        const rx = (0.185 * Math.pow(sinP, 0.68)) + cheekBoost;
+        const rz = (0.195 * Math.pow(sinP, 0.68)) + cheekBoost * 0.7;
+        const cz = -0.008 + 0.015 * Math.sin(t * Math.PI);
+        headSlices.push({ y, rx, rz, cz });
+      }
+      const meshHead = new THREE.Mesh(createOrganicLoftGeometry(headSlices, 48), matFeatherWhite);
+      meshHead.name = 'Mesh_Goose_Head';
+      meshHead.castShadow = true;
+      Head.add(meshHead);
+
+      // 小黑眼睛 (橢圓微凸立體黑眼珠 + 眼神高光點)
+      for (const side of [-1, 1]) {
+        const eyeGroup = new THREE.Group();
+        eyeGroup.name = side < 0 ? 'Mesh_Eye_R' : 'Mesh_Eye_L';
+        eyeGroup.position.set(side * 0.072, 0.138, 0.182);
+        eyeGroup.rotation.y = side * 0.22;
+        eyeGroup.rotation.x = -0.08;
+
+        const eyeGeo = new THREE.SphereGeometry(0.022, 20, 20);
+        eyeGeo.scale(0.88, 1.18, 0.65);
+        const eyeMesh = new THREE.Mesh(eyeGeo, matEyeBlack);
+        eyeGroup.add(eyeMesh);
+
+        const hlGeo = new THREE.SphereGeometry(0.006, 12, 12);
+        const hlMesh = new THREE.Mesh(hlGeo, matEyeHighlight);
+        hlMesh.position.set(side * 0.005, 0.008, 0.013);
+        eyeGroup.add(hlMesh);
+
+        Head.add(eyeGroup);
+      }
+
+      // 橘色立體雙顎鵝嘴 (Mesh_Beak_Upper & Mesh_Beak_Lower)
+      // 上喙：具備鼻樑微隆起、兩側微笑上揚嘴角與 18cm 前伸立體厚度
+      const upperBeakSlices = [];
+      const beakSteps = 22;
+      for (let i = 0; i <= beakSteps; i++) {
+        const t = i / beakSteps; // 0 (嵌入臉部根部) -> 1 (圓潤鵝嘴前端)
+        // 沿 Z 軸向前延伸：這裡我們用自定義頂點建構沿 Z 延伸的立體喙
+        upperBeakSlices.push(t);
+      }
+      function createSculptedUpperBeak() {
+        const segZ = 24, segR = 40;
+        const pos = [], uvs = [], idx = [];
+        for (let iz = 0; iz <= segZ; iz++) {
+          const tz = iz / segZ; // 0: 根部 (z=0.13) -> 1: 嘴尖 (z=0.33)
+          const z = 0.125 + tz * 0.195;
+          // 寬度：根部寬闊包覆臉頰，中段飽滿，前端圓弧收合
+          const widthProfile = Math.pow(Math.cos(tz * Math.PI * 0.5), 0.52) * (1 + 0.15 * Math.sin(tz * Math.PI));
+          const rx = Math.max(0.004, 0.138 * widthProfile);
+          // 高度：根部鼻樑隆起，往前平滑斜下，前端微翹
+          const ryTop = Math.max(0.003, (0.068 * Math.pow(1 - tz, 0.75) + 0.015 * Math.sin(tz * Math.PI)));
+          const ryBot = Math.max(0.002, 0.022 * Math.sin(tz * Math.PI));
+          // 中心基準高度：根部嘴角微上揚微笑
+          const baseY = 0.062 - tz * 0.018 + Math.pow(1 - tz, 2.2) * 0.012;
+
+          for (let ir = 0; ir <= segR; ir++) {
+            const u = ir / segR;
+            const theta = u * Math.PI * 2;
+            const cosT = Math.cos(theta); // x 方向 (-1..1)
+            const sinT = Math.sin(theta); // y 方向 (>0 為上表面，<0 為上顎底部)
+
+            const x = cosT * rx;
+            // 嘴角兩側 (|cosT| 接近 1 且 tz < 0.55) 向上微揚形成微笑曲線
+            const smileLift = Math.pow(Math.abs(cosT), 1.8) * Math.pow(1 - tz, 1.3) * 0.036;
+            // 中央鼻樑隆起 (cosT 接近 0 且 sinT > 0)
+            const ridgeLift = (sinT > 0) ? Math.pow(1 - Math.abs(cosT), 2.2) * sinT * 0.024 * (1 - 0.5 * tz) : 0;
+
+            let y;
+            if (sinT >= 0) {
+              y = baseY + sinT * ryTop + smileLift + ridgeLift;
+            } else {
+              // 上喙下緣微內凹形成口腔上壁
+              y = baseY + sinT * ryBot * 0.45 + smileLift;
+            }
+
+            pos.push(x, y, z);
+            uvs.push(u, tz);
+          }
+        }
+        const ring = segR + 1;
+        for (let iz = 0; iz < segZ; iz++) {
+          for (let ir = 0; ir < segR; ir++) {
+            const a = iz * ring + ir;
+            const b = (iz + 1) * ring + ir;
+            const c = (iz + 1) * ring + ir + 1;
+            const d = iz * ring + ir + 1;
+            idx.push(a, d, b);
+            idx.push(b, d, c);
+          }
+        }
+        const geo = new THREE.BufferGeometry();
+        geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+        geo.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+        geo.setIndex(idx);
+        geo.computeVertexNormals();
+        return geo;
+      }
+
+      function createSculptedLowerBeak() {
+        const segZ = 20, segR = 36;
+        const pos = [], uvs = [], idx = [];
+        for (let iz = 0; iz <= segZ; iz++) {
+          const tz = iz / segZ; // 0: 根部 (z=0.13) -> 1: 下喙尖 (z=0.295)
+          const z = 0.125 + tz * 0.17;
+          const widthProfile = Math.pow(Math.cos(tz * Math.PI * 0.5), 0.58);
+          const rx = Math.max(0.004, 0.118 * widthProfile);
+          const ryBot = Math.max(0.003, 0.044 * Math.sin(tz * Math.PI * 0.85 + 0.15));
+          const baseY = 0.046 - Math.sin(tz * Math.PI * 0.75) * 0.018;
+
+          for (let ir = 0; ir <= segR; ir++) {
+            const u = ir / segR;
+            const theta = u * Math.PI * 2;
+            const cosT = Math.cos(theta);
+            const sinT = Math.sin(theta);
+
+            const x = cosT * rx;
+            const smileLift = Math.pow(Math.abs(cosT), 1.6) * Math.pow(1 - tz, 1.2) * 0.032;
+            let y;
+            if (sinT <= 0) {
+              y = baseY + sinT * ryBot + smileLift;
+            } else {
+              // 下顎口腔內凹弧面
+              y = baseY - sinT * 0.008 + smileLift;
+            }
+            pos.push(x, y, z);
+            uvs.push(u, tz);
+          }
+        }
+        const ring = segR + 1;
+        for (let iz = 0; iz < segZ; iz++) {
+          for (let ir = 0; ir < segR; ir++) {
+            const a = iz * ring + ir;
+            const b = (iz + 1) * ring + ir;
+            const c = (iz + 1) * ring + ir + 1;
+            const d = iz * ring + ir + 1;
+            idx.push(a, d, b);
+            idx.push(b, d, c);
+          }
+        }
+        const geo = new THREE.BufferGeometry();
+        geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+        geo.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+        geo.setIndex(idx);
+        geo.computeVertexNormals();
+        return geo;
+      }
+
+      const meshBeakUpper = new THREE.Mesh(createSculptedUpperBeak(), matBeakOrange);
+      meshBeakUpper.name = 'Mesh_Beak_Upper';
+      meshBeakUpper.castShadow = true;
+      Head.add(meshBeakUpper);
+
+      const meshBeakLower = new THREE.Mesh(createSculptedLowerBeak(), matBeakOrange);
+      meshBeakLower.name = 'Mesh_Beak_Lower';
+      meshBeakLower.castShadow = true;
+      Head.add(meshBeakLower);
+
+      // 口腔內部暗色舌腔 (讓正面微笑張嘴時有自然深邃感)
+      const mouthGeo = new THREE.SphereGeometry(0.068, 16, 12);
+      mouthGeo.scale(1.25, 0.35, 1.15);
+      const meshMouth = new THREE.Mesh(mouthGeo, matMouthInside);
+      meshMouth.position.set(0, 0.048, 0.195);
+      Head.add(meshMouth);
+
+      // ========================================================================
+      // D. 黑色 NCHU 棒球帽 (具備實體厚度帽體、彎曲立體帽簷、背面半圓調節開口與調節帶)
+      // ========================================================================
+      const capGroup = new THREE.Group();
+      capGroup.name = 'Mesh_Cap';
+      capGroup.position.set(0, 0.215, 0.0);
+      capGroup.rotation.x = -0.05;
+      Head.add(capGroup);
+
+      // 1. 帽體 (Cap Crown)：具真實外層與內層厚度，並在後方 (-Z) 挖出半圓形調節孔 (露出白色後腦勺羽毛！)
+      function createCapCrownGeometry() {
+        const segU = 64, segV = 24;
+        const pos = [], uvs = [], idx = [];
+        const wallThickness = 0.010;
+
+        function getCrownPoint(u, v, isInner) {
+          // u=0.25 為正前方 (+Z), u=0.75 為正後方 (-Z)
+          const theta = (u - 0.25) * Math.PI * 2;
+          const sinT = Math.sin(theta);
+          const cosT = Math.cos(theta);
+
+          // 背面半圓挖空區：當 cosT < -0.76 (接近正後方 -Z) 且 v < 0.36 時，將下緣向上拱起形成半圓開口！
+          let cutoutLift = 0;
+          if (cosT < -0.72) {
+            const backRatio = Math.min(1, (-cosT - 0.72) / 0.28);
+            const arch = Math.sqrt(Math.max(0, 1 - Math.pow(1 - backRatio, 2)));
+            cutoutLift = 0.052 * arch;
+          }
+
+          const effectiveV = cutoutLift / 0.155 + v * (1 - cutoutLift / 0.155);
+          const phi = effectiveV * Math.PI * 0.485;
+          const rBase = isInner ? (0.184 - wallThickness) : 0.184;
+          const rx = (rBase + 0.004) * Math.cos(phi);
+          const rz = (rBase + 0.012) * Math.cos(phi);
+          const y = -0.015 + 0.152 * Math.sin(phi);
+
+          return new THREE.Vector3(sinT * rx, y, cosT * rz);
+        }
+
+        // 外表面與內表面以形成真實厚度
+        for (let layer = 0; layer < 2; layer++) {
+          const isInner = layer === 1;
+          for (let iv = 0; iv <= segV; iv++) {
+            const v = iv / segV;
+            for (let iu = 0; iu <= segU; iu++) {
+              const u = iu / segU;
+              const p = getCrownPoint(u, v, isInner);
+              pos.push(p.x, p.y, p.z);
+              uvs.push(u, v);
+            }
+          }
+        }
+
+        const ring = segU + 1;
+        const layerOffset = (segV + 1) * ring;
+        for (let iv = 0; iv < segV; iv++) {
+          for (let iu = 0; iu < segU; iu++) {
+            const a = iv * ring + iu;
+            const b = (iv + 1) * ring + iu;
+            const c = (iv + 1) * ring + iu + 1;
+            const d = iv * ring + iu + 1;
+            // 外層
+            idx.push(a, b, d);
+            idx.push(b, c, d);
+            // 內層 (反向法線)
+            const ai = a + layerOffset, bi = b + layerOffset, ci = c + layerOffset, di = d + layerOffset;
+            idx.push(ai, di, bi);
+            idx.push(bi, di, ci);
+          }
+        }
+        // 封閉底部邊緣 (v = 0) 形成帽沿厚邊
+        for (let iu = 0; iu < segU; iu++) {
+          const a = iu;
+          const d = iu + 1;
+          const ai = iu + layerOffset;
+          const di = iu + 1 + layerOffset;
+          idx.push(a, d, di);
+          idx.push(a, di, ai);
+        }
+
+        const geo = new THREE.BufferGeometry();
+        geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+        geo.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+        geo.setIndex(idx);
+        geo.computeVertexNormals();
+        return geo;
+      }
+
+      const meshCapCrown = new THREE.Mesh(createCapCrownGeometry(), matCapTextured);
+      meshCapCrown.castShadow = true;
+      capGroup.add(meshCapCrown);
+
+      // 2. 帽頂圓釦 (Top Button)
+      const capBtn = new THREE.Mesh(new THREE.SphereGeometry(0.016, 16, 12), matCapBlack);
+      capBtn.scale.set(1, 0.55, 1);
+      capBtn.position.set(0, 0.14, 0);
+      capGroup.add(capBtn);
+
+      // 3. 背面底部調節扣帶 (Snapback Strap across the rear cutout bottom)
+      const strapCurve = new THREE.CatmullRomCurve3([
+        new THREE.Vector3(-0.095, -0.008, -0.172),
+        new THREE.Vector3(-0.045, -0.010, -0.188),
+        new THREE.Vector3(0.0, -0.010, -0.193),
+        new THREE.Vector3(0.045, -0.010, -0.188),
+        new THREE.Vector3(0.095, -0.008, -0.172)
+      ]);
+      const strapGeo = new THREE.TubeGeometry(strapCurve, 20, 0.011, 8, false);
+      strapGeo.scale(1, 1.35, 0.55);
+      const meshStrap = new THREE.Mesh(strapGeo, matCapBlack);
+      capGroup.add(meshStrap);
+
+      // 4. 具備實體厚度與自然下彎弧度的帽簷 (3D Curved Visor Brim)
+      function createCurvedVisorGeometry() {
+        const segW = 32, segL = 18;
+        const thickness = 0.011; // 實體厚度
+        const pos = [], uvs = [], idx = [];
+
+        function getBrimSurface(u, v, yOffset) {
+          // u ∈ [-1, 1] 左右寬度，v ∈ [0, 1] 從帽根向前延伸
+          const halfAngle = 0.92; // 涵蓋帽體前緣約 105 度
+          const theta = u * halfAngle;
+          const rootR = 0.182;
+          // 前緣圓弧收窄
+          const frontWidthScale = Math.sqrt(Math.max(0.08, 1 - Math.pow(u * (0.65 + 0.35 * v), 2)));
+          const forwardReach = v * 0.155 * frontWidthScale;
+
+          const x = Math.sin(theta) * (rootR + forwardReach * 0.48);
+          const z = Math.cos(theta) * rootR + forwardReach;
+          // 帽簷橫向拱起弧度 + 往前微向下彎曲遮陽弧度
+          const archY = Math.cos(u * Math.PI * 0.5) * 0.026 * (1 - 0.25 * v);
+          const droopY = -0.018 * v - 0.012 * v * v;
+          const y = -0.012 + archY + droopY + yOffset;
+          return new THREE.Vector3(x, y, z);
+        }
+
+        // 上表面 (layer 0) 與下表面 (layer 1)
+        for (let layer = 0; layer < 2; layer++) {
+          const yOff = layer === 0 ? thickness * 0.5 : -thickness * 0.5;
+          for (let iv = 0; iv <= segL; iv++) {
+            const v = iv / segL;
+            for (let iu = 0; iu <= segW; iu++) {
+              const u = (iu / segW) * 2 - 1;
+              const p = getBrimSurface(u, v, yOff);
+              pos.push(p.x, p.y, p.z);
+              uvs.push(iu / segW, v);
+            }
+          }
+        }
+
+        const ring = segW + 1;
+        const layerOffset = (segL + 1) * ring;
+        for (let iv = 0; iv < segL; iv++) {
+          for (let iu = 0; iu < segW; iu++) {
+            const a = iv * ring + iu;
+            const b = (iv + 1) * ring + iu;
+            const c = (iv + 1) * ring + iu + 1;
+            const d = iv * ring + iu + 1;
+            idx.push(a, d, b);
+            idx.push(b, d, c);
+
+            const ai = a + layerOffset, bi = b + layerOffset, ci = c + layerOffset, di = d + layerOffset;
+            idx.push(ai, bi, di);
+            idx.push(bi, ci, di);
+          }
+        }
+
+        // 封閉帽簷前端與側邊厚度 (iv = segL, iu = 0, iu = segW)
+        const frontRow = segL * ring;
+        for (let iu = 0; iu < segW; iu++) {
+          const a = frontRow + iu;
+          const d = frontRow + iu + 1;
+          const ai = a + layerOffset;
+          const di = d + layerOffset;
+          idx.push(a, ai, d);
+          idx.push(d, ai, di);
+        }
+        for (let iv = 0; iv < segL; iv++) {
+          // 左側邊 (iu = 0)
+          const aL = iv * ring, bL = (iv + 1) * ring;
+          idx.push(aL, aL + layerOffset, bL);
+          idx.push(bL, aL + layerOffset, bL + layerOffset);
+          // 右側邊 (iu = segW)
+          const aR = iv * ring + segW, bR = (iv + 1) * ring + segW;
+          idx.push(aR, bR, aR + layerOffset);
+          idx.push(bR, bR + layerOffset, aR + layerOffset);
+        }
+
+        const geo = new THREE.BufferGeometry();
+        geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+        geo.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+        geo.setIndex(idx);
+        geo.computeVertexNormals();
+        return geo;
+      }
+
+      const meshCapBrim = new THREE.Mesh(createCurvedVisorGeometry(), matCapBlack);
+      meshCapBrim.castShadow = true;
+      capGroup.add(meshCapBrim);
+
+      // ========================================================================
+      // E. 左右手臂袖管、羅紋袖口與立體四指白色手掌 (Shoulder -> Elbow -> Wrist)
+      // ========================================================================
+      function buildArmAndHand(isLeft, shoulderNode, elbowNode, wristNode) {
+        const dir = isLeft ? 1 : -1;
+
+        // 上臂袖管 (連接肩膀至手肘)
+        const upperArmVec = elbowNode.position.clone();
+        const upperLen = upperArmVec.length();
+        const upperGeo = new THREE.CapsuleGeometry(0.112, upperLen * 0.72, 12, 24);
+        const upperMesh = new THREE.Mesh(upperGeo, matHoodiePlain);
+        upperMesh.name = isLeft ? 'Mesh_Sleeve_Upper_L' : 'Mesh_Sleeve_Upper_R';
+        upperMesh.position.copy(upperArmVec).multiplyScalar(0.48);
+        upperMesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), upperArmVec.clone().normalize());
+        upperMesh.castShadow = true;
+        shoulderNode.add(upperMesh);
+
+        // 前臂袖管 (連接手肘至手腕)
+        const foreArmVec = wristNode.position.clone();
+        const foreLen = foreArmVec.length();
+        const foreGeo = new THREE.CapsuleGeometry(0.098, foreLen * 0.68, 12, 24);
+        const foreMesh = new THREE.Mesh(foreGeo, matHoodiePlain);
+        foreMesh.name = isLeft ? 'Mesh_Sleeve_Fore_L' : 'Mesh_Sleeve_Fore_R';
+        foreMesh.position.copy(foreArmVec).multiplyScalar(0.46);
+        const foreQuat = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), foreArmVec.clone().normalize());
+        foreMesh.quaternion.copy(foreQuat);
+        foreMesh.castShadow = true;
+        elbowNode.add(foreMesh);
+
+        // 羅紋袖口 (Ribbed Cuff)
+        const cuffGeo = new THREE.TorusGeometry(0.078, 0.026, 12, 28);
+        cuffGeo.rotateX(Math.PI / 2);
+        const cuffMesh = new THREE.Mesh(cuffGeo, matHoodieRib);
+        cuffMesh.name = isLeft ? 'Mesh_Cuff_L' : 'Mesh_Cuff_R';
+        cuffMesh.position.copy(foreArmVec).multiplyScalar(0.92);
+        cuffMesh.quaternion.copy(foreQuat);
+        cuffMesh.castShadow = true;
+        elbowNode.add(cuffMesh);
+
+        // 白色立體吉祥物手掌 (圓潤掌心 + 拇指 + 三根立體手指環抱)
+        const handGroup = new THREE.Group();
+        handGroup.name = isLeft ? 'Mesh_Hand_L' : 'Mesh_Hand_R';
+        wristNode.add(handGroup);
+
+        const palmGeo = new THREE.SphereGeometry(0.076, 20, 18);
+        palmGeo.scale(0.92, 0.88, 1.08);
+        const palmMesh = new THREE.Mesh(palmGeo, matFeatherWhite);
+        palmMesh.position.set(0, -0.02, 0.035);
+        palmMesh.castShadow = true;
+        handGroup.add(palmMesh);
+
+        // 大拇指
+        const thumbGeo = new THREE.CapsuleGeometry(0.026, 0.042, 8, 14);
+        const thumbMesh = new THREE.Mesh(thumbGeo, matFeatherWhite);
+        thumbMesh.position.set(-dir * 0.048, 0.022, 0.058);
+        thumbMesh.rotation.set(0.55, 0, dir * 0.65);
+        thumbMesh.castShadow = true;
+        handGroup.add(thumbMesh);
+
+        // 三根圓潤手指 (食指、中指、無名指)
+        for (let f = 0; f < 3; f++) {
+          const fingerGeo = new THREE.CapsuleGeometry(0.024, 0.048, 8, 14);
+          const fingerMesh = new THREE.Mesh(fingerGeo, matFeatherWhite);
+          const fy = 0.018 - f * 0.032;
+          if (isLeft) {
+            // 左手托握藍色匹克球
+            fingerMesh.position.set(-0.042, fy, 0.072);
+            fingerMesh.rotation.set(0.25, -0.35, 1.15);
+          } else {
+            // 右手環抱球拍握把
+            fingerMesh.position.set(0.038, fy, 0.068);
+            fingerMesh.rotation.set(0.2, 0.3, -1.25);
+          }
+          fingerMesh.castShadow = true;
+          handGroup.add(fingerMesh);
+        }
+      }
+
+      buildArmAndHand(true, Shoulder_L, Elbow_L, Wrist_L);
+      buildArmAndHand(false, Shoulder_R, Elbow_R, Wrist_R);
+
+      // ========================================================================
+      // F. 橘色雙腿與三趾立體蹼足 (Hip -> Knee -> Ankle)
+      // ========================================================================
+      function buildLegAndWebbedFoot(isLeft, hipNode, kneeNode, ankleNode) {
+        const suffix = isLeft ? 'L' : 'R';
+
+        // 大腿段
+        const thighGeo = new THREE.CapsuleGeometry(0.040, 0.14, 10, 18);
+        const thighMesh = new THREE.Mesh(thighGeo, matBeakOrange);
+        thighMesh.name = `Mesh_Thigh_${suffix}`;
+        thighMesh.position.set(0, -0.095, 0);
+        thighMesh.castShadow = true;
+        hipNode.add(thighMesh);
+
+        // 小腿段
+        const calfGeo = new THREE.CapsuleGeometry(0.036, 0.15, 10, 18);
+        const calfMesh = new THREE.Mesh(calfGeo, matBeakOrange);
+        calfMesh.name = `Mesh_Calf_${suffix}`;
+        calfMesh.position.set(0, -0.095, 0.01);
+        calfMesh.castShadow = true;
+        kneeNode.add(calfMesh);
+
+        // 腳踝球結與立體三趾鵝掌 (Webbed Foot planted cleanly at y = -0.02 relative to Ankle)
+        const footGroup = new THREE.Group();
+        footGroup.name = `Mesh_Foot_${suffix}`;
+        ankleNode.add(footGroup);
+
+        // 蹼面主體 (扇形立體蹼)
+        const webShape = new THREE.Shape();
+        webShape.moveTo(-0.038, -0.06);
+        webShape.lineTo(0.038, -0.06);
+        webShape.quadraticCurveTo(0.115, 0.04, 0.135, 0.145);
+        webShape.quadraticCurveTo(0.065, 0.135, 0.0, 0.175);
+        webShape.quadraticCurveTo(-0.065, 0.135, -0.135, 0.145);
+        webShape.quadraticCurveTo(-0.115, 0.04, -0.038, -0.06);
+
+        const webGeo = new THREE.ExtrudeGeometry(webShape, {
+          depth: 0.022,
+          bevelEnabled: true,
+          bevelThickness: 0.010,
+          bevelSize: 0.008,
+          bevelSegments: 4
+        });
+        webGeo.rotateX(Math.PI / 2);
+        const webMesh = new THREE.Mesh(webGeo, matBeakOrange);
+        webMesh.position.set(0, 0.002, 0.01);
+        webMesh.castShadow = true;
+        webMesh.receiveShadow = true;
+        footGroup.add(webMesh);
+
+        // 三根立體腳趾脊線 (左趾、中趾、右趾)
+        const toeAngles = [-0.46, 0.0, 0.46];
+        const toeLengths = [0.165, 0.185, 0.165];
+        for (let i = 0; i < 3; i++) {
+          const toeGeo = new THREE.CapsuleGeometry(0.018, toeLengths[i], 8, 12);
+          toeGeo.rotateX(Math.PI / 2);
+          const toeMesh = new THREE.Mesh(toeGeo, matBeakOrange);
+          const ang = toeAngles[i];
+          toeMesh.rotation.y = ang;
+          toeMesh.position.set(Math.sin(ang) * 0.065, -0.004, 0.055 + Math.cos(ang) * 0.02);
+          toeMesh.castShadow = true;
+          footGroup.add(toeMesh);
+        }
+
+        // 後腳跟圓墊
+        const heelGeo = new THREE.SphereGeometry(0.038, 14, 12);
+        heelGeo.scale(1.0, 0.65, 1.15);
+        const heelMesh = new THREE.Mesh(heelGeo, matBeakOrange);
+        heelMesh.position.set(0, -0.002, -0.035);
+        footGroup.add(heelMesh);
+      }
+
+      buildLegAndWebbedFoot(true, Hip_L, Knee_L, Ankle_L);
+      buildLegAndWebbedFoot(false, Hip_R, Knee_R, Ankle_R);
+
+      // ========================================================================
+      // G. 獨立 3D 配件 1：藍黃斜切 NCHU 匹克球拍 (Prop_Pickleball_Paddle)
+      // ========================================================================
+      const paddleGroup = new THREE.Group();
+      paddleGroup.name = 'Prop_Pickleball_Paddle';
+
+      // 球拍握把 (Handle with octagonal grip contour)
+      const handleGeo = new THREE.CylinderGeometry(0.022, 0.025, 0.19, 8);
+      const handleMesh = new THREE.Mesh(handleGeo, matPaddleEdge);
+      handleMesh.position.set(0, 0.01, 0);
+      handleMesh.castShadow = true;
+      paddleGroup.add(handleMesh);
+
+      // 握把底部防滑蓋 (Butt Cap)
+      const buttCapGeo = new THREE.CylinderGeometry(0.028, 0.026, 0.022, 12);
+      const buttCapMesh = new THREE.Mesh(buttCapGeo, matPaddleEdge);
+      buttCapMesh.position.set(0, -0.085, 0);
+      paddleGroup.add(buttCapMesh);
+
+      // 拍喉漸變護套 (Throat Guard)
+      const throatGeo = new THREE.CylinderGeometry(0.042, 0.023, 0.055, 12);
+      throatGeo.scale(1.0, 1.0, 0.45);
+      const throatMesh = new THREE.Mesh(throatGeo, matPaddleEdge);
+      throatMesh.position.set(0, 0.115, 0);
+      paddleGroup.add(throatMesh);
+
+      // 拍面輪廓 (標準圓角矩形匹克球拍形狀)
+      const padW = 0.145, padH = 0.185, padR = 0.058;
+      const paddleShape = new THREE.Shape();
+      paddleShape.moveTo(-padW + padR, -padH);
+      paddleShape.lineTo(padW - padR, -padH);
+      paddleShape.quadraticCurveTo(padW, -padH, padW, -padH + padR);
+      paddleShape.lineTo(padW, padH - padR);
+      paddleShape.quadraticCurveTo(padW, padH, padW - padR, padH);
+      paddleShape.lineTo(-padW + padR, padH);
+      paddleShape.quadraticCurveTo(-padW, padH, -padW, padH - padR);
+      paddleShape.lineTo(-padW, -padH + padR);
+      paddleShape.quadraticCurveTo(-padW, -padH, -padW + padR, -padH);
+
+      // 黑色護邊條 (Edge Guard, 18mm 厚度)
+      const edgeGeo = new THREE.ExtrudeGeometry(paddleShape, {
+        depth: 0.016,
+        bevelEnabled: true,
+        bevelThickness: 0.005,
+        bevelSize: 0.006,
+        bevelSegments: 4,
+        curveSegments: 24
+      });
+      edgeGeo.center();
+      const edgeMesh = new THREE.Mesh(edgeGeo, matPaddleEdge);
+      edgeMesh.position.set(0, 0.31, 0);
+      edgeMesh.castShadow = true;
+      paddleGroup.add(edgeMesh);
+
+      // 正反雙面彩繪拍面 (正面與背面皆具 NCHU 藍黃斜切貼圖)
+      const faceScale = 0.94;
+      const faceGeo = new THREE.ExtrudeGeometry(paddleShape, {
+        depth: 0.020,
+        bevelEnabled: false,
+        curveSegments: 24
+      });
+      faceGeo.center();
+      faceGeo.scale(faceScale, faceScale, 1.0);
+      // 正規化拍面 UV 至 [0, 1]
+      faceGeo.computeBoundingBox();
+      const bb = faceGeo.boundingBox;
+      const fPos = faceGeo.attributes.position;
+      const fUv = faceGeo.attributes.uv;
+      for (let i = 0; i < fPos.count; i++) {
+        const u = (fPos.getX(i) - bb.min.x) / (bb.max.x - bb.min.x);
+        const v = (fPos.getY(i) - bb.min.y) / (bb.max.y - bb.min.y);
+        fUv.setXY(i, u, v);
+      }
+      fUv.needsUpdate = true;
+      const faceMesh = new THREE.Mesh(faceGeo, matPaddleFace);
+      faceMesh.position.set(0, 0.31, 0);
+      faceMesh.castShadow = true;
+      paddleGroup.add(faceMesh);
+
+      // 設定球拍在右手插槽中的預設角度 (對應原圖右手持拍微向外斜舉)
+      paddleGroup.rotation.set(0.12, -0.18, 0.32);
+      Prop_Socket_R.add(paddleGroup);
+
+      // ========================================================================
+      // H. 獨立 3D 配件 2：藍色 26 孔洞立體匹克球 (Prop_Pickleball_Ball)
+      // ========================================================================
+      const ballGroup = new THREE.Group();
+      ballGroup.name = 'Prop_Pickleball_Ball';
+      const ballRadius = 0.088;
+
+      // 內層深色球芯 (讓孔洞呈現真實內凹立體陰影)
+      const innerCore = new THREE.Mesh(
+        new THREE.SphereGeometry(ballRadius * 0.92, 24, 24),
+        matBallHole
+      );
+      ballGroup.add(innerCore);
+
+      // 外層藍色球殼：使用黃金螺旋分佈 26 個真實圓形內凹孔洞 (頂點內凹雕刻 + 孔緣立體環)
+      const fibN = 26;
+      const holeDirs = [];
+      const goldenRatio = (1 + Math.sqrt(5)) / 2;
+      for (let i = 0; i < fibN; i++) {
+        const theta = 2 * Math.PI * i / goldenRatio;
+        const phi = Math.acos(1 - 2 * (i + 0.5) / fibN);
+        holeDirs.push(new THREE.Vector3(
+          Math.cos(theta) * Math.sin(phi),
+          Math.cos(phi),
+          Math.sin(theta) * Math.sin(phi)
+        ).normalize());
+      }
+
+      const outerBallGeo = new THREE.SphereGeometry(ballRadius, 64, 48);
+      const bPos = outerBallGeo.attributes.position;
+      const vTmp = new THREE.Vector3();
+      for (let i = 0; i < bPos.count; i++) {
+        vTmp.fromBufferAttribute(bPos, i).normalize();
+        let maxDot = -1;
+        for (let h = 0; h < holeDirs.length; h++) {
+          const d = vTmp.dot(holeDirs[h]);
+          if (d > maxDot) maxDot = d;
+        }
+        // 當頂點進入孔洞半徑 (cos(0.21 rad) ≈ 0.978) 時向內凹陷
+        if (maxDot > 0.974) {
+          const depthFactor = Math.min(1, (maxDot - 0.974) / 0.012);
+          const r = ballRadius * (1 - 0.14 * depthFactor);
+          bPos.setXYZ(i, vTmp.x * r, vTmp.y * r, vTmp.z * r);
+        }
+      }
+      outerBallGeo.computeVertexNormals();
+      const outerBallMesh = new THREE.Mesh(outerBallGeo, matBallBlue);
+      outerBallMesh.castShadow = true;
+      ballGroup.add(outerBallMesh);
+
+      // 在每個孔洞中心放置深色圓孔圓盤，確保任何距離下 26 孔皆清晰銳利
+      const holeDiscGeo = new THREE.CylinderGeometry(0.0155, 0.0155, 0.006, 16);
+      const upVec = new THREE.Vector3(0, 1, 0);
+      for (const dir of holeDirs) {
+        const disc = new THREE.Mesh(holeDiscGeo, matBallHole);
+        disc.position.copy(dir).multiplyScalar(ballRadius * 0.965);
+        disc.quaternion.setFromUnitVectors(upVec, dir);
+        ballGroup.add(disc);
+      }
+
+      Prop_Socket_L.add(ballGroup);
+
+      // ========================================================================
+      // I. 關節位置視覺化標示點 (Joint Markers for Technical Art Inspection)
+      // ========================================================================
+      const jointMarkers = [];
+      const markerGeo = new THREE.SphereGeometry(0.026, 14, 14);
+      const markerMat = new THREE.MeshBasicMaterial({
+        color: 0x00FFAA,
+        depthTest: false,
+        transparent: true,
+        opacity: 0.9
+      });
+      for (const [name, node] of Object.entries(bones)) {
+        const m = new THREE.Mesh(markerGeo, markerMat);
+        m.name = `JointMarker_${name}`;
+        m.renderOrder = 999;
+        m.visible = false;
+        node.add(m);
+        jointMarkers.push(m);
+      }
+
+      // 儲存所有節點之初始基準姿勢 (Rest Pose)
+      const restPose = {};
+      for (const [name, node] of Object.entries(bones)) {
+        restPose[name] = {
+          pos: node.position.clone(),
+          rot: node.rotation.clone()
+        };
+      }
+
+      return {
+        root,
+        bones,
+        restPose,
+        paddleGroup,
+        ballGroup,
+        jointMarkers
+      };
+    }
+
+    // ============================================================================
+    // 4. 定義 5+1 種完整骨骼動作 (支援即時預覽 & 烘焙為 GLTF AnimationClip 匯出)
+    // ============================================================================
+    /**
+     * 根據動畫名稱與正規化時間 t (秒) 計算各骨骼節點的目標位移與旋轉增量
+     * 待機時 Neck_01 與 Neck_02 嚴格保持 0 度自然挺直！
+     */
+    function evaluateMascotPose(animName, t) {
+      const pose = {
+        Pelvis: { dy: 0, dz: 0, rx: 0, ry: 0, rz: 0 },
+        Spine_01: { rx: 0, ry: 0, rz: 0 },
+        Spine_02: { rx: 0, ry: 0, rz: 0 },
+        Neck_01: { rx: 0, ry: 0, rz: 0 },
+        Neck_02: { rx: 0, ry: 0, rz: 0 },
+        Head: { rx: 0, ry: 0, rz: 0 },
+        // 預設原圖站姿：右手舉球拍、左手叉腰拿球
+        Shoulder_R: { rx: -0.35, ry: 0.25, rz: 0.42 },
+        Elbow_R: { rx: -1.15, ry: -0.15, rz: 0.25 },
+        Wrist_R: { rx: 0.15, ry: 0.10, rz: 0.0 },
+        Shoulder_L: { rx: 0.12, ry: -0.15, rz: -0.22 },
+        Elbow_L: { rx: -0.58, ry: 0.45, rz: 0.48 },
+        Wrist_L: { rx: 0.10, ry: 0.25, rz: 0.15 },
+        Hip_L: { rx: 0, ry: 0, rz: 0 },
+        Knee_L: { rx: 0, ry: 0, rz: 0 },
+        Ankle_L: { rx: 0, ry: 0, rz: 0 },
+        Hip_R: { rx: 0, ry: 0, rz: 0 },
+        Knee_R: { rx: 0, ry: 0, rz: 0 },
+        Ankle_R: { rx: 0, ry: 0, rz: 0 }
+      };
+
+      if (animName === 'Anim_Idle') {
+        // 待機：呼吸微幅律動，脖子保持 0 度自然挺直，雙手微幅自然擺動
+        const w = t * Math.PI * 2; // 2 秒週期
+        const breath = Math.sin(w);
+        pose.Pelvis.dy = breath * 0.008;
+        pose.Spine_01.rx = breath * 0.018;
+        pose.Spine_02.rx = -breath * 0.015;
+        // 待機時脖子自然挺直 (0 度)
+        pose.Neck_01.rx = 0;
+        pose.Neck_02.rx = 0;
+        pose.Head.ry = Math.sin(w * 0.5) * 0.06;
+        pose.Shoulder_R.rz += Math.sin(w) * 0.04;
+        pose.Elbow_R.rx += Math.cos(w) * 0.05;
+        pose.Shoulder_L.rx += Math.sin(w + 1.2) * 0.03;
+      } else if (animName === 'Anim_Run') {
+        // 真正雙腿交替踏步跑動：髖、膝、踝三軸聯動抬腿與蹬地，雙臂與軀幹反向協調擺動
+        const w = t * Math.PI * 4; // 1 秒兩步完整循環
+        const strideL = Math.sin(w);
+        const strideR = Math.sin(w + Math.PI);
+        const liftL = Math.max(0, Math.cos(w));
+        const liftR = Math.max(0, Math.cos(w + Math.PI));
+
+        // 骨盆隨雙腳交替踏地產生真實二倍頻率上下彈動與重心橫移、前傾
+        pose.Pelvis.dy = Math.abs(Math.sin(w)) * 0.045 - 0.015;
+        pose.Pelvis.rx = 0.14; // 跑步身體自然微前傾
+        pose.Pelvis.ry = -strideL * 0.14;
+        pose.Pelvis.rz = strideL * 0.06;
+
+        // 胸腔反向扭轉平衡
+        pose.Spine_01.ry = strideL * 0.12;
+        pose.Spine_02.ry = strideL * 0.14;
+        // 脖子配合前傾視線微幅穩定
+        pose.Neck_01.rx = -0.06 + Math.sin(w * 2) * 0.03;
+        pose.Neck_02.rx = -0.06;
+        pose.Head.ry = -strideL * 0.08;
+
+        // 左腿交替踏步 (抬腿時屈膝、落地蹬伸時腳踝推蹬)
+        pose.Hip_L.rx = -strideL * 0.68 - 0.12;
+        pose.Knee_L.rx = liftL * 0.95 + 0.12;
+        pose.Ankle_L.rx = strideL * 0.35 - liftL * 0.25;
+
+        // 右腿交替踏步 (相位相差 180 度)
+        pose.Hip_R.rx = -strideR * 0.68 - 0.12;
+        pose.Knee_R.rx = liftR * 0.95 + 0.12;
+        pose.Ankle_R.rx = strideR * 0.35 - liftR * 0.25;
+
+        // 雙手反向擺臂 (左腿向前時右臂向前擺、左臂向後擺)
+        pose.Shoulder_R = { rx: strideL * 0.55 - 0.20, ry: 0.15, rz: 0.28 };
+        pose.Elbow_R = { rx: -0.95 - Math.max(0, -strideL) * 0.3, ry: 0, rz: 0.15 };
+        pose.Shoulder_L = { rx: strideR * 0.55 - 0.15, ry: -0.15, rz: -0.25 };
+        pose.Elbow_L = { rx: -0.85 - Math.max(0, -strideR) * 0.3, ry: 0.2, rz: 0.2 };
+      } else if (animName === 'Anim_Swing') {
+        // 引拍 (Backswing) -> 轉體擊球 (Strike) -> 收拍 (Follow-through)
+        // 週期 2.0 秒
+        const phase = (t % 2.0) / 2.0;
+        let swingVal = 0; // -1: 引拍蓄力, 0: 擊球點, +1: 收拍完成
+        if (phase < 0.35) {
+          // 0 -> 0.35: 引拍向後蓄力
+          const u = phase / 0.35;
+          swingVal = -Math.sin(u * Math.PI * 0.5);
+        } else if (phase < 0.60) {
+          // 0.35 -> 0.60: 高速轉體向前揮拍擊球
+          const u = (phase - 0.35) / 0.25;
+          swingVal = -1 + 2 * (u * u * (3 - 2 * u));
+        } else {
+          // 0.60 -> 1.0: 收拍緩衝回待機
+          const u = (phase - 0.60) / 0.40;
+          swingVal = Math.cos(u * Math.PI * 0.5);
+        }
+
+        // 下盤重心微蹲與轉髖發力
+        pose.Pelvis.dy = -0.035 * Math.abs(swingVal);
+        pose.Pelvis.ry = swingVal * 0.28;
+        pose.Spine_01.ry = swingVal * 0.32;
+        pose.Spine_02.ry = swingVal * 0.38;
+        pose.Spine_02.rx = 0.08 * (1 - Math.abs(swingVal));
+
+        // 脖子在動作時平滑彎曲並穩定注視前方擊球點
+        pose.Neck_01.ry = -swingVal * 0.25;
+        pose.Neck_01.rx = 0.08;
+        pose.Neck_02.ry = -swingVal * 0.25;
+        pose.Head.ry = -swingVal * 0.20;
+
+        // 右手揮拍軌跡 (球拍完整跟隨右手手腕與肩膀運動)
+        pose.Shoulder_R = {
+          rx: -0.35 - swingVal * 0.75,
+          ry: -swingVal * 0.65,
+          rz: 0.48 - Math.max(0, swingVal) * 0.35
+        };
+        pose.Elbow_R = {
+          rx: -0.75 - Math.max(0, swingVal) * 0.55,
+          ry: swingVal * 0.35,
+          rz: 0.20
+        };
+        pose.Wrist_R = {
+          rx: swingVal * 0.35,
+          ry: swingVal * 0.45,
+          rz: -swingVal * 0.20
+        };
+
+        // 左手平衡協調展開
+        pose.Shoulder_L = {
+          rx: -0.20 + swingVal * 0.25,
+          ry: -0.25,
+          rz: -0.35
+        };
+        pose.Elbow_L = { rx: -0.65, ry: 0.35, rz: 0.35 };
+
+        // 雙腳微屈支撐
+        pose.Hip_L.rx = -0.18;
+        pose.Knee_L.rx = 0.34;
+        pose.Ankle_L.rx = -0.16;
+        pose.Hip_R.rx = -0.14 - swingVal * 0.12;
+        pose.Knee_R.rx = 0.28;
+        pose.Ankle_R.rx = -0.14;
+      } else if (animName === 'Anim_Referee_Signal') {
+        // 裁判舉手示意：右手高舉裁決得分/界內外，脖子微轉巡視球場
+        const w = t * Math.PI * 2;
+        const hold = 0.85 + 0.15 * Math.sin(w);
+        pose.Pelvis.dy = Math.sin(w) * 0.006;
+        pose.Spine_01.rx = -0.04;
+        pose.Spine_02.rz = -0.05 * hold;
+        // 動作時兩段脖子微彎轉向注視
+        pose.Neck_01.ry = Math.sin(w * 0.5) * 0.14;
+        pose.Neck_02.ry = Math.sin(w * 0.5) * 0.14;
+        pose.Neck_02.rx = -0.05;
+        pose.Head.ry = Math.sin(w * 0.5) * 0.12;
+
+        // 右手筆直高舉示意
+        pose.Shoulder_R = {
+          rx: -2.35 * hold,
+          ry: 0.15,
+          rz: 0.22
+        };
+        pose.Elbow_R = {
+          rx: -0.22,
+          ry: 0.0,
+          rz: 0.08
+        };
+        pose.Wrist_R = {
+          rx: 0.0,
+          ry: 0.15 + Math.sin(w * 2) * 0.12,
+          rz: 0.0
+        };
+      } else if (animName === 'Anim_Coach_Point') {
+        // 教練指向球場：轉身、脖子微彎前傾、手臂伸直指向球場遠方指導戰術
+        const w = t * Math.PI * 2;
+        const pulse = Math.sin(w);
+        pose.Pelvis.ry = -0.22;
+        pose.Spine_01.ry = -0.18;
+        pose.Spine_01.rx = 0.08;
+        pose.Spine_02.ry = -0.15;
+        pose.Spine_02.rx = 0.08;
+
+        // 動作時兩段脖子自然向前彎曲配合指導視線
+        pose.Neck_01.rx = 0.11;
+        pose.Neck_01.ry = 0.18;
+        pose.Neck_02.rx = 0.09;
+        pose.Neck_02.ry = 0.18;
+        pose.Head.ry = 0.12 + pulse * 0.04;
+        pose.Head.rx = 0.05 + Math.sin(w * 2) * 0.04;
+
+        // 左手或右手伸直指向球場前方
+        pose.Shoulder_R = {
+          rx: -1.38 + pulse * 0.04,
+          ry: -0.28,
+          rz: 0.12
+        };
+        pose.Elbow_R = {
+          rx: -0.12,
+          ry: 0,
+          rz: 0
+        };
+        pose.Wrist_R = {
+          rx: -0.15 + pulse * 0.06,
+          ry: 0,
+          rz: 0
+        };
+      } else if (animName === 'Anim_APose') {
+        // 無配件中立站姿 (A-Pose)：讓關節、雙手與衣服下擺輪廓完全清楚可見
+        pose.Shoulder_R = { rx: 0, ry: 0, rz: 0.38 };
+        pose.Elbow_R = { rx: -0.12, ry: 0, rz: 0.10 };
+        pose.Wrist_R = { rx: 0, ry: 0, rz: 0 };
+        pose.Shoulder_L = { rx: 0, ry: 0, rz: -0.38 };
+        pose.Elbow_L = { rx: -0.12, ry: 0, rz: -0.10 };
+        pose.Wrist_L = { rx: 0, ry: 0, rz: 0 };
+      }
+
+      return pose;
+    }
+
+    function applyPoseToMascot(mascot, animName, t) {
+      const p = evaluateMascotPose(animName, t);
+      const { bones, restPose } = mascot;
+
+      for (const [name, node] of Object.entries(bones)) {
+        const rest = restPose[name];
+        if (!rest) continue;
+        const mod = p[name];
+        if (mod) {
+          node.position.set(
+            rest.pos.x + (mod.dx || 0),
+            rest.pos.y + (mod.dy || 0),
+            rest.pos.z + (mod.dz || 0)
+          );
+          node.rotation.set(
+            rest.rot.x + (mod.rx || 0),
+            rest.rot.y + (mod.ry || 0),
+            rest.rot.z + (mod.rz || 0)
+          );
+        } else {
+          node.position.copy(rest.pos);
+          node.rotation.copy(rest.rot);
+        }
+      }
+    }
+
+    /**
+     * 將全部 5 段動作烘焙為標準 THREE.AnimationClip 陣列，使匯出的 .glb 內含完整動畫軌道！
+     */
+    function bakeAnimationClips(mascot) {
+      const clipSpecs = [
+        { name: 'Anim_Idle', duration: 2.0, fps: 30 },
+        { name: 'Anim_Run', duration: 1.0, fps: 30 },
+        { name: 'Anim_Swing', duration: 2.0, fps: 30 },
+        { name: 'Anim_Referee_Signal', duration: 2.0, fps: 30 },
+        { name: 'Anim_Coach_Point', duration: 2.0, fps: 30 }
+      ];
+
+      const clips = [];
+      const euler = new THREE.Euler();
+      const quat = new THREE.Quaternion();
+
+      for (const spec of clipSpecs) {
+        const numFrames = Math.round(spec.duration * spec.fps);
+        const times = [];
+        for (let f = 0; f <= numFrames; f++) {
+          times.push((f / numFrames) * spec.duration);
+        }
+
+        const trackData = {};
+        for (const name of Object.keys(mascot.bones)) {
+          trackData[name] = { pos: [], quat: [] };
+        }
+
+        for (const time of times) {
+          const p = evaluateMascotPose(spec.name, time);
+          for (const [name, rest] of Object.entries(mascot.restPose)) {
+            const mod = p[name] || {};
+            trackData[name].pos.push(
+              rest.pos.x + (mod.dx || 0),
+              rest.pos.y + (mod.dy || 0),
+              rest.pos.z + (mod.dz || 0)
+            );
+            euler.set(
+              rest.rot.x + (mod.rx || 0),
+              rest.rot.y + (mod.ry || 0),
+              rest.rot.z + (mod.rz || 0)
+            );
+            quat.setFromEuler(euler);
+            trackData[name].quat.push(quat.x, quat.y, quat.z, quat.w);
+          }
+        }
+
+        const tracks = [];
+        for (const [name, data] of Object.entries(trackData)) {
+          tracks.push(new THREE.VectorKeyframeTrack(`${name}.position`, times, data.pos));
+          tracks.push(new THREE.QuaternionKeyframeTrack(`${name}.quaternion`, times, data.quat));
+        }
+        clips.push(new THREE.AnimationClip(spec.name, spec.duration, tracks));
+      }
+
+      return clips;
+    }
+
+    // ============================================================================
+    // 5. Three.js 場景、雙相機 (透視 + 正交)、燈光與匯出控制器初始化
+    // ============================================================================
+    const viewport = document.getElementById('viewport');
+    const statusText = document.getElementById('statusText');
+
+    const renderer = new THREE.WebGLRenderer({
+      antialias: true,
+      alpha: true,
+      preserveDrawingBuffer: true
+    });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setSize(viewport.clientWidth, viewport.clientHeight);
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.08;
+    viewport.appendChild(renderer.domElement);
+
+    const scene = new THREE.Scene();
+
+    // 柔和三點式攝影棚燈光
+    const hemiLight = new THREE.HemisphereLight(0xFFFFFF, 0x94A3B8, 1.35);
+    hemiLight.position.set(0, 4, 0);
+    scene.add(hemiLight);
+
+    const keyLight = new THREE.DirectionalLight(0xFFFDF9, 1.45);
+    keyLight.position.set(2.4, 3.6, 3.2);
+    keyLight.castShadow = true;
+    keyLight.shadow.mapSize.set(2048, 2048);
+    keyLight.shadow.camera.near = 0.5;
+    keyLight.shadow.camera.far = 12;
+    const d = 1.6;
+    keyLight.shadow.camera.left = -d;
+    keyLight.shadow.camera.right = d;
+    keyLight.shadow.camera.top = d;
+    keyLight.shadow.camera.bottom = -d;
+    keyLight.shadow.bias = -0.0005;
+    scene.add(keyLight);
+
+    const fillLight = new THREE.DirectionalLight(0xC7D9F8, 0.75);
+    fillLight.position.set(-2.6, 2.0, 1.8);
+    scene.add(fillLight);
+
+    const rimLight = new THREE.DirectionalLight(0xFDE68A, 0.65);
+    rimLight.position.set(0.0, 2.8, -3.0);
+    scene.add(rimLight);
+
+    // 地面陰影接收圓盤与網格 (匯出透明 PNG 時自動隱藏)
+    const groundGroup = new THREE.Group();
+    const shadowPlane = new THREE.Mesh(
+      new THREE.CircleGeometry(1.8, 48),
+      new THREE.ShadowMaterial({ opacity: 0.28 })
+    );
+    shadowPlane.rotation.x = -Math.PI / 2;
+    shadowPlane.receiveShadow = true;
+    groundGroup.add(shadowPlane);
+
+    const gridHelper = new THREE.GridHelper(3.2, 16, 0x3b4963, 0x283142);
+    gridHelper.position.y = -0.002;
+    groundGroup.add(gridHelper);
+    scene.add(groundGroup);
+
+    // 建構吉祥物角色並加入場景
+    const mascot = buildPicklerErMascot();
+    const bakedClips = bakeAnimationClips(mascot);
+    mascot.root.animations = bakedClips;
+    scene.add(mascot.root);
+
+    // 獨立檢視球拍與球專用展示架 (預設隱藏)
+    const isolatedPropsGroup = new THREE.Group();
+    isolatedPropsGroup.name = 'Isolated_Props_Showcase';
+    isolatedPropsGroup.visible = false;
+    const showcasePaddle = mascot.paddleGroup.clone();
+    showcasePaddle.rotation.set(0, 0, 0);
+    showcasePaddle.position.set(-0.26, 0.72, 0);
+    showcasePaddle.scale.setScalar(1.35);
+    isolatedPropsGroup.add(showcasePaddle);
+
+    const showcaseBall = mascot.ballGroup.clone();
+    showcaseBall.position.set(0.28, 0.90, 0);
+    showcaseBall.scale.setScalar(1.55);
+    isolatedPropsGroup.add(showcaseBall);
+    scene.add(isolatedPropsGroup);
+
+    // 透視與正交雙相機
+    const aspect = viewport.clientWidth / viewport.clientHeight;
+    const perspCam = new THREE.PerspectiveCamera(36, aspect, 0.1, 50);
+    perspCam.position.set(1.65, 1.35, 2.45);
+
+    const orthoFrustumH = 2.15;
+    const orthoCam = new THREE.OrthographicCamera(
+      (-orthoFrustumH * aspect) / 2,
+      (orthoFrustumH * aspect) / 2,
+      orthoFrustumH / 2,
+      -orthoFrustumH / 2,
+      0.1,
+      50
+    );
+
+    let activeCam = perspCam;
+    let currentCamMode = 'persp45';
+    let currentAnim = 'Anim_Idle';
+    let propsVisible = true;
+    let jointsVisible = false;
+    let turntableActive = false;
+    let isolatePropsActive = false;
+
+    const controls = new OrbitControls(perspCam, renderer.domElement);
+    controls.target.set(0, 0.92, 0);
+    controls.enableDamping = true;
+    controls.update();
+
+    function setCameraView(mode) {
+      currentCamMode = mode;
+      document.querySelectorAll('.cam-btn').forEach(b => {
+        b.classList.toggle('active', b.dataset.cam === mode);
+      });
+
+      const target = new THREE.Vector3(0, 0.92, 0);
+      if (mode === 'persp45') {
+        activeCam = perspCam;
+        perspCam.position.set(1.55, 1.28, 2.35);
+        controls.object = perspCam;
+        controls.target.copy(target);
+        controls.enableRotate = true;
+        controls.update();
+      } else {
+        activeCam = orthoCam;
+        const dist = 5.0;
+        if (mode === 'front') orthoCam.position.set(0, 0.92, dist);
+        else if (mode === 'back') orthoCam.position.set(0, 0.92, -dist);
+        else if (mode === 'left') orthoCam.position.set(dist, 0.92, 0);
+        else if (mode === 'right') orthoCam.position.set(-dist, 0.92, 0);
+        else if (mode === 'top') orthoCam.position.set(0, dist, 0.001);
+        orthoCam.lookAt(target);
+        orthoCam.zoom = 1.0;
+        orthoCam.updateProjectionMatrix();
+        controls.object = orthoCam;
+        controls.target.copy(target);
+        controls.update();
+      }
+      updateStatusText();
+    }
+
+    function setAnimationState(animName) {
+      currentAnim = animName;
+      document.querySelectorAll('.anim-btn').forEach(b => {
+        b.classList.toggle('active', b.dataset.anim === animName);
+      });
+      if (animName === 'Anim_APose') {
+        mascot.paddleGroup.visible = false;
+        mascot.ballGroup.visible = false;
+        document.getElementById('btnToggleProps').classList.remove('active');
+      } else if (propsVisible) {
+        mascot.paddleGroup.visible = true;
+        mascot.ballGroup.visible = true;
+        document.getElementById('btnToggleProps').classList.add('active');
+      }
+      updateStatusText();
+    }
+
+    function updateStatusText() {
+      const camLabels = {
+        persp45: '45° 透視預覽',
+        front: '正面正交 (Front Ortho)',
+        left: '左側正交 (Left Ortho)',
+        right: '右側正交 (Right Ortho)',
+        back: '背面正交 (Back Ortho)',
+        top: '頂視正交 (Top Ortho)'
+      };
+      statusText.textContent = `視角：${camLabels[currentCamMode] || currentCamMode} | 動作：${currentAnim} | 配件：${mascot.paddleGroup.visible ? '顯示' : '隱藏'}`;
+    }
+
+    // 綁定 UI 事件
+    document.querySelectorAll('.anim-btn').forEach(btn => {
+      btn.addEventListener('click', () => setAnimationState(btn.dataset.anim));
+    });
+
+    document.querySelectorAll('.cam-btn').forEach(btn => {
+      btn.addEventListener('click', () => setCameraView(btn.dataset.cam));
+    });
+
+    document.getElementById('btnToggleProps').addEventListener('click', (e) => {
+      propsVisible = !propsVisible;
+      mascot.paddleGroup.visible = propsVisible;
+      mascot.ballGroup.visible = propsVisible;
+      e.currentTarget.classList.toggle('active', propsVisible);
+      updateStatusText();
+    });
+
+    document.getElementById('btnToggleJoints').addEventListener('click', (e) => {
+      jointsVisible = !jointsVisible;
+      mascot.jointMarkers.forEach(m => (m.visible = jointsVisible));
+      e.currentTarget.classList.toggle('active', jointsVisible);
+    });
+
+    document.getElementById('btnToggleTurntable').addEventListener('click', (e) => {
+      turntableActive = !turntableActive;
+      if (!turntableActive) mascot.root.rotation.y = 0;
+      e.currentTarget.classList.toggle('active', turntableActive);
+    });
+
+    document.getElementById('btnIsolateProps').addEventListener('click', (e) => {
+      isolatePropsActive = !isolatePropsActive;
+      mascot.root.visible = !isolatePropsActive;
+      isolatedPropsGroup.visible = isolatePropsActive;
+      e.currentTarget.classList.toggle('active', isolatePropsActive);
+    });
+
+    // ============================================================================
+    // 6. GLB 模型匯出與 2048px 透明背景正交 PNG 匯出功能
+    // ============================================================================
+    function exportGLBBuffer() {
+      return new Promise((resolve, reject) => {
+        // 匯出前將角色復位至標準 Idle 姿態並隱藏關節輔助點
+        const prevVisible = mascot.root.visible;
+        const prevRotY = mascot.root.rotation.y;
+        mascot.root.visible = true;
+        mascot.root.rotation.y = 0;
+        mascot.paddleGroup.visible = true;
+        mascot.ballGroup.visible = true;
+        mascot.jointMarkers.forEach(m => (m.visible = false));
+        applyPoseToMascot(mascot, 'Anim_Idle', 0);
+
+        const exporter = new GLTFExporter();
+        exporter.parse(
+          mascot.root,
+          (result) => {
+            mascot.root.visible = prevVisible;
+            mascot.root.rotation.y = prevRotY;
+            mascot.jointMarkers.forEach(m => (m.visible = jointsVisible));
+            resolve(result);
+          },
+          (err) => reject(err),
+          {
+            binary: true,
+            animations: bakedClips
+          }
+        );
+      });
+    }
+
+    document.getElementById('btnExportGLB').addEventListener('click', async () => {
+      const arrayBuffer = await exportGLBBuffer();
+      const blob = new Blob([arrayBuffer], { type: 'model/gltf-binary' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'pickler_er_mascot.glb';
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+
+    function renderOrthoPNGDataURL(viewConfig) {
+      const size = 2048;
+      const prevW = viewport.clientWidth;
+      const prevH = viewport.clientHeight;
+      const prevGround = groundGroup.visible;
+      const prevRootVis = mascot.root.visible;
+      const prevIsoVis = isolatedPropsGroup.visible;
+      const prevPadVis = mascot.paddleGroup.visible;
+      const prevBallVis = mascot.ballGroup.visible;
+      const prevJoints = jointsVisible;
+      const prevRotY = mascot.root.rotation.y;
+
+      groundGroup.visible = false;
+      mascot.root.rotation.y = 0;
+      mascot.root.visible = !viewConfig.isolateProps;
+      isolatedPropsGroup.visible = !!viewConfig.isolateProps;
+      mascot.paddleGroup.visible = viewConfig.showProps !== false;
+      mascot.ballGroup.visible = viewConfig.showProps !== false;
+      mascot.jointMarkers.forEach(m => (m.visible = !!viewConfig.showJoints));
+
+      applyPoseToMascot(mascot, viewConfig.anim || 'Anim_Idle', viewConfig.time || 0);
+
+      renderer.setPixelRatio(1);
+      renderer.setSize(size, size, false);
+
+      let camToRender;
+      const target = new THREE.Vector3(0, 0.90, 0);
+      if (viewConfig.cam === 'persp45') {
+        perspCam.aspect = 1.0;
+        perspCam.position.set(1.55, 1.25, 2.35);
+        perspCam.lookAt(target);
+        perspCam.updateProjectionMatrix();
+        camToRender = perspCam;
+      } else {
+        const frustum = 2.08;
+        orthoCam.left = -frustum / 2;
+        orthoCam.right = frustum / 2;
+        orthoCam.top = frustum / 2;
+        orthoCam.bottom = -frustum / 2;
+        orthoCam.zoom = 1.0;
+        const dist = 5.0;
+        if (viewConfig.cam === 'front') orthoCam.position.set(0, 0.90, dist);
+        else if (viewConfig.cam === 'back') orthoCam.position.set(0, 0.90, -dist);
+        else if (viewConfig.cam === 'left') orthoCam.position.set(dist, 0.90, 0);
+        else if (viewConfig.cam === 'right') orthoCam.position.set(-dist, 0.90, 0);
+        orthoCam.lookAt(target);
+        orthoCam.updateProjectionMatrix();
+        camToRender = orthoCam;
+      }
+
+      renderer.setClearColor(0x000000, 0);
+      renderer.clear();
+      renderer.render(scene, camToRender);
+      const dataUrl = renderer.domElement.toDataURL('image/png');
+
+      // 還原畫布與狀態
+      groundGroup.visible = prevGround;
+      mascot.root.visible = prevRootVis;
+      isolatedPropsGroup.visible = prevIsoVis;
+      mascot.paddleGroup.visible = prevPadVis;
+      mascot.ballGroup.visible = prevBallVis;
+      mascot.jointMarkers.forEach(m => (m.visible = prevJoints));
+      mascot.root.rotation.y = prevRotY;
+      onResize();
+
+      return dataUrl;
+    }
+
+    document.getElementById('btnExportOrthoPNG').addEventListener('click', () => {
+      const dataUrl = renderOrthoPNGDataURL({
+        cam: currentCamMode === 'persp45' ? 'persp45' : currentCamMode,
+        anim: currentAnim,
+        showProps: mascot.paddleGroup.visible,
+        showJoints: jointsVisible,
+        isolateProps: isolatePropsActive
+      });
+      const a = document.createElement('a');
+      a.href = dataUrl;
+      a.download = `pickler_er_${currentCamMode}_2048px.png`;
+      a.click();
+    });
+
+    document.getElementById('btnExportAllPack').addEventListener('click', () => {
+      const packSpecs = [
+        { filename: '01_front_ortho_2048px.png', cam: 'front', anim: 'Anim_Idle', showProps: true },
+        { filename: '02_left_ortho_2048px.png', cam: 'left', anim: 'Anim_Idle', showProps: true },
+        { filename: '03_right_ortho_2048px.png', cam: 'right', anim: 'Anim_Idle', showProps: true },
+        { filename: '04_back_ortho_2048px.png', cam: 'back', anim: 'Anim_Idle', showProps: true },
+        { filename: '05_persp45_render_2048px.png', cam: 'persp45', anim: 'Anim_Idle', showProps: true },
+        { filename: '06_apose_no_props_2048px.png', cam: 'front', anim: 'Anim_APose', showProps: false },
+        { filename: '07_props_isolated_2048px.png', cam: 'front', anim: 'Anim_Idle', isolateProps: true },
+        { filename: '08_joint_hierarchy_diagram_2048px.png', cam: 'front', anim: 'Anim_APose', showProps: false, showJoints: true }
+      ];
+      packSpecs.forEach((spec, idx) => {
+        setTimeout(() => {
+          const dataUrl = renderOrthoPNGDataURL(spec);
+          const a = document.createElement('a');
+          a.href = dataUrl;
+          a.download = spec.filename;
+          a.click();
+        }, idx * 260);
+      });
+    });
+
+    // 暴露自動化 API 供無頭瀏覽器或外部工具直接擷取 GLB 與 2048px 參考圖
+    window.PicklerErStudioAPI = {
+      exportGLBBase64: async () => {
+        const buf = await exportGLBBuffer();
+        const bytes = new Uint8Array(buf);
+        let binary = '';
+        const chunk = 0x8000;
+        for (let i = 0; i < bytes.length; i += chunk) {
+          binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunk));
+        }
+        return btoa(binary);
+      },
+      renderOrthoPNGDataURL,
+      setAnimationState,
+      setCameraView
+    };
+
+    // 視窗縮放處理
+    function onResize() {
+      const w = viewport.clientWidth;
+      const h = viewport.clientHeight;
+      const asp = w / h;
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.setSize(w, h);
+
+      perspCam.aspect = asp;
+      perspCam.updateProjectionMatrix();
+
+      orthoCam.left = (-orthoFrustumH * asp) / 2;
+      orthoCam.right = (orthoFrustumH * asp) / 2;
+      orthoCam.top = orthoFrustumH / 2;
+      orthoCam.bottom = -orthoFrustumH / 2;
+      orthoCam.updateProjectionMatrix();
+    }
+    window.addEventListener('resize', onResize);
+
+    // 主渲染迴圈
+    const clock = new THREE.Clock();
+    function animate() {
+      requestAnimationFrame(animate);
+      const elapsed = clock.getElapsedTime();
+
+      if (!isolatePropsActive) {
+        applyPoseToMascot(mascot, currentAnim, elapsed);
+        if (turntableActive) {
+          mascot.root.rotation.y = elapsed * 0.85;
+        }
+      } else {
+        showcasePaddle.rotation.y = elapsed * 0.7;
+        showcaseBall.rotation.y = -elapsed * 0.9;
+        showcaseBall.rotation.x = elapsed * 0.4;
+      }
+
+      controls.update();
+      renderer.render(scene, activeCam);
+    }
+    animate();
+  </script>
+</body>
+</html>

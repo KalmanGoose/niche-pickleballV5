@@ -45,28 +45,91 @@
         }
         const POSE_BONES = [[11, 12], [11, 13], [13, 15], [12, 14], [14, 16], [11, 23], [12, 24], [23, 24],
         [23, 25], [25, 27], [24, 26], [26, 28], [15, 19], [15, 21], [16, 20], [16, 22]];
+
         function drawSkeleton(ctx, lm, w, h) {
             const p = PERF_PRESETS[perfLevel];
             const allow = new Set(JOINT_SETS[p.joints]);
             const px = i => ({ x: (1 - lm[i].x) * w, y: lm[i].y * h });
-            ctx.lineWidth = p.skeleton === 'MINIMAL' ? 2 : 3;
-            ctx.strokeStyle = servePrepared ? '#3fe0c4' : '#ffc857';
-            if (p.skeleton === 'GLOW') { ctx.shadowBlur = 8; ctx.shadowColor = '#38bdf8'; }
+
+            ctx.save();
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+
+            // 1. 雙層鮮明高對比霓虹骨架線
+            // 外層高亮發光光暈
+            ctx.lineWidth = p.skeleton === 'MINIMAL' ? 3.5 : 5.5;
+            ctx.strokeStyle = servePrepared ? 'rgba(0, 240, 255, 0.45)' : 'rgba(250, 204, 21, 0.45)';
+            ctx.shadowBlur = 12;
+            ctx.shadowColor = servePrepared ? '#00f0ff' : '#facc15';
+
             for (const pair of POSE_BONES) {
                 const a = pair[0], b = pair[1];
                 if (!allow.has(a) || !allow.has(b) || !lm[a] || !lm[b]) continue;
                 const A = px(a), B = px(b);
                 ctx.beginPath(); ctx.moveTo(A.x, A.y); ctx.lineTo(B.x, B.y); ctx.stroke();
             }
+
+            // 內層實心骨幹核心
+            ctx.lineWidth = p.skeleton === 'MINIMAL' ? 2.2 : 3.2;
+            ctx.strokeStyle = servePrepared ? '#ecfeff' : '#fffbeb';
             ctx.shadowBlur = 0;
-            if (p.skeleton === 'MINIMAL') return;
-            ctx.fillStyle = '#ffc857';
+            for (const pair of POSE_BONES) {
+                const a = pair[0], b = pair[1];
+                if (!allow.has(a) || !allow.has(b) || !lm[a] || !lm[b]) continue;
+                const A = px(a), B = px(b);
+                ctx.beginPath(); ctx.moveTo(A.x, A.y); ctx.lineTo(B.x, B.y); ctx.stroke();
+            }
+
+            // 2. 關鍵肢體關節點與右手持拍瞄準準星
             for (const i of allow) {
                 if (!lm[i]) continue;
                 const P = px(i);
-                ctx.beginPath(); ctx.arc(P.x, P.y, p.skeleton === 'GLOW' ? 3.5 : 4, 0, Math.PI * 2); ctx.fill();
+                if (i === 16) {
+                    // ★ 右手持拍手腕：加大鮮豔準星光標
+                    ctx.beginPath();
+                    ctx.arc(P.x, P.y, 8, 0, Math.PI * 2);
+                    ctx.fillStyle = '#f97316';
+                    ctx.strokeStyle = '#fff';
+                    ctx.lineWidth = 2.2;
+                    ctx.fill();
+                    ctx.stroke();
+                    ctx.beginPath();
+                    ctx.moveTo(P.x - 12, P.y); ctx.lineTo(P.x + 12, P.y);
+                    ctx.moveTo(P.x, P.y - 12); ctx.lineTo(P.x, P.y + 12);
+                    ctx.strokeStyle = 'rgba(255,255,255,0.95)';
+                    ctx.lineWidth = 1.6;
+                    ctx.stroke();
+                } else if (i === 15) {
+                    // 左手腕 (拋球/引導手)
+                    ctx.beginPath();
+                    ctx.arc(P.x, P.y, 6.5, 0, Math.PI * 2);
+                    ctx.fillStyle = '#06b6d4';
+                    ctx.strokeStyle = '#e0f2fe';
+                    ctx.lineWidth = 2;
+                    ctx.fill();
+                    ctx.stroke();
+                } else {
+                    // 一般骨骼節點
+                    ctx.beginPath();
+                    ctx.arc(P.x, P.y, p.skeleton === 'MINIMAL' ? 3.5 : 4.5, 0, Math.PI * 2);
+                    ctx.fillStyle = '#38bdf8';
+                    ctx.strokeStyle = '#0284c7';
+                    ctx.lineWidth = 1.5;
+                    ctx.fill();
+                    ctx.stroke();
+                }
             }
+            ctx.restore();
         }
+
+        window.toggleMotionHudSize = function() {
+            const hud = document.getElementById('motion-hud');
+            if (!hud) return;
+            hud.classList.toggle('motion-hud-expanded');
+            const isExp = hud.classList.contains('motion-hud-expanded');
+            const btn = document.getElementById('motion-hud-size-btn');
+            if (btn) btn.innerText = isExp ? '⤡' : '⤢';
+        };
 
         /* ═══════ 體感演算法 ═══════ */
         let webcamActive = false, poseInstance = null, cameraUtils = null;
@@ -301,7 +364,12 @@
             DWELL_NEED: 0.14, HYST: 0.34, SPAN: 1.5, invert: false, raw: 0.5
         };
         const AIM_NAMES = ['◤ 貼中線', '◀ 內側', '● 區中央', '▶ 外側', '◢ 貼邊線'];
-        function diagSign() { return (pPos.x >= 0) ? -1 : 1; }
+        function diagSign() {
+            const fromRight = (typeof stage !== 'undefined' && (stage === 1 || stage >= 4) && typeof serveSide !== 'undefined')
+                ? (serveSide > 0)
+                : (pPos.x >= 0);
+            return fromRight ? -1 : 1;
+        }
         function aimZoneXAt(i) {
             const half = COURT_W / 2 - 0.4, near = 0.42;
             return diagSign() * (near + (half - near) * (i / (AIM.zones - 1)));
@@ -665,6 +733,7 @@
 
             SWIPE.prevX = x;
             SWIPE.prevY = y;
+            if (typeof updateCurveGestureHUD === 'function') updateCurveGestureHUD(SWIPE);
         }
 
         function swipeEnd() {
@@ -683,6 +752,7 @@
                 spin: SWIPE.spin,
                 time: performance.now()
             };
+            if (typeof updateCurveGestureHUD === 'function') updateCurveGestureHUD(SWIPE.lastStroke);
         }
 
         /* ═══════════════════════════════════════════════

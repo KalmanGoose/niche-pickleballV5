@@ -13,7 +13,7 @@
         let camEdit = false;                       // 編輯模式旗標
         const camKeys = { u: false, j: false, i: false, k: false, o: false, l: false };
         const camPad = { vert: 0 };                 // 手機 ▲▼ 按鈕: -1 / 0 / +1
-        const VIEW_NAMES = ['經典追蹤', '戰術俯瞰', '沉浸越肩', '電視轉播', '自訂視角'];
+        const VIEW_NAMES = ['經典追蹤', '戰術俯瞰', '沉浸越肩', '超廣角第一人稱 ⚡', '電視轉播', '自訂視角'];
 
         function loadCamCustom() {
             try {
@@ -41,13 +41,16 @@
         }
         function cycleCamView() {
             if (camEdit) return;
-            camViewMode = (camViewMode + 1) % 5;
+            camViewMode = (camViewMode + 1) % 6;
             const qcn = document.getElementById('quick-cam-name');
             if (qcn) {
-                const shortNames = ['經典', '俯瞰', '越肩', '轉播', '自訂'];
+                const shortNames = ['經典', '俯瞰', '越肩', '第一人稱', '轉播', '自訂'];
                 qcn.innerText = shortNames[camViewMode] || VIEW_NAMES[camViewMode];
             }
             toast('攝影機視角', VIEW_NAMES[camViewMode]);
+            if (typeof triggerCourtSpin === 'function' && camViewMode !== 3) {
+                triggerCourtSpin({ duration: 0.55, angle: Math.PI * 0.25 });
+            }
         }
         function enterCamEdit() {
             closePanel();
@@ -59,10 +62,12 @@
             } else if (camViewMode === 2) {
                 camCustom.h = 1.55; camCustom.dist = 3.6; camCustom.yaw = 0;
             } else if (camViewMode === 3) {
+                camCustom.h = 1.38; camCustom.dist = 0.5; camCustom.yaw = 0;
+            } else if (camViewMode === 4) {
                 camCustom.h = 4.5; camCustom.dist = 8.2; camCustom.yaw = Math.PI * 0.45;
             }
             camEdit = true;
-            camViewMode = 4;
+            camViewMode = 5;
             clearKeys();
             camPad.vert = 0;
             D.camEdit.classList.add('on');
@@ -73,6 +78,7 @@
                 document.getElementById('joy').classList.add('cam-mode');
                 D.camVert.classList.add('on');
             }
+            if (typeof syncMovementModeUI === 'function') syncMovementModeUI();
             updateCamEditUI();
             toast('🎨 自訂視角編輯中', IS_MOBILE ? '搖桿暫時用來調鏡頭' : '用 U J I K O L 調整');
         }
@@ -84,8 +90,9 @@
             D.camEdit.classList.remove('on');
             document.getElementById('joy').classList.remove('cam-mode');
             D.camVert.classList.remove('on');
+            if (typeof syncMovementModeUI === 'function') syncMovementModeUI();
             saveCamCustom();
-            toast('✓ 視角已儲存', '搖桿恢復為移動控制');
+            toast('✓ 視角已儲存', movementMode === 'auto' ? '已恢復自動跑位' : '搖桿恢復為移動控制');
         }
         function resetCamCustom() {
             camCustom.h = CAM_DEF.h; camCustom.dist = CAM_DEF.dist; camCustom.yaw = CAM_DEF.yaw;
@@ -1331,11 +1338,11 @@ function cycleTeachLevelQuick() {
             const role = document.getElementById('hub-role-tag');
             if (av) av.innerText = (typeof playerProfile !== 'undefined' && playerProfile.avatar) ? playerProfile.avatar : '🧢';
             if (nk) nk.innerText = (typeof playerProfile !== 'undefined' && playerProfile.nickname) ? playerProfile.nickname : '興大球神';
-            if (dp) dp.innerText = (typeof playerProfile !== 'undefined' && playerProfile.department) ? (playerProfile.department + ' · 國立中興大學') : '國立中興大學匹克球社群';
+            if (dp) dp.innerText = (typeof playerProfile !== 'undefined' && playerProfile.department) ? (playerProfile.department + ' · 興大') : '國立中興大學 · 匹克球社群';
             if (role) {
                 const isGuest = (typeof playerProfile !== 'undefined' && (playerProfile.sidPrefix === 'GUEST' || !playerProfile.sidPrefix || playerProfile.isGuest));
                 if (isGuest) {
-                    role.innerText = '👟 訪客 (點擊轉正)';
+                    role.innerText = '👟 訪客';
                     role.style.background = '#e2d1b3';
                     role.style.color = '#6b5239';
                 } else {
@@ -1387,12 +1394,14 @@ function cycleTeachLevelQuick() {
             "【第 2 關 · 雙彈跳特訓】接發球方與發球方各讓球落地一次後方能截擊，建立防守節奏！",
             "【第 3 關 · 廚房區短打】不可在廚房區凌空截擊！精準控球放短，壓制網前鵝鵝！",
             "【第 4 關 · 決戰神鵝】中興湖傳奇神鵝親自過招！速度與旋轉全面升級！",
-            "【第 5 關 · 終極冠軍賽】頂尖對決！結合馬格努斯旋球與動力鏈發力奪得島嶼冠軍！"
+            "【第 5 關 · 匹克鵝大魔王】打贏大魔王後，挑戰冠軍匹克黑天鵝！",
+            "",
+            "【第 7 關 · 黑天鵝冠軍賽】先得 11 分且領先 2 分，才能拿下冠軍！"
         ];
 
         function selectDockStage(n) {
             hubSelectedStage = n;
-            for (let i = 1; i <= 5; i++) {
+            for (let i = 1; i <= 7; i++) {
                 const btn = document.getElementById(`dock-stage-btn-${i}`);
                 if (btn) btn.classList.toggle('on', i === n);
             }
@@ -1407,7 +1416,7 @@ function cycleTeachLevelQuick() {
             closeDockPicker();
             closeModeHub();
             if (typeof switchStage === 'function') {
-                switchStage(hubSelectedStage || 1);
+                switchStage(hubSelectedStage || 1, { showEntrance: true });
             }
         }
 
@@ -1423,7 +1432,7 @@ function cycleTeachLevelQuick() {
             closeDockPicker();
             closeModeHub();
             if (typeof switchStage === 'function') {
-                switchStage(6);
+                switchStage(6, { showEntrance: true });
             }
         }
 
@@ -1484,7 +1493,16 @@ function cycleTeachLevelQuick() {
             if (scTxt) {
                 const ps = (typeof pScore === 'number') ? pScore : (typeof score !== 'undefined' ? score : 0);
                 const gs = (typeof gScore === 'number') ? gScore : (typeof gooseScore !== 'undefined' ? gooseScore : 0);
-                scTxt.innerText = `${ps} - ${gs}`;
+                const isWall = (typeof isWallPractice !== 'undefined' && isWallPractice);
+                if (stageNum >= 4 && !isWall && typeof server !== 'undefined' && typeof secondServe !== 'undefined') {
+                    const srvBadge = (server === 'PLAYER' ? '我發' : '對手發') + (secondServe ? '②' : '①');
+                    scTxt.innerText = `${ps} - ${gs} (${srvBadge})`;
+                } else {
+                    scTxt.innerText = `${ps} - ${gs}`;
+                }
+            }
+            if (typeof syncStagePickerUI === 'function') {
+                syncStagePickerUI();
             }
         }
 
@@ -1539,6 +1557,38 @@ function cycleTeachLevelQuick() {
             closeDiffPicker();
         }
 
+        /* ═══════ 關卡直選彈窗控制器 (Stage Picker Controller) ═══════ */
+        function openStagePicker() {
+            const m = document.getElementById('stage-picker-modal');
+            if (!m) return;
+            m.style.display = 'flex';
+            syncStagePickerUI();
+            if (typeof S !== 'undefined' && S.swap) S.swap();
+        }
+
+        function closeStagePicker() {
+            const m = document.getElementById('stage-picker-modal');
+            if (m) m.style.display = 'none';
+        }
+
+        function selectStagePicker(n) {
+            const stageNum = parseInt(n, 10);
+            if (isNaN(stageNum) || stageNum < 1 || stageNum > 7) return;
+            if (typeof switchStage === 'function') {
+                switchStage(stageNum);
+            }
+            if (typeof S !== 'undefined' && S.point) S.point();
+            closeStagePicker();
+        }
+
+        function syncStagePickerUI() {
+            const curStage = (typeof stage === 'number') ? stage : 1;
+            for (let i = 1; i <= 7; i++) {
+                const card = document.getElementById('stage-card-' + i);
+                if (card) card.classList.toggle('on', i === curStage);
+            }
+        }
+
         function openCommunityModal() {
             const m = document.getElementById('community-modal');
             if (m) {
@@ -1564,6 +1614,10 @@ function cycleTeachLevelQuick() {
         window.openDiffPicker = openDiffPicker;
         window.closeDiffPicker = closeDiffPicker;
         window.selectDiffLevel = selectDiffLevel;
+        window.openStagePicker = openStagePicker;
+        window.closeStagePicker = closeStagePicker;
+        window.selectStagePicker = selectStagePicker;
+        window.syncStagePickerUI = syncStagePickerUI;
         window.openCommunityModal = openCommunityModal;
         window.closeCommunityModal = closeCommunityModal;
         window.openDockPicker = openDockPicker;
@@ -1786,7 +1840,7 @@ function cycleTeachLevelQuick() {
         /* ── 首頁雙入口 ── */
         function hubPlayNow() {
             closeModeHub();
-            if (typeof switchStage === 'function') switchStage(1);
+            if (typeof switchStage === 'function') switchStage(1, { showEntrance: true });
         }
 
         function hubMotionPractice() {
