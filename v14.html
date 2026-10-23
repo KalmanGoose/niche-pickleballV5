@@ -31,7 +31,8 @@
         }
     </script>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" integrity="sha512-dLxUelApnYxpgewgZKUHN/Z9A4nxCnkhsyZndN9txUpio8KGhkK05hvlwTVPXhnFfiOGmkrTQrHC23GQRZUnGg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.3.1675466862/camera_utils.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/pose.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils@0.3.1675466124/drawing_utils.js"
@@ -1042,7 +1043,7 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
                                 當獵食者逼近或匹克球高速朝果蠅飛來時，果蠅複眼中的視覺神經元（LC4、LPLC2）會以光學逼近角擴張率 <b>dθ/dt</b> 偵測危險，並在極短時間內將訊號匯聚至大腦中央一對直徑巨大的神經元——<b>巨大纖維 (Giant Fiber, GF，aka 捷安特腳踏車神經 🚲，再次強調純屬諧音梗開玩笑亂講ㄉ千萬不要寫在生物期末考卷上喔！)</b>。
                             </p>
                             <div class="physics-analogy">
-                                ⚡ <b>雙突觸超極速跳躍反射（神經公路上的破風手）：</b><br>
+                                ⚡ <b>雙突觸超極速跳躍反射（神經公路上的領航員）：</b><br>
                                 GF 軸突直徑粗大、傳導阻抗極低（就像騎著高級捷安特碳纖維公路車一樣順暢），且與中胸部肌腱運動神經元（TTMn）之間同時具有<b>化學突觸</b>與<b>電突觸 (Gap Junctions)</b> 協同傳導，神經潛伏期僅 <b>2 ~ 5 毫秒</b>！使對手能對玩家的重砲殺球做出不可思議的本能救球反應。
                             </div>
                         </div>
@@ -1840,8 +1841,14 @@ I_syn(t) = w_syn · x · u · (dθ/dt)</div>
         </div>
 
         <video id="webcam-video" style="display:none;" playsinline></video>
-        <canvas id="skeleton-canvas" class="card"
-            style="position:absolute;top:14px;right:150px;width:130px;height:95px;z-index:20;display:none;pointer-events:none;"></canvas>
+        <!-- ═══════ 📷 體感 AI 骨架 PIP 懸浮視窗 (#motion-hud) ═══════ -->
+        <div id="motion-hud" style="position:absolute;top:62px;left:14px;width:156px;background:rgba(15,23,42,0.88);backdrop-filter:blur(8px);border:1.5px solid #10b981;border-radius:12px;padding:6px;box-shadow:0 8px 24px rgba(0,0,0,0.5);z-index:90;display:none;pointer-events:auto;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;padding:0 2px;">
+                <span style="font-size:10px;font-weight:800;color:#6ee7b7;letter-spacing:0.5px;">📷 體感骨架 HUD</span>
+                <span id="motion-hud-status" style="font-size:9.5px;color:#facc15;font-weight:700;">🟢 追蹤中</span>
+            </div>
+            <canvas id="skeleton-canvas" style="width:100%;height:110px;background:#060d12;border-radius:8px;display:block;"></canvas>
+        </div>
 
         <!-- ═══════ 普林斯頓 FlyWire 果蠅神經電生理示波器 HUD (#fly-snn-hud) ═══════ -->
         <div id="fly-snn-hud" class="card" style="display:none;">

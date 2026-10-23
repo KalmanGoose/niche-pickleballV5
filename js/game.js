@@ -20,16 +20,209 @@
         let flyStunTimer = 0, flyHoverTime = 0, consecutiveDinks = 0;
         let dinkRallyCount = 0, isChanceBall = false;
 
+        // ═══════ 🪿 3D 骨骼蒙皮對手角色 (Rigged Opponent Characters) ═══════
+        let riggedGoose = { root: null, mixer: null, actions: {}, ready: false };
+        let riggedSwan = { root: null, mixer: null, actions: {}, ready: false };
+        let currentOpponentAction = 'Idle';
+        let isOpponentSwinging = false;
+        let lastOpponentPos = new THREE.Vector3();
+
+        function findBone(root, originalName) {
+            let found = null;
+            root.traverse(node => {
+                if (node.isBone && (node.userData.name === originalName || node.name === originalName)) {
+                    found = node;
+                }
+            });
+            return found;
+        }
+
+        function playOpponentAction(actionName, duration = 0.15) {
+            const isSwan = (stage === 7);
+            const activeData = isSwan ? riggedSwan : riggedGoose;
+            if (!activeData.ready || !activeData.actions[actionName]) return;
+            const nextAction = activeData.actions[actionName];
+            const prevAction = activeData.actions[currentOpponentAction];
+
+            if (currentOpponentAction === actionName && nextAction.isRunning()) return;
+
+            nextAction.reset().setEffectiveTimeScale(1).setEffectiveWeight(1);
+            if (actionName === 'Swing') {
+                nextAction.setLoop(THREE.LoopOnce, 1);
+                nextAction.clampWhenFinished = false;
+                isOpponentSwinging = true;
+            } else {
+                nextAction.setLoop(THREE.LoopRepeat, Infinity);
+            }
+
+            if (prevAction && prevAction !== nextAction) {
+                nextAction.crossFadeFrom(prevAction, duration, false);
+            }
+            nextAction.play();
+            currentOpponentAction = actionName;
+        }
+
+        function triggerOpponentSwing() {
+            isOpponentSwinging = true;
+            playOpponentAction('Swing', 0.08);
+        }
+
+        function loadRiggedCharacters() {
+            if (typeof THREE.GLTFLoader === 'undefined') {
+                console.warn('GLTFLoader unavailable, keeping procedural goose/swan');
+                return;
+            }
+            const loader = new THREE.GLTFLoader();
+
+            // 1. 載入白鵝 (pickler_goose_mobile.glb)
+            loader.load('models/characters/pickler_goose_mobile.glb', function(gltf) {
+                try {
+                    const root = gltf.scene;
+                    root.updateMatrixWorld(true);
+                    const box = new THREE.Box3().setFromObject(root);
+                    const size = box.getSize(new THREE.Vector3());
+                    const scale = 1.55 / Math.max(0.1, size.y);
+                    root.scale.setScalar(scale);
+                    root.updateMatrixWorld(true);
+
+                    const box2 = new THREE.Box3().setFromObject(root);
+                    const center = box2.getCenter(new THREE.Vector3());
+                    root.position.set(-center.x, -box2.min.y, -center.z);
+                    root.updateMatrixWorld(true);
+
+                    root.traverse(o => {
+                        if (o.isMesh) {
+                            o.castShadow = true;
+                            o.receiveShadow = true;
+                            o.frustumCulled = false;
+                        }
+                    });
+
+                    // 掛接球拍視覺到右翼手腕骨骼 (PaddleSocket.R)
+                    const socketR = findBone(root, 'PaddleSocket.R');
+                    if (socketR) {
+                        const paddleVisual = new THREE.Mesh(
+                            new THREE.BoxGeometry(0.24, 0.34, 0.03),
+                            new THREE.MeshStandardMaterial({ color: 0xd9ff5c, roughness: 0.32 })
+                        );
+                        paddleVisual.position.set(0, 0.16, 0);
+                        socketR.add(paddleVisual);
+                    }
+
+                    const mixer = new THREE.AnimationMixer(root);
+                    const actions = {};
+                    for (const clip of gltf.animations) {
+                        const match = ['Idle', 'Walk', 'Run', 'Swing'].find(n => clip.name === n || clip.name.endsWith('_' + n) || clip.name.includes(n));
+                        if (match && !actions[match]) {
+                            actions[match] = mixer.clipAction(clip);
+                        }
+                    }
+
+                    mixer.addEventListener('finished', e => {
+                        if (actions.Swing && e.action === actions.Swing) {
+                            isOpponentSwinging = false;
+                            playOpponentAction('Idle', 0.18);
+                        }
+                    });
+
+                    riggedGoose = { root, mixer, actions, ready: true };
+                    root.visible = false;
+                    gGrp.add(root);
+                    if (actions.Idle) actions.Idle.play();
+                    updateOpponentMeshVisibility();
+                    console.log('✅ 匹克鵝 3D 骨骼蒙皮模型成功接入！');
+                } catch(e) {
+                    console.error('Rigged goose setup error:', e);
+                }
+            }, undefined, err => console.warn('Rigged goose load fallback:', err));
+
+            // 2. 載入第 7 關黑天鵝 (black_swan_mobile.glb)
+            loader.load('models/characters/black_swan_mobile.glb', function(gltf) {
+                try {
+                    const root = gltf.scene;
+                    root.updateMatrixWorld(true);
+                    const box = new THREE.Box3().setFromObject(root);
+                    const size = box.getSize(new THREE.Vector3());
+                    const scale = 1.62 / Math.max(0.1, size.y);
+                    root.scale.setScalar(scale);
+                    root.updateMatrixWorld(true);
+
+                    const box2 = new THREE.Box3().setFromObject(root);
+                    const center = box2.getCenter(new THREE.Vector3());
+                    root.position.set(-center.x, -box2.min.y, -center.z);
+                    root.updateMatrixWorld(true);
+
+                    root.traverse(o => {
+                        if (o.isMesh) {
+                            o.castShadow = true;
+                            o.receiveShadow = true;
+                            o.frustumCulled = false;
+                        }
+                    });
+
+                    const socketR = findBone(root, 'PaddleSocket.R');
+                    if (socketR) {
+                        const paddleVisual = new THREE.Mesh(
+                            new THREE.BoxGeometry(0.24, 0.34, 0.03),
+                            new THREE.MeshStandardMaterial({ color: 0xef4444, roughness: 0.28, metalness: 0.3 })
+                        );
+                        paddleVisual.position.set(0, 0.16, 0);
+                        socketR.add(paddleVisual);
+                    }
+
+                    const mixer = new THREE.AnimationMixer(root);
+                    const actions = {};
+                    for (const clip of gltf.animations) {
+                        const match = ['Idle', 'Walk', 'Run', 'Swing'].find(n => clip.name === n || clip.name.endsWith('_' + n) || clip.name.includes(n));
+                        if (match && !actions[match]) {
+                            actions[match] = mixer.clipAction(clip);
+                        }
+                    }
+
+                    mixer.addEventListener('finished', e => {
+                        if (actions.Swing && e.action === actions.Swing) {
+                            isOpponentSwinging = false;
+                            playOpponentAction('Idle', 0.18);
+                        }
+                    });
+
+                    riggedSwan = { root, mixer, actions, ready: true };
+                    root.visible = false;
+                    gGrp.add(root);
+                    if (actions.Idle) actions.Idle.play();
+                    updateOpponentMeshVisibility();
+                    console.log('✅ 冠軍黑天鵝 3D 骨骼蒙皮模型成功接入！');
+                } catch(e) {
+                    console.error('Rigged swan setup error:', e);
+                }
+            }, undefined, err => console.warn('Rigged swan load fallback:', err));
+        }
+
         function updateOpponentMeshVisibility() {
             const isFly = (typeof diffLevel !== 'undefined' && diffLevel === 'fly');
             if (flyMesh) flyMesh.visible = isFly;
-            if (gArm) gArm.visible = !isFly;
             const isSwan = stage === 7;
             const isBoss = !isFly && stage === 5;
-            if (gooseMesh) gooseMesh.visible = !isFly && !isSwan;
-            if (swanMesh) swanMesh.visible = isSwan;
-            if (bossOutfit) bossOutfit.visible = isBoss;
-            if (gooseMayorCap) gooseMayorCap.visible = !isBoss;
+
+            // 若骨骼模型已載入就緒，顯示骨骼模型並隱藏程序化方塊鵝
+            if (riggedGoose.ready) {
+                riggedGoose.root.visible = !isFly && !isSwan;
+                if (gooseMesh) gooseMesh.visible = false;
+                if (gArm && !isFly) gArm.visible = false;
+            } else {
+                if (gooseMesh) gooseMesh.visible = !isFly && !isSwan;
+                if (gArm) gArm.visible = !isFly;
+            }
+
+            if (riggedSwan.ready) {
+                riggedSwan.root.visible = isSwan && !isFly;
+                if (swanMesh) swanMesh.visible = false;
+            } else {
+                if (swanMesh) swanMesh.visible = isSwan;
+            }
+
+            if (bossOutfit) bossOutfit.visible = isBoss && !riggedGoose.ready;
+            if (gooseMayorCap) gooseMayorCap.visible = !isBoss && !riggedGoose.ready;
             if (gArm) gArm.material.color.setHex(isSwan ? 0x111827 : 0xffffff);
             const aiWho = document.getElementById('ai-who-label');
             if (aiWho) aiWho.innerText = isSwan ? '🦢 黑天鵝' : isFly ? '🪰 仿生蒼蠅' : '🪿 匹克鵝';
@@ -848,6 +1041,106 @@
             buildCourtSign(4.2, 0.58, '2026 USA PICKLEBALL OFFICIAL HUB', '國際競賽規則手冊 · 虛擬裁判精準判定', '🏆', '#7c341e', '#c86446', (COURT_W / 2 + 1.25), 1.8, -Math.PI / 2);
             // 5. 對手底線後方大看板 (正對鏡頭)：中興大學匹克鵝官方錦標賽 (沉穩深邃林木綠搭配暖金字)
             buildCourtSign(6.2, 0.68, 'NCHU PICKLEBALL · 中興大學匹克鵝打秋', 'LEARNING COMMUNITY · CAMPUS LEADERBOARD ARENA', '🪿', '#142823', '#1b3a30', 0, -(HALF_L + 2.1), 0);
+
+            // 6. 🪰 球場側邊看板旁：3D 果蠅大腦示波器電子實體看板 (FlyWire Connectome 3D Billboard)
+            buildFlyConnectomeBillboard(-(COURT_W / 2 + 1.25), -4.1, Math.PI / 2);
+        }
+
+        let flyBillboardTex = null, flyBillboardCanvas = null, flyBillboardCtx = null;
+        function buildFlyConnectomeBillboard(x, z, rotY) {
+            try {
+                flyBillboardCanvas = document.createElement('canvas');
+                flyBillboardCanvas.width = 512;
+                flyBillboardCanvas.height = 256;
+                flyBillboardCtx = flyBillboardCanvas.getContext('2d');
+                flyBillboardTex = new THREE.CanvasTexture(flyBillboardCanvas);
+
+                const grp = new THREE.Group();
+                grp.position.set(x, 0, z);
+                grp.rotation.y = rotY;
+
+                // A-Frame 支撐架
+                const standMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.6, metalness: 0.5 });
+                const boardGeo = new THREE.BoxGeometry(2.4, 1.2, 0.08);
+                const boardMat = new THREE.MeshStandardMaterial({
+                    map: flyBillboardTex,
+                    roughness: 0.2,
+                    metalness: 0.1,
+                    emissive: 0x022c22,
+                    emissiveIntensity: 0.25
+                });
+                const screen = new THREE.Mesh(boardGeo, boardMat);
+                screen.position.y = 0.95;
+                screen.castShadow = true;
+                grp.add(screen);
+
+                // 外框科技發光邊線
+                const border = new THREE.Mesh(new THREE.BoxGeometry(2.46, 1.26, 0.05),
+                    new THREE.MeshBasicMaterial({ color: 0x10b981, wireframe: true }));
+                border.position.y = 0.95;
+                grp.add(border);
+
+                // 立柱
+                for (const lx of [-0.95, 0.95]) {
+                    const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.05, 0.95, 8), standMat);
+                    leg.position.set(lx, 0.475, 0);
+                    leg.castShadow = true;
+                    grp.add(leg);
+                }
+
+                scene.add(grp);
+            } catch (e) {
+                console.warn('buildFlyConnectomeBillboard failed:', e);
+            }
+        }
+
+        function updateFlyBillboard(time) {
+            if (!flyBillboardCtx || !flyBillboardTex) return;
+            const ctx = flyBillboardCtx;
+            const w = 512, h = 256;
+            ctx.fillStyle = '#060d12';
+            ctx.fillRect(0, 0, w, h);
+
+            // 頂部標題列
+            ctx.fillStyle = '#0d2818';
+            ctx.fillRect(0, 0, w, 36);
+            ctx.fillStyle = '#34d399';
+            ctx.font = 'bold 16px monospace';
+            ctx.fillText('⚡ PRINCETON FlyWire CONNECTOME · SNN SCOPE', 16, 24);
+
+            // 網格線
+            ctx.strokeStyle = 'rgba(16, 185, 129, 0.15)';
+            ctx.lineWidth = 1;
+            for (let y = 45; y < h; y += 25) {
+                ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+            }
+            for (let x = 0; x < w; x += 40) {
+                ctx.beginPath(); ctx.moveTo(x, 36); ctx.lineTo(x, h); ctx.stroke();
+            }
+
+            // 繪製動態神經脈衝波形 (LIF-A membrane wave)
+            ctx.strokeStyle = '#10b981';
+            ctx.lineWidth = 2.5;
+            ctx.beginPath();
+            const phase = time * 8;
+            for (let x = 0; x < w; x += 3) {
+                const normX = x / w;
+                const wave1 = Math.sin(normX * 18 - phase) * 28;
+                const wave2 = Math.sin(normX * 36 + phase * 1.5) * 12;
+                const spike = (Math.sin(normX * 8 - phase * 0.8) > 0.85) ? 45 : 0;
+                const y = 145 + wave1 + wave2 - spike;
+                if (x === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+
+            // 繪製神經突觸放電標籤
+            ctx.fillStyle = '#fbbf24';
+            ctx.font = 'bold 13px monospace';
+            const dlmn = (typeof window !== 'undefined' && window.FLY_BRAIN) ? (window.FLY_BRAIN.dlmnFreq || 70) : 75;
+            ctx.fillText(`DLMn: ${dlmn.toFixed(0)}Hz  |  V_mem: -58.4mV  |  SYN_ACT: HIGH`, 16, h - 14);
+
+            flyBillboardTex.needsUpdate = true;
         }
 
         /* ═══════ 🧱 中興湖對牆擊球特訓木牆 (Wall Rebound Practice) ═══════ */
@@ -1378,6 +1671,7 @@
             gPad.scale.setScalar(2.175); gGrp.add(gPad); // ★ 對手球拍同步放大 1.5 倍
             scene.add(gGrp);
             updateOpponentMeshVisibility();
+            loadRiggedCharacters();
         }
         function buildGuides() {
             zoneServe = new THREE.Mesh(new THREE.PlaneGeometry(COURT_W / 2 - 0.06, HALF_L - KITCHEN_D - 0.06),
@@ -1915,6 +2209,7 @@ function solveArc(fx, fy, fz, tx, tz, out, speedScale) {
             const isFly = (typeof diffLevel !== 'undefined' && diffLevel === 'fly');
             PH.setPos(gGrp.position.x, 0.80, gGrp.position.z + 0.30);
             state = 'SERVE_AIR'; lastHitter = 'GOOSE';
+            triggerOpponentSwing();
             rallyHits = 1; bounces = 0; gLock = 0.3; pLock = 0;
             const targetX = 1.4 * serveSide, targetZ = 2.6 + Math.random() * 1.6;
             solveArc(PH.pos.x, PH.pos.y, PH.pos.z, targetX, targetZ, PH.vel);
@@ -3282,6 +3577,27 @@ function gooseForceNet(b) {
                 const mv = Math.min(d, spd * dt);
                 gGrp.position.x += dx / d * mv; gGrp.position.z += dz / d * mv;
             }
+
+            // ── 更新 3D 骨骼蒙皮對手動作 (Rigged Character Animation Update) ──
+            const isSwan = (stage === 7);
+            const activeRigged = isSwan ? riggedSwan : riggedGoose;
+            if (activeRigged && activeRigged.ready && activeRigged.mixer && !isFly) {
+                activeRigged.mixer.update(dt);
+                const curPos = gGrp.position;
+                const oppDist = Math.hypot(curPos.x - lastOpponentPos.x, curPos.z - lastOpponentPos.z);
+                const oppSpeed = oppDist / Math.max(0.001, dt);
+                lastOpponentPos.copy(curPos);
+
+                if (!isOpponentSwinging) {
+                    if (oppSpeed > 1.8) {
+                        playOpponentAction('Run', 0.15);
+                    } else if (oppSpeed > 0.15) {
+                        playOpponentAction('Walk', 0.15);
+                    } else {
+                        playOpponentAction('Idle', 0.18);
+                    }
+                }
+            }
             gGrp.rotation.y = Math.PI;
             const py = THREE.MathUtils.clamp(PH.pos.y, 0.22, 1.6);
             const lx = THREE.MathUtils.clamp(PH.pos.x - gGrp.position.x, -0.8, 0.8);
@@ -3480,6 +3796,7 @@ function gooseForceNet(b) {
             }
 
             gLock = 0.28; pLock = 0.15; lastHitter = 'GOOSE'; rallyHits++; bounces = 0;
+            triggerOpponentSwing();
             if (state === 'SERVE_AIR') state = 'RALLY';
             PH.spin = 0; PH.spinInc = 0; // ★ 匹克鵝回擊時清除側旋與偏折，保證回球彈道乾淨平穩
 
@@ -3954,6 +4271,7 @@ function updateGuides(dt) {
             tryHit(); updateGoose(dt); updateCourtEntrance(dt); updateGuides(dt);
             if (typeof FunMode !== 'undefined') FunMode.update(dt);
             updateAimZones(dt); updateRings(dt);
+            updateFlyBillboard(now * 0.001);
 
             // 速度儀表文字降頻更新 (每 4 幀更新一次，徹底消除 Layout Reflow 造成的掉幀)
             if ((loopFrameCount++ & 3) === 0) {
@@ -4075,9 +4393,17 @@ function updateGuides(dt) {
                 cam.position.set(pPos.x * 0.75 + 0.35 + sx, 1.55 + sy, pPos.z + 3.2);
                 cam.lookAt(pPos.x * 0.45, 0.95, -3.5);
             } else if (camViewMode === 3) {
+                if (cam.fov !== 48) { cam.fov = 48; cam.updateProjectionMatrix(); }
                 cam.position.set(7.8 + sx, 4.5 + sy, 0);
                 cam.lookAt(0, 0.8, 0);
+            } else if (camViewMode === 4) {
+                // Mode 4: 104° 超廣角第一人稱視角 (Ultra-Wide FPS Action Cam)
+                if (cam.fov !== 104) { cam.fov = 104; cam.updateProjectionMatrix(); }
+                cam.position.set(pPos.x * 0.95 + sx, 1.48 + sy, pPos.z - 0.05);
+                camLookTarget.set(pPos.x * 0.4, 1.05, -5.0);
+                cam.lookAt(camLookTarget);
             } else {
+                if (cam.fov !== 48) { cam.fov = 48; cam.updateProjectionMatrix(); }
                 // ★ 自訂視角:平滑動態追蹤主角位置 (Smooth Lerp Tracking)
                 const cxp = Math.sin(camCustom.yaw) * camCustom.dist;
                 const czp = Math.cos(camCustom.yaw) * camCustom.dist;

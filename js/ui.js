@@ -13,7 +13,7 @@
         let camEdit = false;                       // 編輯模式旗標
         const camKeys = { u: false, j: false, i: false, k: false, o: false, l: false };
         const camPad = { vert: 0 };                 // 手機 ▲▼ 按鈕: -1 / 0 / +1
-        const VIEW_NAMES = ['經典追蹤', '戰術俯瞰', '沉浸越肩', '電視轉播', '自訂視角'];
+        const VIEW_NAMES = ['經典追蹤', '戰術俯瞰', '沉浸越肩', '電視轉播', '超廣角第一人稱', '自訂視角'];
 
         function loadCamCustom() {
             try {
@@ -41,10 +41,10 @@
         }
         function cycleCamView() {
             if (camEdit) return;
-            camViewMode = (camViewMode + 1) % 5;
+            camViewMode = (camViewMode + 1) % 6;
             const qcn = document.getElementById('quick-cam-name');
             if (qcn) {
-                const shortNames = ['經典', '俯瞰', '越肩', '轉播', '自訂'];
+                const shortNames = ['經典', '俯瞰', '越肩', '轉播', '第一人稱', '自訂'];
                 qcn.innerText = shortNames[camViewMode] || VIEW_NAMES[camViewMode];
             }
             toast('攝影機視角', VIEW_NAMES[camViewMode]);
@@ -60,9 +60,11 @@
                 camCustom.h = 1.55; camCustom.dist = 3.6; camCustom.yaw = 0;
             } else if (camViewMode === 3) {
                 camCustom.h = 4.5; camCustom.dist = 8.2; camCustom.yaw = Math.PI * 0.45;
+            } else if (camViewMode === 4) {
+                camCustom.h = 1.48; camCustom.dist = 0.2; camCustom.yaw = 0;
             }
             camEdit = true;
-            camViewMode = 4;
+            camViewMode = 5;
             clearKeys();
             camPad.vert = 0;
             D.camEdit.classList.add('on');

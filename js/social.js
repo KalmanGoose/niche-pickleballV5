@@ -624,6 +624,8 @@
             if (typeof S !== 'undefined' && S.init) S.init();
             const skelCanvas = document.getElementById('skeleton-canvas');
             if (skelCanvas) skelCanvas.style.display = 'block';
+            const mHud = document.getElementById('motion-hud');
+            if (mHud) mHud.style.display = 'block';
             const cb = document.getElementById('calibration-box');
             if (cb) cb.style.display = 'flex';
             if (typeof D !== 'undefined' && D.waistRow) D.waistRow.style.display = 'flex';
@@ -671,6 +673,8 @@
                     const hasVisiblePerson = hasKeypoints && (visRS >= 0.45 && visLS >= 0.45);
 
                     if (!hasVisiblePerson) {
+                        const mStatus = document.getElementById('motion-hud-status');
+                        if (mStatus) { mStatus.innerText = '🟡 搜尋中'; mStatus.style.color = '#fbbf24'; }
                         lastPoseSnapshot = { hasPoseData: false, keypointsPresent: false, lastSeenTime: performance.now() };
                         revokeSwingEvent();
                         lastWristPos = { relX: undefined, relY: undefined, relZ: undefined, t: 0 };
@@ -683,6 +687,8 @@
                     }
 
                     lastPoseTimestamp = performance.now();
+                    const mStatus = document.getElementById('motion-hud-status');
+                    if (mStatus) { mStatus.innerText = '🟢 鎖定中'; mStatus.style.color = '#34d399'; }
                     lastPoseSnapshot = {
                         hasPoseData: true,
                         keypointsPresent: true,
@@ -937,6 +943,8 @@
             }
             const sc = document.getElementById('skeleton-canvas');
             if (sc) { sc.getContext('2d').clearRect(0, 0, sc.width, sc.height); sc.style.display = 'none'; }
+            const mHud = document.getElementById('motion-hud');
+            if (mHud) mHud.style.display = 'none';
             const btn = document.getElementById('ai-toggle-btn');
             if (btn) btn.innerText = '📷 體感: 關';
             updateQuickCameraFab();

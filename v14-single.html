@@ -31,7 +31,8 @@
         }
     </script>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" integrity="sha512-dLxUelApnYxpgewgZKUHN/Z9A4nxCnkhsyZndN9txUpio8KGhkK05hvlwTVPXhnFfiOGmkrTQrHC23GQRZUnGg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.3.1675466862/camera_utils.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/pose.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils@0.3.1675466124/drawing_utils.js"
@@ -8657,7 +8658,7 @@ dω/dt = -β_perforated · ω   (多孔角動量自旋衰減)</div>
                                 當獵食者逼近或匹克球高速朝果蠅飛來時，果蠅複眼中的視覺神經元（LC4、LPLC2）會以光學逼近角擴張率 <b>dθ/dt</b> 偵測危險，並在極短時間內將訊號匯聚至大腦中央一對直徑巨大的神經元——<b>巨大纖維 (Giant Fiber, GF，aka 捷安特腳踏車神經 🚲，再次強調純屬諧音梗開玩笑亂講ㄉ千萬不要寫在生物期末考卷上喔！)</b>。
                             </p>
                             <div class="physics-analogy">
-                                ⚡ <b>雙突觸超極速跳躍反射（神經公路上的破風手）：</b><br>
+                                ⚡ <b>雙突觸超極速跳躍反射（神經公路上的領航員）：</b><br>
                                 GF 軸突直徑粗大、傳導阻抗極低（就像騎著高級捷安特碳纖維公路車一樣順暢），且與中胸部肌腱運動神經元（TTMn）之間同時具有<b>化學突觸</b>與<b>電突觸 (Gap Junctions)</b> 協同傳導，神經潛伏期僅 <b>2 ~ 5 毫秒</b>！使對手能對玩家的重砲殺球做出不可思議的本能救球反應。
                             </div>
                         </div>
@@ -9455,8 +9456,14 @@ I_syn(t) = w_syn · x · u · (dθ/dt)</div>
         </div>
 
         <video id="webcam-video" style="display:none;" playsinline></video>
-        <canvas id="skeleton-canvas" class="card"
-            style="position:absolute;top:14px;right:150px;width:130px;height:95px;z-index:20;display:none;pointer-events:none;"></canvas>
+        <!-- ═══════ 📷 體感 AI 骨架 PIP 懸浮視窗 (#motion-hud) ═══════ -->
+        <div id="motion-hud" style="position:absolute;top:62px;left:14px;width:156px;background:rgba(15,23,42,0.88);backdrop-filter:blur(8px);border:1.5px solid #10b981;border-radius:12px;padding:6px;box-shadow:0 8px 24px rgba(0,0,0,0.5);z-index:90;display:none;pointer-events:auto;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;padding:0 2px;">
+                <span style="font-size:10px;font-weight:800;color:#6ee7b7;letter-spacing:0.5px;">📷 體感骨架 HUD</span>
+                <span id="motion-hud-status" style="font-size:9.5px;color:#facc15;font-weight:700;">🟢 追蹤中</span>
+            </div>
+            <canvas id="skeleton-canvas" style="width:100%;height:110px;background:#060d12;border-radius:8px;display:block;"></canvas>
+        </div>
 
         <!-- ═══════ 普林斯頓 FlyWire 果蠅神經電生理示波器 HUD (#fly-snn-hud) ═══════ -->
         <div id="fly-snn-hud" class="card" style="display:none;">
@@ -13706,7 +13713,7 @@ if (typeof window !== "undefined") {
         {
             id: 'giant_fiber',
             icon: '🚲',
-            title: '捷安特神經破風手',
+            title: '捷安特神經領航員',
             desc: '重砲反向截擊速度超越仿生蒼蠅 GFS 巨纖維神經公路！',
             badge: '神經破風'
         },
@@ -13743,7 +13750,7 @@ if (typeof window !== "undefined") {
         if (level >= 20) title = 'NCHU 傳奇球王 👑';
         else if (level >= 15) title = '中興神鵝認證搭檔 🦢';
         else if (level >= 10) title = '揚州炒飯碳水戰神 🍚';
-        else if (level >= 6) title = '巨纖維捷安特破風手 🚲';
+        else if (level >= 6) title = '巨纖維捷安特領航員 🚲';
         else if (level >= 3) title = '中興湖巡弋截擊手 🎾';
 
         return { level, title, curExpInLevel, maxExpInLevel };
@@ -14266,7 +14273,7 @@ if (typeof window !== "undefined") {
         let camEdit = false;                       // 編輯模式旗標
         const camKeys = { u: false, j: false, i: false, k: false, o: false, l: false };
         const camPad = { vert: 0 };                 // 手機 ▲▼ 按鈕: -1 / 0 / +1
-        const VIEW_NAMES = ['經典追蹤', '戰術俯瞰', '沉浸越肩', '電視轉播', '自訂視角'];
+        const VIEW_NAMES = ['經典追蹤', '戰術俯瞰', '沉浸越肩', '電視轉播', '超廣角第一人稱', '自訂視角'];
 
         function loadCamCustom() {
             try {
@@ -14294,10 +14301,10 @@ if (typeof window !== "undefined") {
         }
         function cycleCamView() {
             if (camEdit) return;
-            camViewMode = (camViewMode + 1) % 5;
+            camViewMode = (camViewMode + 1) % 6;
             const qcn = document.getElementById('quick-cam-name');
             if (qcn) {
-                const shortNames = ['經典', '俯瞰', '越肩', '轉播', '自訂'];
+                const shortNames = ['經典', '俯瞰', '越肩', '轉播', '第一人稱', '自訂'];
                 qcn.innerText = shortNames[camViewMode] || VIEW_NAMES[camViewMode];
             }
             toast('攝影機視角', VIEW_NAMES[camViewMode]);
@@ -14313,9 +14320,11 @@ if (typeof window !== "undefined") {
                 camCustom.h = 1.55; camCustom.dist = 3.6; camCustom.yaw = 0;
             } else if (camViewMode === 3) {
                 camCustom.h = 4.5; camCustom.dist = 8.2; camCustom.yaw = Math.PI * 0.45;
+            } else if (camViewMode === 4) {
+                camCustom.h = 1.48; camCustom.dist = 0.2; camCustom.yaw = 0;
             }
             camEdit = true;
-            camViewMode = 4;
+            camViewMode = 5;
             clearKeys();
             camPad.vert = 0;
             D.camEdit.classList.add('on');
@@ -16842,6 +16851,8 @@ function cycleTeachLevelQuick() {
             if (typeof S !== 'undefined' && S.init) S.init();
             const skelCanvas = document.getElementById('skeleton-canvas');
             if (skelCanvas) skelCanvas.style.display = 'block';
+            const mHud = document.getElementById('motion-hud');
+            if (mHud) mHud.style.display = 'block';
             const cb = document.getElementById('calibration-box');
             if (cb) cb.style.display = 'flex';
             if (typeof D !== 'undefined' && D.waistRow) D.waistRow.style.display = 'flex';
@@ -16889,6 +16900,8 @@ function cycleTeachLevelQuick() {
                     const hasVisiblePerson = hasKeypoints && (visRS >= 0.45 && visLS >= 0.45);
 
                     if (!hasVisiblePerson) {
+                        const mStatus = document.getElementById('motion-hud-status');
+                        if (mStatus) { mStatus.innerText = '🟡 搜尋中'; mStatus.style.color = '#fbbf24'; }
                         lastPoseSnapshot = { hasPoseData: false, keypointsPresent: false, lastSeenTime: performance.now() };
                         revokeSwingEvent();
                         lastWristPos = { relX: undefined, relY: undefined, relZ: undefined, t: 0 };
@@ -16901,6 +16914,8 @@ function cycleTeachLevelQuick() {
                     }
 
                     lastPoseTimestamp = performance.now();
+                    const mStatus = document.getElementById('motion-hud-status');
+                    if (mStatus) { mStatus.innerText = '🟢 鎖定中'; mStatus.style.color = '#34d399'; }
                     lastPoseSnapshot = {
                         hasPoseData: true,
                         keypointsPresent: true,
@@ -17155,6 +17170,8 @@ function cycleTeachLevelQuick() {
             }
             const sc = document.getElementById('skeleton-canvas');
             if (sc) { sc.getContext('2d').clearRect(0, 0, sc.width, sc.height); sc.style.display = 'none'; }
+            const mHud = document.getElementById('motion-hud');
+            if (mHud) mHud.style.display = 'none';
             const btn = document.getElementById('ai-toggle-btn');
             if (btn) btn.innerText = '📷 體感: 關';
             updateQuickCameraFab();
@@ -19746,16 +19763,209 @@ function cycleTeachLevelQuick() {
         let flyStunTimer = 0, flyHoverTime = 0, consecutiveDinks = 0;
         let dinkRallyCount = 0, isChanceBall = false;
 
+        // ═══════ 🪿 3D 骨骼蒙皮對手角色 (Rigged Opponent Characters) ═══════
+        let riggedGoose = { root: null, mixer: null, actions: {}, ready: false };
+        let riggedSwan = { root: null, mixer: null, actions: {}, ready: false };
+        let currentOpponentAction = 'Idle';
+        let isOpponentSwinging = false;
+        let lastOpponentPos = new THREE.Vector3();
+
+        function findBone(root, originalName) {
+            let found = null;
+            root.traverse(node => {
+                if (node.isBone && (node.userData.name === originalName || node.name === originalName)) {
+                    found = node;
+                }
+            });
+            return found;
+        }
+
+        function playOpponentAction(actionName, duration = 0.15) {
+            const isSwan = (stage === 7);
+            const activeData = isSwan ? riggedSwan : riggedGoose;
+            if (!activeData.ready || !activeData.actions[actionName]) return;
+            const nextAction = activeData.actions[actionName];
+            const prevAction = activeData.actions[currentOpponentAction];
+
+            if (currentOpponentAction === actionName && nextAction.isRunning()) return;
+
+            nextAction.reset().setEffectiveTimeScale(1).setEffectiveWeight(1);
+            if (actionName === 'Swing') {
+                nextAction.setLoop(THREE.LoopOnce, 1);
+                nextAction.clampWhenFinished = false;
+                isOpponentSwinging = true;
+            } else {
+                nextAction.setLoop(THREE.LoopRepeat, Infinity);
+            }
+
+            if (prevAction && prevAction !== nextAction) {
+                nextAction.crossFadeFrom(prevAction, duration, false);
+            }
+            nextAction.play();
+            currentOpponentAction = actionName;
+        }
+
+        function triggerOpponentSwing() {
+            isOpponentSwinging = true;
+            playOpponentAction('Swing', 0.08);
+        }
+
+        function loadRiggedCharacters() {
+            if (typeof THREE.GLTFLoader === 'undefined') {
+                console.warn('GLTFLoader unavailable, keeping procedural goose/swan');
+                return;
+            }
+            const loader = new THREE.GLTFLoader();
+
+            // 1. 載入白鵝 (pickler_goose_mobile.glb)
+            loader.load('models/characters/pickler_goose_mobile.glb', function(gltf) {
+                try {
+                    const root = gltf.scene;
+                    root.updateMatrixWorld(true);
+                    const box = new THREE.Box3().setFromObject(root);
+                    const size = box.getSize(new THREE.Vector3());
+                    const scale = 1.55 / Math.max(0.1, size.y);
+                    root.scale.setScalar(scale);
+                    root.updateMatrixWorld(true);
+
+                    const box2 = new THREE.Box3().setFromObject(root);
+                    const center = box2.getCenter(new THREE.Vector3());
+                    root.position.set(-center.x, -box2.min.y, -center.z);
+                    root.updateMatrixWorld(true);
+
+                    root.traverse(o => {
+                        if (o.isMesh) {
+                            o.castShadow = true;
+                            o.receiveShadow = true;
+                            o.frustumCulled = false;
+                        }
+                    });
+
+                    // 掛接球拍視覺到右翼手腕骨骼 (PaddleSocket.R)
+                    const socketR = findBone(root, 'PaddleSocket.R');
+                    if (socketR) {
+                        const paddleVisual = new THREE.Mesh(
+                            new THREE.BoxGeometry(0.24, 0.34, 0.03),
+                            new THREE.MeshStandardMaterial({ color: 0xd9ff5c, roughness: 0.32 })
+                        );
+                        paddleVisual.position.set(0, 0.16, 0);
+                        socketR.add(paddleVisual);
+                    }
+
+                    const mixer = new THREE.AnimationMixer(root);
+                    const actions = {};
+                    for (const clip of gltf.animations) {
+                        const match = ['Idle', 'Walk', 'Run', 'Swing'].find(n => clip.name === n || clip.name.endsWith('_' + n) || clip.name.includes(n));
+                        if (match && !actions[match]) {
+                            actions[match] = mixer.clipAction(clip);
+                        }
+                    }
+
+                    mixer.addEventListener('finished', e => {
+                        if (actions.Swing && e.action === actions.Swing) {
+                            isOpponentSwinging = false;
+                            playOpponentAction('Idle', 0.18);
+                        }
+                    });
+
+                    riggedGoose = { root, mixer, actions, ready: true };
+                    root.visible = false;
+                    gGrp.add(root);
+                    if (actions.Idle) actions.Idle.play();
+                    updateOpponentMeshVisibility();
+                    console.log('✅ 匹克鵝 3D 骨骼蒙皮模型成功接入！');
+                } catch(e) {
+                    console.error('Rigged goose setup error:', e);
+                }
+            }, undefined, err => console.warn('Rigged goose load fallback:', err));
+
+            // 2. 載入第 7 關黑天鵝 (black_swan_mobile.glb)
+            loader.load('models/characters/black_swan_mobile.glb', function(gltf) {
+                try {
+                    const root = gltf.scene;
+                    root.updateMatrixWorld(true);
+                    const box = new THREE.Box3().setFromObject(root);
+                    const size = box.getSize(new THREE.Vector3());
+                    const scale = 1.62 / Math.max(0.1, size.y);
+                    root.scale.setScalar(scale);
+                    root.updateMatrixWorld(true);
+
+                    const box2 = new THREE.Box3().setFromObject(root);
+                    const center = box2.getCenter(new THREE.Vector3());
+                    root.position.set(-center.x, -box2.min.y, -center.z);
+                    root.updateMatrixWorld(true);
+
+                    root.traverse(o => {
+                        if (o.isMesh) {
+                            o.castShadow = true;
+                            o.receiveShadow = true;
+                            o.frustumCulled = false;
+                        }
+                    });
+
+                    const socketR = findBone(root, 'PaddleSocket.R');
+                    if (socketR) {
+                        const paddleVisual = new THREE.Mesh(
+                            new THREE.BoxGeometry(0.24, 0.34, 0.03),
+                            new THREE.MeshStandardMaterial({ color: 0xef4444, roughness: 0.28, metalness: 0.3 })
+                        );
+                        paddleVisual.position.set(0, 0.16, 0);
+                        socketR.add(paddleVisual);
+                    }
+
+                    const mixer = new THREE.AnimationMixer(root);
+                    const actions = {};
+                    for (const clip of gltf.animations) {
+                        const match = ['Idle', 'Walk', 'Run', 'Swing'].find(n => clip.name === n || clip.name.endsWith('_' + n) || clip.name.includes(n));
+                        if (match && !actions[match]) {
+                            actions[match] = mixer.clipAction(clip);
+                        }
+                    }
+
+                    mixer.addEventListener('finished', e => {
+                        if (actions.Swing && e.action === actions.Swing) {
+                            isOpponentSwinging = false;
+                            playOpponentAction('Idle', 0.18);
+                        }
+                    });
+
+                    riggedSwan = { root, mixer, actions, ready: true };
+                    root.visible = false;
+                    gGrp.add(root);
+                    if (actions.Idle) actions.Idle.play();
+                    updateOpponentMeshVisibility();
+                    console.log('✅ 冠軍黑天鵝 3D 骨骼蒙皮模型成功接入！');
+                } catch(e) {
+                    console.error('Rigged swan setup error:', e);
+                }
+            }, undefined, err => console.warn('Rigged swan load fallback:', err));
+        }
+
         function updateOpponentMeshVisibility() {
             const isFly = (typeof diffLevel !== 'undefined' && diffLevel === 'fly');
             if (flyMesh) flyMesh.visible = isFly;
-            if (gArm) gArm.visible = !isFly;
             const isSwan = stage === 7;
             const isBoss = !isFly && stage === 5;
-            if (gooseMesh) gooseMesh.visible = !isFly && !isSwan;
-            if (swanMesh) swanMesh.visible = isSwan;
-            if (bossOutfit) bossOutfit.visible = isBoss;
-            if (gooseMayorCap) gooseMayorCap.visible = !isBoss;
+
+            // 若骨骼模型已載入就緒，顯示骨骼模型並隱藏程序化方塊鵝
+            if (riggedGoose.ready) {
+                riggedGoose.root.visible = !isFly && !isSwan;
+                if (gooseMesh) gooseMesh.visible = false;
+                if (gArm && !isFly) gArm.visible = false;
+            } else {
+                if (gooseMesh) gooseMesh.visible = !isFly && !isSwan;
+                if (gArm) gArm.visible = !isFly;
+            }
+
+            if (riggedSwan.ready) {
+                riggedSwan.root.visible = isSwan && !isFly;
+                if (swanMesh) swanMesh.visible = false;
+            } else {
+                if (swanMesh) swanMesh.visible = isSwan;
+            }
+
+            if (bossOutfit) bossOutfit.visible = isBoss && !riggedGoose.ready;
+            if (gooseMayorCap) gooseMayorCap.visible = !isBoss && !riggedGoose.ready;
             if (gArm) gArm.material.color.setHex(isSwan ? 0x111827 : 0xffffff);
             const aiWho = document.getElementById('ai-who-label');
             if (aiWho) aiWho.innerText = isSwan ? '🦢 黑天鵝' : isFly ? '🪰 仿生蒼蠅' : '🪿 匹克鵝';
@@ -20574,6 +20784,106 @@ function cycleTeachLevelQuick() {
             buildCourtSign(4.2, 0.58, '2026 USA PICKLEBALL OFFICIAL HUB', '國際競賽規則手冊 · 虛擬裁判精準判定', '🏆', '#7c341e', '#c86446', (COURT_W / 2 + 1.25), 1.8, -Math.PI / 2);
             // 5. 對手底線後方大看板 (正對鏡頭)：中興大學匹克鵝官方錦標賽 (沉穩深邃林木綠搭配暖金字)
             buildCourtSign(6.2, 0.68, 'NCHU PICKLEBALL · 中興大學匹克鵝打秋', 'LEARNING COMMUNITY · CAMPUS LEADERBOARD ARENA', '🪿', '#142823', '#1b3a30', 0, -(HALF_L + 2.1), 0);
+
+            // 6. 🪰 球場側邊看板旁：3D 果蠅大腦示波器電子實體看板 (FlyWire Connectome 3D Billboard)
+            buildFlyConnectomeBillboard(-(COURT_W / 2 + 1.25), -4.1, Math.PI / 2);
+        }
+
+        let flyBillboardTex = null, flyBillboardCanvas = null, flyBillboardCtx = null;
+        function buildFlyConnectomeBillboard(x, z, rotY) {
+            try {
+                flyBillboardCanvas = document.createElement('canvas');
+                flyBillboardCanvas.width = 512;
+                flyBillboardCanvas.height = 256;
+                flyBillboardCtx = flyBillboardCanvas.getContext('2d');
+                flyBillboardTex = new THREE.CanvasTexture(flyBillboardCanvas);
+
+                const grp = new THREE.Group();
+                grp.position.set(x, 0, z);
+                grp.rotation.y = rotY;
+
+                // A-Frame 支撐架
+                const standMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.6, metalness: 0.5 });
+                const boardGeo = new THREE.BoxGeometry(2.4, 1.2, 0.08);
+                const boardMat = new THREE.MeshStandardMaterial({
+                    map: flyBillboardTex,
+                    roughness: 0.2,
+                    metalness: 0.1,
+                    emissive: 0x022c22,
+                    emissiveIntensity: 0.25
+                });
+                const screen = new THREE.Mesh(boardGeo, boardMat);
+                screen.position.y = 0.95;
+                screen.castShadow = true;
+                grp.add(screen);
+
+                // 外框科技發光邊線
+                const border = new THREE.Mesh(new THREE.BoxGeometry(2.46, 1.26, 0.05),
+                    new THREE.MeshBasicMaterial({ color: 0x10b981, wireframe: true }));
+                border.position.y = 0.95;
+                grp.add(border);
+
+                // 立柱
+                for (const lx of [-0.95, 0.95]) {
+                    const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.05, 0.95, 8), standMat);
+                    leg.position.set(lx, 0.475, 0);
+                    leg.castShadow = true;
+                    grp.add(leg);
+                }
+
+                scene.add(grp);
+            } catch (e) {
+                console.warn('buildFlyConnectomeBillboard failed:', e);
+            }
+        }
+
+        function updateFlyBillboard(time) {
+            if (!flyBillboardCtx || !flyBillboardTex) return;
+            const ctx = flyBillboardCtx;
+            const w = 512, h = 256;
+            ctx.fillStyle = '#060d12';
+            ctx.fillRect(0, 0, w, h);
+
+            // 頂部標題列
+            ctx.fillStyle = '#0d2818';
+            ctx.fillRect(0, 0, w, 36);
+            ctx.fillStyle = '#34d399';
+            ctx.font = 'bold 16px monospace';
+            ctx.fillText('⚡ PRINCETON FlyWire CONNECTOME · SNN SCOPE', 16, 24);
+
+            // 網格線
+            ctx.strokeStyle = 'rgba(16, 185, 129, 0.15)';
+            ctx.lineWidth = 1;
+            for (let y = 45; y < h; y += 25) {
+                ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+            }
+            for (let x = 0; x < w; x += 40) {
+                ctx.beginPath(); ctx.moveTo(x, 36); ctx.lineTo(x, h); ctx.stroke();
+            }
+
+            // 繪製動態神經脈衝波形 (LIF-A membrane wave)
+            ctx.strokeStyle = '#10b981';
+            ctx.lineWidth = 2.5;
+            ctx.beginPath();
+            const phase = time * 8;
+            for (let x = 0; x < w; x += 3) {
+                const normX = x / w;
+                const wave1 = Math.sin(normX * 18 - phase) * 28;
+                const wave2 = Math.sin(normX * 36 + phase * 1.5) * 12;
+                const spike = (Math.sin(normX * 8 - phase * 0.8) > 0.85) ? 45 : 0;
+                const y = 145 + wave1 + wave2 - spike;
+                if (x === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+
+            // 繪製神經突觸放電標籤
+            ctx.fillStyle = '#fbbf24';
+            ctx.font = 'bold 13px monospace';
+            const dlmn = (typeof window !== 'undefined' && window.FLY_BRAIN) ? (window.FLY_BRAIN.dlmnFreq || 70) : 75;
+            ctx.fillText(`DLMn: ${dlmn.toFixed(0)}Hz  |  V_mem: -58.4mV  |  SYN_ACT: HIGH`, 16, h - 14);
+
+            flyBillboardTex.needsUpdate = true;
         }
 
         /* ═══════ 🧱 中興湖對牆擊球特訓木牆 (Wall Rebound Practice) ═══════ */
@@ -21104,6 +21414,7 @@ function cycleTeachLevelQuick() {
             gPad.scale.setScalar(2.175); gGrp.add(gPad); // ★ 對手球拍同步放大 1.5 倍
             scene.add(gGrp);
             updateOpponentMeshVisibility();
+            loadRiggedCharacters();
         }
         function buildGuides() {
             zoneServe = new THREE.Mesh(new THREE.PlaneGeometry(COURT_W / 2 - 0.06, HALF_L - KITCHEN_D - 0.06),
@@ -21641,6 +21952,7 @@ function solveArc(fx, fy, fz, tx, tz, out, speedScale) {
             const isFly = (typeof diffLevel !== 'undefined' && diffLevel === 'fly');
             PH.setPos(gGrp.position.x, 0.80, gGrp.position.z + 0.30);
             state = 'SERVE_AIR'; lastHitter = 'GOOSE';
+            triggerOpponentSwing();
             rallyHits = 1; bounces = 0; gLock = 0.3; pLock = 0;
             const targetX = 1.4 * serveSide, targetZ = 2.6 + Math.random() * 1.6;
             solveArc(PH.pos.x, PH.pos.y, PH.pos.z, targetX, targetZ, PH.vel);
@@ -23008,6 +23320,27 @@ function gooseForceNet(b) {
                 const mv = Math.min(d, spd * dt);
                 gGrp.position.x += dx / d * mv; gGrp.position.z += dz / d * mv;
             }
+
+            // ── 更新 3D 骨骼蒙皮對手動作 (Rigged Character Animation Update) ──
+            const isSwan = (stage === 7);
+            const activeRigged = isSwan ? riggedSwan : riggedGoose;
+            if (activeRigged && activeRigged.ready && activeRigged.mixer && !isFly) {
+                activeRigged.mixer.update(dt);
+                const curPos = gGrp.position;
+                const oppDist = Math.hypot(curPos.x - lastOpponentPos.x, curPos.z - lastOpponentPos.z);
+                const oppSpeed = oppDist / Math.max(0.001, dt);
+                lastOpponentPos.copy(curPos);
+
+                if (!isOpponentSwinging) {
+                    if (oppSpeed > 1.8) {
+                        playOpponentAction('Run', 0.15);
+                    } else if (oppSpeed > 0.15) {
+                        playOpponentAction('Walk', 0.15);
+                    } else {
+                        playOpponentAction('Idle', 0.18);
+                    }
+                }
+            }
             gGrp.rotation.y = Math.PI;
             const py = THREE.MathUtils.clamp(PH.pos.y, 0.22, 1.6);
             const lx = THREE.MathUtils.clamp(PH.pos.x - gGrp.position.x, -0.8, 0.8);
@@ -23206,6 +23539,7 @@ function gooseForceNet(b) {
             }
 
             gLock = 0.28; pLock = 0.15; lastHitter = 'GOOSE'; rallyHits++; bounces = 0;
+            triggerOpponentSwing();
             if (state === 'SERVE_AIR') state = 'RALLY';
             PH.spin = 0; PH.spinInc = 0; // ★ 匹克鵝回擊時清除側旋與偏折，保證回球彈道乾淨平穩
 
@@ -23680,6 +24014,7 @@ function updateGuides(dt) {
             tryHit(); updateGoose(dt); updateCourtEntrance(dt); updateGuides(dt);
             if (typeof FunMode !== 'undefined') FunMode.update(dt);
             updateAimZones(dt); updateRings(dt);
+            updateFlyBillboard(now * 0.001);
 
             // 速度儀表文字降頻更新 (每 4 幀更新一次，徹底消除 Layout Reflow 造成的掉幀)
             if ((loopFrameCount++ & 3) === 0) {
@@ -23801,9 +24136,17 @@ function updateGuides(dt) {
                 cam.position.set(pPos.x * 0.75 + 0.35 + sx, 1.55 + sy, pPos.z + 3.2);
                 cam.lookAt(pPos.x * 0.45, 0.95, -3.5);
             } else if (camViewMode === 3) {
+                if (cam.fov !== 48) { cam.fov = 48; cam.updateProjectionMatrix(); }
                 cam.position.set(7.8 + sx, 4.5 + sy, 0);
                 cam.lookAt(0, 0.8, 0);
+            } else if (camViewMode === 4) {
+                // Mode 4: 104° 超廣角第一人稱視角 (Ultra-Wide FPS Action Cam)
+                if (cam.fov !== 104) { cam.fov = 104; cam.updateProjectionMatrix(); }
+                cam.position.set(pPos.x * 0.95 + sx, 1.48 + sy, pPos.z - 0.05);
+                camLookTarget.set(pPos.x * 0.4, 1.05, -5.0);
+                cam.lookAt(camLookTarget);
             } else {
+                if (cam.fov !== 48) { cam.fov = 48; cam.updateProjectionMatrix(); }
                 // ★ 自訂視角:平滑動態追蹤主角位置 (Smooth Lerp Tracking)
                 const cxp = Math.sin(camCustom.yaw) * camCustom.dist;
                 const czp = Math.cos(camCustom.yaw) * camCustom.dist;

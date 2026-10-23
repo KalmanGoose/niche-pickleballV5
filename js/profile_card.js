@@ -58,7 +58,7 @@
         {
             id: 'giant_fiber',
             icon: '🚲',
-            title: '捷安特神經破風手',
+            title: '捷安特神經領航員',
             desc: '重砲反向截擊速度超越仿生蒼蠅 GFS 巨纖維神經公路！',
             badge: '神經破風'
         },
@@ -95,7 +95,7 @@
         if (level >= 20) title = 'NCHU 傳奇球王 👑';
         else if (level >= 15) title = '中興神鵝認證搭檔 🦢';
         else if (level >= 10) title = '揚州炒飯碳水戰神 🍚';
-        else if (level >= 6) title = '巨纖維捷安特破風手 🚲';
+        else if (level >= 6) title = '巨纖維捷安特領航員 🚲';
         else if (level >= 3) title = '中興湖巡弋截擊手 🎾';
 
         return { level, title, curExpInLevel, maxExpInLevel };

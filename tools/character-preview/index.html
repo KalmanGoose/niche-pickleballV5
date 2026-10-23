@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#264f3c">
+<link rel="icon" href="data:,">
+<title>N-GO 角色手機試玩</title>
+<style>
+*{box-sizing:border-box}html,body{height:100%;margin:0;overflow:hidden}body{background:#e6eadf;color:#284536;font-family:system-ui,-apple-system,sans-serif}button{font:inherit;color:inherit;touch-action:manipulation;cursor:pointer}button:disabled{opacity:.45;cursor:wait}header{position:absolute;top:0;left:0;right:0;padding:calc(12px + env(safe-area-inset-top)) 14px 10px;z-index:2;background:linear-gradient(#f6f3e9 75%,#f6f3e900)}h1{font-size:17px;margin:0 0 10px;font-weight:800}.characters{display:flex;gap:8px}.characters button{padding:9px 15px;border:1px solid #b8c7b0;border-radius:22px;background:#fbf9ef;font-weight:700}.characters button[aria-pressed=true]{background:#315d44;color:#fff9e8;border-color:#315d44}#stage{position:absolute;left:0;right:0;top:105px;bottom:calc(157px + env(safe-area-inset-bottom));touch-action:none}canvas{display:block;width:100%;height:100%}#busy{position:absolute;inset:0;display:grid;place-items:center;pointer-events:none;font-weight:700;padding:30px;text-align:center}footer{position:absolute;bottom:0;left:0;right:0;padding:10px 12px calc(12px + env(safe-area-inset-bottom));background:#f6f3e9eF;border-top:1px solid #c7d0ba;border-radius:22px 22px 0 0}#hint{text-align:center;font-size:12px;margin:0 0 10px;color:#5a6d5a}.actions{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}.actions button{border:1px solid #c3cfb7;border-radius:14px;background:#fffdf5;padding:12px 2px;font-weight:700}.actions button[aria-pressed=true]{background:#467044;border-color:#467044;color:#fffbea}.utility{display:flex;gap:8px;align-items:center;margin-top:8px}.utility button{border:0;border-radius:12px;background:#e4e9d8;padding:9px 12px;font-size:13px}#status{margin-left:auto;font-size:11px;color:#64725d;text-align:right;line-height:1.4}button:focus-visible{outline:3px solid #b98035;outline-offset:2px}@media(max-height:500px){header{padding:8px 12px}h1{display:none}#stage{top:55px;bottom:112px}footer{padding:6px 12px}#hint{display:none}.actions button{padding:8px}.utility{margin-top:5px}.utility button{padding:6px 12px}}
+</style>
+<style>
+#stage{top:calc(105px + env(safe-area-inset-top))}
+#status{white-space:pre-line}
+@media(max-height:500px){#stage{top:calc(55px + env(safe-area-inset-top))}}
+</style>
+</head>
+<body>
+<header><h1>🪿 N-GO 角色手機試玩</h1><div class="characters" aria-label="選擇角色"><button data-character="white" aria-pressed="true">白鵝</button><button data-character="black" aria-pressed="false">黑天鵝</button></div></header>
+<main id="stage" aria-label="可拖曳旋轉的 3D 角色"><div id="busy" role="status">正在載入白鵝…</div></main>
+<footer><p id="hint">單指拖曳轉身 · 雙指縮放</p><div class="actions" aria-label="播放動作"><button data-action="Idle" aria-pressed="true" disabled>站立</button><button data-action="Walk" aria-pressed="false" disabled>走路</button><button data-action="Run" aria-pressed="false" disabled>跑步</button><button data-action="Swing" aria-pressed="false" disabled>揮拍</button></div><div class="utility"><button id="pause" disabled>暫停</button><button id="reset">重置視角</button><span id="status" aria-live="polite">準備模型</span></div></footer>
+<script src="vendor/three.min.js"></script>
+<script src="vendor/GLTFLoader.js"></script>
+<script src="vendor/OrbitControls.js"></script>
+<script>
+'use strict';
+const stage=document.getElementById('stage'), busy=document.getElementById('busy'), status=document.getElementById('status');
+const configs={white:{name:'白鵝',file:'../../models/characters/pickler_goose_mobile.glb'},black:{name:'黑天鵝',file:'../../models/characters/black_swan_mobile.glb'}};
+const scene=new THREE.Scene();scene.background=new THREE.Color(0xe6eadf);
+const camera=new THREE.PerspectiveCamera(34,1,.05,50);
+const renderer=new THREE.WebGLRenderer({antialias:false,alpha:false,powerPreference:'low-power'});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,1.25));renderer.outputEncoding=THREE.sRGBEncoding;
+renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1;
+stage.prepend(renderer.domElement);
+scene.add(new THREE.HemisphereLight(0xfff9eb,0x6b8061,1));
+const light=new THREE.DirectionalLight(0xffffff,1.25);light.position.set(3,6,5);scene.add(light);
+const fill=new THREE.DirectionalLight(0xd9e8ff,.35);fill.position.set(-4,2,-2);scene.add(fill);
+const floor=new THREE.Mesh(new THREE.CircleGeometry(1.28,64),new THREE.MeshBasicMaterial({color:0xc7d7bd,transparent:true,opacity:.6}));floor.rotation.x=-Math.PI/2;floor.position.y=-.012;scene.add(floor);
+const controls=new THREE.OrbitControls(camera,renderer.domElement);controls.enableDamping=true;controls.enablePan=false;controls.minDistance=3;controls.maxDistance=8;controls.maxPolarAngle=Math.PI*.56;
+function resetView(){camera.position.set(2.1,1.8,4.8);controls.target.set(0,1.15,0);controls.update();}
+resetView();
+function resize(){const w=stage.clientWidth,h=stage.clientHeight;renderer.setSize(w,h,false);camera.aspect=w/Math.max(1,h);camera.updateProjectionMatrix();}
+new ResizeObserver(resize).observe(stage);window.addEventListener('resize',resize);resize();
+let root=null,mixer=null,actions={},active=null,selected='white',requestId=0,paused=false,fileKB=0,meshTriangles=0;
+const clock=new THREE.Clock();const loader=new THREE.GLTFLoader();
+window.characterPreview={ready:false,root:null,mixer:null,clips:[],character:selected};
+function dispose(root){const geometries=new Set(),materials=new Set(),textures=new Set();root.traverse(o=>{if(o.geometry)geometries.add(o.geometry);if(o.material)for(const m of [].concat(o.material)){materials.add(m);for(const value of Object.values(m))if(value&&value.isTexture)textures.add(value);}});geometries.forEach(g=>g.dispose());textures.forEach(t=>t.dispose());materials.forEach(m=>m.dispose());}
+function setButtons(){document.querySelectorAll('[data-action]').forEach(b=>{b.disabled=!actions[b.dataset.action];b.setAttribute('aria-pressed',String(active===actions[b.dataset.action]));});}
+function play(name){const next=actions[name];if(!next)return;paused=false;document.getElementById('pause').textContent='暫停';mixer.timeScale=1;next.reset().setEffectiveTimeScale(1).setEffectiveWeight(1);next.setLoop(name==='Swing'?THREE.LoopOnce:THREE.LoopRepeat,name==='Swing'?1:Infinity);next.clampWhenFinished=name==='Swing';if(active&&active!==next)next.crossFadeFrom(active,.15,false);next.play();active=next;window.characterPreview.action=name;setButtons();}
+async function loadCharacter(key){
+ const id=++requestId;selected=key;window.characterPreview.ready=false;busy.hidden=false;busy.style.display='grid';busy.textContent='正在載入'+configs[key].name+'…';
+ document.querySelectorAll('[data-character]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.character===key)));
+ actions={};active=null;setButtons();document.getElementById('pause').disabled=true;
+ try{
+  const response=await fetch(configs[key].file);if(!response.ok)throw new Error('模型讀取失敗（'+response.status+'）');const data=await response.arrayBuffer();
+  const gltf=await new Promise((resolve,reject)=>loader.parse(data,'',resolve,reject));
+  if(id!==requestId){dispose(gltf.scene);return;}
+  if(root){mixer.stopAllAction();mixer.uncacheRoot(root);scene.remove(root);dispose(root);}
+  root=gltf.scene;root.updateMatrixWorld(true);
+  let box=new THREE.Box3().setFromObject(root),size=box.getSize(new THREE.Vector3());const scale=2.4/size.y;
+  root.scale.setScalar(scale);root.updateMatrixWorld(true);box=new THREE.Box3().setFromObject(root);const center=box.getCenter(new THREE.Vector3());root.position.set(-center.x,-box.min.y,-center.z);root.updateMatrixWorld(true);scene.add(root);
+  meshTriangles=0;let skins=0,bones=0,vertexColorMeshes=0;
+  root.traverse(o=>{if(o.isMesh){meshTriangles+=(o.geometry.index?o.geometry.index.count:o.geometry.attributes.position.count)/3;if(o.geometry.attributes.color)vertexColorMeshes++;o.frustumCulled=false;}if(o.isSkinnedMesh)skins++;if(o.isBone)bones++;});
+  mixer=new THREE.AnimationMixer(root);actions={};
+  for(const clip of gltf.animations){const match=['Idle','Walk','Run','Swing'].find(n=>clip.name===n||clip.name.endsWith('_'+n)||clip.name.includes(n));if(match&&!actions[match])actions[match]=mixer.clipAction(clip);}
+  mixer.addEventListener('finished',e=>{if(e.action===actions.Swing&&active===e.action)play('Idle');});
+  fileKB=Math.round(data.byteLength/1024);status.textContent=configs[key].name+' · '+fileKB+' KB';
+  window.characterPreview={ready:true,root,mixer,clips:gltf.animations.map(c=>({name:c.name,duration:c.duration})),character:key,skins,bones,vertexColorMeshes,triangles:meshTriangles,fileKB,action:'Idle'};
+  busy.hidden=true;busy.style.display='none';document.getElementById('pause').disabled=false;play('Idle');clock.getDelta();resetView();
+ }catch(error){if(id!==requestId)return;busy.textContent='載入失敗：'+error.message+'。請重新整理再試。';status.textContent='尚未載入';console.error(error);}
+}
+document.querySelectorAll('[data-character]').forEach(b=>b.addEventListener('click',()=>loadCharacter(b.dataset.character)));
+document.querySelectorAll('[data-action]').forEach(b=>b.addEventListener('click',()=>play(b.dataset.action)));
+document.getElementById('pause').addEventListener('click',()=>{if(!mixer)return;paused=!paused;mixer.timeScale=paused?0:1;document.getElementById('pause').textContent=paused?'繼續播放':'暫停';});
+document.getElementById('reset').addEventListener('click',resetView);
+let frames=0,elapsed=0;function frame(){requestAnimationFrame(frame);const dt=Math.min(clock.getDelta(),.05);if(mixer)mixer.update(dt);controls.update();renderer.render(scene,camera);frames++;elapsed+=dt;if(elapsed>1){if(root)status.textContent=configs[selected].name+' · '+fileKB+' KB\n'+Math.round(frames/elapsed)+' FPS';frames=0;elapsed=0;}}frame();
+loadCharacter('white');
+</script>
+</body>
+</html>
