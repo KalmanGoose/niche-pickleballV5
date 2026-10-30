@@ -228,7 +228,7 @@ function syncSubbarStates() {
     }
     const perfBtn = document.getElementById('subbar-perf-btn');
     if (perfBtn) {
-        const map = { low: '🟢 節能', medium: '🟡 平衡', high: '🔴 原生高畫質', ultra: '🟣 極致' };
+        const map = { low: '🟢 節能', medium: '🟡 平衡', high: '🔴 清晰', ultra: '🟣 超清' };
         perfBtn.innerHTML = `⚡ 畫質: ${map[perfLevel] || perfLevel}`;
     }
     const scaleLbl = document.getElementById('quick-scale-lbl');
@@ -972,7 +972,7 @@ function cycleTeachLevelQuick() {
         }
 
         function syncPerfButtons() {
-            document.querySelectorAll('[data-perf]').forEach(b => b.classList.toggle('on', b.dataset.perf === perfLevel));
+            document.querySelectorAll('[data-perf]').forEach(b => { const selected = b.dataset.perf === perfLevel; b.classList.toggle('on', selected); b.setAttribute('aria-pressed', String(selected)); });
         }
 
         /* ═══════ 效能分級 ═══════ */

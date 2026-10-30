@@ -286,7 +286,17 @@
     <!-- ══════ 音效與觸覺震動設定 ══════ -->
     <div id="audio-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="audio-dialog-title" style="display:none;">
         <div class="modal-card">
-            <h2 id="audio-dialog-title">🎶 音效與震動設定</h2>
+            <h2 id="audio-dialog-title">🎨 畫質、音效與震動</h2>
+            <section class="phone-quality-settings" aria-label="遊戲畫質">
+                <strong>畫面清晰度</strong>
+                <div class="phone-quality-options">
+                    <button type="button" data-perf="low" onclick="applyPerfPreset('low')">節能</button>
+                    <button type="button" data-perf="medium" onclick="applyPerfPreset('medium')">平衡</button>
+                    <button type="button" data-perf="high" onclick="applyPerfPreset('high')">清晰</button>
+                    <button type="button" data-perf="ultra" onclick="applyPerfPreset('ultra')">超清</button>
+                </div>
+                <small>清晰看細節，平衡省負擔；可隨時切換比較。</small>
+            </section>
             <p>設定會自動記憶到本機，打球更具手感。</p>
             <div class="input-group">
                 <div class="pref-row">
@@ -1744,7 +1754,7 @@ I_syn(t) = w_syn · x · u · (dθ/dt)</div>
                         </button>
                         <button class="nook-app phone-app" onclick="toggleNookPhone(false); openAudioModal();">
                             <div class="nook-app-icon phone-app-icon app-settings">🎶</div>
-                            <span class="nook-app-label phone-app-label">音效震動</span>
+                            <span class="nook-app-label phone-app-label">畫質音效</span>
                         </button>
                     </div>
 
@@ -2087,7 +2097,7 @@ I_syn(t) = w_syn · x · u · (dθ/dt)</div>
                     <button id="subbar-joy-btn" onclick="cycleJoySpeedQuick()" style="color:var(--ok);">🕹️ 搖桿: 標準</button>
                     <button id="subbar-movement-btn" onclick="toggleMovementMode()" style="color:var(--ok);">🏃 走位: 自動</button>
                     <button id="subbar-net-assist-btn" onclick="toggleNetAssist()" style="color:var(--dim);">🏃 網前助攻: 關</button>
-                    <button id="subbar-perf-btn" onclick="cyclePerfQuick()">⚡ 畫質: 原生高畫質</button>
+                    <button id="subbar-perf-btn" onclick="cyclePerfQuick()">⚡ 畫質: 清晰</button>
                     <button id="subbar-phys-btn" onclick="togglePhysicsMode()" style="color:#c7d2fe;">🌪️ 物理: ⚡極速</button>
                     <button id="subbar-snn-btn" onclick="toggleSnnHud()" style="color:#c084fc;">⚡ 示波器: 開</button>
                 </div>

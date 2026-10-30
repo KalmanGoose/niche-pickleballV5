@@ -31,34 +31,57 @@
         let pPadVisual = null;
         let gPadVisual = null;
 
-        // 骨骼角色專用握拍產生器 (Character Paddle Visual Generator)
-        function createCharacterPaddle(faceColor = 0x2dd4bf, rimColor = 0x111827) {
+        // Shared paddle artwork and geometry; origin is at the handle for rig sockets.
+        let paddleParts = null;
+        function createCharacterPaddle() {
+            if (!paddleParts) {
+                const shape = new THREE.Shape();
+                shape.moveTo(-0.07, 0.075);
+                shape.quadraticCurveTo(-0.125, 0.09, -0.125, 0.15);
+                shape.lineTo(-0.125, 0.29);
+                shape.quadraticCurveTo(-0.125, 0.385, -0.055, 0.39);
+                shape.lineTo(0.055, 0.39);
+                shape.quadraticCurveTo(0.125, 0.385, 0.125, 0.29);
+                shape.lineTo(0.125, 0.15);
+                shape.quadraticCurveTo(0.125, 0.09, 0.07, 0.075);
+                shape.quadraticCurveTo(0, 0.06, -0.07, 0.075);
+                const rim = new THREE.ExtrudeGeometry(shape, { depth: 0.024, bevelEnabled: false, curveSegments: 8 });
+                rim.translate(0, 0, -0.012);
+                const face = new THREE.ShapeGeometry(shape, 8);
+                const pos = face.attributes.position;
+                const uv = face.attributes.uv;
+                for (let i = 0; i < pos.count; i++) uv.setXY(i, (pos.getX(i) + 0.125) / 0.25, (pos.getY(i) - 0.06) / 0.33);
+                paddleParts = {
+                    rim, face,
+                    rimMat: new THREE.MeshStandardMaterial({ color: 0x234b3b, roughness: 0.65 }),
+                    faceMat: new THREE.MeshStandardMaterial({ map: acPaddleTex(), roughness: 0.58, side: THREE.DoubleSide }),
+                    gripMat: new THREE.MeshStandardMaterial({ color: 0x234b3b, roughness: 0.85 }),
+                    wrapMat: new THREE.MeshStandardMaterial({ color: 0xece1bd, roughness: 0.9 }),
+                    neck: new THREE.CylinderGeometry(0.027, 0.022, 0.035, 10),
+                    grip: new THREE.CylinderGeometry(0.024, 0.024, 0.12, 12),
+                    wrap: new THREE.TorusGeometry(0.0245, 0.0018, 6, 16)
+                };
+            }
             const padGrp = new THREE.Group();
-
-            // 拍面 (Paddle Face)
-            const faceMat = new THREE.MeshStandardMaterial({
-                color: faceColor,
-                roughness: 0.32,
-                metalness: 0.08
-            });
-            const face = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.32, 0.025), faceMat);
-            face.position.set(0, 0.22, 0);
-            face.castShadow = true;
-            padGrp.add(face);
-
-            // 護邊 (Edge Guard)
-            const edgeMat = new THREE.MeshStandardMaterial({ color: rimColor, roughness: 0.6 });
-            const edge = new THREE.Mesh(new THREE.BoxGeometry(0.255, 0.335, 0.02), edgeMat);
-            edge.position.set(0, 0.22, 0);
-            padGrp.add(edge);
-
-            // 握把 (Grip)
-            const gripMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.85 });
-            const grip = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.025, 0.12, 10), gripMat);
-            grip.position.set(0, 0.04, 0);
-            grip.castShadow = true;
-            padGrp.add(grip);
-
+            const rim = new THREE.Mesh(paddleParts.rim, paddleParts.rimMat);
+            rim.castShadow = true; padGrp.add(rim);
+            for (const side of [-1, 1]) {
+                const face = new THREE.Mesh(paddleParts.face, paddleParts.faceMat);
+                face.scale.set(0.9, 0.94, 1);
+                face.position.set(0, 0.0138, side * 0.0125);
+                if (side < 0) face.rotation.y = Math.PI;
+                padGrp.add(face);
+            }
+            const neck = new THREE.Mesh(paddleParts.neck, paddleParts.rimMat);
+            neck.position.y = 0.076; padGrp.add(neck);
+            const grip = new THREE.Mesh(paddleParts.grip, paddleParts.gripMat);
+            grip.position.y = 0.015; grip.castShadow = true; padGrp.add(grip);
+            for (let i = 0; i < 5; i++) {
+                const wrap = new THREE.Mesh(paddleParts.wrap, paddleParts.wrapMat);
+                wrap.position.y = -0.03 + i * 0.022;
+                wrap.rotation.x = Math.PI / 2;
+                padGrp.add(wrap);
+            }
             return padGrp;
         }
 
@@ -734,8 +757,8 @@
         }
 
         function acPaddleTex() {
-            const c = document.createElement('canvas'); c.width = 128; c.height = 160;
-            const ctx = c.getContext('2d');
+            const c = document.createElement('canvas'); c.width = 512; c.height = 640;
+            const ctx = c.getContext('2d'); ctx.scale(4, 4);
             ctx.fillStyle = '#fef3c7'; ctx.fillRect(0, 0, 128, 160);
             ctx.strokeStyle = 'rgba(217, 119, 6, 0.25)'; ctx.lineWidth = 2;
             for (let y = 10; y < 160; y += 18) {
@@ -749,6 +772,8 @@
             ctx.bezierCurveTo(34, 90, 36, 60, 64, 45); ctx.fill();
             ctx.strokeStyle = '#047857'; ctx.lineWidth = 2.5; ctx.beginPath();
             ctx.moveTo(64, 52); ctx.quadraticCurveTo(66, 80, 68, 110); ctx.stroke();
+            ctx.fillStyle = '#234b3b'; ctx.font = 'bold 15px sans-serif'; ctx.textAlign = 'center';
+            ctx.fillText('N-GO', 64, 140);
             const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding;
             return t;
         }
@@ -815,7 +840,7 @@
             const isMobileDevice = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent || '');
             try {
                 ren = new THREE.WebGLRenderer({
-                    antialias: !isMobileDevice,
+                    antialias: true,
                     powerPreference: isMobileDevice ? 'default' : 'high-performance',
                     preserveDrawingBuffer: false
                 });
@@ -826,9 +851,7 @@
                     '請改用 Chrome / Edge 最新版,或在瀏覽器設定中開啟硬體加速。</div>';
                 throw e;
             }
-            const mobileMaxPR = isMobileDevice ? 1.4 : 2.0;
-            const initPR = Math.min(window.devicePixelRatio || 1.5, (typeof PERF_PRESETS !== 'undefined' && typeof perfLevel !== 'undefined' && PERF_PRESETS[perfLevel]) ? Math.min(PERF_PRESETS[perfLevel].pixelRatio, mobileMaxPR) : mobileMaxPR);
-            ren.setPixelRatio(initPR);
+            ren.setPixelRatio(getRenderPixelRatio());
             ren.setSize(dims.w, dims.h);
             ren.outputEncoding = THREE.sRGBEncoding;
             ren.toneMapping = THREE.ACESFilmicToneMapping;
@@ -1697,16 +1720,7 @@
             pGrp.add(pHumanMeshGrp);
 
             pPad = new THREE.Group();
-            pPadVisual = new THREE.Group();
-            const padMat = new THREE.MeshStandardMaterial({ map: acPaddleTex(), roughness: 0.32, metalness: 0.05 });
-            const face = new THREE.Mesh(new THREE.BoxGeometry(0.27, 0.36, 0.035), padMat);
-            face.position.y = 0.18; face.castShadow = true; pPadVisual.add(face);
-            const edge = new THREE.Mesh(new THREE.BoxGeometry(0.29, 0.38, 0.02),
-                new THREE.MeshStandardMaterial({ color: 0x0f766e, roughness: 0.5 }));
-            edge.position.set(0, 0.18, -0.012); pPadVisual.add(edge);
-            const grip = new THREE.Mesh(new THREE.BoxGeometry(0.055, 0.16, 0.055),
-                new THREE.MeshStandardMaterial({ color: 0x0f766e, roughness: 0.8 }));
-            grip.position.y = -0.055; pPadVisual.add(grip);
+            pPadVisual = createCharacterPaddle();
             pPad.add(pPadVisual);
             pPad.scale.setScalar(2.175); pGrp.add(pPad); // ★ 球拍放大 1.5 倍 (1.45 * 1.5 = 2.175)
             scene.add(pGrp);
@@ -1934,13 +1948,7 @@
             gArm = new THREE.Mesh(new THREE.BoxGeometry(0.12, 1, 0.12), gs.clone());
             gArm.castShadow = true; gGrp.add(gArm);
             gPad = new THREE.Group();
-            gPadVisual = new THREE.Group();
-            const gf = new THREE.Mesh(new THREE.BoxGeometry(0.27, 0.36, 0.035),
-                new THREE.MeshStandardMaterial({ color: 0xd9ff5c, roughness: 0.32 }));
-            gf.position.y = 0.18; gf.castShadow = true; gPadVisual.add(gf);
-            const ge = new THREE.Mesh(new THREE.BoxGeometry(0.29, 0.38, 0.02),
-                new THREE.MeshStandardMaterial({ color: 0x24304a, roughness: 0.5 }));
-            ge.position.set(0, 0.18, 0.012); gPadVisual.add(ge);
+            gPadVisual = createCharacterPaddle();
             gPad.add(gPadVisual);
             gPad.scale.setScalar(2.175); gGrp.add(gPad); // ★ 對手球拍同步放大 1.5 倍
             scene.add(gGrp);
@@ -5163,10 +5171,7 @@ function handleStageResize() {
     cam.updateProjectionMatrix();
     BALL_VIS.base = cfg.ballScale;
     BALL_VIS.glow = cfg.glowScale;
-    const isMobile = (typeof isMobileDevice !== 'undefined') ? isMobileDevice : /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent || '');
-    const maxPR = isMobile ? 1.4 : 2.0;
-    const curPR = (typeof PERF_PRESETS !== 'undefined' && typeof perfLevel !== 'undefined' && PERF_PRESETS[perfLevel]) ? Math.min(PERF_PRESETS[perfLevel].pixelRatio, maxPR) : maxPR;
-    ren.setPixelRatio(Math.min(window.devicePixelRatio || 1.5, curPR));
+    ren.setPixelRatio(getRenderPixelRatio());
     ren.setSize(dims.w, dims.h);
 }
 

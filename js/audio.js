@@ -63,7 +63,7 @@
             S.pop(0.9);
             if (typeof toast === 'function') toast('📳 觸覺震動測試成功！', '重砲殺球爆裂手感 [25ms, 15ms, 45ms]');
         }
-        function openAudioModal() { syncAudioUI(); document.getElementById('audio-modal').style.display = 'flex'; closePanel(); S.init(); }
+        function openAudioModal() { syncAudioUI(); if (typeof syncPerfButtons === 'function') syncPerfButtons(); document.getElementById('audio-modal').style.display = 'flex'; closePanel(); S.init(); }
         function closeAudioModal() { document.getElementById('audio-modal').style.display = 'none'; saveAudioPrefs(); clearKeys(); }
         function openTechModal() { document.getElementById('tech-modal').style.display = 'flex'; closePanel(); }
         function closeTechModal() { document.getElementById('tech-modal').style.display = 'none'; clearKeys(); }

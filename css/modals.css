@@ -4116,3 +4116,10 @@
 #lake-goose-dancer::before{content:'';position:absolute;bottom:19px;left:14%;width:72%;height:12px;background:#d5b57c;border:1px solid #ad8c56;border-radius:50%;z-index:-1}
 #char-picker-modal .character-picker-heading p,#char-picker-modal .character-picker-note{color:#627357!important}
 #char-picker-confirm{background:#3d6848;color:#fffbed;border:0;border-radius:14px;padding:14px;font-size:15px;font-weight:800;box-shadow:none}
+
+#audio-modal .modal-card{max-height:88dvh;overflow-y:auto}
+.phone-quality-settings{padding:12px;margin:12px 0;background:#edf2e1;border:1px solid #c4d1af;border-radius:14px;color:#36583e;text-align:left}
+.phone-quality-options{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:10px 0}
+.phone-quality-options button{border:1px solid #b9cba6;border-radius:10px;background:#fffdf3;padding:10px 2px;color:#36583e;font:inherit;font-size:12px;cursor:pointer}
+#audio-modal [data-perf].on{background:#365f44;color:#fffbed;border-color:#365f44}
+.phone-quality-settings small{font-size:11px;color:#607254}
